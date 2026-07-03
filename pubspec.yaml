@@ -1,0 +1,68 @@
+name: look_atlas
+description: "LOOK ATLAS — Flutter app."
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.9.0
+
+dependencies:
+  cached_network_image: ^3.4.1 # disk/memory image caching
+  connectivity_plus: ^7.2.0 # network/offline status
+  cupertino_icons: ^1.0.8
+  dio: ^5.10.0 # HTTP client (see core/network/api_service.dart)
+  flutter:
+    sdk: flutter
+  flutter_riverpod: ^3.3.2 # state management + DI
+  flutter_secure_storage: ^10.3.1 # encrypted token storage
+  flutter_svg: ^2.3.0 # vector icons/assets
+  go_router: ^17.2.3 # declarative routing + auth redirects
+  google_sign_in: ^7.2.0 # Google social sign-in
+  image_picker: ^1.2.2
+  intl: ^0.20.3 # i18n + formatting
+  logger: ^2.7.0 # structured logging (core/logging)
+  package_info_plus: ^9.0.1 # app name/version (shown in Settings)
+  posthog_flutter: ^5.28.0 # product analytics
+  purchases_flutter: ^10.4.0 # RevenueCat subscriptions
+  sentry_flutter: ^9.22.0 # crash + error reporting
+  shared_preferences: ^2.5.5 # non-sensitive key/value store
+  # Apple social sign-in. Capped below 8.0.0: newer releases require Dart
+  # 3.11+ / Flutter 3.41+ (this toolchain is 3.9). Raise after the SDK upgrade.
+  sign_in_with_apple: ^7.0.1
+
+dev_dependencies:
+  # Runner for riverpod_lint (enabled via analyzer plugins in
+  # analysis_options.yaml). Capped at 0.5.x: newer releases need Dart 3.10+.
+  custom_lint: ^0.5.11
+  flutter_test:
+    sdk: flutter
+  mocktail: ^1.0.5 # mocking for unit tests
+  # Riverpod-specific lints. Pinned to the 3.0.0-dev.4 prerelease: every
+  # stable riverpod_lint 3.x that supports riverpod 3.3.x requires Dart
+  # 3.10+ (this toolchain is 3.9). Move to stable after the SDK upgrade.
+  riverpod_lint: ^3.0.0-dev.4
+  # Capped below 10.1.0: newer releases require Dart 3.10+ (this toolchain is
+  # 3.9). Raise this after upgrading the Flutter/Dart SDK.
+  very_good_analysis: ">=10.0.0 <10.1.0"
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - assets/images/
+    - assets/images/onboarding/
+    - assets/images/onboarding/angles/
+
+  # Satoshi — the app's brand typeface (matches the mockup design system).
+  fonts:
+    - family: Satoshi
+      fonts:
+        - asset: assets/fonts/Satoshi-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/Satoshi-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/Satoshi-Bold.ttf
+          weight: 700
+        - asset: assets/fonts/Satoshi-Black.ttf
+          weight: 900

@@ -1,0 +1,16 @@
+# Git hooks via Lefthook. Install once with: `lefthook install`
+# (get it via `brew install lefthook` or `dart pub global activate lefthook`).
+pre-commit:
+  parallel: true
+  commands:
+    format:
+      glob: "*.dart"
+      run: dart format {staged_files} && git add {staged_files}
+    analyze:
+      glob: "*.dart"
+      run: flutter analyze --fatal-infos
+
+pre-push:
+  commands:
+    test:
+      run: flutter test

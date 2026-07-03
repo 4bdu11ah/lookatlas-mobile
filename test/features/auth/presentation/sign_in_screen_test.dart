@@ -1,0 +1,70 @@
+import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:look_atlas/features/auth/di/auth_providers.dart';
+import 'package:look_atlas/features/auth/presentation/screens/sign_in_screen.dart';
+
+import '../../../helpers/fake_repositories.dart';
+
+void main() {
+  Future<void> pumpSignInScreen(WidgetTester tester) {
+    return tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          authRepositoryProvider.overrideWithValue(FakeAuthRepository()),
+        ],
+        child: const MaterialApp(home: SignInScreen()),
+      ),
+    );
+  }
+
+  testWidgets('SignInScreen renders the email/password form', (tester) async {
+    await pumpSignInScreen(tester);
+
+    expect(find.text('Welcome back'), findsOneWidget);
+    expect(find.byType(TextFormField), findsNWidgets(2));
+    expect(find.text('Sign in'), findsOneWidget);
+
+    // Sign-up now lives on its own screen, linked from the footer.
+    expect(find.text('Create account'), findsOneWidget);
+    expect(find.text('Forgot password?'), findsOneWidget);
+  });
+
+  testWidgets('SignInScreen shows the Google button, and the Apple button '
+      'only on Apple platforms', (tester) async {
+    // flutter_test pins defaultTargetPlatform to android: no Apple button.
+    await pumpSignInScreen(tester);
+
+    expect(find.text('or continue with'), findsOneWidget);
+    expect(find.text('Continue with Google'), findsOneWidget);
+    expect(find.text('Continue with Apple'), findsNothing);
+
+    debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
+    await tester.pumpWidget(Container()); // force a fresh build
+    await pumpSignInScreen(tester);
+
+    expect(find.text('Continue with Apple'), findsOneWidget);
+    expect(find.text('Continue with Google'), findsOneWidget);
+    // Must be reset before the test body ends, or the binding's foundation
+    // invariant check fails the test.
+    debugDefaultTargetPlatformOverride = null;
+  });
+
+  testWidgets('SignInScreen surfaces validation errors on submit', (
+    tester,
+  ) async {
+    await pumpSignInScreen(tester);
+
+    await tester.enterText(find.byType(TextFormField).first, 'not-an-email');
+    await tester.enterText(find.byType(TextFormField).last, 'short');
+    await tester.tap(find.text('Sign in'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Please enter a valid email address.'), findsOneWidget);
+    expect(
+      find.text('Password must be at least 8 characters.'),
+      findsOneWidget,
+    );
+  });
+}

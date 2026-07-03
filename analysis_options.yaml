@@ -1,0 +1,27 @@
+# Strict static analysis. `very_good_analysis` is a superset of flutter_lints
+# tuned for production apps. See https://pub.dev/packages/very_good_analysis
+include: package:very_good_analysis/analysis_options.yaml
+
+analyzer:
+  plugins:
+    - custom_lint # riverpod_lint rules
+  language:
+    strict-casts: true
+    strict-raw-types: true
+  errors:
+    # Treat unused code as an error so it never accumulates.
+    unused_import: error
+    unused_local_variable: error
+  exclude:
+    - "**/*.g.dart"
+    - "**/*.freezed.dart"
+    - "build/**"
+
+linter:
+  rules:
+    # The template intentionally ships screens/widgets without doc comments.
+    public_member_api_docs: false
+    lines_longer_than_80_chars: false
+    # Members are wired through Riverpod providers, not reached statically
+    # from main(), which makes this rule report false positives here.
+    unreachable_from_main: false

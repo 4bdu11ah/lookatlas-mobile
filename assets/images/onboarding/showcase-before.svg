@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="480" height="600" viewBox="0 0 480 600">
+  <rect width="480" height="600" fill="#f5f5f5"/>
+  <rect x="120" y="80" width="240" height="380" rx="4" fill="#e8e8e8" stroke="#d0d0d0" stroke-width="1"/>
+  <rect x="160" y="140" width="160" height="220" rx="2" fill="#d4d4d4"/>
+  <text x="240" y="260" text-anchor="middle" font-family="system-ui" font-size="16" fill="#999">Product Photo</text>
+  <text x="240" y="520" text-anchor="middle" font-family="system-ui" font-size="13" fill="#bbb">Flat lay / white background</text>
+  <text x="240" y="545" text-anchor="middle" font-family="system-ui" font-size="12" fill="#ccc">Replace with real image</text>
+</svg>

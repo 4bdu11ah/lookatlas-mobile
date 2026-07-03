@@ -1,0 +1,90 @@
+import 'dart:async';
+import 'dart:io' show Platform;
+
+import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
+
+/// Animated shimmer placeholder shown while an image (or any content) loads:
+/// a soft highlight band sweeps diagonally across a muted base, matching the
+/// monochrome design system. Fills whatever box it's given.
+///
+/// Renders the static base color when `MediaQuery.disableAnimations` is set,
+/// and under `flutter test` — a forever-repeating ticker would otherwise
+/// keep `pumpAndSettle` from ever settling on screens with loading images.
+class ShimmerBox extends StatefulWidget {
+  const ShimmerBox({super.key, this.dark = false, this.borderRadius});
+
+  /// Dark-surface variant for the black paywall/success screens.
+  final bool dark;
+  final BorderRadius? borderRadius;
+
+  @override
+  State<ShimmerBox> createState() => _ShimmerBoxState();
+}
+
+/// True when running under the widget-test harness.
+final bool _isTestEnvironment =
+    !kIsWeb && Platform.environment.containsKey('FLUTTER_TEST');
+
+class _ShimmerBoxState extends State<ShimmerBox>
+    with SingleTickerProviderStateMixin {
+  // Created in initState (not lazily) so dispose never constructs a ticker
+  // while the element tree is being torn down.
+  late final AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1400),
+    );
+    if (!_isTestEnvironment) unawaited(_controller.repeat());
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final (base, highlight) = widget.dark
+        ? (const Color(0xFF1D1D20), const Color(0xFF2E2E31))
+        : (const Color(0xFFE9E9E9), const Color(0xFFF7F7F7));
+
+    if (_isTestEnvironment || MediaQuery.disableAnimationsOf(context)) {
+      return DecoratedBox(
+        decoration: BoxDecoration(
+          color: base,
+          borderRadius: widget.borderRadius,
+        ),
+      );
+    }
+
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, _) {
+        // Slide the highlight band from just off the top-left to just off
+        // the bottom-right each cycle.
+        final t = _controller.value * 1.8 - 0.4;
+        return DecoratedBox(
+          decoration: BoxDecoration(
+            borderRadius: widget.borderRadius,
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [base, highlight, base],
+              stops: [
+                (t - 0.25).clamp(0.0, 1.0),
+                t.clamp(0.0, 1.0),
+                (t + 0.25).clamp(0.0, 1.0),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+}

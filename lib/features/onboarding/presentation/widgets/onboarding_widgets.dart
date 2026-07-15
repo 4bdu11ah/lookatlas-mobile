@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:look_atlas/core/theme/app_colors.dart';
 import 'package:look_atlas/core/theme/app_typography.dart';
 import 'package:look_atlas/shared/widgets/app_image.dart';
 import 'package:look_atlas/shared/widgets/shimmer_box.dart';
@@ -64,13 +65,17 @@ class WizardButton extends StatelessWidget {
       spacing: 8,
       children: [
         if (leading != null) Icon(leading, size: iconSize, color: fg),
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: small ? 13 : 14,
-            height: 1.2,
-            fontWeight: AppTypography.semiBold,
-            color: fg,
+        Flexible(
+          child: Text(
+            label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              fontSize: small ? 13 : 14,
+              height: 1.2,
+              fontWeight: AppTypography.semiBold,
+              color: fg,
+            ),
           ),
         ),
         if (trailing != null) Icon(trailing, size: iconSize, color: fg),
@@ -80,7 +85,7 @@ class WizardButton extends StatelessWidget {
     return Opacity(
       opacity: onTap == null ? 0.5 : 1,
       child: Material(
-        color: outlined ? Colors.transparent : scheme.onSurface,
+        color: outlined ? AppColors.transparent : scheme.onSurface,
         shape: outlined
             ? RoundedRectangleBorder(side: BorderSide(color: scheme.outline))
             : const RoundedRectangleBorder(),
@@ -131,7 +136,6 @@ class WizardNavBar extends StatelessWidget {
           WizardButton(
             label: 'Back',
             onTap: onBack,
-            outlined: true,
             small: true,
             leading: Icons.arrow_back,
           ),
@@ -167,8 +171,8 @@ class ShotImage extends StatelessWidget {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: dark
-              ? const [Color(0xFF2A2A2C), Color(0xFF17171A)]
-              : const [Color(0xFFDCDCDC), Color(0xFFC3C3C3)],
+              ? const [AppColors.neutral950, AppColors.neutral925]
+              : const [AppColors.neutral250, AppColors.neutralMedium],
         ),
       ),
     );

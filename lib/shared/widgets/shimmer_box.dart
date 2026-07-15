@@ -3,6 +3,7 @@ import 'dart:io' show Platform;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:look_atlas/core/theme/app_colors.dart';
 
 /// Animated shimmer placeholder shown while an image (or any content) loads:
 /// a soft highlight band sweeps diagonally across a muted base, matching the
@@ -51,8 +52,8 @@ class _ShimmerBoxState extends State<ShimmerBox>
   @override
   Widget build(BuildContext context) {
     final (base, highlight) = widget.dark
-        ? (const Color(0xFF1D1D20), const Color(0xFF2E2E31))
-        : (const Color(0xFFE9E9E9), const Color(0xFFF7F7F7));
+        ? (AppColors.neutral940, AppColors.neutral945)
+        : (AppColors.neutral225, AppColors.neutral150);
 
     if (_isTestEnvironment || MediaQuery.disableAnimationsOf(context)) {
       return DecoratedBox(

@@ -218,6 +218,7 @@ class _PlanCard extends StatelessWidget {
               label: 'Subscribe',
               isLoading: isPurchasing,
               onPressed: enabled ? onTap : null,
+              fitToContent: true,
             ),
           ],
         ),

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:look_atlas/core/config/app_config.dart';
 import 'package:look_atlas/core/constants/app_assets.dart';
+import 'package:look_atlas/core/theme/app_colors.dart';
 import 'package:look_atlas/features/auth/presentation/auth_controller.dart';
 
 /// "or continue with" divider plus the Apple and Google sign-in buttons.
@@ -83,12 +84,16 @@ class _AppleButton extends StatelessWidget {
     return FilledButton.icon(
       style: FilledButton.styleFrom(
         minimumSize: const Size.fromHeight(48),
-        backgroundColor: isDark ? Colors.white : Colors.black,
-        foregroundColor: isDark ? Colors.black : Colors.white,
+        backgroundColor: isDark ? AppColors.white : AppColors.black,
+        foregroundColor: isDark ? AppColors.black : AppColors.white,
       ),
       onPressed: onPressed,
       icon: const Icon(Icons.apple, size: 22),
-      label: const Text('Continue with Apple'),
+      label: const Text(
+        'Continue with Apple',
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+      ),
     );
   }
 }
@@ -110,7 +115,11 @@ class _GoogleButton extends StatelessWidget {
         width: 18,
         height: 18,
       ),
-      label: const Text('Continue with Google'),
+      label: const Text(
+        'Continue with Google',
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+      ),
     );
   }
 }

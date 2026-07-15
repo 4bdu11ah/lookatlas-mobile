@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:look_atlas/core/theme/app_colors.dart';
 import 'package:look_atlas/shared/widgets/shimmer_box.dart';
 
 /// One widget for every image source. Pass a string and it figures out the
@@ -199,7 +200,7 @@ class AppImage extends StatelessWidget {
   );
 
   Widget get _defaultError => const ColoredBox(
-    color: Color(0x11000000),
+    color: AppColors.blackAlpha07,
     child: Center(child: Icon(Icons.broken_image_outlined)),
   );
 }

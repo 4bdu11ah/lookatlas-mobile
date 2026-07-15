@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:look_atlas/core/theme/app_theme.dart';
 import 'package:look_atlas/shared/widgets/bar_spinner.dart';
 import 'package:look_atlas/shared/widgets/primary_button.dart';
 
@@ -28,7 +29,9 @@ void main() {
     tester,
   ) async {
     await tester.pumpWidget(
-      const MaterialApp(home: Center(child: ButtonLoader(text: 'Signing in'))),
+      const MaterialApp(
+        home: Center(child: ButtonLoader(text: 'Signing in')),
+      ),
     );
 
     expect(find.byType(BarSpinner), findsOneWidget);
@@ -56,5 +59,30 @@ void main() {
       tester.widget<FilledButton>(find.byType(FilledButton)).onPressed,
       isNull,
     );
+  });
+
+  testWidgets('PrimaryButton fits its width to content when requested', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.light(),
+        home: Scaffold(
+          body: SizedBox(
+            width: 300,
+            child: Align(
+              alignment: Alignment.topLeft,
+              child: PrimaryButton(
+                label: 'Done',
+                onPressed: () {},
+                fitToContent: true,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    expect(tester.getSize(find.byType(FilledButton)).width, lessThan(300));
   });
 }

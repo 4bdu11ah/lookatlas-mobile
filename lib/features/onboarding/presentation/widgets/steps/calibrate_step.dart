@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:look_atlas/core/theme/app_colors.dart';
 import 'package:look_atlas/core/theme/app_typography.dart';
 import 'package:look_atlas/features/onboarding/domain/onboarding_models.dart';
 import 'package:look_atlas/features/onboarding/presentation/providers/wizard_controller.dart';
@@ -92,7 +93,11 @@ class CalibrateStep extends ConsumerWidget {
               child: Row(
                 spacing: 12,
                 children: [
-                  const Icon(Icons.check, size: 24, color: Color(0xFF047857)),
+                  const Icon(
+                    Icons.check,
+                    size: 24,
+                    color: AppColors.successDarker,
+                  ),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,

@@ -11,7 +11,7 @@ class ThemeModeController extends Notifier<ThemeMode> {
     final stored = ref.read(keyValueStoreProvider).getString(_key);
     return ThemeMode.values.firstWhere(
       (mode) => mode.name == stored,
-      orElse: () => ThemeMode.system,
+      orElse: () => ThemeMode.light,
     );
   }
 

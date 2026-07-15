@@ -4,7 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:look_atlas/core/router/app_router.dart';
 import 'package:look_atlas/features/auth/di/auth_providers.dart';
 import 'package:look_atlas/features/auth/domain/entities/app_user.dart';
-import 'package:look_atlas/features/home/presentation/screens/dashboard_screen.dart';
+import 'package:look_atlas/features/dashboard/presentation/screens/dashboard_screen.dart';
 import 'package:look_atlas/features/onboarding/presentation/screens/onboarding_wizard_screen.dart';
 import 'package:look_atlas/features/splash/presentation/screens/splash_screen.dart';
 import 'package:look_atlas/features/subscription/di/subscription_providers.dart';

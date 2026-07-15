@@ -10,7 +10,7 @@ import 'package:look_atlas/core/router/app_router.dart';
 import 'package:look_atlas/features/auth/di/auth_providers.dart';
 import 'package:look_atlas/features/auth/domain/entities/app_user.dart';
 import 'package:look_atlas/features/auth/presentation/screens/sign_up_screen.dart';
-import 'package:look_atlas/features/home/presentation/screens/dashboard_screen.dart';
+import 'package:look_atlas/features/dashboard/presentation/screens/dashboard_screen.dart';
 import 'package:look_atlas/features/subscription/di/subscription_providers.dart';
 import 'package:look_atlas/features/subscription/domain/subscription_status.dart';
 import 'package:look_atlas/features/subscription/presentation/screens/paywall_screen.dart';

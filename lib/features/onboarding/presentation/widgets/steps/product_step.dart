@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:look_atlas/core/theme/app_colors.dart';
 import 'package:look_atlas/core/theme/app_typography.dart';
 import 'package:look_atlas/features/onboarding/domain/onboarding_models.dart';
 import 'package:look_atlas/features/onboarding/presentation/providers/wizard_controller.dart';
@@ -487,7 +488,12 @@ class _PhotoGrid extends ConsumerWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Text(
-              'Looking good · ',
+              '${switch (state.photos.length) {
+                1 => 'Add a few more for better results',
+                2 => 'Looking good',
+                3 => 'Great coverage',
+                _ => 'Perfect',
+              }} · ',
               style: TextStyle(
                 fontSize: 14,
                 height: 1.43,
@@ -593,7 +599,7 @@ class _AnglePickerState extends State<_AnglePicker> {
     final scheme = Theme.of(context).colorScheme;
     final unset = widget.angle == null;
     final borderColor = unset
-        ? const Color(0xFFFB923C).withValues(alpha: 0.6)
+        ? AppColors.orange.withValues(alpha: 0.6)
         : scheme.onSurface.withValues(alpha: 0.2);
 
     // Match the menu panel to the trigger's width so it reads as one unit.
@@ -603,9 +609,9 @@ class _AnglePickerState extends State<_AnglePicker> {
         alignmentOffset: const Offset(0, 4),
         style: MenuStyle(
           backgroundColor: WidgetStatePropertyAll(scheme.surface),
-          surfaceTintColor: const WidgetStatePropertyAll(Colors.transparent),
+          surfaceTintColor: const WidgetStatePropertyAll(AppColors.transparent),
           elevation: const WidgetStatePropertyAll(6),
-          shadowColor: const WidgetStatePropertyAll(Color(0x26000000)),
+          shadowColor: const WidgetStatePropertyAll(AppColors.blackAlpha15),
           shape: WidgetStatePropertyAll(
             RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(6),
@@ -706,7 +712,7 @@ class _AngleOption extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
         color: selected
             ? scheme.surfaceContainerHighest.withValues(alpha: 0.6)
-            : Colors.transparent,
+            : AppColors.transparent,
         child: Row(
           children: [
             Expanded(

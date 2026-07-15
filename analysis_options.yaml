@@ -17,6 +17,7 @@ analyzer:
     - "**/*.freezed.dart"
     - "build/**"
 
+
 linter:
   rules:
     # The template intentionally ships screens/widgets without doc comments.

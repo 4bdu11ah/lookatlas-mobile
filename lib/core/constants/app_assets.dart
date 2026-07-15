@@ -22,6 +22,23 @@ abstract final class AppAssets {
       '$_onboarding/showcase-$id-before.jpg';
   static String showcaseAfter(String id) =>
       '$_onboarding/showcase-$id-after.jpg';
+  static const String showcaseDressBefore =
+      '$_onboarding/showcase-dress-before.jpg';
+  static const String showcaseDressAfter =
+      '$_onboarding/showcase-dress-after.jpg';
+  static const String showcaseTshirtBefore =
+      '$_onboarding/showcase-tshirt-before.jpg';
+  static const String showcaseTshirtAfter =
+      '$_onboarding/showcase-tshirt-after.jpg';
+  static const String showcaseBagBefore =
+      '$_onboarding/showcase-bag-before.jpg';
+  static const String showcaseBagAfter = '$_onboarding/showcase-bag-after.jpg';
+  static const String showcaseShoesBefore =
+      '$_onboarding/showcase-shoes-before.jpg';
+  static const String showcaseShoesAfter =
+      '$_onboarding/showcase-shoes-after.jpg';
+  static const String showcaseSunglassesAfter =
+      '$_onboarding/showcase-sunglasses-after.jpg';
 
   // --- Onboarding: generic angle examples ----------------------------------
   static const String angleExampleFront =

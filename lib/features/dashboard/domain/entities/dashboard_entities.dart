@@ -1,0 +1,49 @@
+part of '../../presentation/screens/dashboard_screen.dart';
+
+enum _DashboardPage {
+  dashboard('Dashboard', Icons.dashboard_outlined),
+  workshop('Workshop', Icons.auto_fix_high_outlined),
+  jobs('Shoots', Icons.play_arrow_outlined),
+  jobDetail('Shoot Detail', Icons.image_outlined),
+  create('Create', Icons.auto_awesome_outlined),
+  products('Products', Icons.inventory_2_outlined),
+  models('House Models', Icons.groups_outlined),
+  billing('Billing', Icons.credit_card_outlined),
+  settings('Settings', Icons.settings_outlined),
+  support('Support', Icons.help_outline);
+
+  const _DashboardPage(this.label, this.icon);
+
+  final String label;
+  final IconData icon;
+
+  String get routePath {
+    return switch (this) {
+      _DashboardPage.dashboard => AppRoutes.home,
+      _DashboardPage.workshop => AppRoutes.workshop,
+      _DashboardPage.jobs => AppRoutes.dashboardShoots,
+      _DashboardPage.jobDetail => AppRoutes.dashboardShootDetail,
+      _DashboardPage.create => AppRoutes.dashboardCreate,
+      _DashboardPage.products => AppRoutes.dashboardProducts,
+      _DashboardPage.models => AppRoutes.dashboardModels,
+      _DashboardPage.billing => AppRoutes.dashboardBilling,
+      _DashboardPage.settings => AppRoutes.dashboardAccount,
+      _DashboardPage.support => AppRoutes.dashboardSupport,
+    };
+  }
+}
+
+enum _ModalKind {
+  contextPaywall,
+  product,
+  model,
+  customShot,
+  editAi,
+  versions,
+  video,
+  purchase,
+  subscription,
+  cancelPlan,
+  delete,
+  supportSuccess,
+}

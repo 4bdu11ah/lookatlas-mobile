@@ -86,7 +86,7 @@ class WizardState {
     WizardStep.product =>
       productPhase == ProductPhase.category
           ? category != null
-          : photos.isNotEmpty,
+          : photos.length >= 2,
     WizardStep.calibrate => true,
     WizardStep.model =>
       selectedModel != null ||

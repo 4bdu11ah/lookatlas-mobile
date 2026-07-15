@@ -5,17 +5,23 @@ import 'package:look_atlas/core/logging/app_logger.dart';
 import 'package:look_atlas/core/router/analytics_route_observer.dart';
 import 'package:look_atlas/core/router/app_routes.dart';
 import 'package:look_atlas/core/router/app_transition_page.dart';
-import 'package:look_atlas/features/ai/presentation/screens/chat_screen.dart';
 import 'package:look_atlas/features/auth/di/auth_providers.dart';
 import 'package:look_atlas/features/auth/presentation/auth_controller.dart';
 import 'package:look_atlas/features/auth/presentation/screens/reset_password_screen.dart';
 import 'package:look_atlas/features/auth/presentation/screens/sign_in_screen.dart';
 import 'package:look_atlas/features/auth/presentation/screens/sign_up_screen.dart';
-import 'package:look_atlas/features/home/presentation/screens/dashboard_screen.dart';
+import 'package:look_atlas/features/dashboard/presentation/screens/dashboard_screen.dart';
+import 'package:look_atlas/features/onboarding/presentation/screens/activate_paywall_screen.dart';
+import 'package:look_atlas/features/onboarding/presentation/screens/generation_progress_screen.dart';
 import 'package:look_atlas/features/onboarding/presentation/screens/onboarding_wizard_screen.dart';
+import 'package:look_atlas/features/onboarding/presentation/screens/onetime_success_screen.dart';
+import 'package:look_atlas/features/onboarding/presentation/screens/starting_shoot_screen.dart';
+import 'package:look_atlas/features/onboarding/presentation/screens/swipe_results_screen.dart';
+import 'package:look_atlas/features/onboarding/presentation/screens/swipe_screen.dart';
 import 'package:look_atlas/features/settings/presentation/screens/settings_screen.dart';
 import 'package:look_atlas/features/splash/presentation/screens/splash_screen.dart';
 import 'package:look_atlas/features/subscription/presentation/screens/paywall_screen.dart';
+import 'package:look_atlas/features/workshop/presentation/screens/workshop_screen.dart';
 import 'package:look_atlas/services/service_providers.dart';
 import 'package:look_atlas/shared/widgets/not_found_screen.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
@@ -47,9 +53,6 @@ final routerProvider = Provider<GoRouter>((ref) {
       // Auth-flow routes: reachable signed out, redirected away once signed
       // in (a logged-in user has no business on the sign-in form or the
       // pre-login onboarding funnel).
-      // The onboarding sub-routes below have no GoRoute while their
-      // screens are parked (see restore_parked_features.sh); keeping
-      // them listed is harmless and avoids churn on restore.
       const authRoutes = {
         AppRoutes.onboarding,
         AppRoutes.onboardingStarting,
@@ -102,6 +105,52 @@ final routerProvider = Provider<GoRouter>((ref) {
         ),
       ),
       GoRoute(
+        path: AppRoutes.onboardingStarting,
+        name: 'onboarding_starting',
+        pageBuilder: (_, state) => buildAppTransitionPage(
+          state: state,
+          child: const StartingShootScreen(),
+        ),
+      ),
+      GoRoute(
+        path: AppRoutes.onboardingGeneration,
+        name: 'onboarding_generation',
+        pageBuilder: (_, state) => buildAppTransitionPage(
+          state: state,
+          child: const GenerationProgressScreen(),
+        ),
+      ),
+      GoRoute(
+        path: AppRoutes.onboardingSwipe,
+        name: 'onboarding_swipe',
+        pageBuilder: (_, state) =>
+            buildAppTransitionPage(state: state, child: const SwipeScreen()),
+      ),
+      GoRoute(
+        path: AppRoutes.onboardingResults,
+        name: 'onboarding_results',
+        pageBuilder: (_, state) => buildAppTransitionPage(
+          state: state,
+          child: const SwipeResultsScreen(),
+        ),
+      ),
+      GoRoute(
+        path: AppRoutes.onboardingActivate,
+        name: 'onboarding_activate',
+        pageBuilder: (_, state) => buildAppTransitionPage(
+          state: state,
+          child: const ActivatePaywallScreen(),
+        ),
+      ),
+      GoRoute(
+        path: AppRoutes.onboardingSuccess,
+        name: 'onboarding_success',
+        pageBuilder: (_, state) => buildAppTransitionPage(
+          state: state,
+          child: const OnetimeSuccessScreen(),
+        ),
+      ),
+      GoRoute(
         path: AppRoutes.signIn,
         name: 'sign_in',
         pageBuilder: (_, state) =>
@@ -130,10 +179,84 @@ final routerProvider = Provider<GoRouter>((ref) {
         ),
       ),
       GoRoute(
-        path: AppRoutes.chat,
-        name: 'chat',
-        pageBuilder: (_, state) =>
-            buildAppTransitionPage(state: state, child: const ChatScreen()),
+        path: AppRoutes.workshop,
+        name: 'workshop',
+        pageBuilder: (_, state) => buildAppTransitionPage(
+          state: state,
+          child: const WorkshopScreen(),
+        ),
+      ),
+      GoRoute(
+        path: AppRoutes.workshopGuide,
+        name: 'workshop_guide',
+        pageBuilder: (_, state) => buildAppTransitionPage(
+          state: state,
+          child: const WorkshopGuideScreen(),
+        ),
+      ),
+      GoRoute(
+        path: AppRoutes.dashboardCreate,
+        name: 'dashboard_create',
+        pageBuilder: (_, state) => buildAppTransitionPage(
+          state: state,
+          child: const DashboardFeatureScreen.create(),
+        ),
+      ),
+      GoRoute(
+        path: AppRoutes.dashboardShoots,
+        name: 'dashboard_shoots',
+        pageBuilder: (_, state) => buildAppTransitionPage(
+          state: state,
+          child: const DashboardFeatureScreen.shoots(),
+        ),
+      ),
+      GoRoute(
+        path: AppRoutes.dashboardShootDetail,
+        name: 'dashboard_shoot_detail',
+        pageBuilder: (_, state) => buildAppTransitionPage(
+          state: state,
+          child: const DashboardFeatureScreen.shootDetail(),
+        ),
+      ),
+      GoRoute(
+        path: AppRoutes.dashboardProducts,
+        name: 'dashboard_products',
+        pageBuilder: (_, state) => buildAppTransitionPage(
+          state: state,
+          child: const DashboardFeatureScreen.products(),
+        ),
+      ),
+      GoRoute(
+        path: AppRoutes.dashboardModels,
+        name: 'dashboard_models',
+        pageBuilder: (_, state) => buildAppTransitionPage(
+          state: state,
+          child: const DashboardFeatureScreen.models(),
+        ),
+      ),
+      GoRoute(
+        path: AppRoutes.dashboardBilling,
+        name: 'dashboard_billing',
+        pageBuilder: (_, state) => buildAppTransitionPage(
+          state: state,
+          child: const DashboardFeatureScreen.billing(),
+        ),
+      ),
+      GoRoute(
+        path: AppRoutes.dashboardAccount,
+        name: 'dashboard_account',
+        pageBuilder: (_, state) => buildAppTransitionPage(
+          state: state,
+          child: const DashboardFeatureScreen.account(),
+        ),
+      ),
+      GoRoute(
+        path: AppRoutes.dashboardSupport,
+        name: 'dashboard_support',
+        pageBuilder: (_, state) => buildAppTransitionPage(
+          state: state,
+          child: const DashboardFeatureScreen.support(),
+        ),
       ),
       GoRoute(
         path: AppRoutes.paywall,

@@ -17,8 +17,7 @@ class ConnectivityBanner extends ConsumerStatefulWidget {
   final Widget child;
 
   @override
-  ConsumerState<ConnectivityBanner> createState() =>
-      _ConnectivityBannerState();
+  ConsumerState<ConnectivityBanner> createState() => _ConnectivityBannerState();
 }
 
 class _ConnectivityBannerState extends ConsumerState<ConnectivityBanner> {
@@ -83,10 +82,14 @@ class _ConnectivityBannerState extends ConsumerState<ConnectivityBanner> {
                         color: theme.colorScheme.onErrorContainer,
                       ),
                       const SizedBox(width: 8),
-                      Text(
-                        'No internet connection',
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onErrorContainer,
+                      Flexible(
+                        child: Text(
+                          'No internet connection',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.onErrorContainer,
+                          ),
                         ),
                       ),
                     ],

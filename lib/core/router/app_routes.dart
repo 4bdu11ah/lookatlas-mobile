@@ -15,6 +15,16 @@ abstract final class AppRoutes {
   static const signUp = '/sign-up';
   static const resetPassword = '/reset-password';
   static const home = '/';
+  static const workshop = '/workshop';
+  static const workshopGuide = '/workshop/guide';
+  static const dashboardCreate = '/create';
+  static const dashboardShoots = '/shoots';
+  static const dashboardShootDetail = '/shoots/detail';
+  static const dashboardProducts = '/products';
+  static const dashboardModels = '/models';
+  static const dashboardBilling = '/billing';
+  static const dashboardAccount = '/account';
+  static const dashboardSupport = '/support';
   static const chat = '/chat';
   static const paywall = '/paywall';
   static const settings = '/settings';

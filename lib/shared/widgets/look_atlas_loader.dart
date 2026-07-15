@@ -5,6 +5,7 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
+import 'package:look_atlas/core/theme/app_colors.dart';
 import 'package:look_atlas/core/theme/app_typography.dart';
 
 /// Full-screen loader, a port of the web app's `FullScreenLoader`
@@ -26,8 +27,8 @@ class LookAtlasLoader extends StatefulWidget {
     this.title,
     this.subtitle,
     this.text = 'Look Atlas',
-    this.particleColor = const Color(0xFF0A0A0A),
-    this.backgroundColor = Colors.white,
+    this.particleColor = AppColors.black,
+    this.backgroundColor = AppColors.white,
     // Web uses 6000; lower this if older devices drop frames.
     this.particleCap = 6000,
     this.onIntroStarted,
@@ -99,7 +100,7 @@ class _LookAtlasLoaderState extends State<LookAtlasLoader>
     final tp = TextPainter(
       text: TextSpan(
         text: widget.text,
-        style: _wordmarkStyle(size.width, Colors.black),
+        style: _wordmarkStyle(size.width, AppColors.black),
       ),
       textDirection: TextDirection.ltr,
     )..layout();

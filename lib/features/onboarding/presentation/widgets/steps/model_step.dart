@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:look_atlas/core/theme/app_colors.dart';
 import 'package:look_atlas/core/theme/app_typography.dart';
 import 'package:look_atlas/features/onboarding/di/onboarding_providers.dart';
 import 'package:look_atlas/features/onboarding/domain/look_atlas_model.dart';
@@ -49,6 +50,10 @@ class ModelStep extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(wizardControllerProvider);
     final scheme = Theme.of(context).colorScheme;
+
+    // Watch the provider here so that switching to the "Upload Your Own" tab
+    // doesn't dispose the provider and cause a re-fetch when returning.
+    ref.watch(lookAtlasModelsProvider);
 
     return SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(20, 40, 20, 16),
@@ -159,7 +164,7 @@ class _Tab extends StatelessWidget {
         decoration: BoxDecoration(
           border: Border(
             bottom: BorderSide(
-              color: active ? scheme.onSurface : Colors.transparent,
+              color: active ? scheme.onSurface : AppColors.transparent,
               width: 2,
             ),
           ),
@@ -341,7 +346,11 @@ class _LibraryError extends StatelessWidget {
       child: Column(
         spacing: 12,
         children: [
-          Icon(Icons.wifi_off_rounded, size: 24, color: scheme.onSurfaceVariant),
+          Icon(
+            Icons.wifi_off_rounded,
+            size: 24,
+            color: scheme.onSurfaceVariant,
+          ),
           Text(
             "Couldn't load the model library. Check your connection and "
             'try again.',
@@ -440,7 +449,7 @@ class _ModelCard extends StatelessWidget {
                     gradient: LinearGradient(
                       begin: Alignment.bottomCenter,
                       end: Alignment.topCenter,
-                      colors: [Color(0xB3000000), Color(0x00000000)],
+                      colors: [AppColors.blackAlpha70, AppColors.transparent],
                     ),
                   ),
                   child: Text(
@@ -449,7 +458,7 @@ class _ModelCard extends StatelessWidget {
                       fontSize: 14,
                       height: 1.43,
                       fontWeight: AppTypography.medium,
-                      color: Colors.white,
+                      color: AppColors.white,
                     ),
                   ),
                 ),

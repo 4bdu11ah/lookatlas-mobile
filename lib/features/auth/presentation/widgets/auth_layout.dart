@@ -105,7 +105,9 @@ class AuthSubmitButton extends StatelessWidget {
     return FilledButton(
       style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(48)),
       onPressed: isLoading ? null : onPressed,
-      child: isLoading ? const ButtonLoader() : Text(label),
+      child: isLoading
+          ? const ButtonLoader()
+          : Text(label, maxLines: 1, overflow: TextOverflow.ellipsis),
     );
   }
 }

@@ -118,7 +118,15 @@ const jewelrySubtypes = ['Necklace', 'Ring', 'Earrings', 'Bracelet'];
 const bagSubtypes = ['Handbag', 'Crossbody', 'Tote', 'Backpack'];
 
 /// Angles a product photo can be tagged with on step 2.
-const wizardAngles = ['Front', 'Back', 'Side', 'Detail'];
+const wizardAngles = [
+  'Front',
+  'Back',
+  'Side',
+  'Top',
+  'Bottom',
+  'Detail',
+  'Inside',
+];
 
 /// Max product photos on step 2 and model photos on step 4.
 const int maxWizardPhotos = 4;
@@ -138,7 +146,6 @@ class WizardPhoto {
 
 /// Gender filter for the model library on step 4.
 enum ModelGender { all, women, men }
-
 
 /// A creative director / photo style (step 5).
 @immutable

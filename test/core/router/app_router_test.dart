@@ -3,14 +3,15 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:look_atlas/core/router/app_router.dart';
-import 'package:look_atlas/features/ai/presentation/screens/chat_screen.dart';
+import 'package:look_atlas/core/router/app_routes.dart';
 import 'package:look_atlas/features/auth/di/auth_providers.dart';
 import 'package:look_atlas/features/auth/domain/entities/app_user.dart';
 import 'package:look_atlas/features/auth/presentation/screens/reset_password_screen.dart';
 import 'package:look_atlas/features/auth/presentation/screens/sign_in_screen.dart';
-import 'package:look_atlas/features/home/presentation/screens/dashboard_screen.dart';
+import 'package:look_atlas/features/dashboard/presentation/screens/dashboard_screen.dart';
 import 'package:look_atlas/features/subscription/di/subscription_providers.dart';
 import 'package:look_atlas/features/subscription/presentation/screens/paywall_screen.dart';
+import 'package:look_atlas/features/workshop/presentation/screens/workshop_screen.dart';
 
 import '../../helpers/fake_repositories.dart';
 
@@ -85,18 +86,6 @@ void main() {
   });
 
   group('logged in', () {
-    testWidgets('sign-in with a valid from follows the deep link', (
-      tester,
-    ) async {
-      final router = await pumpRouter(tester, user: user);
-
-      router.go('/sign-in?from=/chat');
-      await tester.pumpAndSettle();
-
-      expect(currentUri(router).path, '/chat');
-      expect(find.byType(ChatScreen), findsOneWidget);
-    });
-
     testWidgets('sign-in with a missing from falls back to home', (
       tester,
     ) async {
@@ -121,16 +110,6 @@ void main() {
       expect(find.byType(DashboardScreen), findsOneWidget);
     });
 
-    testWidgets('protected path renders without a redirect', (tester) async {
-      final router = await pumpRouter(tester, user: user);
-
-      router.go('/chat');
-      await tester.pumpAndSettle();
-
-      expect(currentUri(router).path, '/chat');
-      expect(find.byType(ChatScreen), findsOneWidget);
-    });
-
     testWidgets('paywall stays reachable when signed in', (tester) async {
       final router = await pumpRouter(tester, user: user);
 
@@ -139,6 +118,130 @@ void main() {
 
       expect(currentUri(router).path, '/paywall');
       expect(find.byType(PaywallScreen), findsOneWidget);
+    });
+
+    testWidgets('dashboard feature paths render the matching section', (
+      tester,
+    ) async {
+      final router = await pumpRouter(tester, user: user);
+
+      final cases = {
+        AppRoutes.dashboardCreate: 'New Shoot',
+        AppRoutes.dashboardShoots: 'Shoots',
+        AppRoutes.dashboardShootDetail: 'Summer drop hero shoot',
+        AppRoutes.dashboardProducts: 'Products',
+        AppRoutes.dashboardModels: 'House Models',
+        AppRoutes.dashboardBilling: 'Billing',
+        AppRoutes.dashboardAccount: 'Settings',
+        AppRoutes.dashboardSupport: 'Support',
+      };
+
+      for (final entry in cases.entries) {
+        router.go(entry.key);
+        await tester.pumpAndSettle();
+
+        expect(currentUri(router).path, entry.key);
+        expect(find.byType(DashboardFeatureScreen), findsOneWidget);
+        expect(find.byType(Drawer), findsNothing);
+        expect(find.byIcon(Icons.menu), findsNothing);
+        expect(find.text(entry.value), findsWidgets);
+      }
+    });
+
+    testWidgets('workshop route renders as a standalone feature', (
+      tester,
+    ) async {
+      final router = await pumpRouter(tester, user: user);
+
+      router.go(AppRoutes.workshop);
+      await tester.pumpAndSettle();
+
+      expect(currentUri(router).path, AppRoutes.workshop);
+      expect(find.byType(WorkshopScreen), findsOneWidget);
+      expect(find.byType(Drawer), findsNothing);
+      expect(find.byIcon(Icons.menu), findsNothing);
+      expect(
+        find.textContaining('Reshape any photo with a sentence'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('workshop guide opens and returns through GoRouter', (
+      tester,
+    ) async {
+      final router = await pumpRouter(tester, user: user);
+
+      router.go(AppRoutes.workshop);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('HOW DOES THIS WORK?'));
+      await tester.pumpAndSettle();
+
+      expect(currentUri(router).path, AppRoutes.workshopGuide);
+      expect(find.byType(WorkshopGuideScreen), findsOneWidget);
+      expect(find.byType(Drawer), findsNothing);
+      expect(find.text('One image, one prompt, one credit.'), findsOneWidget);
+
+      final restyle = find.text('Restyle a product');
+      for (var i = 0; i < 5 && restyle.evaluate().isEmpty; i++) {
+        await tester.drag(find.byType(ListView), const Offset(0, -500));
+        await tester.pumpAndSettle();
+      }
+      expect(restyle, findsOneWidget);
+
+      final gotIt = find.text('Got it', skipOffstage: false);
+      await tester.scrollUntilVisible(
+        gotIt,
+        600,
+        scrollable: find.byType(Scrollable).last,
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Got it'));
+      await tester.pumpAndSettle();
+
+      expect(currentUri(router).path, AppRoutes.workshop);
+      expect(find.byType(WorkshopScreen), findsOneWidget);
+    });
+
+    testWidgets('dashboard actions navigate through GoRouter paths', (
+      tester,
+    ) async {
+      final router = await pumpRouter(tester, user: user);
+
+      router.go(AppRoutes.home);
+      await tester.pumpAndSettle();
+      await tester.drag(
+        find.byType(SingleChildScrollView),
+        const Offset(0, -900),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Go to Models'));
+      await tester.pumpAndSettle();
+
+      expect(currentUri(router).path, AppRoutes.dashboardModels);
+      expect(find.text('House Models'), findsOneWidget);
+    });
+
+    testWidgets('drawer pushes feature routes so back returns to dashboard', (
+      tester,
+    ) async {
+      final router = await pumpRouter(tester, user: user);
+
+      router.go(AppRoutes.home);
+      await tester.pumpAndSettle();
+      await tester.tap(find.byIcon(Icons.menu));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('dashboard-drawer-models')));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(Drawer), findsNothing);
+      expect(find.byType(DashboardFeatureScreen), findsOneWidget);
+      expect(find.text('House Models'), findsOneWidget);
+
+      router.pop();
+      await tester.pumpAndSettle();
+
+      expect(find.byType(DashboardScreen), findsOneWidget);
+      expect(find.text('Dashboard'), findsOneWidget);
     });
   });
 }

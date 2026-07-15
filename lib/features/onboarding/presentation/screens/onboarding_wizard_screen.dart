@@ -6,16 +6,17 @@ import 'package:look_atlas/features/onboarding/domain/onboarding_models.dart';
 import 'package:look_atlas/features/onboarding/presentation/providers/wizard_controller.dart';
 import 'package:look_atlas/features/onboarding/presentation/widgets/onboarding_widgets.dart';
 import 'package:look_atlas/features/onboarding/presentation/widgets/steps/calibrate_step.dart';
+import 'package:look_atlas/features/onboarding/presentation/widgets/steps/director_step.dart';
 import 'package:look_atlas/features/onboarding/presentation/widgets/steps/intro_step.dart';
 import 'package:look_atlas/features/onboarding/presentation/widgets/steps/model_step.dart';
 import 'package:look_atlas/features/onboarding/presentation/widgets/steps/product_step.dart';
+import 'package:look_atlas/features/onboarding/presentation/widgets/steps/review_step.dart';
 import 'package:look_atlas/shared/widgets/app_snack_bar.dart';
 
-/// The pre-login free-shoot wizard, currently trimmed to end at the model
-/// step: intro -> product -> choose model -> sign-up. The director, review
-/// and post-shoot screens are parked in `parked_features/` (to be pushed
-/// separately); `./restore_parked_features.sh` restores this file to the
-/// full six-step flow.
+/// The pre-login free-shoot wizard (screens 01–06 of the onboarding mockups).
+/// One route hosts all six steps; [wizardControllerProvider] owns which step
+/// is visible and every selection, so state survives hot reloads and
+/// navigation away and back.
 class OnboardingWizardScreen extends ConsumerWidget {
   const OnboardingWizardScreen({super.key});
 
@@ -26,11 +27,6 @@ class OnboardingWizardScreen extends ConsumerWidget {
         state.photos.isNotEmpty &&
         !state.allAnglesTagged) {
       AppSnackBar.show(context, 'Tag each photo with an angle to continue.');
-      return;
-    }
-    // Funnel currently ends at the model step — hand off to sign-up.
-    if (state.step == WizardStep.model) {
-      context.go(AppRoutes.signUp);
       return;
     }
     final moved = ref.read(wizardControllerProvider.notifier).next();
@@ -85,12 +81,14 @@ class OnboardingWizardScreen extends ConsumerWidget {
                   ),
                 ),
                 child: KeyedSubtree(
-                  key: ValueKey((
-                    state.step,
-                    state.step == WizardStep.product
-                        ? state.productPhase
-                        : null,
-                  )),
+                  key: ValueKey(
+                    (
+                      state.step,
+                      state.step == WizardStep.product
+                          ? state.productPhase
+                          : null,
+                    ),
+                  ),
                   child: switch (state.step) {
                     WizardStep.intro => const IntroStep(),
                     WizardStep.product => ProductStep(
@@ -98,19 +96,18 @@ class OnboardingWizardScreen extends ConsumerWidget {
                     ),
                     WizardStep.calibrate => const CalibrateStep(),
                     WizardStep.model => const ModelStep(),
-                    // Parked steps — unreachable while the funnel ends at
-                    // the model step (restore_parked_features.sh).
-                    WizardStep.director ||
-                    WizardStep.review => const SizedBox.shrink(),
+                    WizardStep.director => const DirectorStep(),
+                    WizardStep.review => const ReviewStep(),
                   },
                 ),
               ),
             ),
             // The intro step sells with its own full-width CTA instead of the
-            // Back/Continue bar.
+            // Back/Continue bar; the review step keeps only Back.
             if (state.step != WizardStep.intro)
               WizardNavBar(
                 onBack: () => _back(context, ref),
+                showContinue: state.step != WizardStep.review,
                 continueLabel: continueLabel,
                 onContinue: state.canContinue
                     ? () => _continue(context, ref)

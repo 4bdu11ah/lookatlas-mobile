@@ -56,13 +56,13 @@ void main() {
     expect(find.text('Products'), findsWidgets);
     expect(find.text('Classic Cotton T-Shirt'), findsOneWidget);
     expect(find.text('Canvas Crossbody Bag'), findsOneWidget);
-    expect(find.text('Search products'), findsOneWidget);
+    expect(find.text('Search by name, sku, or description'), findsOneWidget);
     expect(find.text('All categories'), findsOneWidget);
     expect(find.text('All products'), findsOneWidget);
     expect(find.text('Newest first'), findsOneWidget);
     expect(
       find.textContaining(
-        'Showing 2 of 3 products - 1 calibrated',
+        '3 products - 1 calibrated',
         findRichText: true,
       ),
       findsOneWidget,
@@ -83,7 +83,7 @@ void main() {
     expect(find.text('Classic Cotton T-Shirt'), findsNothing);
     expect(
       find.textContaining(
-        'Showing 1 of 3 products - 1 calibrated',
+        '3 products - 1 calibrated',
         findRichText: true,
       ),
       findsOneWidget,
@@ -96,7 +96,7 @@ void main() {
     expect(find.text('Canvas Crossbody Bag'), findsNothing);
     expect(
       find.textContaining(
-        'Showing 1 of 3 products - 0 calibrated',
+        '3 products - 0 calibrated',
         findRichText: true,
       ),
       findsOneWidget,
@@ -124,7 +124,7 @@ void main() {
     expect(find.text('Canvas Crossbody Bag'), findsNothing);
     expect(
       find.textContaining(
-        'Showing 1 of 3 products - 0 calibrated',
+        '3 products - 0 calibrated',
         findRichText: true,
       ),
       findsOneWidget,

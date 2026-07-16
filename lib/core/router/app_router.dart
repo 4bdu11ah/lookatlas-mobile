@@ -259,6 +259,14 @@ final routerProvider = Provider<GoRouter>((ref) {
         ),
       ),
       GoRoute(
+        path: AppRoutes.dashboardGuides,
+        name: 'dashboard_guides',
+        pageBuilder: (_, state) => buildAppTransitionPage(
+          state: state,
+          child: const DashboardFeatureScreen.guides(),
+        ),
+      ),
+      GoRoute(
         path: AppRoutes.paywall,
         name: 'paywall',
         pageBuilder: (_, state) =>

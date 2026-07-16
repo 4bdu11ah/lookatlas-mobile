@@ -10,7 +10,8 @@ enum _DashboardPage {
   models('House Models', Icons.groups_outlined),
   billing('Billing', Icons.credit_card_outlined),
   settings('Settings', Icons.settings_outlined),
-  support('Support', Icons.help_outline);
+  support('Support', Icons.help_outline),
+  guides('Guides', Icons.menu_book_outlined);
 
   const _DashboardPage(this.label, this.icon);
 
@@ -29,6 +30,7 @@ enum _DashboardPage {
       _DashboardPage.billing => AppRoutes.dashboardBilling,
       _DashboardPage.settings => AppRoutes.dashboardAccount,
       _DashboardPage.support => AppRoutes.dashboardSupport,
+      _DashboardPage.guides => AppRoutes.dashboardGuides,
     };
   }
 }
@@ -41,9 +43,5 @@ enum _ModalKind {
   editAi,
   versions,
   video,
-  purchase,
-  subscription,
-  cancelPlan,
   delete,
-  supportSuccess,
 }

@@ -109,10 +109,27 @@ class DashboardFeatureScreen extends ConsumerWidget {
   const DashboardFeatureScreen.support({super.key})
     : _page = _DashboardPage.support;
 
+  const DashboardFeatureScreen.guides({super.key})
+    : _page = _DashboardPage.guides;
+
   final _DashboardPage _page;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    if (_page == _DashboardPage.billing) {
+      return const _BillingFeatureScaffold();
+    }
+    if (_page == _DashboardPage.support) {
+      return const _SupportFeatureScaffold();
+    }
+    if (_page == _DashboardPage.settings) {
+      return const _SettingsFeatureScaffold();
+    }
+    if (_page == _DashboardPage.guides) {
+      return _GuidesFeatureScaffold(
+        onNavigate: (page) => _navigateDashboard(context, ref, page),
+      );
+    }
     if (_page == _DashboardPage.models) {
       final user = ref.watch(authStateProvider).value;
       final company = user?.companyName?.trim();
@@ -242,15 +259,11 @@ Widget _buildDashboardPage(
       onOpenModal: (kind) => _openDashboardModal(context, ref, kind),
       onToast: (text) => _toastDashboard(context, text),
     ),
-    _DashboardPage.billing => _BillingPage(
-      onOpenModal: (kind) => _openDashboardModal(context, ref, kind),
-    ),
-    _DashboardPage.settings => _SettingsPage(
-      onToast: (text) => _toastDashboard(context, text),
-      onLogOut: () => unawaited(_logOut(context, ref)),
-    ),
-    _DashboardPage.support => _SupportPage(
-      onOpenModal: (kind) => _openDashboardModal(context, ref, kind),
+    _DashboardPage.billing => const _BillingPage(),
+    _DashboardPage.settings => const _SettingsPage(),
+    _DashboardPage.support => const _SupportPage(),
+    _DashboardPage.guides => _GuidesPage(
+      onNavigate: (nextPage) => _navigateDashboard(context, ref, nextPage),
     ),
   };
 }
@@ -280,22 +293,26 @@ class _Header extends StatelessWidget {
           _IconButton(
             icon: Icons.menu,
             label: 'Open navigation',
+            dimension: 40,
             onTap: () => Scaffold.of(context).openDrawer(),
           ),
           const Spacer(),
           InkWell(
             onTap: onToggleUserMenu,
-            child: Container(
-              width: 36,
-              height: 36,
-              color: userMenuOpen ? AppColors.neutralLight : AppColors.black,
-              alignment: Alignment.center,
-              child: Text(
-                initial,
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: AppTypography.bold,
-                  color: userMenuOpen ? AppColors.black : AppColors.white,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              child: Container(
+                width: 36,
+                height: 36,
+                color: userMenuOpen ? AppColors.neutralLight : AppColors.black,
+                alignment: Alignment.center,
+                child: Text(
+                  initial,
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: AppTypography.bold,
+                    color: userMenuOpen ? AppColors.black : AppColors.white,
+                  ),
                 ),
               ),
             ),
@@ -315,12 +332,12 @@ class _DashboardDrawer extends StatelessWidget {
   static const List<_DashboardPage> _items = [
     _DashboardPage.dashboard,
     _DashboardPage.workshop,
-    _DashboardPage.create,
     _DashboardPage.models,
     _DashboardPage.products,
     _DashboardPage.jobs,
     _DashboardPage.billing,
     _DashboardPage.support,
+    _DashboardPage.guides,
     _DashboardPage.settings,
   ];
 
@@ -387,7 +404,10 @@ class _DashboardDrawer extends StatelessWidget {
                       final router = GoRouter.of(context);
                       Scaffold.of(context).closeDrawer();
                       onSelect(item);
-                      if (item == _DashboardPage.dashboard) return;
+                      if (item == _DashboardPage.dashboard) {
+                        router.go(item.routePath);
+                        return;
+                      }
                       unawaited(router.push(item.routePath));
                     },
                   );
@@ -442,7 +462,10 @@ class _UserMenu extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              padding: EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 12,
+              ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [

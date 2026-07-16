@@ -67,4 +67,24 @@ void main() {
       findsOneWidget,
     );
   });
+
+  testWidgets('SignInScreen toggles password visibility', (tester) async {
+    await pumpSignInScreen(tester);
+
+    final passwordField = find.byType(TextFormField).last;
+    final obscuredPasswordInput = tester.widget<EditableText>(
+      find.descendant(of: passwordField, matching: find.byType(EditableText)),
+    );
+    expect(obscuredPasswordInput.obscureText, isTrue);
+    expect(find.byIcon(Icons.visibility_outlined), findsOneWidget);
+
+    await tester.tap(find.byTooltip('Show password'));
+    await tester.pump();
+
+    final visiblePasswordInput = tester.widget<EditableText>(
+      find.descendant(of: passwordField, matching: find.byType(EditableText)),
+    );
+    expect(visiblePasswordInput.obscureText, isFalse);
+    expect(find.byIcon(Icons.visibility_off_outlined), findsOneWidget);
+  });
 }

@@ -11,7 +11,7 @@ class LabeledTextField extends StatelessWidget {
     this.hintText,
     this.helperText,
     this.keyboardType,
-    this.obscureText = false,
+    this.passwordVisibility,
     this.autofillHints,
     this.textInputAction,
     this.validator,
@@ -24,7 +24,7 @@ class LabeledTextField extends StatelessWidget {
   final String? hintText;
   final String? helperText;
   final TextInputType? keyboardType;
-  final bool obscureText;
+  final PasswordVisibilityConfig? passwordVisibility;
   final Iterable<String>? autofillHints;
   final TextInputAction? textInputAction;
   final String? Function(String?)? validator;
@@ -48,7 +48,8 @@ class LabeledTextField extends StatelessWidget {
         TextFormField(
           controller: controller,
           keyboardType: keyboardType,
-          obscureText: obscureText,
+          obscureText:
+              passwordVisibility != null && !passwordVisibility!.isVisible,
           autofillHints: autofillHints,
           textInputAction: textInputAction,
           validator: validator,
@@ -56,6 +57,18 @@ class LabeledTextField extends StatelessWidget {
           style: const TextStyle(fontSize: 16),
           decoration: InputDecoration(
             hintText: hintText,
+            suffixIcon: switch (passwordVisibility) {
+              final config? => IconButton(
+                tooltip: config.isVisible ? 'Hide password' : 'Show password',
+                onPressed: config.onToggle,
+                icon: Icon(
+                  config.isVisible
+                      ? Icons.visibility_off_outlined
+                      : Icons.visibility_outlined,
+                ),
+              ),
+              null => null,
+            },
             contentPadding: const EdgeInsets.symmetric(
               horizontal: 16,
               vertical: 14,
@@ -72,4 +85,14 @@ class LabeledTextField extends StatelessWidget {
       ],
     );
   }
+}
+
+class PasswordVisibilityConfig {
+  const PasswordVisibilityConfig({
+    required this.isVisible,
+    required this.onToggle,
+  });
+
+  final bool isVisible;
+  final VoidCallback onToggle;
 }

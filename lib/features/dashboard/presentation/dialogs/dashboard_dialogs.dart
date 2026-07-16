@@ -166,15 +166,6 @@ class _DashboardModal extends StatelessWidget {
           ),
         ],
       ),
-      _ModalKind.purchase => _PurchaseModal(onToast: onToast),
-      _ModalKind.subscription => _SubscriptionModal(
-        onToast: onToast,
-        onOpenCancel: () {
-          Navigator.pop(context);
-          onOpenModal(_ModalKind.cancelPlan);
-        },
-      ),
-      _ModalKind.cancelPlan => _CancelModal(onToast: onToast),
       _ModalKind.delete => _ModalFrame(
         title: 'Delete Item',
         actions: [
@@ -196,21 +187,6 @@ class _DashboardModal extends StatelessWidget {
         children: const [
           _BodyText(
             'This destructive confirmation appears for product/model deletion.',
-          ),
-        ],
-      ),
-      _ModalKind.supportSuccess => _ModalFrame(
-        title: 'Message Sent',
-        actions: [
-          _Button(
-            label: 'Done',
-            full: true,
-            onTap: () => Navigator.pop(context),
-          ),
-        ],
-        children: const [
-          _BodyText(
-            'Support form success state. The app returns to the support page after closing.',
           ),
         ],
       ),
@@ -292,128 +268,6 @@ class _ModelModal extends StatelessWidget {
         _SelectLike('Female', label: 'Gender *'),
         _InputLike('170 cm', label: 'Height *'),
         _UploadBox(label: 'Photos * 0/5'),
-      ],
-    );
-  }
-}
-
-class _PurchaseModal extends StatelessWidget {
-  const _PurchaseModal({required this.onToast});
-
-  final ValueChanged<String> onToast;
-
-  @override
-  Widget build(BuildContext context) {
-    return _ModalFrame(
-      title: 'Buy Credits',
-      actions: [
-        _Button.secondary(
-          label: 'Cancel',
-          full: true,
-          onTap: () => Navigator.pop(context),
-        ),
-        _Button(
-          label: 'Complete Purchase',
-          full: true,
-          onTap: () {
-            Navigator.pop(context);
-            onToast('Purchase complete');
-          },
-        ),
-      ],
-      children: const [
-        _PlanOption(title: '100 Credits', price: r'$19', active: true),
-        _PlanOption(title: '500 Credits', price: r'$79'),
-        _InputLike('1', label: 'Quantity'),
-        _Alert(
-          kind: _AlertKind.info,
-          text:
-              'Success condition replaces this form with "Purchase complete".',
-        ),
-      ],
-    );
-  }
-}
-
-class _SubscriptionModal extends StatelessWidget {
-  const _SubscriptionModal({
-    required this.onToast,
-    required this.onOpenCancel,
-  });
-
-  final ValueChanged<String> onToast;
-  final VoidCallback onOpenCancel;
-
-  @override
-  Widget build(BuildContext context) {
-    return _ModalFrame(
-      title: 'Modify Subscription',
-      children: [
-        const Row(
-          children: [
-            _MiniButton(label: 'Monthly', active: true),
-            SizedBox(width: 8),
-            _MiniButton(label: 'Yearly'),
-          ],
-        ),
-        const _PlanOption(
-          title: 'Starter',
-          price: r'$49/mo',
-          body: '80 photos',
-        ),
-        const _PlanOption(
-          title: 'Current Plan',
-          price: r'Pro $99/mo',
-          body: '200 photos + AI video',
-          active: true,
-        ),
-        const _PlanOption(
-          title: 'Business',
-          price: r'$249/mo',
-          body: 'Higher throughput',
-        ),
-        _Button.secondary(
-          label: 'Cancel Subscription',
-          full: true,
-          onTap: onOpenCancel,
-        ),
-      ],
-    );
-  }
-}
-
-class _CancelModal extends StatelessWidget {
-  const _CancelModal({required this.onToast});
-
-  final ValueChanged<String> onToast;
-
-  @override
-  Widget build(BuildContext context) {
-    return _ModalFrame(
-      title: 'Cancel Subscription',
-      actions: [
-        _Button.secondary(
-          label: 'Keep Plan',
-          full: true,
-          onTap: () => Navigator.pop(context),
-        ),
-        _Button(
-          label: 'Confirm Cancellation',
-          full: true,
-          onTap: () {
-            Navigator.pop(context);
-            onToast('Cancellation scheduled');
-          },
-        ),
-      ],
-      children: const [
-        _Alert(
-          kind: _AlertKind.warn,
-          text:
-              'Cancelling stops future renewals. Access remains until Aug 9, 2026.',
-        ),
-        _SelectLike('Too expensive', label: 'Reason'),
-        _TextAreaLike('', label: 'Feedback'),
       ],
     );
   }

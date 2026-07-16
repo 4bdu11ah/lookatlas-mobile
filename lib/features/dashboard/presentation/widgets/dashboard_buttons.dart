@@ -87,41 +87,6 @@ class _Button extends StatelessWidget {
   }
 }
 
-class _MiniButton extends StatelessWidget {
-  const _MiniButton({
-    required this.label,
-    this.active = false,
-  });
-
-  final String label;
-  final bool active;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      height: 34,
-      padding: const EdgeInsets.symmetric(horizontal: 12),
-      alignment: Alignment.center,
-      decoration: BoxDecoration(
-        color: active ? AppColors.black : AppColors.white,
-        border: Border.all(
-          color: active ? AppColors.black : AppColors.neutral200,
-        ),
-      ),
-      child: Text(
-        label,
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-        style: TextStyle(
-          color: active ? AppColors.white : AppColors.neutral500,
-          fontSize: 12,
-          fontWeight: AppTypography.bold,
-        ),
-      ),
-    );
-  }
-}
-
 class _FabButton extends StatelessWidget {
   const _FabButton({required this.label, required this.onTap});
 
@@ -170,11 +135,13 @@ class _IconButton extends StatelessWidget {
     required this.icon,
     required this.label,
     required this.onTap,
+    this.dimension = 44,
   });
 
   final IconData icon;
   final String label;
   final VoidCallback onTap;
+  final double dimension;
 
   @override
   Widget build(BuildContext context) {
@@ -184,7 +151,7 @@ class _IconButton extends StatelessWidget {
       child: InkWell(
         onTap: onTap,
         child: SizedBox.square(
-          dimension: 44,
+          dimension: dimension,
           child: Icon(icon, size: 20, color: AppColors.inkAlpha68),
         ),
       ),

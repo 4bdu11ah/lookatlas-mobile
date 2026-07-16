@@ -5,7 +5,9 @@ import 'package:look_atlas/core/error/failure.dart';
 import 'package:look_atlas/core/router/app_routes.dart';
 import 'package:look_atlas/features/auth/domain/validators/auth_validators.dart';
 import 'package:look_atlas/features/auth/presentation/auth_controller.dart';
+import 'package:look_atlas/features/auth/presentation/password_visibility_controller.dart';
 import 'package:look_atlas/features/auth/presentation/widgets/auth_layout.dart';
+import 'package:look_atlas/features/auth/presentation/widgets/auth_password_field.dart';
 import 'package:look_atlas/features/auth/presentation/widgets/labeled_text_field.dart';
 import 'package:look_atlas/features/auth/presentation/widgets/social_sign_in_buttons.dart';
 import 'package:look_atlas/shared/widgets/app_snack_bar.dart';
@@ -91,16 +93,14 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
               validator: AuthValidators.validateEmail,
             ),
             const SizedBox(height: 20),
-            LabeledTextField(
-              label: 'Password',
+            AuthPasswordField(
               controller: _passwordController,
               hintText: 'Create a strong password',
               helperText:
                   'Must be at least '
                   '${AuthValidators.minPasswordLength} characters long',
-              obscureText: true,
               autofillHints: const [AutofillHints.newPassword],
-              textInputAction: TextInputAction.done,
+              visibilityProvider: signUpPasswordVisibilityProvider,
               onFieldSubmitted: (_) => _submit(),
               validator: AuthValidators.validatePassword,
             ),

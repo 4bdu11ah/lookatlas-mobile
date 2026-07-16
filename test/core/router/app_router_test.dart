@@ -134,6 +134,7 @@ void main() {
         AppRoutes.dashboardBilling: 'Billing',
         AppRoutes.dashboardAccount: 'Settings',
         AppRoutes.dashboardSupport: 'Support',
+        AppRoutes.dashboardGuides: 'Guides',
       };
 
       for (final entry in cases.entries) {
@@ -144,6 +145,12 @@ void main() {
         expect(find.byType(DashboardFeatureScreen), findsOneWidget);
         expect(find.byType(Drawer), findsNothing);
         expect(find.byIcon(Icons.menu), findsNothing);
+        if (entry.key == AppRoutes.dashboardBilling ||
+            entry.key == AppRoutes.dashboardSupport ||
+            entry.key == AppRoutes.dashboardGuides ||
+            entry.key == AppRoutes.dashboardAccount) {
+          expect(find.byIcon(Icons.arrow_back), findsOneWidget);
+        }
         expect(find.text(entry.value), findsWidgets);
       }
     });
@@ -219,6 +226,24 @@ void main() {
 
       expect(currentUri(router).path, AppRoutes.dashboardModels);
       expect(find.text('House Models'), findsOneWidget);
+    });
+
+    testWidgets('guide actions navigate to their app routes', (tester) async {
+      final router = await pumpRouter(tester, user: user);
+
+      router.go(AppRoutes.dashboardGuides);
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const ValueKey('guide-tab-productPhotos')),
+      );
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(find.text('Go to Products'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Go to Products'));
+      await tester.pumpAndSettle();
+
+      expect(currentUri(router).path, AppRoutes.dashboardProducts);
+      expect(find.text('Products'), findsWidgets);
     });
 
     testWidgets('drawer pushes feature routes so back returns to dashboard', (

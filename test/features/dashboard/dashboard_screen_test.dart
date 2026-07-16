@@ -157,5 +157,25 @@ void main() {
     expect(find.text('Look Atlas'), findsWidgets);
     expect(find.text('Workshop'), findsWidgets);
     expect(find.text('Settings'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('dashboard-drawer-create')),
+      findsNothing,
+    );
+    final support = find.byKey(
+      const ValueKey('dashboard-drawer-support'),
+    );
+    final guides = find.byKey(const ValueKey('dashboard-drawer-guides'));
+    final settings = find.byKey(
+      const ValueKey('dashboard-drawer-settings'),
+    );
+    expect(guides, findsOneWidget);
+    expect(
+      tester.getTopLeft(support).dy,
+      lessThan(tester.getTopLeft(guides).dy),
+    );
+    expect(
+      tester.getTopLeft(guides).dy,
+      lessThan(tester.getTopLeft(settings).dy),
+    );
   });
 }

@@ -16,12 +16,14 @@ final onboardingRepositoryProvider = Provider<OnboardingRepository>(
 /// failure surfaces so the screen can show a retry.
 final FutureProvider<List<LookAtlasModel>> lookAtlasModelsProvider =
     FutureProvider.autoDispose<List<LookAtlasModel>>((ref) async {
-  final result = await ref.watch(onboardingRepositoryProvider).fetchModels();
-  return result.fold(
-    (models) => models,
-    (failure) {
-      if (AppConfig.isDev) return fallbackLibraryModels;
-      throw failure;
-    },
-  );
-});
+      final result = await ref
+          .watch(onboardingRepositoryProvider)
+          .fetchModels();
+      return result.fold(
+        (models) => models,
+        (failure) {
+          if (AppConfig.isDev) return fallbackLibraryModels;
+          throw failure;
+        },
+      );
+    });

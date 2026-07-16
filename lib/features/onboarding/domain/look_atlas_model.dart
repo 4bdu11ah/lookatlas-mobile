@@ -54,12 +54,11 @@ class LookAtlasModel {
   String get imageUrl =>
       coverThumbnail ?? (photos.isNotEmpty ? photos.first : '');
 
-  static ModelGender? _parseGender(String? raw) =>
-      switch (raw?.toLowerCase()) {
-        'female' || 'women' || 'woman' => ModelGender.women,
-        'male' || 'men' || 'man' => ModelGender.men,
-        _ => null,
-      };
+  static ModelGender? _parseGender(String? raw) => switch (raw?.toLowerCase()) {
+    'female' || 'women' || 'woman' => ModelGender.women,
+    'male' || 'men' || 'man' => ModelGender.men,
+    _ => null,
+  };
 }
 
 /// Built-in starter models, used while the backend is unreachable in dev

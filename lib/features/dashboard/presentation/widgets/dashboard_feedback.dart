@@ -56,10 +56,15 @@ class _Alert extends StatelessWidget {
 enum _BadgeKind { neutral, dark, success, warn }
 
 class _Badge extends StatelessWidget {
-  const _Badge(this.label, {this.kind = _BadgeKind.neutral});
+  const _Badge(
+    this.label, {
+    this.kind = _BadgeKind.neutral,
+    this.rounded = false,
+  });
 
   final String label;
   final _BadgeKind kind;
+  final bool rounded;
 
   @override
   Widget build(BuildContext context) {
@@ -87,6 +92,7 @@ class _Badge extends StatelessWidget {
       decoration: BoxDecoration(
         color: colors.$1,
         border: Border.all(color: colors.$2),
+        borderRadius: rounded ? BorderRadius.circular(999) : null,
       ),
       child: Text(
         label,
@@ -112,6 +118,7 @@ class _StatusBadge extends StatelessWidget {
   Widget build(BuildContext context) {
     return _Badge(
       status[0].toUpperCase() + status.substring(1),
+      rounded: true,
       kind: switch (status) {
         'completed' => _BadgeKind.success,
         'processing' => _BadgeKind.dark,
@@ -127,14 +134,12 @@ class _EmptyState extends StatelessWidget {
     required this.body,
     required this.buttonLabel,
     required this.onTap,
-    this.secondary = false,
   });
 
   final String title;
   final String body;
   final String buttonLabel;
   final VoidCallback onTap;
-  final bool secondary;
 
   @override
   Widget build(BuildContext context) {
@@ -161,36 +166,11 @@ class _EmptyState extends StatelessWidget {
           const SizedBox(height: 8),
           _BodyText(body, textAlign: TextAlign.center),
           const SizedBox(height: 18),
-          if (secondary)
-            _Button.secondary(label: buttonLabel, onTap: onTap)
-          else
-            _Button(label: buttonLabel, onTap: onTap),
-        ],
-      ),
-    );
-  }
-}
-
-class _MetricCard extends StatelessWidget {
-  const _MetricCard(this.label, this.value, [this.caption]);
-
-  final String label;
-  final String value;
-  final String? caption;
-
-  @override
-  Widget build(BuildContext context) {
-    return _Card(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _Eyebrow(label),
-          const SizedBox(height: 4),
-          _CardTitle(value),
-          if (caption != null) ...[
-            const SizedBox(height: 4),
-            _Caption(caption!),
-          ],
+          PrimaryButton(
+            label: buttonLabel,
+            fitToContent: true,
+            onPressed: onTap,
+          ),
         ],
       ),
     );

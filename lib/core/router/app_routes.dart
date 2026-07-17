@@ -17,9 +17,9 @@ abstract final class AppRoutes {
   static const home = '/';
   static const workshop = '/workshop';
   static const workshopGuide = '/workshop/guide';
-  static const dashboardCreate = '/create';
+  static const createShoot = '/create';
   static const dashboardShoots = '/shoots';
-  static const dashboardShootDetail = '/shoots/detail';
+  static const shootDetail = '/shoots/detail';
   static const dashboardProducts = '/products';
   static const dashboardModels = '/models';
   static const dashboardBilling = '/billing';

@@ -60,10 +60,10 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Recent Shoots'), findsOneWidget);
-    expect(find.text('Summer drop hero shoot'), findsOneWidget);
+    expect(find.text('Tan Leather Bag'), findsOneWidget);
     expect(find.text('Completed'), findsOneWidget);
     expect(find.text('Processing'), findsOneWidget);
-    expect(find.text('Pending'), findsOneWidget);
+    expect(find.text('Failed'), findsOneWidget);
     expect(find.text('Manage Models'), findsOneWidget);
     expect(find.text('Upload Products'), findsOneWidget);
     expect(find.text('Workshop'), findsOneWidget);

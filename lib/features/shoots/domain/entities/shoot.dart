@@ -8,6 +8,8 @@ class _Shoot {
     required this.date,
     required this.productAsset,
     required this.modelAsset,
+    this.progress = 1,
+    this.supportTicketId,
   });
 
   final String name;
@@ -16,4 +18,6 @@ class _Shoot {
   final String date;
   final String productAsset;
   final String modelAsset;
+  final double progress;
+  final String? supportTicketId;
 }

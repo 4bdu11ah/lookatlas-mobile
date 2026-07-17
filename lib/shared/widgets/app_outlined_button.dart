@@ -5,6 +5,7 @@ class AppOutlinedButton extends StatelessWidget {
     required this.label,
     required this.onPressed,
     this.icon,
+    this.iconAlignment = IconAlignment.start,
     this.fitToContent = false,
     this.height = 48,
     this.borderColor,
@@ -18,6 +19,7 @@ class AppOutlinedButton extends StatelessWidget {
   final String label;
   final VoidCallback? onPressed;
   final IconData? icon;
+  final IconAlignment iconAlignment;
   final bool fitToContent;
   final double height;
   final Color? borderColor;
@@ -46,26 +48,22 @@ class AppOutlinedButton extends StatelessWidget {
           mainAxisSize: fitToContent ? MainAxisSize.min : MainAxisSize.max,
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            if (icon != null) ...[
+            if (icon != null && iconAlignment == IconAlignment.start) ...[
               Icon(icon, size: iconSize, color: effectiveForeground),
               const SizedBox(width: 8),
             ],
-            if (fitToContent)
-              Text(
+            Flexible(
+              child: Text(
                 label,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: textStyle,
-              )
-            else
-              Flexible(
-                child: Text(
-                  label,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: textStyle,
-                ),
               ),
+            ),
+            if (icon != null && iconAlignment == IconAlignment.end) ...[
+              const SizedBox(width: 8),
+              Icon(icon, size: iconSize, color: effectiveForeground),
+            ],
           ],
         ),
       ),

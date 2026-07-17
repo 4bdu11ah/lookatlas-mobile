@@ -195,11 +195,11 @@ final routerProvider = Provider<GoRouter>((ref) {
         ),
       ),
       GoRoute(
-        path: AppRoutes.dashboardCreate,
-        name: 'dashboard_create',
+        path: AppRoutes.createShoot,
+        name: 'create_shoot',
         pageBuilder: (_, state) => buildAppTransitionPage(
           state: state,
-          child: const DashboardFeatureScreen.create(),
+          child: const CreateShootScreen(),
         ),
       ),
       GoRoute(
@@ -211,11 +211,11 @@ final routerProvider = Provider<GoRouter>((ref) {
         ),
       ),
       GoRoute(
-        path: AppRoutes.dashboardShootDetail,
-        name: 'dashboard_shoot_detail',
+        path: AppRoutes.shootDetail,
+        name: 'shoot_detail',
         pageBuilder: (_, state) => buildAppTransitionPage(
           state: state,
-          child: const DashboardFeatureScreen.shootDetail(),
+          child: const ShootDetailScreen(),
         ),
       ),
       GoRoute(

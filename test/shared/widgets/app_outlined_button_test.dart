@@ -52,4 +52,47 @@ void main() {
     expect(find.byIcon(Icons.refresh), findsOneWidget);
     expect(tester.getSize(find.byType(AppOutlinedButton)).height, 34);
   });
+
+  testWidgets('AppOutlinedButton supports a trailing icon', (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.light(),
+        home: Scaffold(
+          body: AppOutlinedButton(
+            label: 'Next',
+            icon: Icons.arrow_forward,
+            iconAlignment: IconAlignment.end,
+            onPressed: () {},
+          ),
+        ),
+      ),
+    );
+
+    expect(
+      tester.getCenter(find.text('Next')).dx,
+      lessThan(tester.getCenter(find.byIcon(Icons.arrow_forward)).dx),
+    );
+  });
+
+  testWidgets('AppOutlinedButton fitToContent shrinks in narrow space', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.light(),
+        home: Scaffold(
+          body: SizedBox(
+            width: 90,
+            child: AppOutlinedButton(
+              label: 'View all shoots',
+              fitToContent: true,
+              onPressed: () {},
+            ),
+          ),
+        ),
+      ),
+    );
+
+    expect(tester.takeException(), isNull);
+  });
 }

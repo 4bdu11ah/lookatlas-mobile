@@ -85,4 +85,47 @@ void main() {
 
     expect(tester.getSize(find.byType(FilledButton)).width, lessThan(300));
   });
+
+  testWidgets('PrimaryButton supports a trailing icon', (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.light(),
+        home: Scaffold(
+          body: PrimaryButton(
+            label: 'Next',
+            icon: Icons.arrow_forward,
+            iconAlignment: IconAlignment.end,
+            onPressed: () {},
+          ),
+        ),
+      ),
+    );
+
+    expect(
+      tester.getCenter(find.text('Next')).dx,
+      lessThan(tester.getCenter(find.byIcon(Icons.arrow_forward)).dx),
+    );
+  });
+
+  testWidgets('PrimaryButton fitToContent shrinks in narrow space', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.light(),
+        home: Scaffold(
+          body: SizedBox(
+            width: 90,
+            child: PrimaryButton(
+              label: 'Generate Video',
+              fitToContent: true,
+              onPressed: () {},
+            ),
+          ),
+        ),
+      ),
+    );
+
+    expect(tester.takeException(), isNull);
+  });
 }

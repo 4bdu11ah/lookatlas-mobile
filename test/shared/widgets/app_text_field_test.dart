@@ -4,6 +4,26 @@ import 'package:look_atlas/core/theme/app_theme.dart';
 import 'package:look_atlas/shared/widgets/app_text_field.dart';
 
 void main() {
+  testWidgets('AppTextField manages an optional controller and shows a label', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.light(),
+        home: const Scaffold(
+          body: AppTextField(
+            labelText: 'Product name *',
+            hintText: 'e.g., Classic Cotton T-Shirt',
+          ),
+        ),
+      ),
+    );
+
+    expect(find.text('Product name *'), findsOneWidget);
+    await tester.enterText(find.byType(TextField), 'Leather Bag');
+    expect(find.text('Leather Bag'), findsOneWidget);
+  });
+
   testWidgets('AppTextField shows its hint and reports text changes', (
     tester,
   ) async {

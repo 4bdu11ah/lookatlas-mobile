@@ -85,14 +85,8 @@ class DashboardScreen extends ConsumerWidget {
 }
 
 class DashboardFeatureScreen extends ConsumerWidget {
-  const DashboardFeatureScreen.create({super.key})
-    : _page = _DashboardPage.create;
-
   const DashboardFeatureScreen.shoots({super.key})
     : _page = _DashboardPage.jobs;
-
-  const DashboardFeatureScreen.shootDetail({super.key})
-    : _page = _DashboardPage.jobDetail;
 
   const DashboardFeatureScreen.products({super.key})
     : _page = _DashboardPage.products;
@@ -151,6 +145,30 @@ class DashboardFeatureScreen extends ConsumerWidget {
         onToast: (text) => _toastDashboard(context, text),
       );
     }
+    if (_page == _DashboardPage.jobs) {
+      final screen = _buildDashboardPage(context, ref, _page);
+      return Scaffold(
+        backgroundColor: AppColors.neutral50,
+        appBar: CustomAppBar(
+          title: 'Shoots',
+          showBackButton: true,
+          onBack: () =>
+              _navigateDashboard(context, ref, _DashboardPage.dashboard),
+        ),
+        body: SafeArea(
+          bottom: false,
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 430),
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 28),
+                child: screen,
+              ),
+            ),
+          ),
+        ),
+      );
+    }
     final screen = _buildDashboardPage(context, ref, _page);
     return Scaffold(
       backgroundColor: AppColors.neutral100,
@@ -205,9 +223,8 @@ Future<void> _openDashboardModal(
   _ModalKind kind,
 ) {
   ref.read(_dashboardShellControllerProvider.notifier).closeUserMenu();
-  return showDialog<void>(
+  return showAppDialog<void>(
     context: context,
-    barrierColor: AppDialogConfig.standard.barrierColor,
     builder: (_) => _DashboardModal(
       kind: kind,
       onNavigate: (page) => _navigateDashboard(context, ref, page),
@@ -240,17 +257,7 @@ Widget _buildDashboardPage(
       'Workshop uses its own GoRouter screen.',
     ),
     _DashboardPage.jobs => _JobsPage(
-      onNavigate: (nextPage) => _navigateDashboard(context, ref, nextPage),
-    ),
-    _DashboardPage.jobDetail => _JobDetailPage(
-      onNavigate: (nextPage) => _navigateDashboard(context, ref, nextPage),
       onOpenModal: (kind) => _openDashboardModal(context, ref, kind),
-      onToast: (text) => _toastDashboard(context, text),
-    ),
-    _DashboardPage.create => _CreatePage(
-      onNavigate: (nextPage) => _navigateDashboard(context, ref, nextPage),
-      onOpenModal: (kind) => _openDashboardModal(context, ref, kind),
-      onToast: (text) => _toastDashboard(context, text),
     ),
     _DashboardPage.products => _ProductsPage(
       onToast: (text) => _toastDashboard(context, text),
@@ -391,10 +398,7 @@ class _DashboardDrawer extends StatelessWidget {
                 separatorBuilder: (_, _) => const SizedBox(height: 4),
                 itemBuilder: (context, index) {
                   final item = _items[index];
-                  final active =
-                      selected == item ||
-                      (selected == _DashboardPage.jobDetail &&
-                          item == _DashboardPage.jobs);
+                  final active = selected == item;
                   return _NavTile(
                     tileKey: ValueKey('dashboard-drawer-${item.name}'),
                     icon: item.icon,

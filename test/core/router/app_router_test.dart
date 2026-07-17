@@ -12,6 +12,7 @@ import 'package:look_atlas/features/dashboard/presentation/screens/dashboard_scr
 import 'package:look_atlas/features/subscription/di/subscription_providers.dart';
 import 'package:look_atlas/features/subscription/presentation/screens/paywall_screen.dart';
 import 'package:look_atlas/features/workshop/presentation/screens/workshop_screen.dart';
+import 'package:look_atlas/shared/widgets/custom_app_bar.dart';
 
 import '../../helpers/fake_repositories.dart';
 
@@ -126,9 +127,8 @@ void main() {
       final router = await pumpRouter(tester, user: user);
 
       final cases = {
-        AppRoutes.dashboardCreate: 'New Shoot',
         AppRoutes.dashboardShoots: 'Shoots',
-        AppRoutes.dashboardShootDetail: 'Summer drop hero shoot',
+        AppRoutes.shootDetail: 'Tan Leather Bag',
         AppRoutes.dashboardProducts: 'Products',
         AppRoutes.dashboardModels: 'House Models',
         AppRoutes.dashboardBilling: 'Billing',
@@ -142,17 +142,39 @@ void main() {
         await tester.pumpAndSettle();
 
         expect(currentUri(router).path, entry.key);
-        expect(find.byType(DashboardFeatureScreen), findsOneWidget);
+        if (entry.key == AppRoutes.shootDetail) {
+          expect(find.byType(ShootDetailScreen), findsOneWidget);
+          expect(find.byType(DashboardFeatureScreen), findsNothing);
+        } else {
+          expect(find.byType(DashboardFeatureScreen), findsOneWidget);
+        }
         expect(find.byType(Drawer), findsNothing);
         expect(find.byIcon(Icons.menu), findsNothing);
-        if (entry.key == AppRoutes.dashboardBilling ||
-            entry.key == AppRoutes.dashboardSupport ||
-            entry.key == AppRoutes.dashboardGuides ||
-            entry.key == AppRoutes.dashboardAccount) {
-          expect(find.byIcon(Icons.arrow_back), findsOneWidget);
-        }
+        expect(find.byType(CustomAppBar), findsOneWidget);
+        expect(
+          find.descendant(
+            of: find.byType(CustomAppBar),
+            matching: find.byIcon(Icons.arrow_back),
+          ),
+          findsOneWidget,
+        );
         expect(find.text(entry.value), findsWidgets);
       }
+    });
+
+    testWidgets('create shoot path renders its standalone screen', (
+      tester,
+    ) async {
+      final router = await pumpRouter(tester, user: user);
+
+      router.go(AppRoutes.createShoot);
+      await tester.pumpAndSettle();
+
+      expect(currentUri(router).path, AppRoutes.createShoot);
+      expect(find.byType(CreateShootScreen), findsOneWidget);
+      expect(find.byType(DashboardFeatureScreen), findsNothing);
+      expect(find.byType(CustomAppBar), findsOneWidget);
+      expect(find.text('Create Shoot'), findsWidgets);
     });
 
     testWidgets('workshop route renders as a standalone feature', (

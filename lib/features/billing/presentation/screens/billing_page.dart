@@ -365,50 +365,6 @@ class _BillingHistoryRow extends StatelessWidget {
   }
 }
 
-class _PlanRow extends StatelessWidget {
-  const _PlanRow(this.title, this.body);
-
-  final String title;
-  final String body;
-
-  @override
-  Widget build(BuildContext context) {
-    return _Card(
-      padding: const EdgeInsets.all(16),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [_CardTitle(title), _Caption(body)],
-            ),
-          ),
-          const _Badge('Selected', kind: _BadgeKind.dark),
-        ],
-      ),
-    );
-  }
-}
-
-class _ProgressHead extends StatelessWidget {
-  const _ProgressHead({required this.label, required this.value});
-
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Expanded(child: _CardTitle(label)),
-        const SizedBox(width: 12),
-        _Badge(value, kind: _BadgeKind.dark),
-      ],
-    );
-  }
-}
-
 class _ProgressBar extends StatelessWidget {
   const _ProgressBar({required this.value});
 

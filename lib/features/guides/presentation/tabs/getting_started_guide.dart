@@ -106,7 +106,7 @@ class _GettingStartedGuide extends StatelessWidget {
               title: 'Shoots',
               body: 'Full production photo shoots',
               buttonLabel: 'Create Shoot',
-              onTap: () => onNavigate(_DashboardPage.create),
+              onTap: () => unawaited(context.push<void>(AppRoutes.createShoot)),
             ),
           ],
         ),

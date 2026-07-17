@@ -1,39 +1,5 @@
 part of '../screens/dashboard_screen.dart';
 
-class _Grid2 extends StatelessWidget {
-  const _Grid2({required this.children});
-
-  final List<Widget> children;
-
-  @override
-  Widget build(BuildContext context) {
-    return GridView.count(
-      crossAxisCount: 2,
-      crossAxisSpacing: 12,
-      mainAxisSpacing: 12,
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      children: children,
-    );
-  }
-}
-
-class _RowWrap extends StatelessWidget {
-  const _RowWrap({required this.children});
-
-  final List<Widget> children;
-
-  @override
-  Widget build(BuildContext context) {
-    return Wrap(
-      spacing: 12,
-      runSpacing: 12,
-      crossAxisAlignment: WrapCrossAlignment.center,
-      children: children,
-    );
-  }
-}
-
 class _Stack extends StatelessWidget {
   const _Stack({required this.children, this.gap = 20});
 

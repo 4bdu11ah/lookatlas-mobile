@@ -9,6 +9,7 @@ class PrimaryButton extends StatelessWidget {
     required this.onPressed,
     this.isLoading = false,
     this.icon,
+    this.iconAlignment = IconAlignment.start,
     this.fitToContent = false,
     this.height = 48,
     this.backgroundColor,
@@ -22,6 +23,7 @@ class PrimaryButton extends StatelessWidget {
   final VoidCallback? onPressed;
   final bool isLoading;
   final IconData? icon;
+  final IconAlignment iconAlignment;
   final bool fitToContent;
   final double height;
   final Color? backgroundColor;
@@ -50,26 +52,22 @@ class PrimaryButton extends StatelessWidget {
                     : MainAxisSize.max,
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  if (icon != null) ...[
+                  if (icon != null && iconAlignment == IconAlignment.start) ...[
                     Icon(icon, size: iconSize),
                     const SizedBox(width: 8),
                   ],
-                  if (fitToContent)
-                    Text(
+                  Flexible(
+                    child: Text(
                       label,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: textStyle,
-                    )
-                  else
-                    Flexible(
-                      child: Text(
-                        label,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: textStyle,
-                      ),
                     ),
+                  ),
+                  if (icon != null && iconAlignment == IconAlignment.end) ...[
+                    const SizedBox(width: 8),
+                    Icon(icon, size: iconSize),
+                  ],
                 ],
               ),
       ),

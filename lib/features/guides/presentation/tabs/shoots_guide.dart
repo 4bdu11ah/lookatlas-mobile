@@ -86,7 +86,7 @@ class _ShootsGuide extends StatelessWidget {
         ),
         _GuideRouteButton(
           label: 'Create Your First Shoot',
-          onTap: () => onNavigate(_DashboardPage.create),
+          onTap: () => unawaited(context.push<void>(AppRoutes.createShoot)),
         ),
       ],
     );

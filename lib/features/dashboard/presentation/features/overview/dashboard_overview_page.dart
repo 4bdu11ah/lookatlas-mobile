@@ -10,6 +10,7 @@ class _DashboardPageView extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(_dashboardOverviewControllerProvider);
+    final shootsController = ref.read(_shootsControllerProvider.notifier);
     return _Stack(
       gap: 12,
       children: [
@@ -18,7 +19,14 @@ class _DashboardPageView extends ConsumerWidget {
           body: "Welcome back! Here's your Look Atlas overview.",
         ),
         const _StatsList(),
-        _RecentShoots(shoots: state.shoots, onNavigate: onNavigate),
+        _RecentShoots(
+          shoots: state.shoots,
+          onNavigate: onNavigate,
+          onOpenShoot: (shoot) {
+            shootsController.selectShoot(shoot);
+            unawaited(context.push<void>(AppRoutes.shootDetail));
+          },
+        ),
         _QuickActions(onNavigate: onNavigate),
       ],
     );
@@ -83,10 +91,12 @@ class _RecentShoots extends StatelessWidget {
   const _RecentShoots({
     required this.shoots,
     required this.onNavigate,
+    required this.onOpenShoot,
   });
 
   final List<_Shoot> shoots;
   final ValueChanged<_DashboardPage> onNavigate;
+  final ValueChanged<_Shoot> onOpenShoot;
 
   @override
   Widget build(BuildContext context) {
@@ -100,11 +110,12 @@ class _RecentShoots extends StatelessWidget {
               children: [
                 const Expanded(child: _SectionTitle('Recent Shoots')),
                 const SizedBox(width: 12),
-                _Button.secondary(
+                AppOutlinedButton(
                   label: 'View all shoots',
                   icon: Icons.arrow_forward,
                   iconAlignment: IconAlignment.end,
-                  onTap: () => onNavigate(_DashboardPage.jobs),
+                  fitToContent: true,
+                  onPressed: () => onNavigate(_DashboardPage.jobs),
                 ),
               ],
             ),
@@ -114,7 +125,7 @@ class _RecentShoots extends StatelessWidget {
             _ShootRow(
               shoot: shoots[i],
               striped: i.isOdd,
-              onTap: () => onNavigate(_DashboardPage.jobDetail),
+              onTap: () => onOpenShoot(shoots[i]),
             ),
         ],
       ),
@@ -159,7 +170,7 @@ class _QuickActions extends StatelessWidget {
           title: 'New Shoot',
           subtitle: 'Create Shoot',
           body: 'Generate new on-model product photos with AI.',
-          onTap: () => onNavigate(_DashboardPage.create),
+          onTap: () => unawaited(context.push<void>(AppRoutes.createShoot)),
         ),
       ],
     );

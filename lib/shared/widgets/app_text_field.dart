@@ -2,10 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 /// App-wide text input styled by [ThemeData.inputDecorationTheme].
-class AppTextField extends StatelessWidget {
+class AppTextField extends StatefulWidget {
   const AppTextField({
-    required this.controller,
+    this.controller,
     this.fieldKey,
+    this.labelText,
     this.hintText,
     this.onChanged,
     this.keyboardType,
@@ -31,8 +32,9 @@ class AppTextField extends StatelessWidget {
 
   static const double singleLineHeight = 55;
 
-  final TextEditingController controller;
+  final TextEditingController? controller;
   final Key? fieldKey;
+  final String? labelText;
   final String? hintText;
   final ValueChanged<String>? onChanged;
   final TextInputType? keyboardType;
@@ -46,24 +48,109 @@ class AppTextField extends StatelessWidget {
   final bool showCounter;
 
   @override
+  State<AppTextField> createState() => _AppTextFieldState();
+}
+
+class _AppTextFieldState extends State<AppTextField> {
+  TextEditingController? _ownedController;
+
+  TextEditingController get _controller =>
+      widget.controller ?? _ownedController!;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.controller == null) {
+      _ownedController = TextEditingController();
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant AppTextField oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.controller == widget.controller) return;
+    if (widget.controller == null) {
+      _ownedController = TextEditingController(
+        text: oldWidget.controller?.text,
+      );
+      return;
+    }
+    _ownedController?.dispose();
+    _ownedController = null;
+  }
+
+  @override
+  void dispose() {
+    _ownedController?.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final isMultiline = maxLines > 1;
-    final textField = TextField(
-      key: fieldKey,
-      controller: controller,
-      onChanged: onChanged,
+    final field = _buildField(context);
+    if (widget.labelText == null) return field;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          widget.labelText!,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w700,
+            color: Theme.of(context).colorScheme.onSurface,
+          ),
+        ),
+        const SizedBox(height: 6),
+        field,
+      ],
+    );
+  }
+
+  Widget _buildField(BuildContext context) {
+    final textField = _buildTextField();
+    final field = widget.maxLines > 1
+        ? textField
+        : SizedBox(height: widget.height, child: textField);
+    if (widget.maxLength == null || !widget.showCounter) return field;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        field,
+        const SizedBox(height: 6),
+        ValueListenableBuilder<TextEditingValue>(
+          valueListenable: _controller,
+          builder: (_, value, _) => Text(
+            '${value.text.characters.length}/${widget.maxLength}',
+            style: TextStyle(
+              fontSize: 12,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  TextField _buildTextField() {
+    final isMultiline = widget.maxLines > 1;
+    return TextField(
+      key: widget.fieldKey,
+      controller: _controller,
+      onChanged: widget.onChanged,
       textAlignVertical: isMultiline
           ? TextAlignVertical.top
           : TextAlignVertical.center,
-      minLines: minLines,
-      maxLines: maxLines,
-      maxLength: maxLength,
+      minLines: widget.minLines,
+      maxLines: widget.maxLines,
+      maxLength: widget.maxLength,
       maxLengthEnforcement: MaxLengthEnforcement.enforced,
       keyboardType:
-          keyboardType ??
+          widget.keyboardType ??
           (isMultiline ? TextInputType.multiline : TextInputType.text),
       textInputAction:
-          textInputAction ??
+          widget.textInputAction ??
           (isMultiline ? TextInputAction.newline : TextInputAction.done),
       style: const TextStyle(
         fontSize: 16,
@@ -71,42 +158,23 @@ class AppTextField extends StatelessWidget {
         fontWeight: FontWeight.w500,
       ),
       decoration: InputDecoration(
-        hintText: hintText,
+        hintText: widget.hintText,
         hintStyle: const TextStyle(fontSize: 14),
         isDense: true,
         contentPadding: const EdgeInsets.symmetric(
           horizontal: 14,
           vertical: 14,
         ),
-        prefixIcon: leading,
-        prefixIconConstraints: leading == null
+        prefixIcon: widget.leading,
+        prefixIconConstraints: widget.leading == null
             ? null
             : const BoxConstraints(minWidth: 40),
-        suffixIcon: trailing,
-        suffixIconConstraints: trailing == null
+        suffixIcon: widget.trailing,
+        suffixIconConstraints: widget.trailing == null
             ? null
             : const BoxConstraints(minWidth: 40),
-        counterText: maxLength == null ? null : '',
+        counterText: widget.maxLength == null ? null : '',
       ),
-    );
-    final field = isMultiline
-        ? textField
-        : SizedBox(height: height, child: textField);
-    if (maxLength == null || !showCounter) return field;
-    final scheme = Theme.of(context).colorScheme;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        field,
-        const SizedBox(height: 6),
-        ValueListenableBuilder<TextEditingValue>(
-          valueListenable: controller,
-          builder: (_, value, _) => Text(
-            '${value.text.characters.length}/$maxLength',
-            style: TextStyle(fontSize: 12, color: scheme.onSurfaceVariant),
-          ),
-        ),
-      ],
     );
   }
 }

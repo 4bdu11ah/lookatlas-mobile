@@ -7,6 +7,8 @@ import 'package:go_router/go_router.dart';
 import 'package:look_atlas/core/router/app_router.dart';
 import 'package:look_atlas/core/router/app_routes.dart';
 import 'package:look_atlas/features/auth/di/auth_providers.dart';
+import 'package:look_atlas/features/auth/presentation/screens/sign_up_screen.dart';
+import 'package:look_atlas/features/billing/di/billing_api_providers.dart';
 import 'package:look_atlas/features/onboarding/di/onboarding_providers.dart';
 import 'package:look_atlas/features/onboarding/domain/look_atlas_model.dart';
 import 'package:look_atlas/features/onboarding/domain/onboarding_models.dart';
@@ -49,6 +51,7 @@ void main() {
         lookAtlasModelsProvider.overrideWith(
           (ref) async => fallbackLibraryModels,
         ),
+        billingPlansProvider.overrideWith((ref) async => const []),
       ],
     );
     addTearDown(container.dispose);
@@ -151,6 +154,11 @@ void main() {
     expect(find.text('Everything looks good'), findsOneWidget);
     expect(find.text('Start My Free Shoot'), findsOneWidget);
     expect(find.text('Alex Chen'), findsOneWidget);
+
+    await tester.ensureVisible(find.text('Start My Free Shoot'));
+    await tester.tap(find.text('Start My Free Shoot'));
+    await tester.pumpAndSettle();
+    expect(find.byType(SignUpScreen), findsOneWidget);
 
     await teardownTree(tester);
   });
@@ -290,7 +298,7 @@ void main() {
     await teardownTree(tester);
   });
 
-  testWidgets('one-time success confirms, then offers the Pro upsell', (
+  testWidgets('one-time success rejects a missing checkout session', (
     tester,
   ) async {
     final router = await pumpApp(tester);
@@ -298,19 +306,7 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 400));
     expect(find.byType(OnetimeSuccessScreen), findsOneWidget);
-    expect(find.text('Confirming your purchase…'), findsOneWidget);
-
-    await tester.pump(const Duration(seconds: 3));
-    await tester.pump(const Duration(milliseconds: 500));
-    expect(find.text('Your shoot is yours.'), findsOneWidget);
-
-    await tester.tap(find.text('Your Pro offer is open'));
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 400));
-    expect(
-      find.text('20% off Pro — exclusive to your purchase.'),
-      findsOneWidget,
-    );
+    expect(find.text("Payment didn't go through"), findsOneWidget);
 
     await teardownTree(tester);
   });

@@ -34,7 +34,7 @@ class ModelStep extends ConsumerWidget {
       case PhotoPickResult.truncated:
         AppSnackBar.show(
           context,
-          'You can upload up to $maxWizardPhotos photos.',
+          'You can upload up to $maxModelPhotos photos.',
         );
       case PhotoPickResult.failed:
         AppSnackBar.showError(
@@ -562,7 +562,7 @@ class _UploadTab extends ConsumerWidget {
                     ),
                     const SizedBox(height: 6),
                     Text(
-                      'Up to $maxWizardPhotos photos of the same person from '
+                      'Up to $maxModelPhotos photos of the same person from '
                       'different angles.',
                       textAlign: TextAlign.center,
                       style: TextStyle(
@@ -615,7 +615,7 @@ class _UploadTab extends ConsumerWidget {
                 ),
               for (
                 var i = state.uploadedModelPhotos.length;
-                i < maxWizardPhotos;
+                i < maxModelPhotos;
                 i++
               )
                 const Expanded(child: SizedBox.shrink()),

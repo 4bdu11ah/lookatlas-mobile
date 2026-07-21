@@ -16,7 +16,7 @@ if (keystorePropertiesFile.exists()) {
 }
 
 android {
-    namespace = "com.example.look_atlas"
+    namespace = "com.lookatlas"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
@@ -30,10 +30,7 @@ android {
     }
 
     defaultConfig {
-        // Note: applicationId and namespace intentionally differ — the Kotlin
-        // package stays under com.example.look_atlas while the store identity
-        // is com.metasense.lookatlas.
-        applicationId = "com.metasense.lookatlas"
+        applicationId = "com.lookatlas"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion

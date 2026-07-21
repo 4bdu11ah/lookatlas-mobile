@@ -109,7 +109,7 @@ class _SwipeScreenState extends ConsumerState<SwipeScreen>
         _entryRevealTimer != null) {
       return;
     }
-    if (!ref.read(generationControllerProvider).isComplete) return;
+    if (ref.read(generationControllerProvider).readyCount == 0) return;
     _entryRevealTimer = Timer(_entryCompleteHoldDuration, () {
       if (mounted) setState(() => _entryLoadingDone = true);
     });
@@ -117,7 +117,8 @@ class _SwipeScreenState extends ConsumerState<SwipeScreen>
 
   void _onDecision({required bool saved}) {
     final state = ref.read(swipeControllerProvider);
-    if (state.isFinished) {
+    final generation = ref.read(generationControllerProvider);
+    if (generation.isTerminal && state.currentIndex >= generation.readyCount) {
       context.go(AppRoutes.onboardingResults);
       return;
     }
@@ -156,10 +157,31 @@ class _SwipeScreenState extends ConsumerState<SwipeScreen>
     final scheme = Theme.of(context).colorScheme;
     final width = MediaQuery.sizeOf(context).width;
     ref.listen(generationControllerProvider, (_, next) {
-      if (next.isComplete) _maybeRevealEntryLoading();
+      if (next.readyCount > 0) _maybeRevealEntryLoading();
+      if (next.shouldOpenPlans && mounted) {
+        context.go(AppRoutes.onboardingActivate);
+      }
     });
 
-    if (swipe.isFinished) {
+    if (generation.jobStatus == 'failed' && generation.images.isEmpty) {
+      return Scaffold(
+        backgroundColor: scheme.surface,
+        body: SafeArea(
+          child: Center(
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Text(
+                'Your shoot could not be generated. Please contact support.',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: scheme.onSurface),
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    if (generation.isTerminal && swipe.currentIndex >= generation.readyCount) {
       // Finished deck (e.g. resumed route): move on to results.
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) context.go(AppRoutes.onboardingResults);
@@ -167,7 +189,7 @@ class _SwipeScreenState extends ConsumerState<SwipeScreen>
       return Scaffold(backgroundColor: scheme.surface, body: const SizedBox());
     }
 
-    final index = swipe.currentIndex;
+    final index = swipe.currentIndex.clamp(0, generation.images.length - 1);
     final image = generation.images[index];
     final entryLoading = !_entryLoadingDone;
     final waiting = entryLoading || !image.isReady;

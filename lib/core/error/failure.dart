@@ -20,11 +20,13 @@ class NetworkFailure extends Failure {
   const NetworkFailure(
     super.message, {
     this.statusCode,
+    this.code,
     super.cause,
     super.stackTrace,
   });
 
   final int? statusCode;
+  final String? code;
 }
 
 class AuthFailure extends Failure {
@@ -58,6 +60,10 @@ class AiFailure extends Failure {
 
 class CacheFailure extends Failure {
   const CacheFailure(super.message, {super.cause, super.stackTrace});
+}
+
+class ValidationFailure extends Failure {
+  const ValidationFailure(super.message, {super.cause, super.stackTrace});
 }
 
 /// The operation was cancelled intentionally (e.g. via a `CancelToken` when

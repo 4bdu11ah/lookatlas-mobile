@@ -128,8 +128,11 @@ const wizardAngles = [
   'Inside',
 ];
 
-/// Max product photos on step 2 and model photos on step 4.
+/// Max product photos on step 2.
 const int maxWizardPhotos = 4;
+
+/// Max user-model photos on step 4.
+const int maxModelPhotos = 4;
 
 /// One product photo added in the wizard, plus the angle the user tagged it
 /// with (null until they pick one).
@@ -163,6 +166,19 @@ class Director {
 
   /// Reference brands, rendered as "Like `<brands>`".
   final String brands;
+
+  String get apiId => switch (id) {
+    'alex' => 'clean-pro',
+    'isabella' => 'luxury-editorial',
+    'marcus' => 'bold-dramatic',
+    'jordan' => 'street-energy',
+    'suki' => 'minimalist',
+    'emma' => 'lifestyle-natural',
+    'natalie' => 'fine-jewelry',
+    'devon' => 'editorial-jewelry',
+    'beatrice' => 'heirloom-children',
+    _ => 'clean-pro',
+  };
 
   String get imageUrl => 'https://picsum.photos/seed/la-dir-$id/600/800';
 

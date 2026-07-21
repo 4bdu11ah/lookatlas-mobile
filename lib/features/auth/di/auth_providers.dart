@@ -1,5 +1,4 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:look_atlas/core/config/app_config.dart';
 import 'package:look_atlas/core/network/api_service.dart';
 import 'package:look_atlas/core/providers/core_providers.dart';
 import 'package:look_atlas/features/auth/data/data_sources/auth_local_data_source.dart';
@@ -13,6 +12,7 @@ import 'package:look_atlas/features/auth/domain/use_cases/sign_in_with_apple_use
 import 'package:look_atlas/features/auth/domain/use_cases/sign_in_with_google_use_case.dart';
 import 'package:look_atlas/features/auth/domain/use_cases/sign_out_use_case.dart';
 import 'package:look_atlas/features/auth/domain/use_cases/sign_up_use_case.dart';
+import 'package:look_atlas/services/service_providers.dart';
 
 /// Dependency injection for the auth feature: wires the data source, repository
 /// and use cases together. Presentation code (controllers, screens) depends on
@@ -32,13 +32,17 @@ final socialAuthDataSourceProvider = Provider<SocialAuthDataSource>(
 /// client's 401 interceptor, so it must not re-enter that same queued
 /// interceptor chain.
 final authPublicApiServiceProvider = Provider<ApiService>(
-  (ref) => ApiService(baseUrl: AppConfig.apiBaseUrl),
+  (ref) => ref.watch(publicApiServiceProvider),
 );
 
 final authRemoteDataSourceProvider = Provider<AuthRemoteDataSource>(
   (ref) => AuthRemoteDataSourceImpl(
     api: ref.watch(apiServiceProvider),
     publicApi: ref.watch(authPublicApiServiceProvider),
+    registrationContext: () async => ref
+        .read(deviceTokenServiceProvider)
+        .context()
+        .then((value) => value.toRegistrationJson()),
   ),
 );
 

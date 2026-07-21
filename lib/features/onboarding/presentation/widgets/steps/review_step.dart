@@ -2,14 +2,18 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:look_atlas/core/constants/app_assets.dart';
+import 'package:look_atlas/core/error/failure.dart';
 import 'package:look_atlas/core/router/app_routes.dart';
 import 'package:look_atlas/core/theme/app_colors.dart';
 import 'package:look_atlas/core/theme/app_typography.dart';
-import 'package:look_atlas/features/onboarding/presentation/providers/generation_controller.dart';
+import 'package:look_atlas/features/auth/di/auth_providers.dart';
+import 'package:look_atlas/features/onboarding/di/onboarding_providers.dart';
+import 'package:look_atlas/features/onboarding/presentation/controllers/onboarding_submission_controller.dart';
 import 'package:look_atlas/features/onboarding/presentation/providers/swipe_controller.dart';
 import 'package:look_atlas/features/onboarding/presentation/providers/wizard_controller.dart';
 import 'package:look_atlas/features/onboarding/presentation/widgets/onboarding_widgets.dart';
 import 'package:look_atlas/shared/widgets/app_image.dart';
+import 'package:look_atlas/shared/widgets/app_snack_bar.dart';
 
 /// Wizard step 6 — review the Product / Model / Style picks and start the
 /// free shoot (mockup 06).
@@ -23,15 +27,66 @@ class ReviewStep extends ConsumerStatefulWidget {
 class _ReviewStepState extends ConsumerState<ReviewStep> {
   int _productPhoto = 0;
 
-  void _startShoot() {
-    ref.read(generationControllerProvider.notifier).start();
+  Future<void> _startShoot() async {
+    if (ref.read(authRepositoryProvider).currentUser == null) {
+      context.go(AppRoutes.signUp);
+      return;
+    }
+    final wizard = ref.read(wizardControllerProvider);
+    final success = await ref
+        .read(onboardingSubmissionControllerProvider.notifier)
+        .submit(wizard);
+    if (!mounted) return;
+    if (!success) {
+      final failure = ref.read(onboardingSubmissionControllerProvider).failure;
+      AppSnackBar.showError(
+        context,
+        failure?.message ?? 'Could not start your free shoot.',
+      );
+      if (failure is NetworkFailure &&
+          failure.statusCode == 403 &&
+          {'FREE_SHOOT_UNAVAILABLE', 'FORBIDDEN'}.contains(failure.code)) {
+        context.go(AppRoutes.onboardingActivate);
+      } else if (failure is NetworkFailure &&
+          failure.statusCode == 409 &&
+          failure.code == 'CONFLICT') {
+        await _recoverConflict();
+      }
+      return;
+    }
     ref.read(swipeControllerProvider.notifier).reset();
-    context.go(AppRoutes.onboardingStarting);
+    context.go(AppRoutes.onboardingSwipe);
+  }
+
+  Future<void> _recoverConflict() async {
+    ref.invalidate(onboardingStatusProvider);
+    try {
+      final status = await ref.read(onboardingStatusProvider.future);
+      if (!mounted) return;
+      final jobStatus = status.onboardingJobStatus?.toLowerCase();
+      if ({
+        'generating',
+        'enqueued',
+        'processing',
+        'completed',
+      }.contains(jobStatus)) {
+        context.go(AppRoutes.onboardingSwipe);
+      } else if (status.freeShootUsed) {
+        context.go(AppRoutes.onboardingActivate);
+      }
+    } on Object {
+      // The original server message remains visible. User can retry safely.
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(wizardControllerProvider);
+    final isSubmitting = ref.watch(
+      onboardingSubmissionControllerProvider.select(
+        (value) => value.isSubmitting,
+      ),
+    );
     final scheme = Theme.of(context).colorScheme;
 
     final photos = state.photos;
@@ -171,10 +226,12 @@ class _ReviewStepState extends ConsumerState<ReviewStep> {
             spacing: 12,
             children: [
               WizardButton(
-                label: 'Start My Free Shoot',
+                label: isSubmitting
+                    ? 'Starting Shoot...'
+                    : 'Start My Free Shoot',
                 trailing: Icons.arrow_forward,
                 expand: true,
-                onTap: _startShoot,
+                onTap: isSubmitting ? null : _startShoot,
               ),
               Text(
                 'Completely free. No credit card required.',

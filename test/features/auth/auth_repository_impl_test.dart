@@ -326,10 +326,16 @@ void main() {
     when(() => storage.read(any())).thenAnswer(
       (_) async => '{"id":"local-1","email":"jane@example.com"}',
     );
+    when(remote.verify).thenAnswer(
+      (_) async => const Result.ok(
+        AppUserModel(id: 'remote-1', email: 'jane@example.com'),
+      ),
+    );
 
     await repository.restore();
 
     expect(repository.currentUser?.email, 'jane@example.com');
+    verify(remote.verify).called(1);
   });
 
   test('signOut calls the backend and clears the session', () async {

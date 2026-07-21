@@ -72,6 +72,7 @@ Failure mapDioError(DioException error) {
   }
 
   final status = error.response?.statusCode;
+  final serverError = _serverError(error.response?.data);
   final message = switch (error.type) {
     DioExceptionType.connectionTimeout ||
     DioExceptionType.sendTimeout ||
@@ -79,19 +80,34 @@ Failure mapDioError(DioException error) {
       'The connection timed out. Please try again.',
     DioExceptionType.connectionError =>
       'No internet connection. Please check your network.',
-    DioExceptionType.badResponse => switch (status ?? 0) {
-      401 || 403 => 'You are not authorized to do that.',
-      404 => 'We could not find what you were looking for.',
-      >= 500 => 'Something went wrong on our end. Please try again.',
-      _ => 'The request failed. Please try again.',
-    },
+    DioExceptionType.badResponse =>
+      serverError.$2 ??
+          switch (status ?? 0) {
+            401 || 403 => 'You are not authorized to do that.',
+            404 => 'We could not find what you were looking for.',
+            >= 500 => 'Something went wrong on our end. Please try again.',
+            _ => 'The request failed. Please try again.',
+          },
     _ => 'An unexpected network error occurred.',
   };
 
   return NetworkFailure(
     message,
     statusCode: status,
+    code: serverError.$1,
     cause: error,
     stackTrace: error.stackTrace,
   );
+}
+
+(String?, String?) _serverError(Object? body) {
+  if (body is! Map<String, dynamic>) return (null, null);
+  final error = body['error'];
+  if (error is Map<String, dynamic>) {
+    final code = error['code'];
+    final message = error['message'];
+    return (code is String ? code : null, message is String ? message : null);
+  }
+  final message = body['message'];
+  return (null, message is String ? message : null);
 }

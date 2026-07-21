@@ -21,6 +21,10 @@ class KeyValueStore {
   int? getInt(String key) => _prefs.getInt(key);
   Future<void> setInt(String key, int value) => _prefs.setInt(key, value);
 
+  List<String>? getStringList(String key) => _prefs.getStringList(key);
+  Future<void> setStringList(String key, List<String> value) =>
+      _prefs.setStringList(key, value);
+
   Future<void> remove(String key) => _prefs.remove(key);
   Future<void> clear() => _prefs.clear();
 }

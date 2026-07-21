@@ -19,6 +19,12 @@ final keyValueStoreProvider = Provider<KeyValueStore>(
 
 final secureStorageProvider = Provider<SecureStorage>((ref) => SecureStorage());
 
+/// Bare backend client for endpoints that must not attach auth or participate
+/// in the authenticated client's refresh interceptor.
+final publicApiServiceProvider = Provider<ApiService>(
+  (ref) => ApiService(baseUrl: AppConfig.apiBaseUrl),
+);
+
 /// In-memory cache over the persisted access token so the network layer does
 /// not hit the Keychain platform channel on every request.
 ///

@@ -50,10 +50,14 @@ final routerProvider = Provider<GoRouter>((ref) {
     },
     redirect: (context, state) {
       final loggedIn = ref.read(authRepositoryProvider).currentUser != null;
-      // Auth-flow routes: reachable signed out, redirected away once signed
-      // in (a logged-in user has no business on the sign-in form or the
-      // pre-login onboarding funnel).
+      // Auth forms redirect once signed in. Onboarding routes remain reachable
+      // because the API-backed funnel runs after registration too.
       const authRoutes = {
+        AppRoutes.signIn,
+        AppRoutes.signUp,
+        AppRoutes.resetPassword,
+      };
+      const onboardingRoutes = {
         AppRoutes.onboarding,
         AppRoutes.onboardingStarting,
         AppRoutes.onboardingGeneration,
@@ -61,16 +65,18 @@ final routerProvider = Provider<GoRouter>((ref) {
         AppRoutes.onboardingResults,
         AppRoutes.onboardingActivate,
         AppRoutes.onboardingSuccess,
-        AppRoutes.signIn,
-        AppRoutes.signUp,
-        AppRoutes.resetPassword,
       };
       // Routes reachable while signed out. The paywall is public so an
       // anonymous visitor can purchase before registering (see the flow doc
       // in subscription_controller.dart) — but unlike the auth routes it
       // stays reachable when signed in. The splash screen is public for both
       // states: it is the initial route and hands off to home itself.
-      const publicRoutes = {...authRoutes, AppRoutes.paywall, AppRoutes.splash};
+      const publicRoutes = {
+        ...authRoutes,
+        ...onboardingRoutes,
+        AppRoutes.paywall,
+        AppRoutes.splash,
+      };
 
       if (!loggedIn) {
         if (publicRoutes.contains(state.matchedLocation)) return null;
@@ -81,6 +87,9 @@ final routerProvider = Provider<GoRouter>((ref) {
         ).toString();
       }
       if (authRoutes.contains(state.matchedLocation)) {
+        if (state.matchedLocation == AppRoutes.signUp) {
+          return AppRoutes.onboarding;
+        }
         // Follow a preserved deep link, accepting only in-app paths so an
         // arbitrary `from` value can't cause open-redirect-style weirdness.
         final from = state.uri.queryParameters['from'];
@@ -147,7 +156,9 @@ final routerProvider = Provider<GoRouter>((ref) {
         name: 'onboarding_success',
         pageBuilder: (_, state) => buildAppTransitionPage(
           state: state,
-          child: const OnetimeSuccessScreen(),
+          child: OnetimeSuccessScreen(
+            sessionId: state.uri.queryParameters['session_id'],
+          ),
         ),
       ),
       GoRoute(

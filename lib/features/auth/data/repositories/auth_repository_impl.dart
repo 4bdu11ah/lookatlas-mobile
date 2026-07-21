@@ -60,7 +60,26 @@ class AuthRepositoryImpl implements AuthRepository {
 
   @override
   Future<void> restore() async {
-    _currentUser = await _local.readUser();
+    final cachedUser = await _local.readUser();
+    if (cachedUser == null) {
+      _currentUser = null;
+      _controller.add(null);
+      return;
+    }
+    final verified = await _remote.verify();
+    if (verified case Ok(:final value)) {
+      await _local.cacheUser(value);
+      _currentUser = value;
+    } else if (verified.failureOrNull case NetworkFailure(
+      statusCode: final status?,
+    ) when status == 401 || status == 403) {
+      await _clearSession();
+      return;
+    } else {
+      // Offline startup keeps the cached identity. The next authenticated
+      // request still goes through centralized refresh/retry handling.
+      _currentUser = cachedUser;
+    }
     _controller.add(_currentUser);
   }
 

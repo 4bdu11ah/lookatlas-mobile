@@ -3,6 +3,7 @@ import 'package:look_atlas/core/error/failure.dart';
 import 'package:look_atlas/core/network/api_endpoints.dart';
 import 'package:look_atlas/core/network/api_service.dart';
 import 'package:look_atlas/core/result/result.dart';
+import 'package:look_atlas/features/auth/data/models/app_user_model.dart';
 import 'package:look_atlas/features/auth/data/models/auth_session_model.dart';
 import 'package:look_atlas/features/auth/domain/entities/register_attribution.dart';
 
@@ -28,6 +29,9 @@ abstract interface class AuthRemoteDataSource {
     String? captchaToken,
   });
 
+  /// `GET /auth/verify` validates the restored bearer session.
+  Future<Result<AppUserModel>> verify();
+
   /// `POST /auth/logout` — bearer-authenticated; invalidates the refresh
   /// token server-side.
   Future<Result<void>> logout();
@@ -45,8 +49,10 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   AuthRemoteDataSourceImpl({
     required ApiService api,
     required ApiService publicApi,
+    Future<Map<String, Object?>> Function()? registrationContext,
   }) : _api = api,
-       _publicApi = publicApi;
+       _publicApi = publicApi,
+       _registrationContext = registrationContext;
 
   /// The shared bearer-authenticated client — only [logout] needs it.
   final ApiService _api;
@@ -56,6 +62,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   /// 401 interceptor, so routing it through that same client could re-enter
   /// the (queued) interceptor and deadlock.
   final ApiService _publicApi;
+  final Future<Map<String, Object?>> Function()? _registrationContext;
 
   @override
   Future<Result<AuthSessionModel>> register({
@@ -64,12 +71,21 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     required String password,
     RegisterAttribution? attribution,
   }) async {
+    Map<String, Object?>? deviceContext;
+    try {
+      deviceContext = await _registrationContext?.call();
+    } on Object {
+      // Registration accepts these abuse-detection signals as optional.
+      // Native device lookup must never prevent account creation.
+    }
     final result = await _publicApi.post<AuthSessionModel>(
       ApiEndpoints.authRegister,
       data: {
         'companyName': companyName,
         'email': email,
         'password': password,
+        'plan': 'starter',
+        ...?deviceContext,
         ...?attribution?.toJson(),
       },
       decoder: (data) => AuthSessionModel.fromJson(
@@ -105,6 +121,32 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       (failure) => _authFailure(failure, fallback: 'Login failed'),
     );
   }
+
+  @override
+  Future<Result<AppUserModel>> verify() => _api.get<AppUserModel>(
+    ApiEndpoints.authVerify,
+    decoder: (data) {
+      final body = _bodyAsMap(data);
+      final user = body['user'];
+      if (user is! Map<String, dynamic>) {
+        throw const FormatException('Verify response contains no user.');
+      }
+      final id = user['id'] ?? user['user_id'];
+      final email = user['email'];
+      if (id is! String || id.isEmpty || email is! String || email.isEmpty) {
+        throw const FormatException('Verify user is invalid.');
+      }
+      return AppUserModel(
+        id: id,
+        email: email,
+        displayName:
+            user['display_name'] as String? ?? user['displayName'] as String?,
+        photoUrl: user['photo_url'] as String? ?? user['photoUrl'] as String?,
+        companyName:
+            user['company_name'] as String? ?? user['companyName'] as String?,
+      );
+    },
+  );
 
   @override
   Future<Result<void>> logout() => _api.post<void>(

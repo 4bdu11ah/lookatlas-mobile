@@ -80,6 +80,10 @@ Future<void> _initCritical(ProviderContainer container) async {
 Future<void> _warmDeferred(ProviderContainer container) async {
   await Future.wait([
     _guard('analytics', () => container.read(analyticsServiceProvider).init()),
+    _guard(
+      'device token',
+      () => container.read(deviceTokenServiceProvider).context(),
+    ),
     _guard('subscriptions', () async {
       // A null userId configures RevenueCat with an anonymous app user id,
       // which is required for the purchase-before-login flow: the paywall is

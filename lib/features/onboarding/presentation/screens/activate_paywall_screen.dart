@@ -5,11 +5,14 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:look_atlas/core/router/app_routes.dart';
 import 'package:look_atlas/core/theme/app_colors.dart';
 import 'package:look_atlas/core/theme/app_typography.dart';
+import 'package:look_atlas/features/billing/di/billing_api_providers.dart';
+import 'package:look_atlas/features/billing/domain/entities/billing_checkout.dart';
+import 'package:look_atlas/features/billing/presentation/controllers/billing_checkout_controller.dart';
 import 'package:look_atlas/features/onboarding/presentation/providers/swipe_controller.dart';
 import 'package:look_atlas/features/onboarding/presentation/widgets/onboarding_widgets.dart';
+import 'package:look_atlas/shared/widgets/app_snack_bar.dart';
 
 /// The dark activate / paywall screen (mockup 11): a short "analyzing your
 /// liked looks" loader, then the black paywall — drifting photo wall, billing
@@ -48,6 +51,13 @@ class _ActivatePaywallScreenState extends ConsumerState<ActivatePaywallScreen> {
     final savedUrls = [
       for (final image in ref.watch(savedImagesProvider)) image.url,
     ];
+    final apiPlans = ref.watch(billingPlansProvider).asData?.value;
+    final isUpsell =
+        GoRouterState.of(context).uri.queryParameters['upsell'] == 'onetime20';
+    if (isUpsell) ref.watch(proUpsellOfferProvider);
+    final plans = apiPlans == null || apiPlans.isEmpty
+        ? _plans
+        : apiPlans.map(_Plan.fromEntity).toList();
     return Scaffold(
       backgroundColor: AppColors.black,
       body: AnimatedSwitcher(
@@ -56,11 +66,44 @@ class _ActivatePaywallScreenState extends ConsumerState<ActivatePaywallScreen> {
             ? _AnalyzingLoader(savedCount: savedCount, urls: savedUrls)
             : _Paywall(
                 urls: savedUrls,
-                onPlanSelected: () => context.go(AppRoutes.signUp),
-                onOneTime: () => context.go(AppRoutes.onboardingSuccess),
+                plans: plans,
+                onPlanSelected: _startPlanCheckout,
+                onOneTime: _startOnetimeCheckout,
               ),
       ),
     );
+  }
+
+  Future<void> _startPlanCheckout(
+    _Plan plan, {
+    required bool yearly,
+  }) async {
+    final priceId = yearly ? plan.yearlyPriceId : plan.priceId;
+    if (priceId.isEmpty) {
+      AppSnackBar.showError(context, 'Plans are unavailable. Please retry.');
+      return;
+    }
+    final offer = ref.read(proUpsellOfferProvider).asData?.value;
+    final opened = await ref
+        .read(billingCheckoutControllerProvider.notifier)
+        .startSubscription(
+          priceId: priceId,
+          useProUpsell: (offer?.active ?? false) && !(offer?.accepted ?? false),
+        );
+    if (!opened && mounted) {
+      final failure = ref.read(billingCheckoutControllerProvider).failure;
+      AppSnackBar.showError(context, failure?.message ?? 'Checkout failed.');
+    }
+  }
+
+  Future<void> _startOnetimeCheckout() async {
+    final opened = await ref
+        .read(billingCheckoutControllerProvider.notifier)
+        .startOnetime();
+    if (!opened && mounted) {
+      final failure = ref.read(billingCheckoutControllerProvider).failure;
+      AppSnackBar.showError(context, failure?.message ?? 'Checkout failed.');
+    }
   }
 }
 
@@ -422,8 +465,24 @@ class _Plan {
     required this.monthly,
     required this.credits,
     required this.features,
+    required this.priceId,
+    required this.yearlyPriceId,
     this.popular = false,
   });
+
+  factory _Plan.fromEntity(BillingPlan plan) => _Plan(
+    name: plan.name,
+    tag: plan.tagline ?? '',
+    monthly: plan.price,
+    credits: plan.monthlyCredits,
+    priceId: plan.priceId,
+    yearlyPriceId: plan.yearlyPriceId,
+    popular: plan.popular,
+    features: [
+      for (final feature in plan.features) (feature, 'on'),
+      for (final feature in plan.excludedFeatures) (feature, 'ex'),
+    ],
+  );
 
   final String name;
   final String tag;
@@ -433,6 +492,8 @@ class _Plan {
   /// (text, style) where style is 'on' (check), 'hi' (bright check) or
   /// 'ex' (excluded, minus).
   final List<(String, String)> features;
+  final String priceId;
+  final String yearlyPriceId;
   final bool popular;
 
   double get perPhoto => monthly / credits;
@@ -449,6 +510,8 @@ const _plans = [
       ('Commercial rights included', 'on'),
       ('HD downloads', 'on'),
     ],
+    priceId: '',
+    yearlyPriceId: '',
   ),
   _Plan(
     name: 'Pro',
@@ -461,6 +524,8 @@ const _plans = [
       ('AI-generated product video', 'on'),
       ('Priority generation', 'on'),
     ],
+    priceId: '',
+    yearlyPriceId: '',
   ),
   _Plan(
     name: 'Studio',
@@ -472,18 +537,22 @@ const _plans = [
       ('More models and styles', 'on'),
       ('Team workflow', 'on'),
     ],
+    priceId: '',
+    yearlyPriceId: '',
   ),
 ];
 
 class _Paywall extends StatefulWidget {
   const _Paywall({
     required this.urls,
+    required this.plans,
     required this.onPlanSelected,
     required this.onOneTime,
   });
 
   final List<String> urls;
-  final VoidCallback onPlanSelected;
+  final List<_Plan> plans;
+  final void Function(_Plan plan, {required bool yearly}) onPlanSelected;
   final VoidCallback onOneTime;
 
   @override
@@ -578,10 +647,10 @@ class _PaywallState extends State<_Paywall> {
                   onChanged: (v) => setState(() => _yearly = v),
                 ),
                 const SizedBox(height: 22),
-                for (final plan in _plans) ...[
+                for (final plan in widget.plans) ...[
                   _PlanCard(
                     plan: plan,
-                    onStart: widget.onPlanSelected,
+                    onStart: () => widget.onPlanSelected(plan, yearly: _yearly),
                   ),
                   const SizedBox(height: 14),
                 ],

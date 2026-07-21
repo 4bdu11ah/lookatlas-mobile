@@ -1,9 +1,12 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:look_atlas/core/logging/app_logger.dart';
 import 'package:look_atlas/features/onboarding/domain/look_atlas_model.dart';
 import 'package:look_atlas/features/onboarding/domain/onboarding_models.dart';
+import 'package:look_atlas/services/service_providers.dart';
 import 'package:look_atlas/shared/image_picker/image_picker_providers.dart';
 
 /// What came out of a photo-pick attempt, so screens can show the right
@@ -204,6 +207,14 @@ class WizardController extends Notifier<WizardState> {
 
   void selectCategory(ProductCategory category) {
     state = state.copyWith(category: category);
+    unawaited(
+      ref
+          .read(analyticsServiceProvider)
+          .track(
+            'wizard.category_selected',
+            properties: {'category': category.name},
+          ),
+    );
   }
 
   /// Picks product photos from [source] and adds them (capped at
@@ -269,15 +280,23 @@ class WizardController extends Notifier<WizardState> {
 
   void selectModel(LookAtlasModel model) {
     state = state.copyWith(selectedModel: model, usingUploadedModel: false);
+    unawaited(
+      ref
+          .read(analyticsServiceProvider)
+          .track(
+            'wizard.model_selected',
+            properties: {'model_id': model.id, 'model_source': 'lookatlas'},
+          ),
+    );
   }
 
   /// Picks model photos from [source] and adds them (capped at
-  /// [maxWizardPhotos]).
+  /// [maxModelPhotos]).
   Future<PhotoPickResult> addModelPhotosFrom(ImageSource source) async {
     if (state.uploadingModel) return PhotoPickResult.added;
     state = state.copyWith(uploadingModel: true);
     try {
-      final files = await _pickFiles(source, limit: maxWizardPhotos);
+      final files = await _pickFiles(source, limit: maxModelPhotos);
       final photos = <Uint8List>[
         for (final file in files) await file.readAsBytes(),
       ];
@@ -285,7 +304,7 @@ class WizardController extends Notifier<WizardState> {
         state = state.copyWith(uploadingModel: false);
         return PhotoPickResult.added;
       }
-      final room = maxWizardPhotos - state.uploadedModelPhotos.length;
+      final room = maxModelPhotos - state.uploadedModelPhotos.length;
       addUploadedModelPhotos(photos);
       return photos.length > room
           ? PhotoPickResult.truncated
@@ -298,7 +317,7 @@ class WizardController extends Notifier<WizardState> {
   }
 
   void addUploadedModelPhotos(List<Uint8List> photos) {
-    final room = maxWizardPhotos - state.uploadedModelPhotos.length;
+    final room = maxModelPhotos - state.uploadedModelPhotos.length;
     state = state.copyWith(
       uploadedModelPhotos: [
         ...state.uploadedModelPhotos,
@@ -319,6 +338,14 @@ class WizardController extends Notifier<WizardState> {
 
   void selectDirector(Director director) {
     state = state.copyWith(selectedDirector: director);
+    unawaited(
+      ref
+          .read(analyticsServiceProvider)
+          .track(
+            'wizard.director_selected',
+            properties: {'director_id': director.apiId},
+          ),
+    );
   }
 
   /// Resets the whole funnel (e.g. after finishing or abandoning it).

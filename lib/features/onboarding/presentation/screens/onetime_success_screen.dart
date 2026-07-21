@@ -1,10 +1,13 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:look_atlas/core/router/app_routes.dart';
 import 'package:look_atlas/core/theme/app_colors.dart';
 import 'package:look_atlas/core/theme/app_typography.dart';
+import 'package:look_atlas/features/billing/domain/entities/billing_checkout.dart';
+import 'package:look_atlas/features/billing/presentation/controllers/onetime_verification_controller.dart';
 import 'package:look_atlas/shared/widgets/bar_spinner.dart';
 
 /// Where the one-time purchase flow can land (mockup 12, states A–E).
@@ -14,28 +17,36 @@ enum _SuccessPhase { confirming, paid, pending, failed }
 /// "Your shoot is yours" state with a time-limited Pro upsell bottom sheet.
 /// Pending and failed states are handled too. "Open my shoot" continues to
 /// sign-up, since the funnel runs before registration.
-class OnetimeSuccessScreen extends StatefulWidget {
-  const OnetimeSuccessScreen({super.key});
+class OnetimeSuccessScreen extends ConsumerStatefulWidget {
+  const OnetimeSuccessScreen({super.key, this.sessionId});
+
+  final String? sessionId;
 
   @override
-  State<OnetimeSuccessScreen> createState() => _OnetimeSuccessScreenState();
+  ConsumerState<OnetimeSuccessScreen> createState() =>
+      _OnetimeSuccessScreenState();
 }
 
-class _OnetimeSuccessScreenState extends State<OnetimeSuccessScreen> {
+class _OnetimeSuccessScreenState extends ConsumerState<OnetimeSuccessScreen> {
   static const _offerWindow = Duration(hours: 23, minutes: 41);
 
   _SuccessPhase _phase = _SuccessPhase.confirming;
-  Timer? _confirm;
   Timer? _countdown;
   Duration _offerLeft = _offerWindow;
 
   @override
   void initState() {
     super.initState();
-    // Simulated purchase verification.
-    _confirm = Timer(const Duration(milliseconds: 2200), () {
-      if (mounted) setState(() => _phase = _SuccessPhase.paid);
-    });
+    final sessionId = widget.sessionId;
+    if (sessionId == null || sessionId.isEmpty) {
+      _phase = _SuccessPhase.failed;
+    } else {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        ref
+            .read(onetimeVerificationControllerProvider.notifier)
+            .start(sessionId);
+      });
+    }
     _countdown = Timer.periodic(const Duration(minutes: 1), (_) {
       setState(() => _offerLeft -= const Duration(minutes: 1));
     });
@@ -43,7 +54,6 @@ class _OnetimeSuccessScreenState extends State<OnetimeSuccessScreen> {
 
   @override
   void dispose() {
-    _confirm?.cancel();
     _countdown?.cancel();
     super.dispose();
   }
@@ -51,7 +61,7 @@ class _OnetimeSuccessScreenState extends State<OnetimeSuccessScreen> {
   String get _offerText =>
       '${_offerLeft.inHours}h ${_offerLeft.inMinutes % 60}m';
 
-  void _openShoot() => context.go(AppRoutes.signUp);
+  void _openShoot() => context.go(AppRoutes.onboardingResults);
 
   void _showProUpsell() {
     unawaited(
@@ -63,7 +73,7 @@ class _OnetimeSuccessScreenState extends State<OnetimeSuccessScreen> {
           offerText: _offerText,
           onContinue: () {
             Navigator.of(context).pop();
-            _openShoot();
+            context.go('${AppRoutes.onboardingActivate}?upsell=onetime20');
           },
         ),
       ),
@@ -72,6 +82,19 @@ class _OnetimeSuccessScreenState extends State<OnetimeSuccessScreen> {
 
   @override
   Widget build(BuildContext context) {
+    ref.listen(onetimeVerificationControllerProvider, (_, next) {
+      final phase = next.failure != null
+          ? _SuccessPhase.failed
+          : switch (next.status) {
+              OnetimePaymentStatus.paid => _SuccessPhase.paid,
+              OnetimePaymentStatus.failed ||
+              OnetimePaymentStatus.refunded => _SuccessPhase.failed,
+              OnetimePaymentStatus.pending when !next.isPolling =>
+                _SuccessPhase.pending,
+              OnetimePaymentStatus.pending => _SuccessPhase.confirming,
+            };
+      if (mounted && phase != _phase) setState(() => _phase = phase);
+    });
     return Scaffold(
       backgroundColor: AppColors.black,
       body: SafeArea(

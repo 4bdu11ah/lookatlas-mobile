@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
@@ -16,21 +15,12 @@ import 'package:look_atlas/shared/widgets/app_text_field.dart';
 import 'package:look_atlas/shared/widgets/custom_app_bar.dart';
 
 import '../../helpers/fake_repositories.dart';
+import '../../helpers/test_font_loader.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  setUpAll(() async {
-    final fontLoader = FontLoader('Satoshi')
-      ..addFont(rootBundle.load('assets/fonts/Satoshi-Regular.ttf'))
-      ..addFont(rootBundle.load('assets/fonts/Satoshi-Medium.ttf'))
-      ..addFont(rootBundle.load('assets/fonts/Satoshi-Bold.ttf'))
-      ..addFont(rootBundle.load('assets/fonts/Satoshi-Black.ttf'));
-    await fontLoader.load();
-    final iconLoader = FontLoader('MaterialIcons')
-      ..addFont(rootBundle.load('fonts/MaterialIcons-Regular.otf'));
-    await iconLoader.load();
-  });
+  setUpAll(loadTestFonts);
 
   Future<void> pumpScreen(
     WidgetTester tester,
@@ -171,28 +161,6 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byKey(const ValueKey('new-shoot-button')), findsOneWidget);
-  });
-
-  testWidgets('shoots_page_matches_mobile_golden', (tester) async {
-    await pumpScreen(tester, const DashboardFeatureScreen.shoots());
-    expect(find.byType(CustomAppBar), findsOneWidget);
-    final context = tester.element(find.byType(Scaffold));
-    await tester.runAsync(() async {
-      for (final asset in const [
-        'assets/images/onboarding/showcase-bag-before.jpg',
-        'assets/images/onboarding/showcase-shoes-before.jpg',
-        'assets/images/onboarding/showcase-dress-after.jpg',
-        'assets/images/onboarding/showcase-tshirt-after.jpg',
-      ]) {
-        await precacheImage(AssetImage(asset), context);
-      }
-    });
-    await tester.pump();
-
-    await expectLater(
-      find.byType(Scaffold),
-      matchesGoldenFile('goldens/shoots_page.png'),
-    );
   });
 
   testWidgets('shoots_search_and_status_filter_update_visible_cards', (

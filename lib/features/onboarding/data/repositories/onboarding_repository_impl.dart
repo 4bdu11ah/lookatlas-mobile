@@ -25,6 +25,9 @@ class OnboardingRepositoryImpl implements OnboardingRepository {
       _remote.updateStatus(status);
 
   @override
+  Future<Result<void>> completeOnboarding() => _remote.completeOnboarding();
+
+  @override
   Future<Result<String>> createProduct(ProductDraft draft) =>
       _remote.createProduct(draft);
 
@@ -52,6 +55,12 @@ class OnboardingRepositoryImpl implements OnboardingRepository {
         ]..sort((a, b) => a.displayOrder.compareTo(b.displayOrder));
         return entities;
       });
+
+  @override
+  Future<Result<List<OnboardingUserModel>>> fetchUserModels() async =>
+      (await _remote.fetchUserModels()).map(
+        (models) => [for (final model in models) model.toEntity()],
+      );
 
   @override
   Future<Result<String>> createUserModel(UserModelDraft draft) =>

@@ -14,15 +14,9 @@ class CreateOnboardingProductUseCase {
         const Err(ValidationFailure('Product name and SKU are required.')),
       );
     }
-    if (draft.photos.length < 2 || draft.photos.length > 4) {
+    if (draft.photos.isEmpty || draft.photos.length > 4) {
       return Future.value(
-        const Err(ValidationFailure('Select between 2 and 4 product photos.')),
-      );
-    }
-    if (draft.viewAngles.length != draft.photos.length ||
-        draft.viewAngles.any((angle) => angle == null || angle.isEmpty)) {
-      return Future.value(
-        const Err(ValidationFailure('Tag every product photo with an angle.')),
+        const Err(ValidationFailure('Select between 1 and 4 product photos.')),
       );
     }
     return _repository.createProduct(draft);

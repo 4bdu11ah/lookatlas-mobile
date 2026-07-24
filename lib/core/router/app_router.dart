@@ -12,6 +12,7 @@ import 'package:look_atlas/features/auth/presentation/screens/sign_in_screen.dar
 import 'package:look_atlas/features/auth/presentation/screens/sign_up_screen.dart';
 import 'package:look_atlas/features/dashboard/presentation/screens/dashboard_screen.dart';
 import 'package:look_atlas/features/onboarding/presentation/screens/activate_paywall_screen.dart';
+import 'package:look_atlas/features/onboarding/presentation/screens/billing_success_screen.dart';
 import 'package:look_atlas/features/onboarding/presentation/screens/generation_progress_screen.dart';
 import 'package:look_atlas/features/onboarding/presentation/screens/onboarding_wizard_screen.dart';
 import 'package:look_atlas/features/onboarding/presentation/screens/onetime_success_screen.dart';
@@ -50,51 +51,34 @@ final routerProvider = Provider<GoRouter>((ref) {
     },
     redirect: (context, state) {
       final loggedIn = ref.read(authRepositoryProvider).currentUser != null;
-      // Auth forms redirect once signed in. Onboarding routes remain reachable
-      // because the API-backed funnel runs after registration too.
+      // Auth forms hand signed-in users to the authenticated onboarding flow.
       const authRoutes = {
         AppRoutes.signIn,
         AppRoutes.signUp,
         AppRoutes.resetPassword,
       };
-      const onboardingRoutes = {
-        AppRoutes.onboarding,
-        AppRoutes.onboardingStarting,
-        AppRoutes.onboardingGeneration,
-        AppRoutes.onboardingSwipe,
-        AppRoutes.onboardingResults,
-        AppRoutes.onboardingActivate,
-        AppRoutes.onboardingSuccess,
-      };
-      // Routes reachable while signed out. The paywall is public so an
-      // anonymous visitor can purchase before registering (see the flow doc
-      // in subscription_controller.dart) — but unlike the auth routes it
-      // stays reachable when signed in. The splash screen is public for both
-      // states: it is the initial route and hands off to home itself.
+      // Routes reachable while signed out. Onboarding needs a bearer session,
+      // while the standalone paywall remains public.
       const publicRoutes = {
         ...authRoutes,
-        ...onboardingRoutes,
         AppRoutes.paywall,
         AppRoutes.splash,
       };
 
       if (!loggedIn) {
         if (publicRoutes.contains(state.matchedLocation)) return null;
-        // Preserve the deep link so sign-in can return to it afterwards.
+        // Preserve the target so the checkout callback can resume after auth.
         return Uri(
           path: AppRoutes.signIn,
           queryParameters: {'from': state.matchedLocation},
         ).toString();
       }
       if (authRoutes.contains(state.matchedLocation)) {
-        if (state.matchedLocation == AppRoutes.signUp) {
-          return AppRoutes.onboarding;
-        }
-        // Follow a preserved deep link, accepting only in-app paths so an
-        // arbitrary `from` value can't cause open-redirect-style weirdness.
+        // Preserve the checkout callback only. All normal auth entries must
+        // pass through onboarding before reaching protected app features.
         final from = state.uri.queryParameters['from'];
-        final isSafe = from != null && from.startsWith('/');
-        return isSafe ? from : AppRoutes.home;
+        if (from == AppRoutes.billingSuccess) return from;
+        return AppRoutes.onboarding;
       }
       return null;
     },
@@ -159,6 +143,14 @@ final routerProvider = Provider<GoRouter>((ref) {
           child: OnetimeSuccessScreen(
             sessionId: state.uri.queryParameters['session_id'],
           ),
+        ),
+      ),
+      GoRoute(
+        path: AppRoutes.billingSuccess,
+        name: 'billing_success',
+        pageBuilder: (_, state) => buildAppTransitionPage(
+          state: state,
+          child: const BillingSuccessScreen(),
         ),
       ),
       GoRoute(

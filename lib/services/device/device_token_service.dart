@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:look_atlas/core/network/api_endpoints.dart';
 import 'package:look_atlas/core/network/api_service.dart';
 import 'package:look_atlas/core/storage/key_value_store.dart';
@@ -8,18 +10,21 @@ class DeviceClientContext {
     required this.fingerprint,
     required this.uaFamily,
     required this.tzOffset,
+    required this.screenHash,
     this.deviceToken,
   });
 
   final String fingerprint;
   final String uaFamily;
   final int tzOffset;
+  final String screenHash;
   final String? deviceToken;
 
   Map<String, Object?> toRegistrationJson() => {
     'deviceFingerprint': fingerprint,
     'deviceToken': ?deviceToken,
     'uaFamily': uaFamily,
+    'screenHash': screenHash,
     'tzOffset': tzOffset,
   };
 }
@@ -41,6 +46,7 @@ class DeviceTokenService {
 
   Future<DeviceClientContext> context({bool bootstrapToken = true}) async {
     final info = await _deviceInfo.getDeviceInfo();
+    final screenHash = _screenHash(info.deviceId);
     var token = _store.getString(_tokenKey);
     if (bootstrapToken && (token == null || token.isEmpty)) {
       final result = await _publicApi.post<String>(
@@ -49,6 +55,7 @@ class DeviceTokenService {
           'fingerprint': info.deviceId,
           'tzOffset': DateTime.now().timeZoneOffset.inMinutes,
           'uaFamily': info.platform,
+          'screenHash': screenHash,
         },
         decoder: (data) {
           final body = data is Map<String, dynamic>
@@ -68,7 +75,28 @@ class DeviceTokenService {
       fingerprint: info.deviceId,
       deviceToken: token,
       uaFamily: info.platform,
+      screenHash: screenHash,
       tzOffset: DateTime.now().timeZoneOffset.inMinutes,
     );
+  }
+
+  static String _screenHash(String fallback) {
+    final views = PlatformDispatcher.instance.views;
+    final value = views.isEmpty
+        ? fallback
+        : '${views.first.physicalSize.width.round()}x'
+              '${views.first.physicalSize.height.round()}@'
+              '${views.first.devicePixelRatio}';
+    final first = _hash32(value, 5381).toRadixString(16).padLeft(8, '0');
+    final second = _hash32(value, 52711).toRadixString(16).padLeft(8, '0');
+    return '$first$second';
+  }
+
+  static int _hash32(String value, int seed) {
+    var hash = seed;
+    for (final unit in value.codeUnits) {
+      hash = (((hash << 5) + hash) ^ unit) & 0xffffffff;
+    }
+    return hash;
   }
 }

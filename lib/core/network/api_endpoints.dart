@@ -25,6 +25,7 @@ abstract final class ApiEndpoints {
   static const String onboardingStatus = '/onboarding/status';
   static const String onboardingUpdateStatus = '/onboarding/update-status';
   static const String onboardingStartShoot = '/onboarding/start-shoot';
+  static const String onboardingComplete = '/onboarding/complete';
   static const String products = '/products';
   static const String lookAtlasModels = '/lookatlas-models';
   static const String userModels = '/models';

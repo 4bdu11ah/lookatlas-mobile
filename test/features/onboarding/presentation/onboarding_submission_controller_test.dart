@@ -16,6 +16,100 @@ import 'package:look_atlas/features/onboarding/presentation/controllers/onboardi
 import 'package:look_atlas/features/onboarding/presentation/providers/wizard_controller.dart';
 
 void main() {
+  test('save_product_photos_first_upload_stores_returned_id', () async {
+    final repository = _FakeOnboardingRepository();
+    final container = ProviderContainer(
+      overrides: [onboardingRepositoryProvider.overrideWithValue(repository)],
+    );
+    addTearDown(container.dispose);
+
+    final saved = await container
+        .read(onboardingSubmissionControllerProvider.notifier)
+        .saveProductPhotos(
+          _wizardState(photos: [WizardPhoto(bytes: Uint8List(2))]),
+        );
+
+    expect(saved, isTrue);
+    expect(
+      container.read(onboardingSubmissionControllerProvider).productId,
+      'product-1',
+    );
+    expect(repository.createdProductDraft?.photos, hasLength(1));
+    expect(repository.createdProductDraft?.viewAngles, isEmpty);
+    expect(repository.updatedProductDraft, isNull);
+  });
+
+  test('save_product_photos_next_upload_updates_stored_product', () async {
+    final repository = _FakeOnboardingRepository();
+    final container = ProviderContainer(
+      overrides: [onboardingRepositoryProvider.overrideWithValue(repository)],
+    );
+    addTearDown(container.dispose);
+    final controller = container.read(
+      onboardingSubmissionControllerProvider.notifier,
+    );
+
+    await controller.saveProductPhotos(_wizardState());
+    final saved = await controller.saveProductPhotos(
+      _wizardState(
+        photos: [
+          WizardPhoto(bytes: Uint8List(2), angle: 'Front'),
+          WizardPhoto(bytes: Uint8List(2), angle: 'Back'),
+          WizardPhoto(bytes: Uint8List(2), angle: 'Side'),
+        ],
+      ),
+    );
+
+    expect(saved, isTrue);
+    expect(repository.updatedProductId, 'product-1');
+    expect(repository.updatedProductDraft?.photos, hasLength(3));
+    expect(
+      repository.updatedProductDraft?.sku,
+      repository.createdProductDraft?.sku,
+    );
+    expect(repository.createProductCalls, 1);
+  });
+
+  test('save_product_angles_updates_every_photo_on_stored_product', () async {
+    final repository = _FakeOnboardingRepository();
+    final container = ProviderContainer(
+      overrides: [onboardingRepositoryProvider.overrideWithValue(repository)],
+    );
+    addTearDown(container.dispose);
+    final controller = container.read(
+      onboardingSubmissionControllerProvider.notifier,
+    );
+
+    await controller.saveProductPhotos(_wizardState());
+    final saved = await controller.saveProductAngles(_wizardState());
+
+    expect(saved, isTrue);
+    expect(repository.anglesProductId, 'product-1');
+    expect(repository.angles, {0: 'front', 1: 'back'});
+  });
+
+  test('save_user_model_photos_uploads_immediately_and_stores_id', () async {
+    final repository = _FakeOnboardingRepository();
+    final container = ProviderContainer(
+      overrides: [onboardingRepositoryProvider.overrideWithValue(repository)],
+    );
+    addTearDown(container.dispose);
+
+    final saved = await container
+        .read(onboardingSubmissionControllerProvider.notifier)
+        .saveUserModelPhotos([Uint8List(2), Uint8List(3)]);
+
+    expect(saved, isTrue);
+    expect(
+      container.read(onboardingSubmissionControllerProvider).modelId,
+      'user-model-1',
+    );
+    expect(repository.userModelDraft?.gender, UserModelGender.unspecified);
+    expect(repository.userModelDraft?.height, '');
+    expect(repository.userModelDraft?.heightEstimated, isTrue);
+    expect(repository.userModelDraft?.photos, hasLength(2));
+  });
+
   test('submit_library_model_creates_product_angles_and_shoot', () async {
     final repository = _FakeOnboardingRepository();
     final container = ProviderContainer(
@@ -28,7 +122,7 @@ void main() {
         .submit(_wizardState());
 
     expect(success, isTrue);
-    expect(repository.productDraft?.category, 'tops');
+    expect(repository.createdProductDraft?.category, 'tops');
     expect(repository.angles, {0: 'front', 1: 'back'});
     expect(repository.startRequest?.modelId, 'library-model');
     expect(repository.startRequest?.modelSource, ShootModelSource.lookatlas);
@@ -75,13 +169,15 @@ void main() {
   });
 }
 
-WizardState _wizardState() => WizardState(
+WizardState _wizardState({List<WizardPhoto>? photos}) => WizardState(
   step: WizardStep.review,
   category: ProductCategory.tops,
-  photos: [
-    WizardPhoto(bytes: Uint8List(2), angle: 'Front'),
-    WizardPhoto(bytes: Uint8List(2), angle: 'Back'),
-  ],
+  photos:
+      photos ??
+      [
+        WizardPhoto(bytes: Uint8List(2), angle: 'Front'),
+        WizardPhoto(bytes: Uint8List(2), angle: 'Back'),
+      ],
   selectedModel: const LookAtlasModel(
     id: 'library-model',
     name: 'Library model',
@@ -90,9 +186,14 @@ WizardState _wizardState() => WizardState(
 );
 
 class _FakeOnboardingRepository implements OnboardingRepository {
-  ProductDraft? productDraft;
+  int createProductCalls = 0;
+  ProductDraft? createdProductDraft;
+  String? updatedProductId;
+  ProductDraft? updatedProductDraft;
+  String? anglesProductId;
   Map<int, String?>? angles;
   StartShootRequest? startRequest;
+  UserModelDraft? userModelDraft;
   Result<StartShootResponse> startResult = const Result.ok(
     StartShootResponse(
       id: 'job-1',
@@ -105,6 +206,9 @@ class _FakeOnboardingRepository implements OnboardingRepository {
   );
 
   @override
+  Future<Result<void>> completeOnboarding() async => const Result.ok(null);
+
+  @override
   Future<Result<OnboardingAppConfig>> fetchAppConfig() async => const Result.ok(
     OnboardingAppConfig(
       imageProvider: 'gemini',
@@ -115,7 +219,8 @@ class _FakeOnboardingRepository implements OnboardingRepository {
 
   @override
   Future<Result<String>> createProduct(ProductDraft draft) async {
-    productDraft = draft;
+    createProductCalls++;
+    createdProductDraft = draft;
     return const Result.ok('product-1');
   }
 
@@ -124,6 +229,7 @@ class _FakeOnboardingRepository implements OnboardingRepository {
     String productId,
     Map<int, String?> angles,
   ) async {
+    anglesProductId = productId;
     this.angles = angles;
     return const Result.ok(null);
   }
@@ -141,8 +247,14 @@ class _FakeOnboardingRepository implements OnboardingRepository {
       const Result.ok(null);
 
   @override
-  Future<Result<String>> createUserModel(UserModelDraft draft) async =>
-      const Result.ok('user-model-1');
+  Future<Result<String>> createUserModel(UserModelDraft draft) async {
+    userModelDraft = draft;
+    return const Result.ok('user-model-1');
+  }
+
+  @override
+  Future<Result<List<OnboardingUserModel>>> fetchUserModels() async =>
+      const Result.ok([]);
 
   @override
   Future<Result<List<LookAtlasModel>>> fetchModels() async =>
@@ -165,5 +277,9 @@ class _FakeOnboardingRepository implements OnboardingRepository {
   Future<Result<void>> updateProduct(
     String productId,
     ProductDraft draft,
-  ) async => const Result.ok(null);
+  ) async {
+    updatedProductId = productId;
+    updatedProductDraft = draft;
+    return const Result.ok(null);
+  }
 }

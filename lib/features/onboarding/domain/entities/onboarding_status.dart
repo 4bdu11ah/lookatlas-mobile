@@ -23,6 +23,15 @@ class OnboardingStatus {
   final DateTime? currentPeriodEnd;
   final String? productCategory;
   final bool hasCalibration;
+
+  bool get hasActiveSubscription {
+    final status = subscriptionStatus?.toLowerCase();
+    return status != null &&
+        status.isNotEmpty &&
+        status != 'inactive' &&
+        status != 'canceled' &&
+        status != 'cancelled';
+  }
 }
 
 @immutable

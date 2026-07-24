@@ -5,9 +5,9 @@ import 'package:look_atlas/core/constants/app_assets.dart';
 /// mirroring the web app's `CALIBRATION_ENABLED_IN_TRIAL = false`.
 const bool calibrationEnabledInTrial = false;
 
-/// Shots x variations of the free shoot: 3 shots x 5 variations = 15 images.
-const int freeShootShotCount = 3;
-const int freeShootVariationsPerShot = 5;
+/// Current live free shoot: 5 shots x 3 variations = 15 images.
+const int freeShootShotCount = 5;
+const int freeShootVariationsPerShot = 3;
 const int freeShootImageCount = freeShootShotCount * freeShootVariationsPerShot;
 
 /// The six wizard steps, in flow order. [WizardStep.calibrate] only appears

@@ -9,6 +9,7 @@ import 'package:look_atlas/features/onboarding/domain/entities/onboarding_produc
 import 'package:look_atlas/features/onboarding/domain/entities/onboarding_status.dart';
 import 'package:look_atlas/features/onboarding/domain/onboarding_models.dart';
 import 'package:look_atlas/features/onboarding/presentation/controllers/onboarding_submission_controller.dart';
+import 'package:look_atlas/features/onboarding/presentation/providers/generation_controller.dart';
 import 'package:look_atlas/features/onboarding/presentation/providers/wizard_controller.dart';
 import 'package:look_atlas/features/onboarding/presentation/widgets/onboarding_widgets.dart';
 import 'package:look_atlas/features/onboarding/presentation/widgets/steps/calibrate_step.dart';
@@ -19,7 +20,7 @@ import 'package:look_atlas/features/onboarding/presentation/widgets/steps/produc
 import 'package:look_atlas/features/onboarding/presentation/widgets/steps/review_step.dart';
 import 'package:look_atlas/shared/widgets/app_snack_bar.dart';
 
-/// The pre-login free-shoot wizard (screens 01–06 of the onboarding mockups).
+/// The authenticated free-shoot wizard (screens 01–06 of the mockups).
 /// One route hosts all six steps; [wizardControllerProvider] owns which step
 /// is visible and every selection, so state survives hot reloads and
 /// navigation away and back.
@@ -49,6 +50,10 @@ class _OnboardingWizardScreenState
       final status = responses[0] as OnboardingStatus;
       final products = responses[1] as List<OnboardingProduct>;
       if (!mounted) return;
+      if (status.hasActiveSubscription) {
+        context.go(AppRoutes.home);
+        return;
+      }
       if (products.isNotEmpty) {
         ref
             .read(onboardingSubmissionControllerProvider.notifier)
@@ -56,11 +61,13 @@ class _OnboardingWizardScreenState
       }
       final jobStatus = status.onboardingJobStatus?.toLowerCase();
       if ({'generating', 'enqueued', 'processing'}.contains(jobStatus)) {
-        context.go(AppRoutes.onboardingSwipe);
+        ref.read(generationControllerProvider.notifier).start();
+        context.go(AppRoutes.onboardingGeneration);
         return;
       }
       if (jobStatus == 'completed') {
-        context.go(AppRoutes.onboardingSwipe);
+        ref.read(generationControllerProvider.notifier).start();
+        context.go(AppRoutes.onboardingGeneration);
         return;
       }
       if (status.freeShootUsed) {
@@ -76,7 +83,7 @@ class _OnboardingWizardScreenState
     }
   }
 
-  void _continue(BuildContext context, WidgetRef ref) {
+  Future<void> _continue(BuildContext context, WidgetRef ref) async {
     final state = ref.read(wizardControllerProvider);
     if (state.step == WizardStep.product &&
         state.productPhase == ProductPhase.upload &&
@@ -85,13 +92,30 @@ class _OnboardingWizardScreenState
       AppSnackBar.show(context, 'Tag each photo with an angle to continue.');
       return;
     }
+    if (state.step == WizardStep.product &&
+        state.productPhase == ProductPhase.upload) {
+      final saved = await ref
+          .read(onboardingSubmissionControllerProvider.notifier)
+          .saveProductAngles(state);
+      if (!context.mounted) return;
+      if (!saved) {
+        final failure = ref
+            .read(onboardingSubmissionControllerProvider)
+            .failure;
+        AppSnackBar.showError(
+          context,
+          failure?.message ?? 'Could not save your product photo angles.',
+        );
+        return;
+      }
+    }
     final moved = ref.read(wizardControllerProvider.notifier).next();
     if (!moved && state.step == WizardStep.product) {
       AppSnackBar.show(
         context,
         state.productPhase == ProductPhase.category
             ? 'Pick a category to continue.'
-            : 'Add at least one photo to continue.',
+            : 'Add at least two photos to continue.',
       );
     }
   }
@@ -105,7 +129,19 @@ class _OnboardingWizardScreenState
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(wizardControllerProvider);
+    final isSavingAsset = ref.watch(
+      onboardingSubmissionControllerProvider.select(
+        (value) => value.isSavingProduct || value.isSavingModel,
+      ),
+    );
+    final uploadedModelId = ref.watch(
+      onboardingSubmissionControllerProvider.select((value) => value.modelId),
+    );
     final scheme = Theme.of(context).colorScheme;
+    final isModelReady =
+        !state.usingUploadedModel ||
+        state.selectedUserModel != null ||
+        uploadedModelId != null;
 
     final continueLabel =
         state.step == WizardStep.product &&
@@ -165,7 +201,7 @@ class _OnboardingWizardScreenState
                 onBack: () => _back(context, ref),
                 showContinue: state.step != WizardStep.review,
                 continueLabel: continueLabel,
-                onContinue: state.canContinue
+                onContinue: state.canContinue && isModelReady && !isSavingAsset
                     ? () => _continue(context, ref)
                     : null,
               ),

@@ -46,7 +46,7 @@ abstract final class AppConfig {
   // --- Your backend API ---
   static const String apiBaseUrl = String.fromEnvironment(
     'API_BASE_URL',
-    defaultValue: 'https://diaphragm-detoxify-finch.ngrok-free.dev',
+    defaultValue: 'https://catalogmock-api-production.up.railway.app',
   );
 
   // --- Crash reporting (Sentry) ---

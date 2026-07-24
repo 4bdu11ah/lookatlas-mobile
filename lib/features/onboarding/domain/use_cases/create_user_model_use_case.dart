@@ -9,9 +9,9 @@ class CreateUserModelUseCase {
   final OnboardingRepository _repository;
 
   Future<Result<String>> call(UserModelDraft draft) {
-    if (draft.photos.isEmpty || draft.photos.length > 5) {
+    if (draft.photos.isEmpty || draft.photos.length > 4) {
       return Future.value(
-        const Err(ValidationFailure('Select between 1 and 5 model photos.')),
+        const Err(ValidationFailure('Select between 1 and 4 model photos.')),
       );
     }
     return _repository.createUserModel(draft);

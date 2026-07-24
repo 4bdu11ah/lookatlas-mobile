@@ -6,9 +6,9 @@ import 'package:look_atlas/core/error/failure.dart';
 import 'package:look_atlas/core/router/app_routes.dart';
 import 'package:look_atlas/core/theme/app_colors.dart';
 import 'package:look_atlas/core/theme/app_typography.dart';
-import 'package:look_atlas/features/auth/di/auth_providers.dart';
 import 'package:look_atlas/features/onboarding/di/onboarding_providers.dart';
 import 'package:look_atlas/features/onboarding/presentation/controllers/onboarding_submission_controller.dart';
+import 'package:look_atlas/features/onboarding/presentation/providers/generation_controller.dart';
 import 'package:look_atlas/features/onboarding/presentation/providers/swipe_controller.dart';
 import 'package:look_atlas/features/onboarding/presentation/providers/wizard_controller.dart';
 import 'package:look_atlas/features/onboarding/presentation/widgets/onboarding_widgets.dart';
@@ -28,10 +28,6 @@ class _ReviewStepState extends ConsumerState<ReviewStep> {
   int _productPhoto = 0;
 
   Future<void> _startShoot() async {
-    if (ref.read(authRepositoryProvider).currentUser == null) {
-      context.go(AppRoutes.signUp);
-      return;
-    }
     final wizard = ref.read(wizardControllerProvider);
     final success = await ref
         .read(onboardingSubmissionControllerProvider.notifier)
@@ -55,7 +51,9 @@ class _ReviewStepState extends ConsumerState<ReviewStep> {
       return;
     }
     ref.read(swipeControllerProvider.notifier).reset();
-    context.go(AppRoutes.onboardingSwipe);
+    final shoot = ref.read(onboardingSubmissionControllerProvider).shoot;
+    ref.read(generationControllerProvider.notifier).start(shoot: shoot);
+    context.go(AppRoutes.onboardingGeneration);
   }
 
   Future<void> _recoverConflict() async {
@@ -70,7 +68,8 @@ class _ReviewStepState extends ConsumerState<ReviewStep> {
         'processing',
         'completed',
       }.contains(jobStatus)) {
-        context.go(AppRoutes.onboardingSwipe);
+        ref.read(generationControllerProvider.notifier).start();
+        context.go(AppRoutes.onboardingGeneration);
       } else if (status.freeShootUsed) {
         context.go(AppRoutes.onboardingActivate);
       }
@@ -107,7 +106,10 @@ class _ReviewStepState extends ConsumerState<ReviewStep> {
     }
 
     Widget modelImage;
-    if (state.usingUploadedModel && state.uploadedModelPhotos.isNotEmpty) {
+    if (state.selectedUserModel?.imageUrl.isNotEmpty ?? false) {
+      modelImage = ShotImage(state.selectedUserModel!.imageUrl);
+    } else if (state.usingUploadedModel &&
+        state.uploadedModelPhotos.isNotEmpty) {
       modelImage = AppImage.memory(
         state.uploadedModelPhotos.first,
         fit: BoxFit.cover,

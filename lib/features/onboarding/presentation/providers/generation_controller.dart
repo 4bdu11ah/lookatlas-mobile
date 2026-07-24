@@ -3,12 +3,12 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:look_atlas/core/error/failure.dart';
-import 'package:look_atlas/features/auth/di/auth_providers.dart';
 import 'package:look_atlas/features/onboarding/di/onboarding_providers.dart';
+import 'package:look_atlas/features/onboarding/domain/entities/free_shoot.dart';
 import 'package:look_atlas/features/onboarding/domain/entities/onboarding_status.dart';
 import 'package:look_atlas/features/onboarding/domain/onboarding_models.dart';
 
-/// One of the 15 photos of the free shoot (3 shots x 5 variations).
+/// One generated photo. Dimensions come from the live start-shoot response.
 @immutable
 class GeneratedImage {
   const GeneratedImage({
@@ -18,10 +18,10 @@ class GeneratedImage {
     required this.isReady,
   });
 
-  /// 1-based shot number (1..3).
+  /// 1-based shot number.
   final int shot;
 
-  /// 1-based variation number within the shot (1..5).
+  /// 1-based variation number within the shot.
   final int variation;
   final String url;
   final bool isReady;
@@ -53,9 +53,12 @@ class GenerationState {
   final bool shouldOpenPlans;
 
   int get readyCount => images.where((i) => i.isReady).length;
+  int get shotCount => images.fold<int>(
+    0,
+    (largest, image) => image.shot > largest ? image.shot : largest,
+  );
   bool get isComplete =>
-      jobStatus == 'completed' ||
-      (jobStatus == null && started && readyCount == images.length);
+      started && images.isNotEmpty && readyCount == images.length;
   bool get isTerminal => isComplete || jobStatus == 'failed';
 
   /// Rough time remaining, matching the mockup's "~N minutes remaining".
@@ -68,24 +71,27 @@ class GenerationState {
       images.where((i) => i.shot == shot).toList();
 }
 
-/// Polls the authenticated onboarding job. Anonymous preview routes retain a
-/// deterministic simulation so the public funnel remains demonstrable.
+/// Polls the onboarding job until every generated image is available.
 class GenerationController extends Notifier<GenerationState> {
-  /// How often the next simulated image completes.
-  static const interval = Duration(milliseconds: 900);
-  static const pollInterval = Duration(seconds: 10);
+  static const pollInterval = Duration(seconds: 5);
 
   Timer? _timer;
+  int _shotCount = freeShootShotCount;
+  int _variations = freeShootVariationsPerShot;
+  int _expectedTotal = freeShootImageCount;
 
   @override
   GenerationState build() {
     ref.onDispose(_stopTimer);
-    return GenerationState(images: _freshSlots(), started: false);
+    return GenerationState(
+      images: _freshSlots(_shotCount, _variations),
+      started: false,
+    );
   }
 
-  static List<GeneratedImage> _freshSlots() => [
-    for (var shot = 1; shot <= freeShootShotCount; shot++)
-      for (var v = 1; v <= freeShootVariationsPerShot; v++)
+  static List<GeneratedImage> _freshSlots(int shotCount, int variations) => [
+    for (var shot = 1; shot <= shotCount; shot++)
+      for (var v = 1; v <= variations; v++)
         GeneratedImage(
           shot: shot,
           variation: v,
@@ -94,15 +100,20 @@ class GenerationController extends Notifier<GenerationState> {
         ),
   ];
 
-  /// Kicks off (or restarts) the simulated shoot.
-  void start() {
+  void start({StartShootResponse? shoot}) {
     _stopTimer();
-    state = GenerationState(images: _freshSlots(), started: true);
-    if (ref.read(authRepositoryProvider).currentUser != null) {
-      unawaited(_poll());
-      return;
+    if (shoot != null) {
+      _shotCount = shoot.shotCount > 0 ? shoot.shotCount : _shotCount;
+      _variations = shoot.variations > 0 ? shoot.variations : _variations;
+      _expectedTotal = shoot.totalImages > 0
+          ? shoot.totalImages
+          : _shotCount * _variations;
     }
-    _timer = Timer.periodic(interval, (_) => _completeNext());
+    state = GenerationState(
+      images: _freshSlots(_shotCount, _variations),
+      started: true,
+    );
+    unawaited(_poll());
   }
 
   Future<void> _poll() async {
@@ -121,6 +132,7 @@ class GenerationController extends Notifier<GenerationState> {
     state = GenerationState(
       images: _mergeImages(
         status.onboardingImages,
+        completed: jobStatus == 'completed',
         terminalFailure: jobStatus == 'failed',
       ),
       started: true,
@@ -137,8 +149,25 @@ class GenerationController extends Notifier<GenerationState> {
 
   List<GeneratedImage> _mergeImages(
     List<OnboardingImage> incoming, {
+    required bool completed,
     required bool terminalFailure,
   }) {
+    if (completed && incoming.length == _expectedTotal) {
+      final inferredShots = incoming.fold<int>(
+        0,
+        (largest, image) =>
+            image.shotIndex + 1 > largest ? image.shotIndex + 1 : largest,
+      );
+      final inferredVariations = incoming.fold<int>(
+        0,
+        (largest, image) =>
+            image.variation > largest ? image.variation : largest,
+      );
+      if (inferredShots * inferredVariations == _expectedTotal) {
+        _shotCount = inferredShots;
+        _variations = inferredVariations;
+      }
+    }
     final byIdentity = {
       for (final image in state.images)
         '${image.shot - 1}:${image.variation}': image,
@@ -153,12 +182,8 @@ class GenerationController extends Notifier<GenerationState> {
       );
     }
     final merged = [
-      for (var shot = 1; shot <= freeShootShotCount; shot++)
-        for (
-          var variation = 1;
-          variation <= freeShootVariationsPerShot;
-          variation++
-        )
+      for (var shot = 1; shot <= _shotCount; shot++)
+        for (var variation = 1; variation <= _variations; variation++)
           byIdentity['${shot - 1}:$variation'] ??
               GeneratedImage(
                 shot: shot,
@@ -177,18 +202,6 @@ class GenerationController extends Notifier<GenerationState> {
     return value?.toLowerCase() ?? 'pending';
   }
 
-  void _completeNext() {
-    final i = state.images.indexWhere((img) => !img.isReady);
-    if (i < 0) {
-      _stopTimer();
-      return;
-    }
-    final images = [...state.images];
-    images[i] = images[i].copyWith(isReady: true);
-    state = GenerationState(images: images, started: true);
-    if (images.every((img) => img.isReady)) _stopTimer();
-  }
-
   void _stopTimer() {
     _timer?.cancel();
     _timer = null;
@@ -197,7 +210,13 @@ class GenerationController extends Notifier<GenerationState> {
   /// Back to a clean, unstarted shoot.
   void reset() {
     _stopTimer();
-    state = GenerationState(images: _freshSlots(), started: false);
+    _shotCount = freeShootShotCount;
+    _variations = freeShootVariationsPerShot;
+    _expectedTotal = freeShootImageCount;
+    state = GenerationState(
+      images: _freshSlots(_shotCount, _variations),
+      started: false,
+    );
   }
 }
 

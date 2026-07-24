@@ -9,6 +9,7 @@ import 'package:look_atlas/features/onboarding/data/models/look_atlas_model_dto.
 import 'package:look_atlas/features/onboarding/data/models/onboarding_config_model.dart';
 import 'package:look_atlas/features/onboarding/data/models/onboarding_product_model.dart';
 import 'package:look_atlas/features/onboarding/data/models/onboarding_status_model.dart';
+import 'package:look_atlas/features/onboarding/data/models/onboarding_user_model_dto.dart';
 import 'package:look_atlas/features/onboarding/data/models/start_shoot_response_model.dart';
 import 'package:look_atlas/features/onboarding/domain/entities/free_shoot.dart';
 import 'package:look_atlas/features/onboarding/domain/entities/onboarding_config.dart';
@@ -18,6 +19,7 @@ abstract interface class OnboardingRemoteDataSource {
   Future<Result<OnboardingAppConfigModel>> fetchAppConfig();
   Future<Result<OnboardingStatusModel>> fetchStatus();
   Future<Result<void>> updateStatus(OnboardingTrackingStatus status);
+  Future<Result<void>> completeOnboarding();
   Future<Result<String>> createProduct(ProductDraft draft);
   Future<Result<List<OnboardingProductModel>>> fetchProducts();
   Future<Result<void>> updateProduct(String productId, ProductDraft draft);
@@ -26,6 +28,7 @@ abstract interface class OnboardingRemoteDataSource {
     Map<int, String?> angles,
   );
   Future<Result<List<LookAtlasModelDto>>> fetchModels();
+  Future<Result<List<OnboardingUserModelDto>>> fetchUserModels();
   Future<Result<String>> createUserModel(UserModelDraft draft);
   Future<Result<StartShootResponseModel>> startShoot(StartShootRequest request);
 }
@@ -56,6 +59,13 @@ class OnboardingRemoteDataSourceImpl implements OnboardingRemoteDataSource {
         data: {'status': status.name},
         decoder: (_) {},
       );
+
+  @override
+  Future<Result<void>> completeOnboarding() => _api.post<void>(
+    ApiEndpoints.onboardingComplete,
+    data: const <String, Object?>{},
+    decoder: (_) {},
+  );
 
   @override
   Future<Result<String>> createProduct(ProductDraft draft) => _api.post<String>(
@@ -112,6 +122,23 @@ class OnboardingRemoteDataSourceImpl implements OnboardingRemoteDataSource {
                 baseUrl: AppConfig.apiBaseUrl,
               ),
         ],
+      );
+
+  @override
+  Future<Result<List<OnboardingUserModelDto>>> fetchUserModels() =>
+      _api.get<List<OnboardingUserModelDto>>(
+        ApiEndpoints.userModels,
+        decoder: (data) {
+          final items = data is List ? data : _map(data)['models'] as List?;
+          return [
+            for (final item in items ?? const [])
+              if (item is Map<String, dynamic>)
+                OnboardingUserModelDto.fromJson(
+                  item,
+                  baseUrl: AppConfig.apiBaseUrl,
+                ),
+          ];
+        },
       );
 
   @override

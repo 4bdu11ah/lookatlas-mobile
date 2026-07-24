@@ -15,6 +15,8 @@ import 'package:look_atlas/services/service_providers.dart';
 class OnboardingSubmissionState {
   const OnboardingSubmissionState({
     this.isSubmitting = false,
+    this.isSavingProduct = false,
+    this.isSavingModel = false,
     this.productId,
     this.modelId,
     this.shoot,
@@ -22,6 +24,8 @@ class OnboardingSubmissionState {
   });
 
   final bool isSubmitting;
+  final bool isSavingProduct;
+  final bool isSavingModel;
   final String? productId;
   final String? modelId;
   final StartShootResponse? shoot;
@@ -31,13 +35,141 @@ class OnboardingSubmissionState {
 class OnboardingSubmissionController
     extends Notifier<OnboardingSubmissionState> {
   static const int _maxUploadBytes = 10 * 1024 * 1024;
+  String? _productName;
+  String? _productSku;
 
   @override
   OnboardingSubmissionState build() => const OnboardingSubmissionState();
 
   void restoreProductId(String productId) {
     if (state.productId != null) return;
-    state = OnboardingSubmissionState(productId: productId);
+    state = OnboardingSubmissionState(
+      productId: productId,
+      modelId: state.modelId,
+      shoot: state.shoot,
+    );
+  }
+
+  Future<bool> saveProductPhotos(WizardState wizard) async {
+    if (state.isSavingProduct || state.isSubmitting) return false;
+    final previous = state;
+    state = OnboardingSubmissionState(
+      isSavingProduct: true,
+      productId: previous.productId,
+      modelId: previous.modelId,
+      shoot: previous.shoot,
+    );
+    final result = await _saveProduct(wizard, previous.productId);
+    final productId = result.valueOrNull;
+    if (productId == null) {
+      return _fail(
+        result.failureOrNull,
+        productId: previous.productId,
+        modelId: previous.modelId,
+      );
+    }
+    state = OnboardingSubmissionState(
+      productId: productId,
+      modelId: previous.modelId,
+      shoot: previous.shoot,
+    );
+    unawaited(
+      ref
+          .read(analyticsServiceProvider)
+          .track(
+            'wizard.product_uploaded',
+            properties: {'photo_count': wizard.photos.length},
+          ),
+    );
+    return true;
+  }
+
+  Future<bool> saveProductAngles(WizardState wizard) async {
+    if (state.isSavingProduct || state.isSubmitting) return false;
+    if (!wizard.allAnglesTagged) {
+      return _fail(
+        const ValidationFailure('Tag every product photo with an angle.'),
+        productId: state.productId,
+        modelId: state.modelId,
+      );
+    }
+    if (state.productId == null && !(await saveProductPhotos(wizard))) {
+      return false;
+    }
+    final productId = state.productId;
+    if (productId == null) return false;
+    state = OnboardingSubmissionState(
+      isSavingProduct: true,
+      productId: productId,
+      modelId: state.modelId,
+      shoot: state.shoot,
+    );
+    final result = await ref.read(updateProductAnglesUseCaseProvider)(
+      productId,
+      _photoAngles(wizard),
+    );
+    if (result case Err(:final failure)) {
+      return _fail(failure, productId: productId, modelId: state.modelId);
+    }
+    state = OnboardingSubmissionState(
+      productId: productId,
+      modelId: state.modelId,
+      shoot: state.shoot,
+    );
+    return true;
+  }
+
+  Future<bool> saveUserModelPhotos(List<Uint8List> photos) async {
+    if (state.isSavingModel || state.isSubmitting) return false;
+    if (photos.any((photo) => photo.length > _maxUploadBytes)) {
+      return _fail(
+        const ValidationFailure('Each model photo must be 10MB or smaller.'),
+        productId: state.productId,
+        modelId: state.modelId,
+      );
+    }
+    final previous = state;
+    state = OnboardingSubmissionState(
+      isSavingModel: true,
+      productId: previous.productId,
+      modelId: previous.modelId,
+      shoot: previous.shoot,
+    );
+    final result = await ref.read(createUserModelUseCaseProvider)(
+      UserModelDraft(
+        name: 'Model - ${DateTime.now().toIso8601String().split('T').first}',
+        gender: UserModelGender.unspecified,
+        photos: [
+          for (final entry in photos.indexed)
+            OnboardingUpload(
+              bytes: entry.$2,
+              fileName: 'model-${entry.$1 + 1}.jpg',
+            ),
+        ],
+      ),
+    );
+    final modelId = result.valueOrNull;
+    if (modelId == null) {
+      return _fail(
+        result.failureOrNull,
+        productId: previous.productId,
+        modelId: previous.modelId,
+      );
+    }
+    state = OnboardingSubmissionState(
+      productId: previous.productId,
+      modelId: modelId,
+      shoot: previous.shoot,
+    );
+    unawaited(
+      ref
+          .read(analyticsServiceProvider)
+          .track(
+            'wizard.model_selected',
+            properties: {'model_id': modelId, 'model_source': 'user'},
+          ),
+    );
+    return true;
   }
 
   Future<bool> submit(WizardState wizard) async {
@@ -49,7 +181,9 @@ class OnboardingSubmissionController
       modelId: previous.modelId,
     );
     final config = await _loadConfig();
-    final productResult = await _saveProduct(wizard, previous.productId);
+    final productResult = previous.productId == null
+        ? await _saveProduct(wizard, null)
+        : Ok(previous.productId!);
     final productId = productResult.valueOrNull;
     if (productId == null) {
       return _fail(productResult.failureOrNull, modelId: previous.modelId);
@@ -57,10 +191,7 @@ class OnboardingSubmissionController
 
     final anglesResult = await ref.read(updateProductAnglesUseCaseProvider)(
       productId,
-      {
-        for (final entry in wizard.photos.indexed)
-          entry.$1: entry.$2.angle?.toLowerCase(),
-      },
+      _photoAngles(wizard),
     );
     if (anglesResult case Err(:final failure)) {
       return _fail(failure, productId: productId, modelId: previous.modelId);
@@ -75,12 +206,14 @@ class OnboardingSubmissionController
     String? deviceFingerprint;
     String? deviceToken;
     String? uaFamily;
+    String? screenHash;
     int? tzOffset;
     try {
       final device = await ref.read(deviceTokenServiceProvider).context();
       deviceFingerprint = device.fingerprint;
       deviceToken = device.deviceToken;
       uaFamily = device.uaFamily;
+      screenHash = device.screenHash;
       tzOffset = device.tzOffset;
     } on Object {
       // Abuse-detection signals are optional. Native channel or bootstrap
@@ -100,6 +233,7 @@ class OnboardingSubmissionController
         deviceFingerprint: deviceFingerprint,
         deviceToken: deviceToken,
         uaFamily: uaFamily,
+        screenHash: screenHash,
         tzOffset: tzOffset,
       ),
     );
@@ -153,9 +287,13 @@ class OnboardingSubmissionController
 
   ProductDraft _productDraft(WizardState wizard) {
     final now = DateTime.now();
+    final productName = _productName ??=
+        'Product - ${now.toIso8601String().split('T').first}';
+    final productSku = _productSku ??=
+        'onboarding-${now.millisecondsSinceEpoch}';
     return ProductDraft(
-      name: 'Product - ${now.toIso8601String().split('T').first}',
-      sku: 'onboarding-${now.millisecondsSinceEpoch}',
+      name: productName,
+      sku: productSku,
       category: wizard.category?.name ?? 'other',
       photos: [
         for (final entry in wizard.photos.indexed)
@@ -164,9 +302,13 @@ class OnboardingSubmissionController
             fileName: 'product-${entry.$1 + 1}.jpg',
           ),
       ],
-      viewAngles: [for (final photo in wizard.photos) photo.angle],
     );
   }
+
+  Map<int, String?> _photoAngles(WizardState wizard) => {
+    for (final entry in wizard.photos.indexed)
+      entry.$1: entry.$2.angle?.toLowerCase(),
+  };
 
   Future<Result<String>> _resolveModel(
     WizardState wizard,
@@ -179,6 +321,10 @@ class OnboardingSubmissionController
             ? const Err(ValidationFailure('Select a model to continue.'))
             : Ok(id),
       );
+    }
+    final selectedUserModelId = wizard.selectedUserModel?.id;
+    if (selectedUserModelId != null && selectedUserModelId.isNotEmpty) {
+      return Future.value(Ok(selectedUserModelId));
     }
     if (existingId != null) return Future.value(Ok(existingId));
     if (wizard.uploadedModelPhotos.any(

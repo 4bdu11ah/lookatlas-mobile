@@ -9,8 +9,7 @@ import 'package:look_atlas/shared/widgets/look_atlas_loader.dart';
 
 /// Branded launch screen: dust particles assemble into the "Look Atlas"
 /// wordmark ([LookAtlasLoader]), hold for a moment, then the app moves on —
-/// signed-in users to home, signed-out users to the pre-login onboarding
-/// funnel (sign-in stays reachable from there).
+/// signed-in users to home and signed-out users to sign-in.
 ///
 /// The hand-off clock starts when the loader reports the intro is actually
 /// playing (via `onIntroStarted`) rather than at mount, so slow devices that
@@ -53,7 +52,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
   void _onStatusChanged(AnimationStatus status) {
     if (status == AnimationStatus.completed && mounted) {
       final loggedIn = ref.read(authRepositoryProvider).currentUser != null;
-      context.go(loggedIn ? AppRoutes.home : AppRoutes.onboarding);
+      context.go(loggedIn ? AppRoutes.home : AppRoutes.signIn);
     }
   }
 

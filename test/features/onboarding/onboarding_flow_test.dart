@@ -4,14 +4,24 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:look_atlas/core/providers/core_providers.dart';
+import 'package:look_atlas/core/result/result.dart';
 import 'package:look_atlas/core/router/app_router.dart';
 import 'package:look_atlas/core/router/app_routes.dart';
 import 'package:look_atlas/features/auth/di/auth_providers.dart';
-import 'package:look_atlas/features/auth/presentation/screens/sign_up_screen.dart';
+import 'package:look_atlas/features/auth/domain/entities/app_user.dart';
+import 'package:look_atlas/features/auth/domain/repositories/auth_repository.dart';
 import 'package:look_atlas/features/billing/di/billing_api_providers.dart';
 import 'package:look_atlas/features/onboarding/di/onboarding_providers.dart';
+import 'package:look_atlas/features/onboarding/domain/entities/free_shoot.dart';
+import 'package:look_atlas/features/onboarding/domain/entities/onboarding_config.dart';
+import 'package:look_atlas/features/onboarding/domain/entities/onboarding_product.dart';
+import 'package:look_atlas/features/onboarding/domain/entities/onboarding_status.dart';
 import 'package:look_atlas/features/onboarding/domain/look_atlas_model.dart';
 import 'package:look_atlas/features/onboarding/domain/onboarding_models.dart';
+import 'package:look_atlas/features/onboarding/domain/repositories/onboarding_repository.dart';
+import 'package:look_atlas/features/onboarding/presentation/controllers/onboarding_submission_controller.dart';
 import 'package:look_atlas/features/onboarding/presentation/providers/generation_controller.dart';
 import 'package:look_atlas/features/onboarding/presentation/providers/swipe_controller.dart';
 import 'package:look_atlas/features/onboarding/presentation/providers/wizard_controller.dart';
@@ -23,6 +33,11 @@ import 'package:look_atlas/features/onboarding/presentation/screens/starting_sho
 import 'package:look_atlas/features/onboarding/presentation/screens/swipe_results_screen.dart';
 import 'package:look_atlas/features/onboarding/presentation/screens/swipe_screen.dart';
 import 'package:look_atlas/features/subscription/di/subscription_providers.dart';
+import 'package:look_atlas/services/device/device_token_service.dart';
+import 'package:look_atlas/services/service_providers.dart';
+import 'package:look_atlas/shared/image_picker/image_picker_providers.dart';
+import 'package:mocktail/mocktail.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../helpers/fake_repositories.dart';
 
@@ -37,13 +52,93 @@ final Uint8List kTinyPng = Uint8List.fromList(const [
   0x49, 0x45, 0x4E, 0x44, 0xAE, 0x42, 0x60, 0x82, //
 ]);
 
+const _liveShoot = StartShootResponse(
+  id: 'job-1',
+  status: 'pending',
+  message: 'Started',
+  shotCount: 5,
+  variations: 3,
+  totalImages: 15,
+);
+
+final _completedStatus = OnboardingStatus(
+  freeShootUsed: true,
+  hasCalibration: false,
+  onboardingJobStatus: 'completed',
+  onboardingImages: [
+    for (var variation = 1; variation <= 3; variation++)
+      for (var shotIndex = 0; shotIndex < 5; shotIndex++)
+        OnboardingImage(
+          url: 'https://cdn.example/v$variation-shot$shotIndex.jpg',
+          shotIndex: shotIndex,
+          variation: variation,
+        ),
+  ],
+);
+
+class _MockOnboardingRepository extends Mock implements OnboardingRepository {}
+
+class _MockDeviceTokenService extends Mock implements DeviceTokenService {}
+
+class _FakeProductDraft extends Fake implements ProductDraft {}
+
+class _FakeStartShootRequest extends Fake implements StartShootRequest {}
+
+class _FakeImagePicker extends ImagePicker {
+  _FakeImagePicker(this.images);
+
+  final List<XFile> images;
+
+  @override
+  Future<List<XFile>> pickMultiImage({
+    double? maxWidth,
+    double? maxHeight,
+    int? imageQuality,
+    int? limit,
+    bool requestFullMetadata = true,
+  }) async => images;
+}
+
 void main() {
   late ProviderContainer container;
 
-  Future<GoRouter> pumpApp(WidgetTester tester) async {
+  setUpAll(() {
+    registerFallbackValue(_FakeProductDraft());
+    registerFallbackValue(_FakeStartShootRequest());
+  });
+
+  Future<GoRouter> pumpApp(
+    WidgetTester tester, {
+    AuthRepository? authRepository,
+    OnboardingRepository? onboardingRepository,
+    ImagePicker? imagePicker,
+    OnboardingStatus? onboardingStatus,
+  }) async {
+    SharedPreferences.setMockInitialValues(const {});
+    final sharedPreferences = await SharedPreferences.getInstance();
+    final deviceTokenService = _MockDeviceTokenService();
+    when(deviceTokenService.context).thenAnswer(
+      (_) async => const DeviceClientContext(
+        fingerprint: 'test-device',
+        deviceToken: 'test-token',
+        uaFamily: 'flutter-test',
+        tzOffset: 0,
+        screenHash: 'test-screen',
+      ),
+    );
     container = ProviderContainer(
       overrides: [
-        authRepositoryProvider.overrideWithValue(FakeAuthRepository()),
+        sharedPreferencesProvider.overrideWithValue(sharedPreferences),
+        deviceTokenServiceProvider.overrideWithValue(deviceTokenService),
+        authRepositoryProvider.overrideWithValue(
+          authRepository ??
+              FakeAuthRepository(
+                user: const AppUser(
+                  id: 'user-1',
+                  email: 'jane@example.com',
+                ),
+              ),
+        ),
         subscriptionRepositoryProvider.overrideWithValue(
           FakeSubscriptionRepository(),
         ),
@@ -51,7 +146,22 @@ void main() {
         lookAtlasModelsProvider.overrideWith(
           (ref) async => fallbackLibraryModels,
         ),
+        onboardingUserModelsProvider.overrideWith(
+          (ref) async => const <OnboardingUserModel>[],
+        ),
+        onboardingStatusProvider.overrideWith(
+          (ref) => onboardingStatus == null
+              ? Future.error(StateError('Status unavailable in widget test'))
+              : Future.value(onboardingStatus),
+        ),
+        onboardingProductsProvider.overrideWith((ref) async => const []),
         billingPlansProvider.overrideWith((ref) async => const []),
+        if (onboardingRepository != null)
+          onboardingRepositoryProvider.overrideWithValue(
+            onboardingRepository,
+          ),
+        if (imagePicker != null)
+          imagePickerProvider.overrideWithValue(imagePicker),
       ],
     );
     addTearDown(container.dispose);
@@ -75,7 +185,49 @@ void main() {
   testWidgets('wizard walks intro → product → model → director → review', (
     tester,
   ) async {
-    final router = await pumpApp(tester);
+    final onboardingRepository = _MockOnboardingRepository();
+    when(
+      () => onboardingRepository.createProduct(any()),
+    ).thenAnswer((_) async => const Result.ok('product-1'));
+    when(
+      () => onboardingRepository.updateProductAngles(any(), any()),
+    ).thenAnswer((_) async => const Result.ok(null));
+    when(onboardingRepository.fetchAppConfig).thenAnswer(
+      (_) async => const Result.ok(OnboardingAppConfig.fallback),
+    );
+    when(
+      () => onboardingRepository.startShoot(any()),
+    ).thenAnswer(
+      (_) async => const Result.ok(
+        StartShootResponse(
+          id: 'job-1',
+          status: 'pending',
+          message: 'Started',
+          shotCount: 5,
+          variations: 3,
+          totalImages: 15,
+        ),
+      ),
+    );
+    when(onboardingRepository.fetchStatus).thenAnswer(
+      (_) async => const Result.ok(
+        OnboardingStatus(
+          freeShootUsed: true,
+          onboardingImages: [],
+          hasCalibration: false,
+          onboardingJobStatus: 'generating',
+        ),
+      ),
+    );
+    when(
+      () => onboardingRepository.updateStatus(
+        OnboardingTrackingStatus.generating,
+      ),
+    ).thenAnswer((_) async => const Result.ok(null));
+    final router = await pumpApp(
+      tester,
+      onboardingRepository: onboardingRepository,
+    );
     router.go(AppRoutes.onboarding);
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 400));
@@ -131,6 +283,13 @@ void main() {
     await tester.tap(find.text('Continue'));
     await tester.pump(const Duration(milliseconds: 400));
     await tester.pump(const Duration(milliseconds: 400));
+    verify(() => onboardingRepository.createProduct(any())).called(1);
+    verify(
+      () => onboardingRepository.updateProductAngles('product-1', {
+        0: 'front',
+        1: 'side',
+      }),
+    ).called(1);
 
     // Step 4 — model (calibrate is feature-flagged off).
     expect(find.text('Choose a model'), findsOneWidget);
@@ -157,8 +316,62 @@ void main() {
 
     await tester.ensureVisible(find.text('Start My Free Shoot'));
     await tester.tap(find.text('Start My Free Shoot'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+    expect(find.byType(GenerationProgressScreen), findsOneWidget);
+    final request =
+        verify(
+              () => onboardingRepository.startShoot(captureAny()),
+            ).captured.single
+            as StartShootRequest;
+    expect(request.productId, 'product-1');
+    expect(request.modelId, 'amara');
+    expect(request.settings.directorId, 'clean-pro');
+    expect(request.settings.background, 'ai_decide');
+    expect(request.settings.useCase, 'pdp');
+
+    await teardownTree(tester);
+  });
+
+  testWidgets('authenticated_product_picker_uploads_through_products_api', (
+    tester,
+  ) async {
+    final onboardingRepository = _MockOnboardingRepository();
+    when(
+      () => onboardingRepository.createProduct(any()),
+    ).thenAnswer((_) async => const Result.ok('product-1'));
+    final imagePicker = _FakeImagePicker([
+      XFile.fromData(kTinyPng, name: 'front.png'),
+      XFile.fromData(kTinyPng, name: 'back.png'),
+    ]);
+    final router = await pumpApp(
+      tester,
+      onboardingRepository: onboardingRepository,
+      imagePicker: imagePicker,
+    );
+    router.go(AppRoutes.onboarding);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+
+    await tester.ensureVisible(find.text('Get My Free Photos'));
+    await tester.tap(find.text('Get My Free Photos'));
+    await tester.pump(const Duration(milliseconds: 800));
+    await tester.ensureVisible(find.text('Tops'));
+    await tester.tap(find.text('Tops'));
+    await tester.pump(const Duration(milliseconds: 400));
+    await tester.tap(find.text('Continue'));
+    await tester.pump(const Duration(milliseconds: 800));
+    await tester.ensureVisible(find.text('Tap to add photos'));
+    await tester.tap(find.text('Tap to add photos'));
     await tester.pumpAndSettle();
-    expect(find.byType(SignUpScreen), findsOneWidget);
+    await tester.tap(find.text('Choose from gallery'));
+    await tester.pumpAndSettle();
+
+    verify(() => onboardingRepository.createProduct(any())).called(1);
+    expect(
+      container.read(onboardingSubmissionControllerProvider).productId,
+      'product-1',
+    );
 
     await teardownTree(tester);
   });
@@ -208,8 +421,19 @@ void main() {
   testWidgets(
     'starting loader hands off to generation, then to the swipe view',
     (tester) async {
-      final router = await pumpApp(tester);
-      container.read(generationControllerProvider.notifier).start();
+      final onboardingRepository = _MockOnboardingRepository();
+      when(
+        onboardingRepository.fetchStatus,
+      ).thenAnswer((_) async => Result.ok(_completedStatus));
+      final router = await pumpApp(
+        tester,
+        onboardingRepository: onboardingRepository,
+      );
+      container
+          .read(generationControllerProvider.notifier)
+          .start(
+            shoot: _liveShoot,
+          );
       router.go(AppRoutes.onboardingStarting);
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 400));
@@ -221,10 +445,7 @@ void main() {
       expect(find.byType(GenerationProgressScreen), findsOneWidget);
       expect(find.text('Creating your photos'), findsOneWidget);
 
-      // One image completes every 900ms; 15 images + redirect delay.
-      for (var i = 0; i < 16; i++) {
-        await tester.pump(const Duration(seconds: 1));
-      }
+      await tester.pump();
       await tester.pump(const Duration(seconds: 2));
       await tester.pump(const Duration(milliseconds: 400));
       expect(find.byType(SwipeScreen), findsOneWidget);
@@ -236,15 +457,25 @@ void main() {
   testWidgets('swiping through the deck lands on results with kept shots', (
     tester,
   ) async {
-    final router = await pumpApp(tester);
-    container.read(generationControllerProvider.notifier).start();
-    // Let the whole shoot finish so every card is ready.
+    final onboardingRepository = _MockOnboardingRepository();
+    when(
+      onboardingRepository.fetchStatus,
+    ).thenAnswer((_) async => Result.ok(_completedStatus));
+    final router = await pumpApp(
+      tester,
+      onboardingRepository: onboardingRepository,
+    );
+    container
+        .read(generationControllerProvider.notifier)
+        .start(
+          shoot: _liveShoot,
+        );
     router.go(AppRoutes.onboardingSwipe);
     await tester.pump();
-    for (var i = 0; i < 15; i++) {
-      await tester.pump(const Duration(seconds: 1));
-    }
+    await tester.pump();
     expect(container.read(generationControllerProvider).isComplete, isTrue);
+    await tester.pump(const Duration(seconds: 4));
+    await tester.pump(const Duration(milliseconds: 500));
     expect(find.text('Your shoot is underway'), findsOneWidget);
 
     // Save 5, pass 10.
@@ -275,12 +506,16 @@ void main() {
   testWidgets('activate shows the analyzing loader, then the paywall', (
     tester,
   ) async {
-    final router = await pumpApp(tester);
+    final authRepository = FakeAuthRepository(
+      user: const AppUser(id: 'user-1', email: 'jane@example.com'),
+    );
+    final router = await pumpApp(tester, authRepository: authRepository);
     router.go(AppRoutes.onboardingActivate);
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 400));
     expect(find.byType(ActivatePaywallScreen), findsOneWidget);
     expect(find.text('PLEASE HOLD'), findsOneWidget);
+    expect(authRepository.restoreCalls, 1);
 
     // Loader runs 4.5s, then the paywall fades in.
     await tester.pump(const Duration(seconds: 5));
@@ -296,6 +531,26 @@ void main() {
     expect(find.textContaining(r'$49'), findsOneWidget);
 
     await teardownTree(tester);
+  });
+
+  testWidgets('active subscription skips onboarding after login', (
+    tester,
+  ) async {
+    final router = await pumpApp(
+      tester,
+      onboardingStatus: const OnboardingStatus(
+        subscriptionStatus: 'active',
+        freeShootUsed: true,
+        onboardingImages: [],
+        hasCalibration: false,
+      ),
+    );
+
+    router.go(AppRoutes.onboarding);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Dashboard'), findsOneWidget);
+    expect(find.byType(OnboardingWizardScreen), findsNothing);
   });
 
   testWidgets('one-time success rejects a missing checkout session', (

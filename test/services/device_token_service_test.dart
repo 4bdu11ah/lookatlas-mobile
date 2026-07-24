@@ -50,6 +50,8 @@ void main() {
     expect(first.deviceToken, 'dt_123');
     expect(second.deviceToken, 'dt_123');
     expect(first.fingerprint, 'installation-1');
+    expect(first.screenHash, isNotEmpty);
+    expect(first.toRegistrationJson()['screenHash'], first.screenHash);
     verify(
       () => api.post<String>(
         ApiEndpoints.deviceTokenBootstrap,

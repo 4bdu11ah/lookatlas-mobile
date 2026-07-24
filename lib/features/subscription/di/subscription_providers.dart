@@ -3,6 +3,7 @@ import 'package:look_atlas/core/providers/core_providers.dart';
 import 'package:look_atlas/features/subscription/data/revenuecat_subscription_repository.dart';
 import 'package:look_atlas/features/subscription/domain/entitlement_verifier.dart';
 import 'package:look_atlas/features/subscription/domain/subscription_repository.dart';
+import 'package:purchases_flutter/purchases_flutter.dart';
 
 /// Dependency injection for the subscription feature. Presentation code
 /// (controllers, screens) depends on these providers, never on the concrete
@@ -22,3 +23,11 @@ final subscriptionRepositoryProvider = Provider<SubscriptionRepository>((ref) {
 final entitlementVerifierProvider = Provider<EntitlementVerifier>(
   (ref) => const LocalEntitlementVerifier(),
 );
+
+final FutureProvider<List<Package>> revenueCatPackagesProvider =
+    FutureProvider.autoDispose<List<Package>>((ref) async {
+      final result = await ref
+          .watch(subscriptionRepositoryProvider)
+          .fetchPackages();
+      return result.fold((packages) => packages, (failure) => throw failure);
+    });

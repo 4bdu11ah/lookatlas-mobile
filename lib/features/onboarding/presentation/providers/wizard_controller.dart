@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:look_atlas/core/logging/app_logger.dart';
+import 'package:look_atlas/features/onboarding/domain/entities/onboarding_product.dart';
 import 'package:look_atlas/features/onboarding/domain/look_atlas_model.dart';
 import 'package:look_atlas/features/onboarding/domain/onboarding_models.dart';
 import 'package:look_atlas/services/service_providers.dart';
@@ -36,6 +37,7 @@ class WizardState {
     this.modelGenderFilter = ModelGender.all,
     this.modelUploadTab = false,
     this.selectedModel,
+    this.selectedUserModel,
     this.uploadedModelPhotos = const [],
     this.usingUploadedModel = false,
     this.uploadingModel = false,
@@ -54,6 +56,7 @@ class WizardState {
   /// True while the "Upload Your Own" tab is selected on the model step.
   final bool modelUploadTab;
   final LookAtlasModel? selectedModel;
+  final OnboardingUserModel? selectedUserModel;
   final List<Uint8List> uploadedModelPhotos;
 
   /// True when the user picked their uploaded photos over a library model.
@@ -93,14 +96,16 @@ class WizardState {
     WizardStep.calibrate => true,
     WizardStep.model =>
       selectedModel != null ||
+          selectedUserModel != null ||
           (usingUploadedModel && uploadedModelPhotos.isNotEmpty),
     WizardStep.director => selectedDirector != null,
     WizardStep.review => true,
   };
 
   /// Name shown under "Model" on the review card.
-  String get modelName =>
-      usingUploadedModel ? 'Your model' : (selectedModel?.name ?? '—');
+  String get modelName => usingUploadedModel
+      ? (selectedUserModel?.name ?? 'Your model')
+      : (selectedModel?.name ?? '—');
 
   WizardState copyWith({
     WizardStep? step,
@@ -114,6 +119,8 @@ class WizardState {
     bool? modelUploadTab,
     LookAtlasModel? selectedModel,
     bool clearSelectedModel = false,
+    OnboardingUserModel? selectedUserModel,
+    bool clearSelectedUserModel = false,
     List<Uint8List>? uploadedModelPhotos,
     bool? usingUploadedModel,
     bool? uploadingModel,
@@ -132,6 +139,9 @@ class WizardState {
       selectedModel: clearSelectedModel
           ? null
           : (selectedModel ?? this.selectedModel),
+      selectedUserModel: clearSelectedUserModel
+          ? null
+          : (selectedUserModel ?? this.selectedUserModel),
       uploadedModelPhotos: uploadedModelPhotos ?? this.uploadedModelPhotos,
       usingUploadedModel: usingUploadedModel ?? this.usingUploadedModel,
       uploadingModel: uploadingModel ?? this.uploadingModel,
@@ -140,7 +150,7 @@ class WizardState {
   }
 }
 
-/// Drives the six-step pre-login wizard. Owns step navigation and every
+/// Drives the six-step authenticated wizard. Owns step navigation and every
 /// selection made along the way; screens stay purely presentational.
 class WizardController extends Notifier<WizardState> {
   @override
@@ -279,7 +289,11 @@ class WizardController extends Notifier<WizardState> {
   }
 
   void selectModel(LookAtlasModel model) {
-    state = state.copyWith(selectedModel: model, usingUploadedModel: false);
+    state = state.copyWith(
+      selectedModel: model,
+      clearSelectedUserModel: true,
+      usingUploadedModel: false,
+    );
     unawaited(
       ref
           .read(analyticsServiceProvider)
@@ -326,12 +340,33 @@ class WizardController extends Notifier<WizardState> {
       uploadingModel: false,
       usingUploadedModel: true,
       clearSelectedModel: true,
+      clearSelectedUserModel: true,
+    );
+  }
+
+  void selectUserModel(OnboardingUserModel model) {
+    state = state.copyWith(
+      selectedUserModel: model,
+      usingUploadedModel: true,
+      clearSelectedModel: true,
+    );
+    unawaited(
+      ref
+          .read(analyticsServiceProvider)
+          .track(
+            'wizard.model_selected',
+            properties: {'model_id': model.id, 'model_source': 'user'},
+          ),
     );
   }
 
   void useUploadedModel() {
     if (state.uploadedModelPhotos.isEmpty) return;
-    state = state.copyWith(usingUploadedModel: true, clearSelectedModel: true);
+    state = state.copyWith(
+      usingUploadedModel: true,
+      clearSelectedModel: true,
+      clearSelectedUserModel: true,
+    );
   }
 
   // --- Step 5: director ----------------------------------------------------

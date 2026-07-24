@@ -6,12 +6,11 @@ import 'package:go_router/go_router.dart';
 import 'package:look_atlas/core/router/app_routes.dart';
 import 'package:look_atlas/core/theme/app_colors.dart';
 import 'package:look_atlas/core/theme/app_typography.dart';
-import 'package:look_atlas/features/onboarding/domain/onboarding_models.dart';
 import 'package:look_atlas/features/onboarding/presentation/providers/generation_controller.dart';
 import 'package:look_atlas/features/onboarding/presentation/widgets/onboarding_widgets.dart';
 import 'package:look_atlas/shared/widgets/bar_spinner.dart';
 
-/// The 15-image generation grid (mockup 08): 3 shots x 5 variations filling
+/// The 15-image generation grid (mockup 08), filled from the live job layout
 /// in live, with watermark + lock badges on finished trial images. Redirects
 /// to the swipe view shortly after every image is ready.
 class GenerationProgressScreen extends ConsumerStatefulWidget {
@@ -40,11 +39,10 @@ class _GenerationProgressScreenState
   }
 
   void _maybeScheduleRedirect(GenerationState generation) {
-    // if (generation.isComplete && _redirect == null && mounted) {
-    //   _redirect = Timer(const Duration(milliseconds: 1400), () {
-    if (mounted) context.go(AppRoutes.onboardingSwipe);
-    // });
-    // }
+    if (!generation.isComplete || _redirect != null || !mounted) return;
+    _redirect = Timer(const Duration(milliseconds: 1400), () {
+      if (mounted) context.go(AppRoutes.onboardingSwipe);
+    });
   }
 
   @override
@@ -71,7 +69,7 @@ class _GenerationProgressScreenState
             const SizedBox(height: 48),
             _PreviewLabel(scheme: scheme),
             const SizedBox(height: 32),
-            for (var shot = 1; shot <= freeShootShotCount; shot++) ...[
+            for (var shot = 1; shot <= generation.shotCount; shot++) ...[
               _ShotGroup(
                 shot: shot,
                 images: generation.imagesForShot(shot),

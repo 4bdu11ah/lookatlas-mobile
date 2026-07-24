@@ -9,6 +9,7 @@ abstract interface class OnboardingRepository {
   Future<Result<OnboardingAppConfig>> fetchAppConfig();
   Future<Result<OnboardingStatus>> fetchStatus();
   Future<Result<void>> updateStatus(OnboardingTrackingStatus status);
+  Future<Result<void>> completeOnboarding();
   Future<Result<String>> createProduct(ProductDraft draft);
   Future<Result<List<OnboardingProduct>>> fetchProducts();
   Future<Result<void>> updateProduct(String productId, ProductDraft draft);
@@ -17,6 +18,7 @@ abstract interface class OnboardingRepository {
     Map<int, String?> angles,
   );
   Future<Result<List<LookAtlasModel>>> fetchModels();
+  Future<Result<List<OnboardingUserModel>>> fetchUserModels();
   Future<Result<String>> createUserModel(UserModelDraft draft);
   Future<Result<StartShootResponse>> startShoot(StartShootRequest request);
 }

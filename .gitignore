@@ -48,6 +48,7 @@ app.*.map.json
 .env
 .env.*
 !.env.example
+.fvmrc
 
 # Android release signing (see android/key.properties.example)
 android/key.properties
@@ -66,3 +67,4 @@ designs
 flutter-auth-onboarding-subscription-dashboard.md
 linear-tickets-mobile-preauth-onboarding.md
 mobile-onboarding-api-handoff.md
+google_play_submission_pack.md

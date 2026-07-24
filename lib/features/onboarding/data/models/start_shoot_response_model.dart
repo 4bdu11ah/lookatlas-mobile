@@ -13,8 +13,8 @@ class StartShootResponseModel {
         estimatedCompletion: estimated is String
             ? DateTime.tryParse(estimated)
             : null,
-        shotCount: (json['shotCount'] as num?)?.toInt() ?? 3,
-        variations: (json['variations'] as num?)?.toInt() ?? 5,
+        shotCount: (json['shotCount'] as num?)?.toInt() ?? 5,
+        variations: (json['variations'] as num?)?.toInt() ?? 3,
         totalImages: (json['totalImages'] as num?)?.toInt() ?? 15,
       ),
     );

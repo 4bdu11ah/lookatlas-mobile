@@ -5,20 +5,26 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:look_atlas/core/router/app_routes.dart';
 import 'package:look_atlas/core/theme/app_colors.dart';
 import 'package:look_atlas/core/theme/app_typography.dart';
+import 'package:look_atlas/features/auth/di/auth_providers.dart';
 import 'package:look_atlas/features/billing/di/billing_api_providers.dart';
 import 'package:look_atlas/features/billing/domain/entities/billing_checkout.dart';
 import 'package:look_atlas/features/billing/presentation/controllers/billing_checkout_controller.dart';
 import 'package:look_atlas/features/onboarding/presentation/providers/swipe_controller.dart';
 import 'package:look_atlas/features/onboarding/presentation/widgets/onboarding_widgets.dart';
+import 'package:look_atlas/features/onboarding/presentation/widgets/revenuecat_offerings_section.dart';
+import 'package:look_atlas/features/subscription/di/subscription_providers.dart';
+import 'package:look_atlas/features/subscription/presentation/subscription_action.dart';
+import 'package:look_atlas/features/subscription/presentation/subscription_controller.dart';
 import 'package:look_atlas/shared/widgets/app_snack_bar.dart';
+import 'package:purchases_flutter/purchases_flutter.dart';
 
 /// The dark activate / paywall screen (mockup 11): a short "analyzing your
 /// liked looks" loader, then the black paywall — drifting photo wall, billing
 /// toggle, three plan cards and the $8.99 one-time option. Plans hand off to
-/// sign-up (payment happens after registration); the one-time option goes to
-/// the purchase-success flow.
+/// checkout; the one-time option goes to the purchase-success flow.
 class ActivatePaywallScreen extends ConsumerStatefulWidget {
   const ActivatePaywallScreen({super.key});
 
@@ -34,9 +40,18 @@ class _ActivatePaywallScreenState extends ConsumerState<ActivatePaywallScreen> {
   @override
   void initState() {
     super.initState();
+    unawaited(_verifySession());
     _loader = Timer(const Duration(milliseconds: 4500), () {
       if (mounted) setState(() => _analyzing = false);
     });
+  }
+
+  Future<void> _verifySession() async {
+    try {
+      await ref.read(authRepositoryProvider).verifySession();
+    } on Object {
+      // Pricing remains available if local session storage cannot be read.
+    }
   }
 
   @override
@@ -47,11 +62,27 @@ class _ActivatePaywallScreenState extends ConsumerState<ActivatePaywallScreen> {
 
   @override
   Widget build(BuildContext context) {
+    ref.listen(subscriptionActionProvider, (_, next) {
+      if (next case SubscriptionIdle(:final failure?)) {
+        AppSnackBar.showError(context, failure.message);
+      }
+    });
     final savedCount = ref.watch(swipeControllerProvider).savedCount;
     final savedUrls = [
       for (final image in ref.watch(savedImagesProvider)) image.url,
     ];
     final apiPlans = ref.watch(billingPlansProvider).asData?.value;
+    final revenueCatPackages =
+        ref.watch(revenueCatPackagesProvider).asData?.value ?? const [];
+    final purchaseAction = ref.watch(subscriptionActionProvider);
+    final purchasingPackageId = switch (purchaseAction) {
+      SubscriptionPurchasing(:final packageId) => packageId,
+      _ => null,
+    };
+    final hasRevenueCatSubscriptions = revenueCatPackages.any(
+      (package) => !_isOneTimePackage(package),
+    );
+    final hasRevenueCatOneTime = revenueCatPackages.any(_isOneTimePackage);
     final isUpsell =
         GoRouterState.of(context).uri.queryParameters['upsell'] == 'onetime20';
     if (isUpsell) ref.watch(proUpsellOfferProvider);
@@ -67,11 +98,31 @@ class _ActivatePaywallScreenState extends ConsumerState<ActivatePaywallScreen> {
             : _Paywall(
                 urls: savedUrls,
                 plans: plans,
+                showBackendPlans: !hasRevenueCatSubscriptions,
+                showBackendOneTime: !hasRevenueCatOneTime,
+                revenueCatSection: RevenueCatOfferingsSection(
+                  packages: revenueCatPackages,
+                  purchasingPackageId: purchasingPackageId,
+                  onPurchase: _purchaseRevenueCatPackage,
+                ),
                 onPlanSelected: _startPlanCheckout,
                 onOneTime: _startOnetimeCheckout,
               ),
       ),
     );
+  }
+
+  static bool _isOneTimePackage(Package package) =>
+      package.packageType == PackageType.lifetime ||
+      package.storeProduct.productCategory == ProductCategory.nonSubscription;
+
+  Future<void> _purchaseRevenueCatPackage(Package package) async {
+    final purchased = await ref
+        .read(subscriptionActionProvider.notifier)
+        .purchase(package);
+    if (!purchased || !mounted) return;
+    AppSnackBar.showSuccess(context, 'Purchase successful.');
+    context.go(AppRoutes.billingSuccess);
   }
 
   Future<void> _startPlanCheckout(
@@ -546,12 +597,18 @@ class _Paywall extends StatefulWidget {
   const _Paywall({
     required this.urls,
     required this.plans,
+    required this.showBackendPlans,
+    required this.showBackendOneTime,
+    required this.revenueCatSection,
     required this.onPlanSelected,
     required this.onOneTime,
   });
 
   final List<String> urls;
   final List<_Plan> plans;
+  final bool showBackendPlans;
+  final bool showBackendOneTime;
+  final Widget revenueCatSection;
   final void Function(_Plan plan, {required bool yearly}) onPlanSelected;
   final VoidCallback onOneTime;
 
@@ -647,15 +704,19 @@ class _PaywallState extends State<_Paywall> {
                   onChanged: (v) => setState(() => _yearly = v),
                 ),
                 const SizedBox(height: 22),
-                for (final plan in widget.plans) ...[
-                  _PlanCard(
-                    plan: plan,
-                    onStart: () => widget.onPlanSelected(plan, yearly: _yearly),
-                  ),
-                  const SizedBox(height: 14),
-                ],
+                if (widget.showBackendPlans)
+                  for (final plan in widget.plans) ...[
+                    _PlanCard(
+                      plan: plan,
+                      onStart: () =>
+                          widget.onPlanSelected(plan, yearly: _yearly),
+                    ),
+                    const SizedBox(height: 14),
+                  ],
+                widget.revenueCatSection,
                 const SizedBox(height: 10),
-                _OneTimeCard(onTap: widget.onOneTime),
+                if (widget.showBackendOneTime)
+                  _OneTimeCard(onTap: widget.onOneTime),
                 const SizedBox(height: 48),
                 const _Pillars(),
                 const SizedBox(height: 32),

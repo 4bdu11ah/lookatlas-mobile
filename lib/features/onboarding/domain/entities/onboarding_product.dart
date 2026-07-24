@@ -66,6 +66,23 @@ class OnboardingProductPhoto {
 }
 
 @immutable
+class OnboardingUserModel {
+  const OnboardingUserModel({
+    required this.id,
+    required this.name,
+    this.photos = const [],
+    this.thumbnail,
+  });
+
+  final String id;
+  final String name;
+  final List<String> photos;
+  final String? thumbnail;
+
+  String get imageUrl => thumbnail ?? (photos.isNotEmpty ? photos.first : '');
+}
+
+@immutable
 class UserModelDraft {
   const UserModelDraft({
     required this.name,

@@ -116,6 +116,9 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       decoder: (data) =>
           AuthSessionModel.fromJson(_bodyAsMap(data), fallbackEmail: email),
     );
+    print(
+      'Login result: ${result.fold((err) => err.toString(), (success) => success.toString())}',
+    );
     // Same fallback copy as the web client's login handler.
     return result.mapErr(
       (failure) => _authFailure(failure, fallback: 'Login failed'),

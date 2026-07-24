@@ -32,6 +32,9 @@ final updateOnboardingStatusUseCaseProvider =
         ref.watch(onboardingRepositoryProvider),
       ),
     );
+final completeOnboardingUseCaseProvider = Provider<CompleteOnboardingUseCase>(
+  (ref) => CompleteOnboardingUseCase(ref.watch(onboardingRepositoryProvider)),
+);
 final createOnboardingProductUseCaseProvider =
     Provider<CreateOnboardingProductUseCase>(
       (ref) => CreateOnboardingProductUseCase(
@@ -56,6 +59,12 @@ final updateProductAnglesUseCaseProvider = Provider<UpdateProductAnglesUseCase>(
 final getLookAtlasModelsUseCaseProvider = Provider<GetLookAtlasModelsUseCase>(
   (ref) => GetLookAtlasModelsUseCase(ref.watch(onboardingRepositoryProvider)),
 );
+final getOnboardingUserModelsUseCaseProvider =
+    Provider<GetOnboardingUserModelsUseCase>(
+      (ref) => GetOnboardingUserModelsUseCase(
+        ref.watch(onboardingRepositoryProvider),
+      ),
+    );
 final createUserModelUseCaseProvider = Provider<CreateUserModelUseCase>(
   (ref) => CreateUserModelUseCase(ref.watch(onboardingRepositoryProvider)),
 );
@@ -95,4 +104,10 @@ final FutureProvider<List<LookAtlasModel>> lookAtlasModelsProvider =
           throw failure;
         },
       );
+    });
+
+final FutureProvider<List<OnboardingUserModel>> onboardingUserModelsProvider =
+    FutureProvider.autoDispose<List<OnboardingUserModel>>((ref) async {
+      final result = await ref.watch(getOnboardingUserModelsUseCaseProvider)();
+      return result.fold((models) => models, (failure) => throw failure);
     });

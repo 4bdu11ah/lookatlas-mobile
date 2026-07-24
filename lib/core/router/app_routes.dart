@@ -11,6 +11,7 @@ abstract final class AppRoutes {
   static const onboardingResults = '/onboarding/results';
   static const onboardingActivate = '/onboarding/activate';
   static const onboardingSuccess = '/onboarding/success';
+  static const billingSuccess = '/billing/success';
   static const signIn = '/sign-in';
   static const signUp = '/sign-up';
   static const resetPassword = '/reset-password';

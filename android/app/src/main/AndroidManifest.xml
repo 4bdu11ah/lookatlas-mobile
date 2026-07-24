@@ -2,7 +2,7 @@
     <!-- Required for all network calls (Dio, Sentry, PostHog, RevenueCat, images). -->
     <uses-permission android:name="android.permission.INTERNET"/>
     <application
-        android:label="look_atlas"
+        android:label="Look Atlas"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity

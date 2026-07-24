@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:look_atlas/core/theme/app_colors.dart';
 import 'package:look_atlas/core/theme/app_typography.dart';
 import 'package:look_atlas/features/onboarding/domain/onboarding_models.dart';
+import 'package:look_atlas/features/onboarding/presentation/controllers/onboarding_submission_controller.dart';
 import 'package:look_atlas/features/onboarding/presentation/providers/wizard_controller.dart';
 import 'package:look_atlas/features/onboarding/presentation/widgets/onboarding_widgets.dart';
 import 'package:look_atlas/shared/image_picker/image_source_sheet.dart';
@@ -28,10 +29,27 @@ class ProductStep extends ConsumerWidget {
       title: 'Add product photos',
     );
     if (source == null) return;
+    final previousCount = ref.read(wizardControllerProvider).photos.length;
     final result = await ref
         .read(wizardControllerProvider.notifier)
         .addProductPhotosFrom(source);
     if (!context.mounted) return;
+    final wizard = ref.read(wizardControllerProvider);
+    if (wizard.photos.length > previousCount) {
+      final saved = await ref
+          .read(onboardingSubmissionControllerProvider.notifier)
+          .saveProductPhotos(wizard);
+      if (!context.mounted) return;
+      if (!saved) {
+        final failure = ref
+            .read(onboardingSubmissionControllerProvider)
+            .failure;
+        AppSnackBar.showError(
+          context,
+          failure?.message ?? 'Could not upload your product photos.',
+        );
+      }
+    }
     switch (result) {
       case PhotoPickResult.truncated:
         AppSnackBar.show(
@@ -51,6 +69,11 @@ class ProductStep extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(wizardControllerProvider);
+    final isSavingProduct = ref.watch(
+      onboardingSubmissionControllerProvider.select(
+        (value) => value.isSavingProduct,
+      ),
+    );
     return phase == ProductPhase.category
         ? _CategoryPicker(
             selected: state.category,
@@ -61,6 +84,7 @@ class ProductStep extends ConsumerWidget {
           )
         : _PhotoUpload(
             state: state,
+            isSavingProduct: isSavingProduct,
             onAddPhotos: () => _addPhotos(context, ref),
           );
   }
@@ -223,9 +247,14 @@ class _OtherTile extends StatelessWidget {
 // --- States B/C: photo upload ------------------------------------------------
 
 class _PhotoUpload extends ConsumerWidget {
-  const _PhotoUpload({required this.state, required this.onAddPhotos});
+  const _PhotoUpload({
+    required this.state,
+    required this.isSavingProduct,
+    required this.onAddPhotos,
+  });
 
   final WizardState state;
+  final bool isSavingProduct;
   final VoidCallback onAddPhotos;
 
   @override
@@ -274,7 +303,7 @@ class _PhotoUpload extends ConsumerWidget {
                     color: scheme.onSurface,
                   ),
                 ),
-                if (state.addingPhotos)
+                if (state.addingPhotos || isSavingProduct)
                   const _UploadingIndicator()
                 else if (state.photos.isEmpty)
                   _DropZone(onTap: onAddPhotos)
@@ -372,7 +401,7 @@ class _UploadingIndicator extends StatelessWidget {
           children: [
             const BarSpinner(size: 28),
             Text(
-              'Adding your photos...',
+              'Uploading your photos...',
               style: TextStyle(
                 fontSize: 14,
                 height: 1.43,

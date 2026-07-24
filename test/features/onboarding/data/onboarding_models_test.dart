@@ -5,6 +5,8 @@ import 'package:look_atlas/core/network/dio_client.dart';
 import 'package:look_atlas/features/onboarding/data/models/look_atlas_model_dto.dart';
 import 'package:look_atlas/features/onboarding/data/models/onboarding_config_model.dart';
 import 'package:look_atlas/features/onboarding/data/models/onboarding_status_model.dart';
+import 'package:look_atlas/features/onboarding/data/models/start_shoot_response_model.dart';
+import 'package:look_atlas/features/onboarding/domain/entities/onboarding_status.dart';
 
 void main() {
   test('app_config_missing_values_uses_mobile_fallbacks', () {
@@ -36,6 +38,39 @@ void main() {
     expect(status.onboardingJob?.currentStep, 'Planning shots');
     expect(status.onboardingJob?.progress, 10);
     expect(status.onboardingImages.single.identity, '0:1');
+  });
+
+  test('active_subscription_marks_onboarding_complete', () {
+    const active = OnboardingStatus(
+      subscriptionStatus: 'active',
+      freeShootUsed: false,
+      onboardingImages: [],
+      hasCalibration: false,
+    );
+    const canceled = OnboardingStatus(
+      subscriptionStatus: 'canceled',
+      freeShootUsed: true,
+      onboardingImages: [],
+      hasCalibration: false,
+    );
+
+    expect(active.hasActiveSubscription, isTrue);
+    expect(canceled.hasActiveSubscription, isFalse);
+  });
+
+  test('start_shoot_live_five_by_three_response_is_parsed', () {
+    final response = StartShootResponseModel.fromJson(const {
+      'id': 'job-1',
+      'status': 'pending',
+      'message': 'Free shoot started successfully',
+      'shotCount': 5,
+      'variations': 3,
+      'totalImages': 15,
+    }).toEntity();
+
+    expect(response.shotCount, 5);
+    expect(response.variations, 3);
+    expect(response.totalImages, 15);
   });
 
   test('lookatlas_relative_thumbnail_is_resolved_against_api_origin', () {

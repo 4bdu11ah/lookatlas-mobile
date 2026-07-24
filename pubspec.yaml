@@ -32,16 +32,9 @@ dependencies:
   sign_in_with_apple: ^7.0.1
 
 dev_dependencies:
-  # Runner for riverpod_lint (enabled via analyzer plugins in
-  # analysis_options.yaml). Capped at 0.5.x: newer releases need Dart 3.10+.
-  custom_lint: ^0.5.11
   flutter_test:
     sdk: flutter
   mocktail: ^1.0.5 # mocking for unit tests
-  # Riverpod-specific lints. Pinned to the 3.0.0-dev.4 prerelease: every
-  # stable riverpod_lint 3.x that supports riverpod 3.3.x requires Dart
-  # 3.10+ (this toolchain is 3.9). Move to stable after the SDK upgrade.
-  riverpod_lint: ^3.0.0-dev.4
   # Capped below 10.1.0: newer releases require Dart 3.10+ (this toolchain is
   # 3.9). Raise this after upgrading the Flutter/Dart SDK.
   very_good_analysis: ">=10.0.0 <10.1.0"

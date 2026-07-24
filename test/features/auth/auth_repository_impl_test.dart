@@ -338,6 +338,23 @@ void main() {
     verify(remote.verify).called(1);
   });
 
+  test(
+    'verifySession always calls GET auth verify and refreshes user',
+    () async {
+      when(remote.verify).thenAnswer(
+        (_) async => const Result.ok(
+          AppUserModel(id: 'remote-1', email: 'jane@example.com'),
+        ),
+      );
+
+      final result = await repository.verifySession();
+
+      expect(result.valueOrNull?.id, 'remote-1');
+      expect(repository.currentUser?.id, 'remote-1');
+      verify(remote.verify).called(1);
+    },
+  );
+
   test('signOut calls the backend and clears the session', () async {
     when(
       () => remote.login(

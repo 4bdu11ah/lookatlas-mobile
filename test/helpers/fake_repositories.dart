@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:look_atlas/core/error/failure.dart';
 import 'package:look_atlas/core/result/result.dart';
 import 'package:look_atlas/features/auth/domain/entities/app_user.dart';
 import 'package:look_atlas/features/auth/domain/entities/register_attribution.dart';
@@ -16,6 +17,7 @@ class FakeAuthRepository implements AuthRepository {
 
   final _controller = StreamController<AppUser?>.broadcast();
   AppUser? _currentUser;
+  int restoreCalls = 0;
 
   @override
   AppUser? get currentUser => _currentUser;
@@ -33,6 +35,15 @@ class FakeAuthRepository implements AuthRepository {
 
   @override
   Future<void> restore() async {}
+
+  @override
+  Future<Result<AppUser>> verifySession() async {
+    restoreCalls++;
+    final user = _currentUser;
+    return user == null
+        ? const Result.err(AuthFailure('No active session.'))
+        : Result.ok(user);
+  }
 
   @override
   Future<Result<AppUser>> signInWithEmail({

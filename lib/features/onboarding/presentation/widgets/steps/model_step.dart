@@ -5,12 +5,12 @@ import 'package:look_atlas/core/theme/app_typography.dart';
 import 'package:look_atlas/features/onboarding/di/onboarding_providers.dart';
 import 'package:look_atlas/features/onboarding/domain/look_atlas_model.dart';
 import 'package:look_atlas/features/onboarding/domain/onboarding_models.dart';
+import 'package:look_atlas/features/onboarding/presentation/controllers/onboarding_submission_controller.dart';
 import 'package:look_atlas/features/onboarding/presentation/providers/wizard_controller.dart';
 import 'package:look_atlas/features/onboarding/presentation/widgets/onboarding_widgets.dart';
+import 'package:look_atlas/features/onboarding/presentation/widgets/steps/user_model_upload_tab.dart';
 import 'package:look_atlas/shared/image_picker/image_source_sheet.dart';
-import 'package:look_atlas/shared/widgets/app_image.dart';
 import 'package:look_atlas/shared/widgets/app_snack_bar.dart';
-import 'package:look_atlas/shared/widgets/bar_spinner.dart';
 import 'package:look_atlas/shared/widgets/shimmer_box.dart';
 
 /// Wizard step 4 — model picker: library tab with a gender filter, plus an
@@ -26,10 +26,33 @@ class ModelStep extends ConsumerWidget {
       title: 'Add model photos',
     );
     if (source == null) return;
+    final previousCount = ref
+        .read(wizardControllerProvider)
+        .uploadedModelPhotos
+        .length;
     final result = await ref
         .read(wizardControllerProvider.notifier)
         .addModelPhotosFrom(source);
     if (!context.mounted) return;
+    final photos = ref.read(wizardControllerProvider).uploadedModelPhotos;
+    final addedPhotos = photos.skip(previousCount).toList();
+    if (addedPhotos.isNotEmpty) {
+      final saved = await ref
+          .read(onboardingSubmissionControllerProvider.notifier)
+          .saveUserModelPhotos(addedPhotos);
+      if (!context.mounted) return;
+      if (!saved) {
+        final failure = ref
+            .read(onboardingSubmissionControllerProvider)
+            .failure;
+        AppSnackBar.showError(
+          context,
+          failure?.message ?? 'Could not upload your custom model.',
+        );
+      } else {
+        ref.invalidate(onboardingUserModelsProvider);
+      }
+    }
     switch (result) {
       case PhotoPickResult.truncated:
         AppSnackBar.show(
@@ -49,11 +72,18 @@ class ModelStep extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(wizardControllerProvider);
+    final isSavingModel = ref.watch(
+      onboardingSubmissionControllerProvider.select(
+        (value) => value.isSavingModel,
+      ),
+    );
     final scheme = Theme.of(context).colorScheme;
 
     // Watch the provider here so that switching to the "Upload Your Own" tab
     // doesn't dispose the provider and cause a re-fetch when returning.
-    ref.watch(lookAtlasModelsProvider);
+    ref
+      ..watch(lookAtlasModelsProvider)
+      ..watch(onboardingUserModelsProvider);
 
     return SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(20, 40, 20, 16),
@@ -69,14 +99,14 @@ class ModelStep extends ConsumerWidget {
                     'Pick a model that fits your brand. All models are free '
                     'for commercial use and you own every image we generate.',
               ),
-              if (state.selectedModel != null)
+              if (state.selectedModel != null || state.usingUploadedModel)
                 Padding(
                   padding: const EdgeInsets.only(top: 8),
                   child: Text.rich(
                     TextSpan(
                       children: [
                         TextSpan(
-                          text: state.selectedModel!.name,
+                          text: state.modelName,
                           style: const TextStyle(
                             fontWeight: AppTypography.bold,
                           ),
@@ -100,8 +130,9 @@ class ModelStep extends ConsumerWidget {
                 .setModelUploadTab(upload: upload),
           ),
           if (state.modelUploadTab)
-            _UploadTab(
+            UserModelUploadTab(
               state: state,
+              isSavingModel: isSavingModel,
               onUpload: () => _uploadModelPhotos(context, ref),
             )
           else
@@ -481,148 +512,6 @@ class _ModelCard extends StatelessWidget {
           ),
         ),
       ),
-    );
-  }
-}
-
-// --- State B: upload your own -------------------------------------------------
-
-class _UploadTab extends ConsumerWidget {
-  const _UploadTab({required this.state, required this.onUpload});
-
-  final WizardState state;
-  final VoidCallback onUpload;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final scheme = Theme.of(context).colorScheme;
-    final controller = ref.read(wizardControllerProvider.notifier);
-
-    return Column(
-      spacing: 20,
-      children: [
-        if (state.uploadingModel)
-          SizedBox(
-            height: 180,
-            child: Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                spacing: 12,
-                children: [
-                  const BarSpinner(size: 28),
-                  Text(
-                    'Uploading...',
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: scheme.onSurfaceVariant,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          )
-        else
-          GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: onUpload,
-            child: DashedBorder(
-              color: scheme.outline,
-              radius: 12,
-              child: Container(
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 24,
-                  vertical: 40,
-                ),
-                child: Column(
-                  children: [
-                    Container(
-                      width: 56,
-                      height: 56,
-                      decoration: BoxDecoration(
-                        color: scheme.onSurface,
-                        shape: BoxShape.circle,
-                      ),
-                      child: Icon(
-                        Icons.person_outline,
-                        size: 28,
-                        color: scheme.surface,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    Text(
-                      'Tap to add model photos',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 16,
-                        height: 1.4,
-                        fontWeight: AppTypography.semiBold,
-                        color: scheme.onSurface,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      'Up to $maxModelPhotos photos of the same person from '
-                      'different angles.',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 12,
-                        height: 1.4,
-                        color: scheme.onSurface.withValues(alpha: 0.6),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        if (state.uploadedModelPhotos.isNotEmpty) ...[
-          Align(
-            alignment: Alignment.centerLeft,
-            child: Text(
-              'Your uploaded models',
-              style: TextStyle(
-                fontSize: 14,
-                height: 1.43,
-                fontWeight: AppTypography.medium,
-                color: scheme.onSurface,
-              ),
-            ),
-          ),
-          Row(
-            spacing: 12,
-            children: [
-              for (final bytes in state.uploadedModelPhotos)
-                Expanded(
-                  child: GestureDetector(
-                    behavior: HitTestBehavior.opaque,
-                    onTap: controller.useUploadedModel,
-                    child: Container(
-                      foregroundDecoration: state.usingUploadedModel
-                          ? BoxDecoration(
-                              border: Border.all(
-                                color: scheme.onSurface,
-                                width: 2,
-                              ),
-                            )
-                          : null,
-                      child: AspectRatio(
-                        aspectRatio: 3 / 4,
-                        child: AppImage.memory(bytes, fit: BoxFit.cover),
-                      ),
-                    ),
-                  ),
-                ),
-              for (
-                var i = state.uploadedModelPhotos.length;
-                i < maxModelPhotos;
-                i++
-              )
-                const Expanded(child: SizedBox.shrink()),
-            ],
-          ),
-        ],
-      ],
     );
   }
 }

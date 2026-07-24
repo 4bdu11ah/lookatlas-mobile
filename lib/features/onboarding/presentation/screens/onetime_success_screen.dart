@@ -15,8 +15,8 @@ enum _SuccessPhase { confirming, paid, pending, failed }
 
 /// One-time purchase success screen (dark): confirming spinner, then the
 /// "Your shoot is yours" state with a time-limited Pro upsell bottom sheet.
-/// Pending and failed states are handled too. "Open my shoot" continues to
-/// sign-up, since the funnel runs before registration.
+/// Pending and failed states are handled too. "Open my shoot" returns to the
+/// authenticated results collection.
 class OnetimeSuccessScreen extends ConsumerStatefulWidget {
   const OnetimeSuccessScreen({super.key, this.sessionId});
 

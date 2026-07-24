@@ -9,6 +9,8 @@ import 'package:look_atlas/features/auth/domain/entities/app_user.dart';
 import 'package:look_atlas/features/auth/presentation/screens/reset_password_screen.dart';
 import 'package:look_atlas/features/auth/presentation/screens/sign_in_screen.dart';
 import 'package:look_atlas/features/dashboard/presentation/screens/dashboard_screen.dart';
+import 'package:look_atlas/features/onboarding/di/onboarding_providers.dart';
+import 'package:look_atlas/features/onboarding/presentation/screens/onboarding_wizard_screen.dart';
 import 'package:look_atlas/features/subscription/di/subscription_providers.dart';
 import 'package:look_atlas/features/subscription/presentation/screens/paywall_screen.dart';
 import 'package:look_atlas/features/workshop/presentation/screens/workshop_screen.dart';
@@ -29,6 +31,11 @@ void main() {
         subscriptionRepositoryProvider.overrideWithValue(
           FakeSubscriptionRepository(),
         ),
+        onboardingStatusProvider.overrideWith(
+          (ref) =>
+              Future.error(StateError('Status unavailable in router test')),
+        ),
+        onboardingProductsProvider.overrideWith((ref) async => const []),
       ],
     );
     addTearDown(container.dispose);
@@ -73,6 +80,16 @@ void main() {
       expect(find.byType(ResetPasswordScreen), findsOneWidget);
     });
 
+    testWidgets('onboarding redirects to sign-in', (tester) async {
+      final router = await pumpRouter(tester);
+
+      router.go(AppRoutes.onboarding);
+      await tester.pumpAndSettle();
+
+      expect(currentUri(router).path, AppRoutes.signIn);
+      expect(find.byType(SignInScreen), findsOneWidget);
+    });
+
     testWidgets('paywall is public so anonymous users can purchase', (
       tester,
     ) async {
@@ -87,7 +104,7 @@ void main() {
   });
 
   group('logged in', () {
-    testWidgets('sign-in with a missing from falls back to home', (
+    testWidgets('sign-in with a missing from opens onboarding', (
       tester,
     ) async {
       final router = await pumpRouter(tester, user: user);
@@ -95,11 +112,11 @@ void main() {
       router.go('/sign-in');
       await tester.pumpAndSettle();
 
-      expect(currentUri(router).path, '/');
-      expect(find.byType(DashboardScreen), findsOneWidget);
+      expect(currentUri(router).path, AppRoutes.onboarding);
+      expect(find.byType(OnboardingWizardScreen), findsOneWidget);
     });
 
-    testWidgets('sign-in with a non-path from falls back to home', (
+    testWidgets('sign-in with a non-path from opens onboarding', (
       tester,
     ) async {
       final router = await pumpRouter(tester, user: user);
@@ -107,8 +124,8 @@ void main() {
       router.go('/sign-in?from=https%3A%2F%2Fevil.example');
       await tester.pumpAndSettle();
 
-      expect(currentUri(router).path, '/');
-      expect(find.byType(DashboardScreen), findsOneWidget);
+      expect(currentUri(router).path, AppRoutes.onboarding);
+      expect(find.byType(OnboardingWizardScreen), findsOneWidget);
     });
 
     testWidgets('paywall stays reachable when signed in', (tester) async {

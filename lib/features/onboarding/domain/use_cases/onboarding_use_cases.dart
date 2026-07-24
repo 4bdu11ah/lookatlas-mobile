@@ -1,9 +1,11 @@
+export 'complete_onboarding_use_case.dart';
 export 'create_onboarding_product_use_case.dart';
 export 'create_user_model_use_case.dart';
 export 'get_look_atlas_models_use_case.dart';
 export 'get_onboarding_config_use_case.dart';
 export 'get_onboarding_products_use_case.dart';
 export 'get_onboarding_status_use_case.dart';
+export 'get_onboarding_user_models_use_case.dart';
 export 'start_free_shoot_use_case.dart';
 export 'update_onboarding_product_use_case.dart';
 export 'update_onboarding_status_use_case.dart';

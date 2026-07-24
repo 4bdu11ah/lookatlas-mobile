@@ -84,6 +84,17 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
+  Future<Result<AppUser>> verifySession() async {
+    final result = await _remote.verify();
+    if (result case Ok(:final value)) {
+      await _local.cacheUser(value);
+      _currentUser = value;
+      _controller.add(value);
+    }
+    return result;
+  }
+
+  @override
   Future<Result<AppUser>> signInWithEmail({
     required String email,
     required String password,

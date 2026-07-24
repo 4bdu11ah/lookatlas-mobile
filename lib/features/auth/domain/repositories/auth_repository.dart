@@ -15,6 +15,9 @@ abstract interface class AuthRepository {
   /// frame so the router can redirect without a flash of the sign-in screen.
   Future<void> restore();
 
+  /// Revalidates the current bearer session through `GET /auth/verify`.
+  Future<Result<AppUser>> verifySession();
+
   Future<Result<AppUser>> signInWithEmail({
     required String email,
     required String password,

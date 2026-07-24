@@ -14,14 +14,6 @@ import 'package:look_atlas/shared/widgets/bar_spinner.dart';
 import 'package:look_atlas/shared/widgets/primary_button.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
 
-final FutureProvider<List<Package>> _packagesProvider =
-    FutureProvider.autoDispose<List<Package>>((ref) async {
-      final result = await ref
-          .watch(subscriptionRepositoryProvider)
-          .fetchPackages();
-      return result.fold((packages) => packages, (failure) => throw failure);
-    });
-
 /// Public paywall: reachable before sign-in so an anonymous visitor can
 /// purchase first and register afterwards (the entitlement transfers to the
 /// new account; see the flow doc in `subscription_controller.dart`).
@@ -110,7 +102,7 @@ class _OfferingsView extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final packagesAsync = ref.watch(_packagesProvider);
+    final packagesAsync = ref.watch(revenueCatPackagesProvider);
     final action = ref.watch(subscriptionActionProvider);
     final theme = Theme.of(context);
 
@@ -120,7 +112,7 @@ class _OfferingsView extends ConsumerWidget {
         message: error is Failure
             ? error.message
             : 'Plans are unavailable right now.',
-        onRetry: () => ref.invalidate(_packagesProvider),
+        onRetry: () => ref.invalidate(revenueCatPackagesProvider),
       ),
       data: (packages) {
         if (packages.isEmpty) {

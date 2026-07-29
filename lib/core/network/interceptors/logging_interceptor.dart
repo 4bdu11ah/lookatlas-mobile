@@ -32,6 +32,9 @@ class LoggingInterceptor extends Interceptor {
     final uri = err.requestOptions.uri;
     final target = kReleaseMode ? uri.path : '$uri';
     AppLogger.warning(
+      '✕ ${err.response ?? ''}',
+    );
+    AppLogger.warning(
       '✕ ${err.response?.statusCode ?? ''} $target\n'
       '${err.message}',
     );

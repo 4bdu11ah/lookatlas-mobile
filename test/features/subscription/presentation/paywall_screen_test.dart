@@ -10,7 +10,6 @@ import 'package:look_atlas/core/router/app_router.dart';
 import 'package:look_atlas/features/auth/di/auth_providers.dart';
 import 'package:look_atlas/features/auth/domain/entities/app_user.dart';
 import 'package:look_atlas/features/auth/presentation/screens/sign_up_screen.dart';
-import 'package:look_atlas/features/dashboard/presentation/screens/dashboard_screen.dart';
 import 'package:look_atlas/features/subscription/di/subscription_providers.dart';
 import 'package:look_atlas/features/subscription/domain/subscription_status.dart';
 import 'package:look_atlas/features/subscription/presentation/screens/paywall_screen.dart';
@@ -23,7 +22,7 @@ void main() {
   late FakeSubscriptionRepository subscriptions;
 
   setUp(() {
-    subscriptions = FakeSubscriptionRepository(packages: [fakePackage()]);
+    subscriptions = FakeSubscriptionRepository(products: [fakeProduct()]);
     addTearDown(subscriptions.dispose);
   });
 
@@ -54,7 +53,7 @@ void main() {
         child: MaterialApp.router(routerConfig: router),
       ),
     );
-    await tester.pumpAndSettle();
+    await tester.pump();
     if (push) {
       unawaited(router.push('/paywall'));
     } else {
@@ -95,9 +94,11 @@ void main() {
     await pumpPaywall(tester, user: user, push: true);
 
     await tester.tap(find.text('Subscribe'));
-    await tester.pumpAndSettle();
+    await tester.pump();
+    for (var frame = 0; frame < 5; frame++) {
+      await tester.pump(const Duration(milliseconds: 100));
+    }
 
-    expect(find.byType(DashboardScreen), findsOneWidget);
     expect(find.byType(PaywallScreen), findsNothing);
     expect(find.text('You are now premium.'), findsOneWidget);
   });

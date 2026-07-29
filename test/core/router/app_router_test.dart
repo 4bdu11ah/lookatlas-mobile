@@ -8,15 +8,19 @@ import 'package:look_atlas/features/auth/di/auth_providers.dart';
 import 'package:look_atlas/features/auth/domain/entities/app_user.dart';
 import 'package:look_atlas/features/auth/presentation/screens/reset_password_screen.dart';
 import 'package:look_atlas/features/auth/presentation/screens/sign_in_screen.dart';
+import 'package:look_atlas/features/billing/di/billing_api_providers.dart';
+import 'package:look_atlas/features/dashboard/di/dashboard_providers.dart';
 import 'package:look_atlas/features/dashboard/presentation/screens/dashboard_screen.dart';
 import 'package:look_atlas/features/onboarding/di/onboarding_providers.dart';
 import 'package:look_atlas/features/onboarding/presentation/screens/onboarding_wizard_screen.dart';
+import 'package:look_atlas/features/shoots/di/shoots_providers.dart';
 import 'package:look_atlas/features/subscription/di/subscription_providers.dart';
 import 'package:look_atlas/features/subscription/presentation/screens/paywall_screen.dart';
 import 'package:look_atlas/features/workshop/presentation/screens/workshop_screen.dart';
 import 'package:look_atlas/shared/widgets/custom_app_bar.dart';
 
 import '../../helpers/fake_repositories.dart';
+import '../../helpers/fake_shoots_repository.dart';
 
 void main() {
   const user = AppUser(id: 'user-1', email: 'jane@example.com');
@@ -31,6 +35,11 @@ void main() {
         subscriptionRepositoryProvider.overrideWithValue(
           FakeSubscriptionRepository(),
         ),
+        dashboardRepositoryProvider.overrideWithValue(
+          const FakeDashboardRepository(),
+        ),
+        shootsRepositoryProvider.overrideWithValue(FakeShootsRepository()),
+        billingHistoryProvider.overrideWith((ref) async => const []),
         onboardingStatusProvider.overrideWith(
           (ref) =>
               Future.error(StateError('Status unavailable in router test')),
@@ -145,7 +154,7 @@ void main() {
 
       final cases = {
         AppRoutes.dashboardShoots: 'Shoots',
-        AppRoutes.shootDetail: 'Tan Leather Bag',
+        AppRoutes.shootDetail('job-bag'): 'Tan Leather Bag',
         AppRoutes.dashboardProducts: 'Products',
         AppRoutes.dashboardModels: 'House Models',
         AppRoutes.dashboardBilling: 'Billing',
@@ -159,7 +168,7 @@ void main() {
         await tester.pumpAndSettle();
 
         expect(currentUri(router).path, entry.key);
-        if (entry.key == AppRoutes.shootDetail) {
+        if (entry.key == AppRoutes.shootDetail('job-bag')) {
           expect(find.byType(ShootDetailScreen), findsOneWidget);
           expect(find.byType(DashboardFeatureScreen), findsNothing);
         } else {

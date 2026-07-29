@@ -22,17 +22,15 @@ class AuthController extends Notifier<AsyncValue<void>> {
 
   /// Signs in with email + password. Returns whether it succeeded; failures
   /// are also exposed through the provider's [AsyncError] state.
-  /// [captchaToken] is the optional Turnstile token, forwarded when the
-  /// backend has the challenge enabled.
-  Future<bool> signIn(String email, String password, {String? captchaToken}) =>
-      _run(
-        () => ref.read(signInUseCaseProvider)(
-          email: email,
-          password: password,
-          captchaToken: captchaToken,
-        ),
-        onOk: _syncIdentity,
-      );
+  /// A Turnstile token is generated immediately before the API request.
+  Future<bool> signIn(String email, String password) => _runWithCaptcha(
+    (captchaToken) => ref.read(signInUseCaseProvider)(
+      email: email,
+      password: password,
+      captchaToken: captchaToken,
+    ),
+    onOk: _syncIdentity,
+  );
 
   /// Registers a new account. Returns whether it succeeded. [attribution]
   /// forwards any marketing params (UTM, click IDs, invite) to the register
@@ -42,12 +40,13 @@ class AuthController extends Notifier<AsyncValue<void>> {
     required String password,
     required String companyName,
     RegisterAttribution? attribution,
-  }) => _run(
-    () => ref.read(signUpUseCaseProvider)(
+  }) => _runWithCaptcha(
+    (captchaToken) => ref.read(signUpUseCaseProvider)(
       email: email,
       password: password,
       companyName: companyName,
       attribution: attribution,
+      captchaToken: captchaToken,
     ),
     onOk: _syncIdentity,
   );
@@ -70,6 +69,24 @@ class AuthController extends Notifier<AsyncValue<void>> {
   Future<bool> resetPassword(String email) =>
       _run(() => ref.read(resetPasswordUseCaseProvider)(email: email));
 
+  Future<bool> _runWithCaptcha<T>(
+    Future<Result<T>> Function(String? captchaToken) action, {
+    void Function(T value)? onOk,
+  }) async {
+    state = const AsyncLoading();
+    final captcha = await ref.read(turnstileServiceProvider).getToken();
+    return captcha.fold(
+      (captchaToken) => _run(
+        () => action(captchaToken),
+        onOk: onOk,
+      ),
+      (failure) {
+        state = AsyncError(failure, StackTrace.current);
+        return false;
+      },
+    );
+  }
+
   /// Ends the session. Returns whether it succeeded; runs through the same
   /// loading/error state as the other actions so the UI can show progress
   /// and surface failures.
@@ -90,7 +107,13 @@ class AuthController extends Notifier<AsyncValue<void>> {
     void Function(T value)? onOk,
   }) async {
     state = const AsyncLoading();
-    final result = await action();
+    late final Result<T> result;
+    try {
+      result = await action();
+    } on Object catch (error, stackTrace) {
+      state = AsyncError(error, stackTrace);
+      return false;
+    }
     state = result.fold(
       (value) {
         onOk?.call(value);

@@ -2,11 +2,14 @@ part of '../../../dashboard/presentation/screens/dashboard_screen.dart';
 
 class _HouseModelScreenState {
   const _HouseModelScreenState({
-    required this.libraryModels,
-    required this.userModels,
+    this.libraryModels = const [],
+    this.userModels = const [],
     this.genderFilter,
     this.bodyFilter,
     this.expanded = false,
+    this.isLoading = true,
+    this.isMutating = false,
+    this.failure,
   });
 
   final List<_HouseModel> libraryModels;
@@ -14,16 +17,17 @@ class _HouseModelScreenState {
   final _ModelGender? genderFilter;
   final _ModelBody? bodyFilter;
   final bool expanded;
+  final bool isLoading;
+  final bool isMutating;
+  final Failure? failure;
 
-  List<_HouseModel> get filteredLibraryModels {
-    return libraryModels
-        .where(
-          (model) =>
-              (genderFilter == null || model.gender == genderFilter) &&
-              (bodyFilter == null || model.body == bodyFilter),
-        )
-        .toList(growable: false);
-  }
+  List<_HouseModel> get filteredLibraryModels => libraryModels
+      .where(
+        (model) =>
+            (genderFilter == null || model.gender == genderFilter) &&
+            (bodyFilter == null || model.body == bodyFilter),
+      )
+      .toList(growable: false);
 
   List<_HouseModel> get visibleLibraryModels {
     final models = filteredLibraryModels;
@@ -31,137 +35,166 @@ class _HouseModelScreenState {
   }
 
   bool get hasActiveFilters => genderFilter != null || bodyFilter != null;
+
+  _HouseModelScreenState copyWith({
+    List<_HouseModel>? libraryModels,
+    List<_HouseModel>? userModels,
+    _ModelGender? genderFilter,
+    _ModelBody? bodyFilter,
+    bool clearGenderFilter = false,
+    bool clearBodyFilter = false,
+    bool? expanded,
+    bool? isLoading,
+    bool? isMutating,
+    Failure? failure,
+    bool clearFailure = false,
+  }) {
+    return _HouseModelScreenState(
+      libraryModels: libraryModels ?? this.libraryModels,
+      userModels: userModels ?? this.userModels,
+      genderFilter: clearGenderFilter
+          ? null
+          : genderFilter ?? this.genderFilter,
+      bodyFilter: clearBodyFilter ? null : bodyFilter ?? this.bodyFilter,
+      expanded: expanded ?? this.expanded,
+      isLoading: isLoading ?? this.isLoading,
+      isMutating: isMutating ?? this.isMutating,
+      failure: clearFailure ? null : failure ?? this.failure,
+    );
+  }
 }
 
 class _HouseModelController extends Notifier<_HouseModelScreenState> {
+  HouseModelsRepository get _repository =>
+      ref.read(houseModelsRepositoryProvider);
+
   @override
   _HouseModelScreenState build() {
-    return const _HouseModelScreenState(
-      libraryModels: _modelLibrary,
-      userModels: _starterUserModels,
-    );
+    unawaited(Future.microtask(reload));
+    return const _HouseModelScreenState();
+  }
+
+  Future<void> reload() async {
+    state = state.copyWith(isLoading: true, clearFailure: true);
+    final result = await _repository.loadCatalog();
+    state = switch (result) {
+      Ok(:final value) => state.copyWith(
+        libraryModels: [
+          for (final model in value.libraryModels)
+            _HouseModel.fromProfile(model),
+        ],
+        userModels: [
+          for (final model in value.userModels) _HouseModel.fromProfile(model),
+        ],
+        isLoading: false,
+        clearFailure: true,
+      ),
+      Err(:final failure) => state.copyWith(
+        isLoading: false,
+        failure: failure,
+      ),
+    };
   }
 
   void applyFilters({_ModelGender? gender, _ModelBody? body}) {
-    state = _HouseModelScreenState(
-      libraryModels: state.libraryModels,
-      userModels: state.userModels,
+    state = state.copyWith(
       genderFilter: gender,
       bodyFilter: body,
+      clearGenderFilter: gender == null,
+      clearBodyFilter: body == null,
+      expanded: false,
     );
   }
 
-  void clearGenderFilter() {
-    state = _HouseModelScreenState(
-      libraryModels: state.libraryModels,
-      userModels: state.userModels,
-      bodyFilter: state.bodyFilter,
+  void clearGenderFilter() =>
+      state = state.copyWith(clearGenderFilter: true, expanded: false);
+
+  void clearBodyFilter() =>
+      state = state.copyWith(clearBodyFilter: true, expanded: false);
+
+  void showMore() => state = state.copyWith(expanded: true);
+
+  Future<Result<void>> addModel(_ModelFormInput input) =>
+      _mutate(() => _repository.createModel(input.toDraft()));
+
+  Future<Result<void>> updateModel(
+    _HouseModel model,
+    _ModelFormInput input,
+  ) async {
+    if (state.isMutating) {
+      return const Err(ValidationFailure('Another model action is running.'));
+    }
+    state = state.copyWith(isMutating: true, clearFailure: true);
+    for (final index in [
+      ...input.removedPhotoIndexes,
+    ]..sort((a, b) => b.compareTo(a))) {
+      final removed = await _repository.deletePhoto(model.id, index);
+      if (removed case Err(:final failure)) {
+        state = state.copyWith(isMutating: false, failure: failure);
+        return Err(failure);
+      }
+    }
+    return _finishMutation(
+      await _repository.updateModel(model.id, input.toDraft()),
     );
   }
 
-  void clearBodyFilter() {
-    state = _HouseModelScreenState(
-      libraryModels: state.libraryModels,
-      userModels: state.userModels,
-      genderFilter: state.genderFilter,
-    );
-  }
+  Future<Result<void>> deleteModel(_HouseModel model) =>
+      _mutate(() => _repository.deleteModel(model.id));
 
-  void showMore() {
-    state = _HouseModelScreenState(
-      libraryModels: state.libraryModels,
-      userModels: state.userModels,
-      genderFilter: state.genderFilter,
-      bodyFilter: state.bodyFilter,
-      expanded: true,
-    );
-  }
-
-  _HouseModel addModel(_ModelFormInput input) {
-    final model = _HouseModel(
-      id: _slug('${input.name}-${state.userModels.length + 1}'),
-      name: input.name,
-      gender: input.gender,
-      body: _ModelBody.slimAthletic,
-      ethnicity: 'Brand owned',
-      ageRange: '25-35',
-      heightCm: input.heightCm,
-      asset: '$_img/angle-example-front.png',
-      source: _ModelSource.user,
-      photoCount: input.photoCount,
-      heightEstimated: input.heightEstimated,
-    );
-    state = _HouseModelScreenState(
-      libraryModels: state.libraryModels,
-      userModels: [model, ...state.userModels],
-      genderFilter: state.genderFilter,
-      bodyFilter: state.bodyFilter,
-      expanded: state.expanded,
-    );
-    return model;
-  }
-
-  _HouseModel addAiModel({
+  Future<Result<void>> addAiModel({
     required _ModelGender gender,
     required int age,
     required String description,
   }) {
-    final name = description
-        .split(RegExp(r'\s+'))
-        .where((word) => word.trim().isNotEmpty)
-        .take(2)
-        .map((word) => word[0].toUpperCase() + word.substring(1))
-        .join(' ');
-    return addModel(
-      _ModelFormInput(
-        name: name.isEmpty ? 'AI Model ${state.userModels.length + 1}' : name,
-        gender: gender,
-        heightCm: gender == _ModelGender.male ? 182 : 172,
-        photoCount: 4,
+    return _mutate(
+      () => _repository.generateModel(
+        AiHouseModelDraft(
+          gender: switch (gender) {
+            _ModelGender.nonBinary => 'non_binary',
+            _ => gender.name,
+          },
+          age: age,
+          description: description,
+        ),
       ),
     );
   }
 
-  void updateModel(_HouseModel model, _ModelFormInput input) {
-    state = _HouseModelScreenState(
-      libraryModels: state.libraryModels,
-      userModels: [
-        for (final item in state.userModels)
-          if (item.id == model.id)
-            item.copyWith(
-              name: input.name,
-              gender: input.gender,
-              heightCm: input.heightCm,
-              photoCount: input.photoCount,
-              heightEstimated: input.heightEstimated,
-            )
-          else
-            item,
-      ],
-      genderFilter: state.genderFilter,
-      bodyFilter: state.bodyFilter,
-      expanded: state.expanded,
-    );
+  Future<Result<void>> _mutate(
+    Future<Result<void>> Function() operation,
+  ) async {
+    if (state.isMutating) {
+      return const Err(ValidationFailure('Another model action is running.'));
+    }
+    state = state.copyWith(isMutating: true, clearFailure: true);
+    return _finishMutation(await operation());
   }
 
-  void deleteModel(_HouseModel model) {
-    state = _HouseModelScreenState(
-      libraryModels: state.libraryModels,
-      userModels: [
-        for (final item in state.userModels)
-          if (item.id != model.id) item,
+  Future<Result<void>> _finishMutation(Result<void> result) async {
+    if (result case Err(:final failure)) {
+      state = state.copyWith(isMutating: false, failure: failure);
+      return Err(failure);
+    }
+    final refreshed = await _repository.loadCatalog();
+    if (refreshed case Err(:final failure)) {
+      state = state.copyWith(isMutating: false, failure: failure);
+      return const Ok(null);
+    }
+    final catalog = refreshed.valueOrNull!;
+    state = state.copyWith(
+      libraryModels: [
+        for (final model in catalog.libraryModels)
+          _HouseModel.fromProfile(model),
       ],
-      genderFilter: state.genderFilter,
-      bodyFilter: state.bodyFilter,
-      expanded: state.expanded,
+      userModels: [
+        for (final model in catalog.userModels) _HouseModel.fromProfile(model),
+      ],
+      isLoading: false,
+      isMutating: false,
+      clearFailure: true,
     );
-  }
-
-  static String _slug(String value) {
-    return value
-        .toLowerCase()
-        .replaceAll(RegExp('[^a-z0-9]+'), '-')
-        .replaceAll(RegExp(r'^-|-$'), '');
+    return const Ok(null);
   }
 }
 

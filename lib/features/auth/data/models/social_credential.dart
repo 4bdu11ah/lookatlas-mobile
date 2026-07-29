@@ -10,10 +10,11 @@ class SocialCredential {
   const SocialCredential({
     required this.provider,
     required this.id,
+    required this.accessToken,
+    required this.refreshToken,
     this.email,
     this.displayName,
     this.photoUrl,
-    this.idToken,
   });
 
   final SocialProvider provider;
@@ -27,7 +28,18 @@ class SocialCredential {
   final String? displayName;
   final String? photoUrl;
 
-  /// The provider-issued identity token (JWT) a backend can verify, when the
-  /// SDK returned one.
-  final String? idToken;
+  /// Supabase session tokens returned after the provider token exchange.
+  final String accessToken;
+  final String refreshToken;
+}
+
+@immutable
+class SocialSessionTokens {
+  const SocialSessionTokens({
+    required this.accessToken,
+    required this.refreshToken,
+  });
+
+  final String accessToken;
+  final String refreshToken;
 }

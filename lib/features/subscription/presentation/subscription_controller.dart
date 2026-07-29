@@ -67,10 +67,10 @@ class SubscriptionActionController extends Notifier<SubscriptionAction> {
   @override
   SubscriptionAction build() => const SubscriptionIdle();
 
-  /// Purchases [package]. Returns whether the purchase succeeded.
-  Future<bool> purchase(Package package) => _run(
-    SubscriptionPurchasing(package.identifier),
-    () => _repo.purchase(package),
+  /// Purchases [product]. Returns whether the purchase succeeded.
+  Future<bool> purchase(StoreProduct product) => _run(
+    SubscriptionPurchasing(product.identifier),
+    () => _repo.purchase(product),
   );
 
   /// Restores previous purchases. Returns whether the restore succeeded.

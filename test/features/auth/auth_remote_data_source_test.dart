@@ -39,6 +39,7 @@ void main() {
       companyName: 'Atlas',
       email: 'a@example.com',
       password: 'password123',
+      captchaToken: 'turnstile-token',
     );
     final body =
         verify(
@@ -53,5 +54,6 @@ void main() {
     expect(body['plan'], 'starter');
     expect(body['deviceToken'], 'dt_123');
     expect(body['deviceFingerprint'], 'installation-1');
+    expect(body['captchaToken'], 'turnstile-token');
   });
 }

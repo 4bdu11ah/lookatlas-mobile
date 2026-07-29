@@ -38,14 +38,22 @@ class DashboardScreen extends ConsumerWidget {
                       onToggleUserMenu: controller.toggleUserMenu,
                     ),
                     Expanded(
-                      child: SingleChildScrollView(
-                        padding: const EdgeInsets.fromLTRB(
-                          20,
-                          10,
-                          20,
-                          10,
+                      child: RefreshIndicator(
+                        onRefresh: () => ref
+                            .read(
+                              _dashboardOverviewControllerProvider.notifier,
+                            )
+                            .refresh(),
+                        child: SingleChildScrollView(
+                          physics: const AlwaysScrollableScrollPhysics(),
+                          padding: const EdgeInsets.fromLTRB(
+                            20,
+                            10,
+                            20,
+                            10,
+                          ),
+                          child: screen,
                         ),
-                        child: screen,
                       ),
                     ),
                   ],
@@ -474,13 +482,7 @@ class _UserMenu extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   _Eyebrow('Credits'),
-                  Text(
-                    '142',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: AppTypography.bold,
-                    ),
-                  ),
+                  _DashboardCredits(),
                 ],
               ),
             ),
@@ -504,5 +506,25 @@ class _UserMenu extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+class _DashboardCredits extends ConsumerWidget {
+  const _DashboardCredits();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final state = ref.watch(_dashboardOverviewControllerProvider);
+    return switch (state) {
+      AsyncData(:final value) => Text(
+        '${value.stats.credits}',
+        style: const TextStyle(
+          fontSize: 20,
+          fontWeight: AppTypography.bold,
+        ),
+      ),
+      AsyncError() => const Text('N/A'),
+      _ => const BarSpinner(size: 20),
+    };
   }
 }

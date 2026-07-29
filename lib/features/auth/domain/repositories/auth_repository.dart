@@ -29,6 +29,7 @@ abstract interface class AuthRepository {
     required String password,
     required String companyName,
     RegisterAttribution? attribution,
+    String? captchaToken,
   });
 
   /// Signs in with the user's Apple ID (Sign in with Apple).
@@ -48,10 +49,10 @@ abstract interface class AuthRepository {
 
   Future<Result<void>> signOut();
 
-  /// Exchanges the stored refresh token for a new access token and persists
-  /// it. Returns the new token, or null when the session cannot be refreshed
-  /// (no refresh token, or the backend rejected it). Wired into the network
-  /// layer's 401 interceptor via `tokenRefresherProvider`.
+  /// Exchanges the stored backend or Supabase refresh token for a new access
+  /// token and persists rotated tokens. Returns the new access token, or null
+  /// when the session cannot be refreshed. Wired into the network layer's 401
+  /// interceptor via `tokenRefresherProvider`.
   Future<String?> refreshSession();
 
   /// Clears the local session after an unrecoverable 401 (refresh failed).

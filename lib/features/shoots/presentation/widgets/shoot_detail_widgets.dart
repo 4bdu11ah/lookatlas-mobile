@@ -20,7 +20,7 @@ class _ShootProgress extends StatelessWidget {
             children: [
               const Expanded(
                 child: Text(
-                  'Generating shot 4 of 5...',
+                  'Generating images...',
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: AppTypography.bold,
@@ -46,9 +46,10 @@ class _ShootProgress extends StatelessWidget {
 }
 
 class _ShootSummary extends StatelessWidget {
-  const _ShootSummary({required this.shoot});
+  const _ShootSummary({required this.shoot, this.modelName});
 
   final _Shoot shoot;
+  final String? modelName;
 
   @override
   Widget build(BuildContext context) {
@@ -58,19 +59,19 @@ class _ShootSummary extends StatelessWidget {
         _ShootStat(
           label: 'Product',
           title: shoot.name,
-          caption: 'SKU: BAG-104',
+          caption: 'Selected product',
           asset: shoot.productAsset,
         ),
         _ShootStat(
           label: 'Model',
-          title: 'Mila',
+          title: modelName ?? 'Model',
           caption: 'Primary model',
           asset: shoot.modelAsset,
         ),
         _ShootStat(
           label: 'Created',
           title: shoot.date,
-          caption: '3 variations · 2K resolution',
+          caption: 'Shoot created',
         ),
       ],
     );
@@ -184,8 +185,7 @@ class _VideoCard extends StatelessWidget {
 class _GeneratedImages extends StatelessWidget {
   const _GeneratedImages({
     required this.isProcessing,
-    required this.assets,
-    required this.approvedAssets,
+    required this.shots,
     required this.onApprove,
     required this.onPreview,
     required this.onEdit,
@@ -195,14 +195,13 @@ class _GeneratedImages extends StatelessWidget {
   });
 
   final bool isProcessing;
-  final List<String> assets;
-  final Set<String> approvedAssets;
-  final ValueChanged<String> onApprove;
-  final ValueChanged<String> onPreview;
-  final VoidCallback onEdit;
-  final VoidCallback onVersions;
-  final VoidCallback onVariation;
-  final VoidCallback onDownload;
+  final List<ShootShot> shots;
+  final ValueChanged<ShootImage> onApprove;
+  final ValueChanged<ShootImage> onPreview;
+  final ValueChanged<ShootImage> onEdit;
+  final ValueChanged<ShootImage> onVersions;
+  final ValueChanged<int> onVariation;
+  final ValueChanged<ShootImage> onDownload;
 
   @override
   Widget build(BuildContext context) {
@@ -232,24 +231,31 @@ class _GeneratedImages extends StatelessWidget {
                 ],
               ),
             )
+          else if (shots.isEmpty)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 40, horizontal: 20),
+              child: _Caption('No generated images are available yet.'),
+            )
           else
             ListView.separated(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
-              itemCount: 2,
+              itemCount: shots.length,
               separatorBuilder: (_, _) => const _Hairline(),
-              itemBuilder: (context, index) => _ShotGroup(
-                number: index + 1,
-                title: index == 0 ? 'Cafe Arrival' : 'Detail Moment',
-                assets: assets,
-                approvedAssets: approvedAssets,
-                onApprove: onApprove,
-                onPreview: onPreview,
-                onEdit: onEdit,
-                onVersions: onVersions,
-                onVariation: onVariation,
-                onDownload: onDownload,
-              ),
+              itemBuilder: (context, index) {
+                final shot = shots[index];
+                return _ShotGroup(
+                  number: shot.index + 1,
+                  title: shot.title,
+                  images: shot.images,
+                  onApprove: onApprove,
+                  onPreview: onPreview,
+                  onEdit: onEdit,
+                  onVersions: onVersions,
+                  onVariation: () => onVariation(shot.index),
+                  onDownload: onDownload,
+                );
+              },
             ),
         ],
       ),
@@ -261,8 +267,7 @@ class _ShotGroup extends StatelessWidget {
   const _ShotGroup({
     required this.number,
     required this.title,
-    required this.assets,
-    required this.approvedAssets,
+    required this.images,
     required this.onApprove,
     required this.onPreview,
     required this.onEdit,
@@ -273,14 +278,13 @@ class _ShotGroup extends StatelessWidget {
 
   final int number;
   final String title;
-  final List<String> assets;
-  final Set<String> approvedAssets;
-  final ValueChanged<String> onApprove;
-  final ValueChanged<String> onPreview;
-  final VoidCallback onEdit;
-  final VoidCallback onVersions;
+  final List<ShootImage> images;
+  final ValueChanged<ShootImage> onApprove;
+  final ValueChanged<ShootImage> onPreview;
+  final ValueChanged<ShootImage> onEdit;
+  final ValueChanged<ShootImage> onVersions;
   final VoidCallback onVariation;
-  final VoidCallback onDownload;
+  final ValueChanged<ShootImage> onDownload;
 
   @override
   Widget build(BuildContext context) {
@@ -319,7 +323,7 @@ class _ShotGroup extends StatelessWidget {
           GridView.builder(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
-            itemCount: assets.length,
+            itemCount: images.length,
             gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: 2,
               crossAxisSpacing: 9,
@@ -327,16 +331,16 @@ class _ShotGroup extends StatelessWidget {
               childAspectRatio: 0.75,
             ),
             itemBuilder: (context, index) {
-              final asset = assets[index];
+              final image = images[index];
               return _ResultTile(
-                asset: asset,
-                label: 'V${index + 1}',
-                approved: approvedAssets.contains(asset),
-                onApprove: () => onApprove(asset),
-                onPreview: () => onPreview(asset),
-                onEdit: onEdit,
-                onVersions: onVersions,
-                onDownload: onDownload,
+                asset: image.url,
+                label: 'V${image.variationIndex + 1}',
+                approved: image.approved,
+                onApprove: () => onApprove(image),
+                onPreview: () => onPreview(image),
+                onEdit: () => onEdit(image),
+                onVersions: () => onVersions(image),
+                onDownload: () => onDownload(image),
               );
             },
           ),
@@ -427,10 +431,12 @@ class _ResultTile extends StatelessWidget {
 class _FailedShootDetail extends StatelessWidget {
   const _FailedShootDetail({
     required this.shoot,
+    required this.onRerun,
     required this.onToast,
   });
 
   final _Shoot shoot;
+  final VoidCallback onRerun;
   final ValueChanged<String> onToast;
 
   @override
@@ -446,8 +452,7 @@ class _FailedShootDetail extends StatelessWidget {
         const _Badge('Failed', kind: _BadgeKind.warn),
         const _Alert(
           kind: _AlertKind.error,
-          text:
-              'Job failed. Something went wrong while processing this job. Your credits have been fully refunded.',
+          text: 'Job failed while processing. You can rerun it below.',
         ),
         _Card(
           child: _Stack(
@@ -462,7 +467,16 @@ class _FailedShootDetail extends StatelessWidget {
                 label: 'Copy',
                 fitToContent: true,
                 height: 36,
-                onPressed: () => onToast('Ticket ID copied'),
+                onPressed: () {
+                  unawaited(
+                    Clipboard.setData(
+                      ClipboardData(
+                        text: shoot.supportTicketId ?? 'job_unknown',
+                      ),
+                    ),
+                  );
+                  onToast('Ticket ID copied');
+                },
               ),
             ],
           ),
@@ -470,11 +484,11 @@ class _FailedShootDetail extends StatelessWidget {
         PrimaryButton(
           label: 'Rerun Job',
           icon: Icons.refresh,
-          onPressed: () => onToast('Job queued again'),
+          onPressed: onRerun,
         ),
         AppOutlinedButton(
           label: 'Contact Support',
-          onPressed: () => onToast('Opening support'),
+          onPressed: () => context.go(AppRoutes.dashboardSupport),
         ),
       ],
     );

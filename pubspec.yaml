@@ -9,7 +9,9 @@ environment:
 
 dependencies:
   cached_network_image: ^3.4.1 # disk/memory image caching
+  cloudflare_turnstile: ^3.8.0
   connectivity_plus: ^7.2.0 # network/offline status
+  crypto: ^3.0.7
   cupertino_icons: ^1.0.8
   dio: ^5.10.0 # HTTP client (see core/network/api_service.dart)
   flutter:
@@ -30,6 +32,7 @@ dependencies:
   # Apple social sign-in. Capped below 8.0.0: newer releases require Dart
   # 3.11+ / Flutter 3.41+ (this toolchain is 3.9). Raise after the SDK upgrade.
   sign_in_with_apple: ^7.0.1
+  supabase_flutter: ^2.16.0
 
 dev_dependencies:
   flutter_test:
@@ -43,6 +46,17 @@ flutter:
   uses-material-design: true
 
   assets:
+    - assets/directors/
+    - assets/directors/bold-dramatic/
+    - assets/directors/clean-pro/
+    - assets/directors/covers/
+    - assets/directors/editorial-jewelry/
+    - assets/directors/fine-jewelry/
+    - assets/directors/heirloom-children/
+    - assets/directors/lifestyle-natural/
+    - assets/directors/luxury-editorial/
+    - assets/directors/minimalist/
+    - assets/directors/street-energy/
     - assets/images/
     - assets/images/onboarding/
     - assets/images/onboarding/angles/

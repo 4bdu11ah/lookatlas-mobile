@@ -2,80 +2,136 @@ part of '../../../dashboard/presentation/screens/dashboard_screen.dart';
 
 class _ShootsScreenState {
   const _ShootsScreenState({
-    required this.shoots,
-    required this.shotAssets,
+    this.shoots = const [],
     this.query = '',
     this.status = 'all',
-    this.selectedIndex = 0,
-    this.approvedAssets = const {'$_img/showcase-bag-after.jpg'},
+    this.page = 1,
+    this.totalPages = 1,
+    this.isLoading = true,
+    this.isRefreshing = false,
+    this.failure,
   });
 
   final List<_Shoot> shoots;
-  final List<String> shotAssets;
   final String query;
   final String status;
-  final int selectedIndex;
-  final Set<String> approvedAssets;
-
-  List<_Shoot> get visibleShoots {
-    final normalizedQuery = query.trim().toLowerCase();
-    return shoots
-        .where((shoot) {
-          final matchesQuery =
-              normalizedQuery.isEmpty ||
-              shoot.name.toLowerCase().contains(normalizedQuery);
-          final matchesStatus = status == 'all' || shoot.status == status;
-          return matchesQuery && matchesStatus;
-        })
-        .toList(growable: false);
-  }
-
-  _Shoot get selectedShoot => shoots[selectedIndex];
+  final int page;
+  final int totalPages;
+  final bool isLoading;
+  final bool isRefreshing;
+  final Failure? failure;
 
   _ShootsScreenState copyWith({
+    List<_Shoot>? shoots,
     String? query,
     String? status,
-    int? selectedIndex,
-    Set<String>? approvedAssets,
-  }) {
-    return _ShootsScreenState(
+    int? page,
+    int? totalPages,
+    bool? isLoading,
+    bool? isRefreshing,
+    Failure? failure,
+    bool clearFailure = false,
+  }) => _ShootsScreenState(
+    shoots: shoots ?? this.shoots,
+    query: query ?? this.query,
+    status: status ?? this.status,
+    page: page ?? this.page,
+    totalPages: totalPages ?? this.totalPages,
+    isLoading: isLoading ?? this.isLoading,
+    isRefreshing: isRefreshing ?? this.isRefreshing,
+    failure: clearFailure ? null : failure ?? this.failure,
+  );
+}
+
+class _ShootsController extends Notifier<_ShootsScreenState> {
+  Timer? _pollTimer;
+  Timer? _searchTimer;
+  bool _requestInFlight = false;
+  bool _disposed = false;
+
+  ShootsRepository get _repository => ref.read(shootsRepositoryProvider);
+
+  @override
+  _ShootsScreenState build() {
+    ref.onDispose(() {
+      _disposed = true;
+      _pollTimer?.cancel();
+      _searchTimer?.cancel();
+    });
+    unawaited(Future<void>.microtask(load));
+    return const _ShootsScreenState();
+  }
+
+  Future<void> load({bool silent = false}) async {
+    if (_requestInFlight) return;
+    _requestInFlight = true;
+    if (!silent) {
+      state = state.copyWith(
+        isLoading: state.shoots.isEmpty,
+        isRefreshing: state.shoots.isNotEmpty,
+        clearFailure: true,
+      );
+    }
+    final result = await _repository.getJobs(
+      status: state.status == 'all' ? '' : state.status,
+      page: state.page,
+      search: state.query.trim(),
+    );
+    if (_disposed) return;
+    _requestInFlight = false;
+    if (result case Err(:final failure)) {
+      state = state.copyWith(
+        isLoading: false,
+        isRefreshing: false,
+        failure: failure,
+      );
+      _schedulePolling(false);
+      return;
+    }
+    final page = result.valueOrNull!;
+    final shoots = [
+      for (final job in page.jobs) _Shoot.fromJob(job),
+    ];
+    state = state.copyWith(
       shoots: shoots,
-      shotAssets: shotAssets,
-      query: query ?? this.query,
-      status: status ?? this.status,
-      selectedIndex: selectedIndex ?? this.selectedIndex,
-      approvedAssets: approvedAssets ?? this.approvedAssets,
+      page: page.page,
+      totalPages: page.totalPages,
+      isLoading: false,
+      isRefreshing: false,
+      clearFailure: true,
+    );
+    _schedulePolling(page.jobs.any((job) => job.isActive));
+  }
+
+  void setQuery(String query) {
+    state = state.copyWith(query: query, page: 1);
+    _searchTimer?.cancel();
+    _searchTimer = Timer(const Duration(milliseconds: 300), load);
+  }
+
+  void setStatus(String status) {
+    state = state.copyWith(status: status, page: 1);
+    unawaited(load());
+  }
+
+  void setPage(int page) {
+    if (page < 1 || page > state.totalPages || page == state.page) return;
+    state = state.copyWith(page: page);
+    unawaited(load());
+  }
+
+  void _schedulePolling(bool hasActiveJob) {
+    _pollTimer?.cancel();
+    if (!hasActiveJob) return;
+    _pollTimer = Timer.periodic(
+      const Duration(seconds: 5),
+      (_) => unawaited(load(silent: true)),
     );
   }
 }
 
-class _ShootsController extends Notifier<_ShootsScreenState> {
-  @override
-  _ShootsScreenState build() => const _ShootsScreenState(
-    shoots: _shoots,
-    shotAssets: _shotAssets,
-  );
-
-  void setQuery(String query) {
-    state = state.copyWith(query: query);
-  }
-
-  void setStatus(String status) {
-    state = state.copyWith(status: status);
-  }
-
-  void selectShoot(_Shoot shoot) {
-    state = state.copyWith(selectedIndex: state.shoots.indexOf(shoot));
-  }
-
-  void toggleApproval(String asset) {
-    final approved = {...state.approvedAssets};
-    approved.contains(asset) ? approved.remove(asset) : approved.add(asset);
-    state = state.copyWith(approvedAssets: approved);
-  }
-}
-
-final _shootsControllerProvider =
-    NotifierProvider<_ShootsController, _ShootsScreenState>(
+final NotifierProvider<_ShootsController, _ShootsScreenState>
+_shootsControllerProvider =
+    NotifierProvider.autoDispose<_ShootsController, _ShootsScreenState>(
       _ShootsController.new,
     );

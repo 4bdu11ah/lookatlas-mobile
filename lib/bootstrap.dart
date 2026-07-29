@@ -7,6 +7,7 @@ import 'package:look_atlas/app/app.dart';
 import 'package:look_atlas/core/config/app_config.dart';
 import 'package:look_atlas/core/providers/core_providers.dart';
 import 'package:look_atlas/features/auth/di/auth_providers.dart';
+import 'package:look_atlas/features/auth/domain/repositories/auth_repository.dart';
 import 'package:look_atlas/features/subscription/di/subscription_providers.dart';
 import 'package:look_atlas/services/crash/crash_reporter.dart';
 import 'package:look_atlas/services/service_providers.dart';
@@ -36,24 +37,23 @@ Future<void> bootstrap() async {
     }
 
     final prefs = await SharedPreferences.getInstance();
+    late final AuthRepository authRepository;
     final container = ProviderContainer(
       overrides: [
         sharedPreferencesProvider.overrideWithValue(prefs),
         // Wire the network layer's 401 recovery to the auth feature: refresh
-        // the access token via POST /auth/refresh, and clear the session
-        // (routing the user to sign-in) when it cannot be refreshed. Lazy
-        // `ref.read` inside the callbacks avoids a build-time provider cycle
-        // (apiService -> tokenRefresher -> authRepository -> apiService).
-        tokenRefresherProvider.overrideWith(
-          (ref) => TokenRefresher(
-            refreshToken: () =>
-                ref.read(authRepositoryProvider).refreshSession(),
-            onAuthFailure: () =>
-                ref.read(authRepositoryProvider).handleSessionExpired(),
+        // the token and clear the session when refresh fails. Capture the
+        // repository as a plain object so this provider does not read back
+        // into authRepositoryProvider and create a Riverpod cycle.
+        tokenRefresherProvider.overrideWithValue(
+          TokenRefresher(
+            refreshToken: () => authRepository.refreshSession(),
+            onAuthFailure: () => authRepository.handleSessionExpired(),
           ),
         ),
       ],
     );
+    authRepository = container.read(authRepositoryProvider);
 
     // Only what the first frame needs (theme + initial auth route) blocks here.
     await _initCritical(container);

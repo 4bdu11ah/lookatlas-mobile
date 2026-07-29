@@ -82,7 +82,7 @@ class _SelectionGrid extends StatelessWidget {
     this.square = false,
   });
 
-  final List<(String, String, String)> items;
+  final List<(int, String, String, String)> items;
   final int selected;
   final ValueChanged<int> onSelect;
   final VoidCallback? onPreview;
@@ -103,11 +103,11 @@ class _SelectionGrid extends StatelessWidget {
       itemBuilder: (context, index) {
         final item = items[index];
         return _SelectionCard(
-          title: item.$1,
-          subtitle: item.$2,
-          asset: item.$3,
-          selected: index == selected,
-          onTap: () => onSelect(index),
+          title: item.$2,
+          subtitle: item.$3,
+          asset: item.$4,
+          selected: item.$1 == selected,
+          onTap: () => onSelect(item.$1),
           onPreview: onPreview,
         );
       },
@@ -252,10 +252,15 @@ class _SelectedRoster extends StatelessWidget {
 }
 
 class _SegmentedChoices extends StatelessWidget {
-  const _SegmentedChoices({required this.choices, required this.selected});
+  const _SegmentedChoices({
+    required this.choices,
+    required this.selected,
+    this.onSelect,
+  });
 
   final List<String> choices;
   final int selected;
+  final ValueChanged<int>? onSelect;
 
   @override
   Widget build(BuildContext context) {
@@ -263,19 +268,22 @@ class _SegmentedChoices extends StatelessWidget {
       children: List.generate(
         choices.length,
         (index) => Expanded(
-          child: Container(
-            height: 40,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              color: index == selected ? AppColors.black : AppColors.white,
-              border: Border.all(color: AppColors.black),
-            ),
-            child: Text(
-              choices[index],
-              style: TextStyle(
-                color: index == selected ? AppColors.white : AppColors.black,
-                fontSize: 11,
-                fontWeight: AppTypography.bold,
+          child: InkWell(
+            onTap: onSelect == null ? null : () => onSelect!(index),
+            child: Container(
+              height: 40,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: index == selected ? AppColors.black : AppColors.white,
+                border: Border.all(color: AppColors.black),
+              ),
+              child: Text(
+                choices[index],
+                style: TextStyle(
+                  color: index == selected ? AppColors.white : AppColors.black,
+                  fontSize: 11,
+                  fontWeight: AppTypography.bold,
+                ),
               ),
             ),
           ),
@@ -286,10 +294,15 @@ class _SegmentedChoices extends StatelessWidget {
 }
 
 class _OptionWrap extends StatelessWidget {
-  const _OptionWrap({required this.options, required this.selected});
+  const _OptionWrap({
+    required this.options,
+    required this.selected,
+    this.onSelect,
+  });
 
   final List<String> options;
   final int selected;
+  final ValueChanged<int>? onSelect;
 
   @override
   Widget build(BuildContext context) {
@@ -298,19 +311,22 @@ class _OptionWrap extends StatelessWidget {
       runSpacing: 7,
       children: List.generate(
         options.length,
-        (index) => Container(
-          constraints: const BoxConstraints(minHeight: 36),
-          padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 8),
-          decoration: BoxDecoration(
-            color: index == selected ? AppColors.black : AppColors.white,
-            border: Border.all(color: AppColors.black),
-          ),
-          child: Text(
-            options[index],
-            style: TextStyle(
-              color: index == selected ? AppColors.white : AppColors.black,
-              fontSize: 10,
-              fontWeight: AppTypography.bold,
+        (index) => InkWell(
+          onTap: onSelect == null ? null : () => onSelect!(index),
+          child: Container(
+            constraints: const BoxConstraints(minHeight: 36),
+            padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 8),
+            decoration: BoxDecoration(
+              color: index == selected ? AppColors.black : AppColors.white,
+              border: Border.all(color: AppColors.black),
+            ),
+            child: Text(
+              options[index],
+              style: TextStyle(
+                color: index == selected ? AppColors.white : AppColors.black,
+                fontSize: 10,
+                fontWeight: AppTypography.bold,
+              ),
             ),
           ),
         ),

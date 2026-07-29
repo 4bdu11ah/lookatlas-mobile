@@ -24,10 +24,10 @@ final entitlementVerifierProvider = Provider<EntitlementVerifier>(
   (ref) => const LocalEntitlementVerifier(),
 );
 
-final FutureProvider<List<Package>> revenueCatPackagesProvider =
-    FutureProvider.autoDispose<List<Package>>((ref) async {
+final FutureProvider<List<StoreProduct>> revenueCatProductsProvider =
+    FutureProvider.autoDispose<List<StoreProduct>>((ref) async {
       final result = await ref
           .watch(subscriptionRepositoryProvider)
-          .fetchPackages();
-      return result.fold((packages) => packages, (failure) => throw failure);
+          .fetchProducts();
+      return result.fold((products) => products, (failure) => throw failure);
     });

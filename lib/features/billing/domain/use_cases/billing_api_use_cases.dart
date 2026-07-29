@@ -8,6 +8,12 @@ class GetBillingPlansUseCase {
   Future<Result<List<BillingPlan>>> call() => _repository.getPlans();
 }
 
+class GetBillingHistoryUseCase {
+  const GetBillingHistoryUseCase(this._repository);
+  final BillingApiRepository _repository;
+  Future<Result<List<BillingHistoryEntry>>> call() => _repository.getHistory();
+}
+
 class CreateBillingCheckoutUseCase {
   const CreateBillingCheckoutUseCase(this._repository);
   final BillingApiRepository _repository;

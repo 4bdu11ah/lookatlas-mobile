@@ -5,16 +5,14 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:look_atlas/core/error/failure.dart';
 import 'package:look_atlas/core/router/app_routes.dart';
 import 'package:look_atlas/core/theme/app_colors.dart';
 import 'package:look_atlas/core/theme/app_typography.dart';
 import 'package:look_atlas/features/auth/di/auth_providers.dart';
-import 'package:look_atlas/features/billing/di/billing_api_providers.dart';
-import 'package:look_atlas/features/billing/domain/entities/billing_checkout.dart';
-import 'package:look_atlas/features/billing/presentation/controllers/billing_checkout_controller.dart';
 import 'package:look_atlas/features/onboarding/presentation/providers/swipe_controller.dart';
 import 'package:look_atlas/features/onboarding/presentation/widgets/onboarding_widgets.dart';
-import 'package:look_atlas/features/onboarding/presentation/widgets/revenuecat_offerings_section.dart';
+import 'package:look_atlas/features/onboarding/presentation/widgets/revenuecat_products_section.dart';
 import 'package:look_atlas/features/subscription/di/subscription_providers.dart';
 import 'package:look_atlas/features/subscription/presentation/subscription_action.dart';
 import 'package:look_atlas/features/subscription/presentation/subscription_controller.dart';
@@ -22,9 +20,8 @@ import 'package:look_atlas/shared/widgets/app_snack_bar.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
 
 /// The dark activate / paywall screen (mockup 11): a short "analyzing your
-/// liked looks" loader, then the black paywall — drifting photo wall, billing
-/// toggle, three plan cards and the $8.99 one-time option. Plans hand off to
-/// checkout; the one-time option goes to the purchase-success flow.
+/// liked looks" loader, then the black paywall with RevenueCat monthly and
+/// one-time products.
 class ActivatePaywallScreen extends ConsumerStatefulWidget {
   const ActivatePaywallScreen({super.key});
 
@@ -71,24 +68,12 @@ class _ActivatePaywallScreenState extends ConsumerState<ActivatePaywallScreen> {
     final savedUrls = [
       for (final image in ref.watch(savedImagesProvider)) image.url,
     ];
-    final apiPlans = ref.watch(billingPlansProvider).asData?.value;
-    final revenueCatPackages =
-        ref.watch(revenueCatPackagesProvider).asData?.value ?? const [];
+    final revenueCatProducts = ref.watch(revenueCatProductsProvider);
     final purchaseAction = ref.watch(subscriptionActionProvider);
-    final purchasingPackageId = switch (purchaseAction) {
-      SubscriptionPurchasing(:final packageId) => packageId,
+    final purchasingProductId = switch (purchaseAction) {
+      SubscriptionPurchasing(:final productId) => productId,
       _ => null,
     };
-    final hasRevenueCatSubscriptions = revenueCatPackages.any(
-      (package) => !_isOneTimePackage(package),
-    );
-    final hasRevenueCatOneTime = revenueCatPackages.any(_isOneTimePackage);
-    final isUpsell =
-        GoRouterState.of(context).uri.queryParameters['upsell'] == 'onetime20';
-    if (isUpsell) ref.watch(proUpsellOfferProvider);
-    final plans = apiPlans == null || apiPlans.isEmpty
-        ? _plans
-        : apiPlans.map(_Plan.fromEntity).toList();
     return Scaffold(
       backgroundColor: AppColors.black,
       body: AnimatedSwitcher(
@@ -97,64 +82,38 @@ class _ActivatePaywallScreenState extends ConsumerState<ActivatePaywallScreen> {
             ? _AnalyzingLoader(savedCount: savedCount, urls: savedUrls)
             : _Paywall(
                 urls: savedUrls,
-                plans: plans,
-                showBackendPlans: !hasRevenueCatSubscriptions,
-                showBackendOneTime: !hasRevenueCatOneTime,
-                revenueCatSection: RevenueCatOfferingsSection(
-                  packages: revenueCatPackages,
-                  purchasingPackageId: purchasingPackageId,
-                  onPurchase: _purchaseRevenueCatPackage,
+                revenueCatSection: revenueCatProducts.when(
+                  loading: () => RevenueCatProductsSection(
+                    isLoading: true,
+                    purchasingProductId: purchasingProductId,
+                    onPurchase: _purchaseRevenueCatProduct,
+                  ),
+                  error: (error, _) => RevenueCatProductsSection(
+                    errorMessage: error is Failure
+                        ? error.message
+                        : 'Plans are unavailable right now.',
+                    purchasingProductId: purchasingProductId,
+                    onPurchase: _purchaseRevenueCatProduct,
+                    onRetry: () => ref.invalidate(revenueCatProductsProvider),
+                  ),
+                  data: (products) => RevenueCatProductsSection(
+                    products: products,
+                    purchasingProductId: purchasingProductId,
+                    onPurchase: _purchaseRevenueCatProduct,
+                  ),
                 ),
-                onPlanSelected: _startPlanCheckout,
-                onOneTime: _startOnetimeCheckout,
               ),
       ),
     );
   }
 
-  static bool _isOneTimePackage(Package package) =>
-      package.packageType == PackageType.lifetime ||
-      package.storeProduct.productCategory == ProductCategory.nonSubscription;
-
-  Future<void> _purchaseRevenueCatPackage(Package package) async {
+  Future<void> _purchaseRevenueCatProduct(StoreProduct product) async {
     final purchased = await ref
         .read(subscriptionActionProvider.notifier)
-        .purchase(package);
+        .purchase(product);
     if (!purchased || !mounted) return;
     AppSnackBar.showSuccess(context, 'Purchase successful.');
     context.go(AppRoutes.billingSuccess);
-  }
-
-  Future<void> _startPlanCheckout(
-    _Plan plan, {
-    required bool yearly,
-  }) async {
-    final priceId = yearly ? plan.yearlyPriceId : plan.priceId;
-    if (priceId.isEmpty) {
-      AppSnackBar.showError(context, 'Plans are unavailable. Please retry.');
-      return;
-    }
-    final offer = ref.read(proUpsellOfferProvider).asData?.value;
-    final opened = await ref
-        .read(billingCheckoutControllerProvider.notifier)
-        .startSubscription(
-          priceId: priceId,
-          useProUpsell: (offer?.active ?? false) && !(offer?.accepted ?? false),
-        );
-    if (!opened && mounted) {
-      final failure = ref.read(billingCheckoutControllerProvider).failure;
-      AppSnackBar.showError(context, failure?.message ?? 'Checkout failed.');
-    }
-  }
-
-  Future<void> _startOnetimeCheckout() async {
-    final opened = await ref
-        .read(billingCheckoutControllerProvider.notifier)
-        .startOnetime();
-    if (!opened && mounted) {
-      final failure = ref.read(billingCheckoutControllerProvider).failure;
-      AppSnackBar.showError(context, failure?.message ?? 'Checkout failed.');
-    }
   }
 }
 
@@ -508,123 +467,21 @@ class _Bracket extends StatelessWidget {
 
 // --- State B: the paywall -------------------------------------------------------
 
-/// One subscription tier of the paywall.
-class _Plan {
-  const _Plan({
-    required this.name,
-    required this.tag,
-    required this.monthly,
-    required this.credits,
-    required this.features,
-    required this.priceId,
-    required this.yearlyPriceId,
-    this.popular = false,
-  });
-
-  factory _Plan.fromEntity(BillingPlan plan) => _Plan(
-    name: plan.name,
-    tag: plan.tagline ?? '',
-    monthly: plan.price,
-    credits: plan.monthlyCredits,
-    priceId: plan.priceId,
-    yearlyPriceId: plan.yearlyPriceId,
-    popular: plan.popular,
-    features: [
-      for (final feature in plan.features) (feature, 'on'),
-      for (final feature in plan.excludedFeatures) (feature, 'ex'),
-    ],
-  );
-
-  final String name;
-  final String tag;
-  final double monthly;
-  final int credits;
-
-  /// (text, style) where style is 'on' (check), 'hi' (bright check) or
-  /// 'ex' (excluded, minus).
-  final List<(String, String)> features;
-  final String priceId;
-  final String yearlyPriceId;
-  final bool popular;
-
-  double get perPhoto => monthly / credits;
-}
-
-const _plans = [
-  _Plan(
-    name: 'Starter',
-    tag: 'For testing your first product drops',
-    monthly: 49,
-    credits: 100,
-    features: [
-      ('100 photos per month', 'on'),
-      ('Commercial rights included', 'on'),
-      ('HD downloads', 'on'),
-    ],
-    priceId: '',
-    yearlyPriceId: '',
-  ),
-  _Plan(
-    name: 'Pro',
-    tag: 'For brands shooting the full catalog',
-    monthly: 99,
-    credits: 200,
-    popular: true,
-    features: [
-      ('200 photos per month', 'on'),
-      ('AI-generated product video', 'on'),
-      ('Priority generation', 'on'),
-    ],
-    priceId: '',
-    yearlyPriceId: '',
-  ),
-  _Plan(
-    name: 'Studio',
-    tag: 'For teams producing weekly campaigns',
-    monthly: 199,
-    credits: 600,
-    features: [
-      ('600 photos per month', 'on'),
-      ('More models and styles', 'on'),
-      ('Team workflow', 'on'),
-    ],
-    priceId: '',
-    yearlyPriceId: '',
-  ),
-];
-
-class _Paywall extends StatefulWidget {
+class _Paywall extends StatelessWidget {
   const _Paywall({
     required this.urls,
-    required this.plans,
-    required this.showBackendPlans,
-    required this.showBackendOneTime,
     required this.revenueCatSection,
-    required this.onPlanSelected,
-    required this.onOneTime,
   });
 
   final List<String> urls;
-  final List<_Plan> plans;
-  final bool showBackendPlans;
-  final bool showBackendOneTime;
   final Widget revenueCatSection;
-  final void Function(_Plan plan, {required bool yearly}) onPlanSelected;
-  final VoidCallback onOneTime;
-
-  @override
-  State<_Paywall> createState() => _PaywallState();
-}
-
-class _PaywallState extends State<_Paywall> {
-  bool _yearly = true;
 
   @override
   Widget build(BuildContext context) {
     return Stack(
       fit: StackFit.expand,
       children: [
-        _PhotoWall(urls: widget.urls),
+        _PhotoWall(urls: urls),
         const ColoredBox(color: AppColors.blackAlpha70),
         const DecoratedBox(
           decoration: BoxDecoration(
@@ -699,24 +556,7 @@ class _PaywallState extends State<_Paywall> {
                   ],
                 ),
                 const SizedBox(height: 22),
-                _BillingToggle(
-                  yearly: _yearly,
-                  onChanged: (v) => setState(() => _yearly = v),
-                ),
-                const SizedBox(height: 22),
-                if (widget.showBackendPlans)
-                  for (final plan in widget.plans) ...[
-                    _PlanCard(
-                      plan: plan,
-                      onStart: () =>
-                          widget.onPlanSelected(plan, yearly: _yearly),
-                    ),
-                    const SizedBox(height: 14),
-                  ],
-                widget.revenueCatSection,
-                const SizedBox(height: 10),
-                if (widget.showBackendOneTime)
-                  _OneTimeCard(onTap: widget.onOneTime),
+                revenueCatSection,
                 const SizedBox(height: 48),
                 const _Pillars(),
                 const SizedBox(height: 32),
@@ -864,93 +704,6 @@ class _TrustBadge extends StatelessWidget {
   }
 }
 
-class _BillingToggle extends StatelessWidget {
-  const _BillingToggle({required this.yearly, required this.onChanged});
-
-  final bool yearly;
-  final ValueChanged<bool> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      spacing: 16,
-      children: [
-        GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onTap: () => onChanged(false),
-          child: Text(
-            'Monthly',
-            style: TextStyle(
-              fontSize: 14,
-              height: 1.4,
-              fontWeight: AppTypography.bold,
-              color: yearly ? AppColors.whiteAlpha50 : AppColors.white,
-            ),
-          ),
-        ),
-        GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onTap: () => onChanged(!yearly),
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 180),
-            width: 44,
-            height: 24,
-            padding: const EdgeInsets.all(2),
-            decoration: BoxDecoration(
-              color: AppColors.white,
-              border: Border.all(color: AppColors.whiteAlpha20, width: 2),
-              borderRadius: BorderRadius.circular(9999),
-            ),
-            child: AnimatedAlign(
-              duration: const Duration(milliseconds: 180),
-              alignment: yearly ? Alignment.centerRight : Alignment.centerLeft,
-              child: const SizedBox.square(
-                dimension: 16,
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    color: AppColors.black,
-                    shape: BoxShape.circle,
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ),
-        GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onTap: () => onChanged(true),
-          child: Text(
-            'Yearly',
-            style: TextStyle(
-              fontSize: 14,
-              height: 1.4,
-              fontWeight: AppTypography.bold,
-              color: yearly ? AppColors.white : AppColors.whiteAlpha50,
-            ),
-          ),
-        ),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
-          decoration: BoxDecoration(
-            color: AppColors.white,
-            borderRadius: BorderRadius.circular(4),
-          ),
-          child: const Text(
-            r'Save $240/yr',
-            style: TextStyle(
-              fontSize: 12,
-              height: 1.3,
-              fontWeight: AppTypography.bold,
-              color: AppColors.black,
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
 class _GlassCard extends StatelessWidget {
   const _GlassCard({
     required this.child,
@@ -958,7 +711,6 @@ class _GlassCard extends StatelessWidget {
     required this.background,
     required this.border,
     this.borderRadius = 0,
-    this.boxShadow = const [],
   });
 
   final Widget child;
@@ -966,13 +718,12 @@ class _GlassCard extends StatelessWidget {
   final Color background;
   final Border border;
   final double borderRadius;
-  final List<BoxShadow> boxShadow;
 
   @override
   Widget build(BuildContext context) {
     final radius = BorderRadius.circular(borderRadius);
     return Container(
-      decoration: BoxDecoration(borderRadius: radius, boxShadow: boxShadow),
+      decoration: BoxDecoration(borderRadius: radius),
       child: ClipRRect(
         borderRadius: radius,
         child: BackdropFilter(
@@ -987,329 +738,6 @@ class _GlassCard extends StatelessWidget {
             child: child,
           ),
         ),
-      ),
-    );
-  }
-}
-
-class _PlanCard extends StatelessWidget {
-  const _PlanCard({
-    required this.plan,
-    required this.onStart,
-  });
-
-  final _Plan plan;
-  final VoidCallback onStart;
-
-  @override
-  Widget build(BuildContext context) {
-    final priceText = '\$${plan.monthly.round()}';
-    final perPhoto = plan.perPhoto.toStringAsFixed(2);
-
-    return Stack(
-      clipBehavior: Clip.none,
-      children: [
-        _GlassCard(
-          padding: const EdgeInsets.all(24),
-          background: plan.popular
-              ? AppColors.whiteAlpha22
-              : AppColors.whiteAlpha15,
-          border: Border.all(
-            color: plan.popular
-                ? AppColors.whiteAlpha40
-                : AppColors.whiteAlpha20,
-          ),
-          boxShadow: const [
-            BoxShadow(
-              color: AppColors.blackAlpha25,
-              blurRadius: 36,
-              offset: Offset(0, 12),
-            ),
-          ],
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                plan.name,
-                style: const TextStyle(
-                  fontSize: 22,
-                  height: 1.1,
-                  fontWeight: AppTypography.bold,
-                  color: AppColors.white,
-                ),
-              ),
-              const SizedBox(height: 3),
-              Text(
-                plan.tag,
-                style: const TextStyle(
-                  fontSize: 13,
-                  height: 1.35,
-                  fontWeight: AppTypography.semiBold,
-                  color: AppColors.whiteAlpha85,
-                ),
-              ),
-              const SizedBox(height: 18),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.baseline,
-                textBaseline: TextBaseline.alphabetic,
-                spacing: 2,
-                children: [
-                  Text(
-                    priceText,
-                    style: const TextStyle(
-                      fontSize: 54,
-                      height: 0.95,
-                      fontWeight: AppTypography.bold,
-                      letterSpacing: -1.62,
-                      fontFeatures: [FontFeature.tabularFigures()],
-                      color: AppColors.white,
-                    ),
-                  ),
-                  const Text(
-                    '/mo',
-                    style: TextStyle(
-                      fontSize: 16,
-                      height: 1.4,
-                      fontWeight: AppTypography.medium,
-                      color: AppColors.whiteAlpha80,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 4),
-              Text(
-                '\$$perPhoto per photo',
-                style: const TextStyle(
-                  fontSize: 13,
-                  height: 1.35,
-                  fontWeight: AppTypography.bold,
-                  fontFeatures: [FontFeature.tabularFigures()],
-                  color: AppColors.whiteAlpha90,
-                ),
-              ),
-              const SizedBox(height: 18),
-              _WhiteButton(
-                label: 'Start ${plan.name}',
-                onTap: onStart,
-              ),
-              const SizedBox(height: 18),
-              Container(
-                padding: const EdgeInsets.only(top: 16),
-                decoration: const BoxDecoration(
-                  border: Border(
-                    top: BorderSide(color: AppColors.whiteAlpha15),
-                  ),
-                ),
-                child: Column(
-                  spacing: 10,
-                  children: [
-                    for (final (text, style) in plan.features)
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        spacing: 10,
-                        children: [
-                          Padding(
-                            padding: const EdgeInsets.only(top: 2),
-                            child: Icon(
-                              style == 'ex' ? Icons.remove : Icons.check,
-                              size: 16,
-                              color: switch (style) {
-                                'hi' => AppColors.white,
-                                'ex' => AppColors.whiteAlpha40,
-                                _ => AppColors.whiteAlpha80,
-                              },
-                            ),
-                          ),
-                          Expanded(
-                            child: Text(
-                              text,
-                              style: TextStyle(
-                                fontSize: 13,
-                                height: 1.25,
-                                fontWeight: AppTypography.semiBold,
-                                color: style == 'ex'
-                                    ? AppColors.whiteAlpha50
-                                    : AppColors.whiteAlpha85,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-        if (plan.popular)
-          Positioned(
-            top: -12,
-            left: 0,
-            right: 0,
-            child: Center(
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 4,
-                ),
-                decoration: BoxDecoration(
-                  color: AppColors.white,
-                  borderRadius: BorderRadius.circular(9999),
-                ),
-                child: const Text(
-                  'MOST FASHION BRANDS PICK THIS',
-                  style: TextStyle(
-                    fontSize: 11,
-                    height: 1.3,
-                    fontWeight: AppTypography.bold,
-                    letterSpacing: 0.88,
-                    color: AppColors.black,
-                  ),
-                ),
-              ),
-            ),
-          ),
-      ],
-    );
-  }
-}
-
-class _WhiteButton extends StatelessWidget {
-  const _WhiteButton({required this.label, required this.onTap});
-
-  final String label;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: AppColors.white,
-      borderRadius: BorderRadius.circular(8),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(8),
-        onTap: onTap,
-        child: Container(
-          height: 48,
-          alignment: Alignment.center,
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            spacing: 8,
-            children: [
-              Text(
-                label,
-                style: const TextStyle(
-                  fontSize: 16,
-                  height: 1.2,
-                  fontWeight: AppTypography.semiBold,
-                  color: AppColors.black,
-                ),
-              ),
-              const Icon(Icons.arrow_forward, size: 16, color: AppColors.black),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// "Just need this one shoot?" — the $8.99 one-time HD download bridge.
-class _OneTimeCard extends StatelessWidget {
-  const _OneTimeCard({required this.onTap});
-
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return _GlassCard(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
-      background: AppColors.whiteAlpha13,
-      border: Border.all(color: AppColors.whiteAlpha20),
-      child: Column(
-        children: [
-          const Text(
-            'Just need this one shoot?',
-            style: TextStyle(
-              fontSize: 16,
-              height: 1.4,
-              fontWeight: AppTypography.semiBold,
-              color: AppColors.white,
-            ),
-          ),
-          const SizedBox(height: 4),
-          const Text(
-            r'Download your 15 HD shots, $8.99 one charge.',
-            style: TextStyle(
-              fontSize: 14,
-              height: 1.4,
-              color: AppColors.whiteAlpha85,
-            ),
-          ),
-          const SizedBox(height: 16),
-          Material(
-            color: AppColors.whiteAlpha05,
-            borderRadius: BorderRadius.circular(8),
-            child: InkWell(
-              borderRadius: BorderRadius.circular(8),
-              onTap: onTap,
-              child: Container(
-                height: 44,
-                constraints: const BoxConstraints(minWidth: 240),
-                padding: const EdgeInsets.symmetric(horizontal: 24),
-                decoration: BoxDecoration(
-                  border: Border.all(color: AppColors.whiteAlpha30),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: const Row(
-                  mainAxisSize: MainAxisSize.min,
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  spacing: 8,
-                  children: [
-                    Icon(Icons.download, size: 16, color: AppColors.white),
-                    Text(
-                      r'Download in HD · $8.99',
-                      style: TextStyle(
-                        fontSize: 14,
-                        height: 1.2,
-                        fontWeight: AppTypography.semiBold,
-                        color: AppColors.white,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(height: 20),
-          Container(
-            padding: const EdgeInsets.only(top: 16),
-            decoration: const BoxDecoration(
-              border: Border(top: BorderSide(color: AppColors.whiteAlpha10)),
-            ),
-            child: const Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              spacing: 8,
-              children: [
-                Icon(
-                  Icons.calculate_outlined,
-                  size: 14,
-                  color: AppColors.whiteAlpha60,
-                ),
-                Flexible(
-                  child: Text(
-                    r'1 shoot for $8.99. Pro is $99/mo for ~13 shoots '
-                    r'($7.60 each).',
-                    style: TextStyle(
-                      fontSize: 13,
-                      height: 1.4,
-                      color: AppColors.whiteAlpha80,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
       ),
     );
   }

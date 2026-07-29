@@ -12,6 +12,10 @@ class BillingApiRepositoryImpl implements BillingApiRepository {
   Future<Result<List<BillingPlan>>> getPlans() => _remote.getPlans();
 
   @override
+  Future<Result<List<BillingHistoryEntry>>> getHistory() =>
+      _remote.getHistory();
+
+  @override
   Future<Result<CheckoutSession>> createCheckout({
     required String priceId,
     required Uri successUrl,

@@ -23,10 +23,9 @@ import 'package:look_atlas/features/auth/domain/validators/auth_validators.dart'
 /// the network layer reads per request), and the refresh token sits in
 /// [SecureStorage] until [refreshSession] exchanges it.
 ///
-/// Apple/Google sign-in still authenticates with the provider SDKs only — the
-/// backend has no social token-exchange endpoint yet. Those sessions are
-/// app-local: the provider's identity token is used as the bearer token so it
-/// can be verified server-side once an endpoint exists.
+/// Apple/Google sign-in exchanges the provider credential for a Supabase
+/// session. Supabase and backend refresh tokens use separate secure keys so
+/// each is sent only to its own refresh endpoint.
 class AuthRepositoryImpl implements AuthRepository {
   AuthRepositoryImpl(
     this._remote,
@@ -41,10 +40,6 @@ class AuthRepositoryImpl implements AuthRepository {
   final SocialAuthDataSource _socialAuth;
   final AuthTokenCache _tokenCache;
   final SecureStorage _secureStorage;
-
-  /// Placeholder bearer for social sessions whose provider returned no
-  /// identity token; real API calls will 401 until a backend exchange exists.
-  static const _socialFallbackToken = 'social-session-token';
 
   final _controller = StreamController<AppUser?>.broadcast();
   AppUser? _currentUser;
@@ -116,6 +111,7 @@ class AuthRepositoryImpl implements AuthRepository {
     required String password,
     required String companyName,
     RegisterAttribution? attribution,
+    String? captchaToken,
   }) async {
     final invalid = _validateCredentials(email, password);
     if (invalid != null) return Err(invalid);
@@ -126,6 +122,7 @@ class AuthRepositoryImpl implements AuthRepository {
       email: email.trim(),
       password: password,
       attribution: attribution,
+      captchaToken: captchaToken,
     );
     return _completeSession(result);
   }
@@ -168,6 +165,23 @@ class AuthRepositoryImpl implements AuthRepository {
 
   @override
   Future<String?> refreshSession() async {
+    final supabaseToken = await _secureStorage.supabaseRefreshToken;
+    if (supabaseToken != null && supabaseToken.isNotEmpty) {
+      return _refreshSupabaseSession(supabaseToken);
+    }
+    return _refreshBackendSession();
+  }
+
+  Future<String?> _refreshSupabaseSession(String refreshToken) async {
+    final result = await _socialAuth.refreshSession(refreshToken);
+    final session = result.valueOrNull;
+    if (session == null) return null;
+    await _tokenCache.set(session.accessToken);
+    await _secureStorage.setSupabaseRefreshToken(session.refreshToken);
+    return session.accessToken;
+  }
+
+  Future<String?> _refreshBackendSession() async {
     final refreshToken = await _secureStorage.refreshToken;
     if (refreshToken == null || refreshToken.isEmpty) return null;
     final result = await _remote.refresh(refreshToken);
@@ -192,9 +206,12 @@ class AuthRepositoryImpl implements AuthRepository {
       case Ok(value: final session):
         await _local.cacheUser(session.user);
         await _tokenCache.set(session.accessToken);
+        await _secureStorage.deleteSupabaseRefreshToken();
         final refreshToken = session.refreshToken;
         if (refreshToken != null) {
           await _secureStorage.setRefreshToken(refreshToken);
+        } else {
+          await _secureStorage.deleteRefreshToken();
         }
         _currentUser = session.user;
         _controller.add(session.user);
@@ -221,7 +238,9 @@ class AuthRepositoryImpl implements AuthRepository {
           photoUrl: credential.photoUrl,
         );
         await _local.cacheUser(user);
-        await _tokenCache.set(credential.idToken ?? _socialFallbackToken);
+        await _tokenCache.set(credential.accessToken);
+        await _secureStorage.deleteRefreshToken();
+        await _secureStorage.setSupabaseRefreshToken(credential.refreshToken);
         _currentUser = user;
         _controller.add(user);
         return Result.ok(user);

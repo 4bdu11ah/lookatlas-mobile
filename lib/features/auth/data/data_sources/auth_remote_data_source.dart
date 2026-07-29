@@ -18,6 +18,7 @@ abstract interface class AuthRemoteDataSource {
     required String email,
     required String password,
     RegisterAttribution? attribution,
+    String? captchaToken,
   });
 
   /// `POST /auth/login` — 401 for bad credentials, 404 when the auth user has
@@ -70,6 +71,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     required String email,
     required String password,
     RegisterAttribution? attribution,
+    String? captchaToken,
   }) async {
     Map<String, Object?>? deviceContext;
     try {
@@ -85,6 +87,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
         'email': email,
         'password': password,
         'plan': 'starter',
+        'captchaToken': ?captchaToken,
         ...?deviceContext,
         ...?attribution?.toJson(),
       },
@@ -115,9 +118,6 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       },
       decoder: (data) =>
           AuthSessionModel.fromJson(_bodyAsMap(data), fallbackEmail: email),
-    );
-    print(
-      'Login result: ${result.fold((err) => err.toString(), (success) => success.toString())}',
     );
     // Same fallback copy as the web client's login handler.
     return result.mapErr(

@@ -24,7 +24,7 @@ abstract final class DioClient {
               sendTimeout: const Duration(seconds: 30),
               headers: {
                 'Content-Type': 'application/json',
-                if (headers != null) ...headers,
+                ...?headers,
               },
             ),
           )
@@ -42,10 +42,13 @@ abstract final class DioClient {
     if (tokenProvider != null) {
       dio.interceptors.add(AuthInterceptor(tokenProvider));
     }
-    if (refreshToken != null && onAuthFailure != null) {
+    if (tokenProvider != null &&
+        refreshToken != null &&
+        onAuthFailure != null) {
       dio.interceptors.add(
         TokenRefreshInterceptor(
           dio: dio,
+          tokenProvider: tokenProvider,
           refreshToken: refreshToken,
           onAuthFailure: onAuthFailure,
         ),

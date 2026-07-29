@@ -5,8 +5,8 @@ import 'package:purchases_flutter/purchases_flutter.dart';
 /// Subscription contract. The default implementation wraps RevenueCat; the
 /// presentation layer depends only on this interface.
 ///
-/// [Package] is RevenueCat's unit of purchase and is surfaced to the paywall
-/// so it can render localized prices. This is the one intentional SDK leak.
+/// [StoreProduct] is surfaced so paywalls can render localized store prices
+/// and purchase products directly without RevenueCat offerings.
 abstract interface class SubscriptionRepository {
   /// Whether a RevenueCat API key was provided for this platform.
   bool get isConfigured;
@@ -17,10 +17,9 @@ abstract interface class SubscriptionRepository {
 
   Future<SubscriptionStatus> currentStatus();
 
-  /// Purchasable packages from the current offering.
-  Future<Result<List<Package>>> fetchPackages();
+  Future<Result<List<StoreProduct>>> fetchProducts();
 
-  Future<Result<SubscriptionStatus>> purchase(Package package);
+  Future<Result<SubscriptionStatus>> purchase(StoreProduct product);
 
   Future<Result<SubscriptionStatus>> restore();
 

@@ -3,6 +3,7 @@ import 'package:look_atlas/features/billing/domain/entities/billing_checkout.dar
 
 abstract interface class BillingApiRepository {
   Future<Result<List<BillingPlan>>> getPlans();
+  Future<Result<List<BillingHistoryEntry>>> getHistory();
 
   Future<Result<CheckoutSession>> createCheckout({
     required String priceId,

@@ -284,7 +284,7 @@ class _ReviewColumn extends StatelessWidget {
               ),
               child: Stack(
                 fit: StackFit.expand,
-                children: [image, if (overlay != null) overlay!],
+                children: [image, ?overlay],
               ),
             ),
           ),

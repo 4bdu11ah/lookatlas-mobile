@@ -37,16 +37,16 @@ class RegisterAttribution {
   /// The request-body fields, with the API's exact key names and every null
   /// omitted.
   Map<String, String> toJson() => {
-    if (fbc != null) 'fbc': fbc!,
-    if (fbp != null) 'fbp': fbp!,
-    if (utmSource != null) 'utm_source': utmSource!,
-    if (utmMedium != null) 'utm_medium': utmMedium!,
-    if (utmCampaign != null) 'utm_campaign': utmCampaign!,
-    if (utmContent != null) 'utm_content': utmContent!,
-    if (utmTerm != null) 'utm_term': utmTerm!,
-    if (gclid != null) 'gclid': gclid!,
-    if (gbraid != null) 'gbraid': gbraid!,
-    if (wbraid != null) 'wbraid': wbraid!,
-    if (invite != null) 'invite': invite!,
+    'fbc': ?fbc,
+    'fbp': ?fbp,
+    'utm_source': ?utmSource,
+    'utm_medium': ?utmMedium,
+    'utm_campaign': ?utmCampaign,
+    'utm_content': ?utmContent,
+    'utm_term': ?utmTerm,
+    'gclid': ?gclid,
+    'gbraid': ?gbraid,
+    'wbraid': ?wbraid,
+    'invite': ?invite,
   };
 }

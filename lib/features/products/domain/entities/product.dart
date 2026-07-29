@@ -78,7 +78,7 @@ class _Product {
       sku,
       status,
       category,
-      if (subtype != null) subtype!,
+      ?subtype,
     ].join(' ').toLowerCase();
     return searchable.contains(query);
   }

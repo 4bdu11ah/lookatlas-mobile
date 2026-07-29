@@ -19,12 +19,7 @@ class _ShootDialog extends StatelessWidget {
       _ModalKind.contextPaywall => _ShootPaywall(
         onNavigate: onNavigate,
       ),
-      _ModalKind.product => _AddProductDialog(
-        onCrop: () => onOpenModal(_ModalKind.cropProduct),
-        onToast: onToast,
-      ),
-      _ModalKind.cropProduct => _CropProductDialog(onToast: onToast),
-      _ModalKind.productSubtype => const _ProductSubtypeDialog(),
+      _ModalKind.product => _AddProductDialog(onToast: onToast),
       _ModalKind.model => _AddModelDialog(onToast: onToast),
       _ModalKind.directorPortfolio => _DirectorPortfolioDialog(
         onPreview: () => onOpenModal(_ModalKind.portfolioViewer),
@@ -35,7 +30,6 @@ class _ShootDialog extends StatelessWidget {
       _ModalKind.editAi => _AiEditDialog(onToast: onToast),
       _ModalKind.variation => _VariationDialog(onToast: onToast),
       _ModalKind.versions => _VersionHistoryDialog(onToast: onToast),
-      _ModalKind.calibration => const _CalibrationDialog(),
       _ModalKind.videoOptions => _VideoOptionsDialog(
         onNext: () => _replace(context, _ModalKind.videoFrame),
       ),
@@ -164,271 +158,32 @@ class _PaywallBenefit extends StatelessWidget {
   }
 }
 
-class _AddProductDialog extends StatelessWidget {
-  const _AddProductDialog({required this.onCrop, required this.onToast});
-
-  final VoidCallback onCrop;
-  final ValueChanged<String> onToast;
-
-  @override
-  Widget build(BuildContext context) {
-    return _ModalFrame(
-      title: 'Add New Product',
-      subtitle: 'It will also be saved to Products',
-      leading: Icons.inventory_2_outlined,
-      actions: [
-        AppOutlinedButton(
-          label: 'Cancel',
-          onPressed: () => Navigator.pop(context),
-        ),
-        PrimaryButton(
-          label: 'Add Product',
-          icon: Icons.check,
-          onPressed: () {
-            Navigator.pop(context);
-            onToast('Product added');
-          },
-        ),
-      ],
-      children: [
-        const AppTextField(
-          labelText: 'Product name *',
-          hintText: 'e.g., Classic Cotton T-Shirt',
-        ),
-        const AppTextField(labelText: 'SKU *', hintText: 'e.g., TSH-001'),
-        const AppTextField(
-          labelText: 'Description',
-          hintText: 'Describe your product...',
-          minLines: 3,
-          maxLines: 3,
-        ),
-        _DialogUpload(label: 'Photos · 0/5', onTap: onCrop),
-      ],
-    );
-  }
-}
-
-class _AddModelDialog extends StatelessWidget {
-  const _AddModelDialog({required this.onToast});
-
-  final ValueChanged<String> onToast;
-
-  @override
-  Widget build(BuildContext context) {
-    return _ModalFrame(
-      title: 'Add New Model',
-      subtitle: 'Upload photos and details',
-      leading: Icons.person_outline,
-      actions: [
-        AppOutlinedButton(
-          label: 'Cancel',
-          onPressed: () => Navigator.pop(context),
-        ),
-        PrimaryButton(
-          label: 'Add Model',
-          icon: Icons.check,
-          onPressed: () {
-            Navigator.pop(context);
-            onToast('Model added');
-          },
-        ),
-      ],
-      children: const [
-        AppTextField(
-          labelText: 'Model name *',
-          hintText: 'e.g., Sarah Martinez',
-        ),
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
-              child: AppTextField(labelText: 'Gender *', hintText: 'Female'),
-            ),
-            SizedBox(width: 10),
-            Expanded(
-              child: AppTextField(labelText: 'Height *', hintText: '170 cm'),
-            ),
-          ],
-        ),
-        _DialogUpload(label: 'Photos · 0/5'),
-      ],
-    );
-  }
-}
-
-class _ProductSubtypeDialog extends StatelessWidget {
-  const _ProductSubtypeDialog();
-
-  @override
-  Widget build(BuildContext context) {
-    return _ModalFrame(
-      title: 'Pick a sub-type',
-      subtitle: 'Helps the AI place the product correctly.',
-      showClose: false,
-      actions: [
-        AppOutlinedButton(
-          label: 'Cancel',
-          onPressed: () => Navigator.pop(context),
-        ),
-      ],
-      children: const [
-        _OptionWrap(
-          options: ['Shoulder bag', 'Crossbody bag', 'Clutch', 'Tote'],
-          selected: 0,
-        ),
-      ],
-    );
-  }
-}
-
-class _CropProductDialog extends StatelessWidget {
-  const _CropProductDialog({required this.onToast});
-
-  final ValueChanged<String> onToast;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      height: MediaQuery.sizeOf(context).height,
-      child: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(17, 17, 10, 14),
-            child: Row(
-              children: [
-                const Expanded(
-                  child: _CreateSectionHeader(
-                    title: 'Crop photo',
-                    subtitle:
-                        'Drag the corners or edges to crop. Drag inside to move it.',
-                  ),
-                ),
-                AppOutlinedButton(
-                  label: 'Reset',
-                  icon: Icons.refresh,
-                  fitToContent: true,
-                  height: 36,
-                  onPressed: () {},
-                ),
-                _IconButton(
-                  icon: Icons.close,
-                  label: 'Close crop',
-                  onTap: () => Navigator.pop(context),
-                ),
-              ],
-            ),
-          ),
-          const Expanded(
-            child: ColoredBox(
-              color: AppColors.nearBlack,
-              child: Center(
-                child: Padding(
-                  padding: EdgeInsets.all(20),
-                  child: AspectRatio(
-                    aspectRatio: 2 / 3,
-                    child: Stack(
-                      fit: StackFit.expand,
-                      children: [
-                        Opacity(
-                          opacity: 0.55,
-                          child: _AssetImage(
-                            '$_img/showcase-bag-before.jpg',
-                          ),
-                        ),
-                        Padding(
-                          padding: EdgeInsets.symmetric(
-                            horizontal: 28,
-                            vertical: 38,
-                          ),
-                          child: _CropGrid(),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
-          Container(
-            padding: const EdgeInsets.all(13),
-            color: AppColors.neutral50,
-            child: Row(
-              children: [
-                Expanded(
-                  child: AppOutlinedButton(
-                    label: 'Cancel',
-                    onPressed: () => Navigator.pop(context),
-                  ),
-                ),
-                const SizedBox(width: 9),
-                Expanded(
-                  child: PrimaryButton(
-                    label: 'Save crop',
-                    onPressed: () {
-                      Navigator.pop(context);
-                      onToast('Crop saved');
-                    },
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _CropGrid extends StatelessWidget {
-  const _CropGrid();
-
-  @override
-  Widget build(BuildContext context) {
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        border: Border.all(color: AppColors.white, width: 2),
-      ),
-      child: Column(
-        children: [
-          for (var row = 0; row < 3; row++)
-            Expanded(
-              child: Row(
-                children: [
-                  for (var column = 0; column < 3; column++)
-                    Expanded(
-                      child: Container(
-                        decoration: BoxDecoration(
-                          border: Border(
-                            right: column < 2
-                                ? const BorderSide(
-                                    color: AppColors.whiteAlpha50,
-                                  )
-                                : BorderSide.none,
-                            bottom: row < 2
-                                ? const BorderSide(
-                                    color: AppColors.whiteAlpha50,
-                                  )
-                                : BorderSide.none,
-                          ),
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-}
-
-class _CustomShotDialog extends StatelessWidget {
+class _CustomShotDialog extends ConsumerStatefulWidget {
   const _CustomShotDialog({required this.onToast});
 
   final ValueChanged<String> onToast;
 
   @override
+  ConsumerState<_CustomShotDialog> createState() => _CustomShotDialogState();
+}
+
+class _CustomShotDialogState extends ConsumerState<_CustomShotDialog> {
+  final _ideaController = TextEditingController();
+  final _poseController = TextEditingController();
+  final _focusController = TextEditingController();
+  bool _isSubmitting = false;
+
+  @override
+  void dispose() {
+    _ideaController.dispose();
+    _poseController.dispose();
+    _focusController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final controller = ref.read(_createShootControllerProvider.notifier);
     return _ModalFrame(
       title: 'Create Custom Shot',
       subtitle: 'Describe your vision, we will format it',
@@ -441,29 +196,50 @@ class _CustomShotDialog extends StatelessWidget {
         PrimaryButton(
           label: 'Add Shot',
           icon: Icons.add,
-          onPressed: () {
+          isLoading: _isSubmitting,
+          onPressed: () async {
+            final idea = _ideaController.text.trim();
+            if (idea.isEmpty) {
+              AppSnackBar.showError(context, 'Describe your shot idea.');
+              return;
+            }
+            setState(() => _isSubmitting = true);
+            final failure = await controller.addCustomShot(
+              shotIdea: idea,
+              poseDirection: _poseController.text.trim(),
+              focusArea: _focusController.text.trim(),
+            );
+            if (!context.mounted) return;
+            setState(() => _isSubmitting = false);
+            if (failure != null) {
+              AppSnackBar.showError(context, failure.message);
+              return;
+            }
             Navigator.pop(context);
-            onToast('Custom shot added');
+            widget.onToast('Custom shot added');
           },
         ),
       ],
-      children: const [
+      children: [
         AppTextField(
+          controller: _ideaController,
           labelText: "What's your shot idea? *",
           hintText: 'Close-up focusing on the stitching detail...',
           minLines: 4,
           maxLines: 4,
         ),
-        _Caption('Be descriptive, this is the main input.'),
+        const _Caption('Be descriptive, this is the main input.'),
         AppTextField(
+          controller: _poseController,
           labelText: 'Pose Direction (optional)',
           hintText: 'Walking confidently',
         ),
         AppTextField(
+          controller: _focusController,
           labelText: 'Focus Area (optional)',
           hintText: 'Product detail',
         ),
-        _Alert(
+        const _Alert(
           kind: _AlertKind.info,
           text: 'Matches background: Let AI Decide · director: Alex Chen',
         ),

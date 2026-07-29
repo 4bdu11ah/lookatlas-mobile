@@ -17,7 +17,6 @@ class _BillingActionButton extends StatelessWidget {
     required this.onPressed,
     this.icon,
     this.outline = false,
-    this.danger = false,
     this.isLoading = false,
     super.key,
   });
@@ -26,20 +25,12 @@ class _BillingActionButton extends StatelessWidget {
   final VoidCallback? onPressed;
   final IconData? icon;
   final bool outline;
-  final bool danger;
   final bool isLoading;
 
   @override
   Widget build(BuildContext context) {
-    final foreground = danger
-        ? (outline ? AppColors.dangerDark : AppColors.white)
-        : (outline ? AppColors.black : AppColors.white);
-    final background = outline
-        ? AppColors.white
-        : danger
-        ? AppColors.dangerDark
-        : AppColors.black;
-    final border = danger ? AppColors.danger : AppColors.black;
+    final foreground = outline ? AppColors.black : AppColors.white;
+    final background = outline ? AppColors.white : AppColors.black;
 
     return SizedBox(
       width: double.infinity,
@@ -53,7 +44,10 @@ class _BillingActionButton extends StatelessWidget {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               decoration: BoxDecoration(
-                border: Border.all(color: border, width: outline ? 2 : 1),
+                border: Border.all(
+                  color: AppColors.black,
+                  width: outline ? 2 : 1,
+                ),
               ),
               alignment: Alignment.center,
               child: isLoading

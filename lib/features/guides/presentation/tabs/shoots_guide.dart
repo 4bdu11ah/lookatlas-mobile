@@ -248,7 +248,7 @@ class _GuideWorkflowSubsection extends StatelessWidget {
         children: [
           _GuideCardTitle(title),
           _GuideBodyText(body),
-          if (child != null) child!,
+          ?child,
         ],
       ),
     );

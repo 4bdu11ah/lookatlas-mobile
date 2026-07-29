@@ -20,6 +20,9 @@ final billingApiRepositoryProvider = Provider<BillingApiRepository>(
 final getBillingPlansUseCaseProvider = Provider<GetBillingPlansUseCase>(
   (ref) => GetBillingPlansUseCase(ref.watch(billingApiRepositoryProvider)),
 );
+final getBillingHistoryUseCaseProvider = Provider<GetBillingHistoryUseCase>(
+  (ref) => GetBillingHistoryUseCase(ref.watch(billingApiRepositoryProvider)),
+);
 final createBillingCheckoutUseCaseProvider =
     Provider<CreateBillingCheckoutUseCase>(
       (ref) => CreateBillingCheckoutUseCase(
@@ -43,6 +46,12 @@ final FutureProvider<List<BillingPlan>> billingPlansProvider =
     FutureProvider.autoDispose<List<BillingPlan>>((ref) async {
       final result = await ref.watch(getBillingPlansUseCaseProvider)();
       return result.fold((plans) => plans, (failure) => throw failure);
+    });
+
+final FutureProvider<List<BillingHistoryEntry>> billingHistoryProvider =
+    FutureProvider.autoDispose<List<BillingHistoryEntry>>((ref) async {
+      final result = await ref.watch(getBillingHistoryUseCaseProvider)();
+      return result.fold((history) => history, (failure) => throw failure);
     });
 
 final FutureProvider<ProUpsellOffer?> proUpsellOfferProvider =

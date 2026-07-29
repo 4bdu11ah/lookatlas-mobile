@@ -5,6 +5,7 @@ import 'package:look_atlas/features/billing/domain/entities/billing_checkout.dar
 
 abstract interface class BillingRemoteDataSource {
   Future<Result<List<BillingPlan>>> getPlans();
+  Future<Result<List<BillingHistoryEntry>>> getHistory();
   Future<Result<CheckoutSession>> createCheckout(Map<String, Object?> body);
   Future<Result<CheckoutSession>> createOnetimeCheckout(
     Map<String, Object?> body,
@@ -30,6 +31,16 @@ class BillingRemoteDataSourceImpl implements BillingRemoteDataSource {
         decoder: (data) => [
           for (final item in _map(data)['plans'] as List? ?? const [])
             if (item is Map<String, dynamic>) _plan(item),
+        ],
+      );
+
+  @override
+  Future<Result<List<BillingHistoryEntry>>> getHistory() =>
+      _api.get<List<BillingHistoryEntry>>(
+        ApiEndpoints.billingHistory,
+        decoder: (data) => [
+          for (final item in _historyItems(data))
+            if (item is Map<String, dynamic>) _historyEntry(item),
         ],
       );
 
@@ -110,6 +121,40 @@ class BillingRemoteDataSourceImpl implements BillingRemoteDataSource {
     yearlyPriceId: json['yearlyPriceId'] as String? ?? '',
     popular: json['popular'] as bool? ?? false,
   );
+
+  static List<dynamic> _historyItems(dynamic data) {
+    if (data is List) return data;
+    final body = _map(data);
+    final items = body['history'] ?? body['items'] ?? body['transactions'];
+    return items is List ? items : const [];
+  }
+
+  static BillingHistoryEntry _historyEntry(Map<String, dynamic> json) =>
+      BillingHistoryEntry(
+        occurredAt: _date(
+          json['date'] ?? json['createdAt'] ?? json['created_at'],
+        ),
+        description:
+            json['description'] as String? ??
+            json['label'] as String? ??
+            'Billing transaction',
+        amount: _double(json['amount'] ?? json['amountPaid']),
+        currencyCode: json['currency'] as String? ?? 'USD',
+        credits: _integer(
+          json['credits'] ?? json['creditsGranted'] ?? json['creditAmount'],
+        ),
+        balance: _integer(
+          json['balance'] ?? json['balanceAfter'] ?? json['creditBalance'],
+        ),
+      );
+
+  static DateTime? _date(Object? value) =>
+      value is String ? DateTime.tryParse(value) : null;
+
+  static double? _double(Object? value) =>
+      value is num ? value.toDouble() : null;
+
+  static int? _integer(Object? value) => value is num ? value.toInt() : null;
 
   static List<String> _strings(Object? value) => [
     for (final item in value as List? ?? const [])

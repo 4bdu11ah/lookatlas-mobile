@@ -78,23 +78,40 @@ class RevenueCatSubscriptionRepository implements SubscriptionRepository {
   }
 
   @override
-  Future<Result<List<Package>>> fetchPackages() async {
+  Future<Result<List<StoreProduct>>> fetchProducts() async {
     if (!isConfigured) return const Ok([]);
     try {
-      final offerings = await Purchases.getOfferings();
-      return Ok(offerings.current?.availablePackages ?? const []);
+      final subscriptions = AppConfig.revenueCatSubscriptionProductIds;
+      final oneTime = AppConfig.revenueCatOneTimeProductIds;
+      final products = await Future.wait([
+        if (subscriptions.isNotEmpty) Purchases.getProducts(subscriptions),
+        if (oneTime.isNotEmpty)
+          Purchases.getProducts(
+            oneTime,
+            productCategory: ProductCategory.nonSubscription,
+          ),
+      ]);
+      return Ok([for (final group in products) ...group]);
     } on PlatformException catch (error, stack) {
-      return Err(_mapError(error, stack));
+      return Err(
+        SubscriptionFailure(
+          'Products are unavailable right now. Please try again.',
+          cause: error,
+          stackTrace: stack,
+        ),
+      );
     }
   }
 
   @override
-  Future<Result<SubscriptionStatus>> purchase(Package package) async {
+  Future<Result<SubscriptionStatus>> purchase(StoreProduct product) async {
     if (!isConfigured) {
       return const Err(SubscriptionFailure('Purchases are not available.'));
     }
     try {
-      final result = await Purchases.purchase(PurchaseParams.package(package));
+      final result = await Purchases.purchase(
+        PurchaseParams.storeProduct(product),
+      );
       return Ok(_emit(_mapStatus(result.customerInfo)));
     } on PlatformException catch (error, stack) {
       return Err(_mapError(error, stack));

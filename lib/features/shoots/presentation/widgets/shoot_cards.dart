@@ -53,8 +53,8 @@ class _ShootFilters extends StatelessWidget {
               const Expanded(
                 child: _ShootSelect(
                   label: 'Per page',
-                  value: '10',
-                  items: {'10': '10'},
+                  value: '20',
+                  items: {'20': '20'},
                 ),
               ),
             ],

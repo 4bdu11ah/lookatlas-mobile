@@ -211,16 +211,25 @@ class _HeightBlock extends StatelessWidget {
 
 class _PhotoUploadBlock extends StatelessWidget {
   const _PhotoUploadBlock({
-    required this.count,
+    required this.existingPhotos,
+    required this.newPhotos,
+    required this.removedExistingIndexes,
     required this.invalid,
     required this.onAdd,
-    required this.onRemove,
+    required this.onRemoveExisting,
+    required this.onRemoveNew,
   });
 
-  final int count;
+  final List<String> existingPhotos;
+  final List<HouseModelUpload> newPhotos;
+  final Set<int> removedExistingIndexes;
   final bool invalid;
   final VoidCallback onAdd;
-  final VoidCallback onRemove;
+  final ValueChanged<int> onRemoveExisting;
+  final ValueChanged<int> onRemoveNew;
+
+  int get count =>
+      existingPhotos.length - removedExistingIndexes.length + newPhotos.length;
 
   @override
   Widget build(BuildContext context) {
@@ -286,41 +295,76 @@ class _PhotoUploadBlock extends StatelessWidget {
                 scrollDirection: Axis.horizontal,
                 itemExtent: 105,
                 itemCount: count,
-                itemBuilder: (context, index) => Padding(
-                  padding: const EdgeInsets.only(right: 9),
-                  child: Stack(
-                    fit: StackFit.expand,
-                    children: [
-                      const ColoredBox(
-                        color: AppColors.neutral100,
-                        child: _AssetImage('$_img/angle-example-front.png'),
-                      ),
-                      Positioned(
-                        top: 6,
-                        right: 6,
-                        child: InkWell(
-                          onTap: onRemove,
-                          child: Container(
-                            width: 26,
-                            height: 26,
-                            decoration: const BoxDecoration(
-                              color: AppColors.inkAlpha80,
-                              shape: BoxShape.circle,
-                            ),
-                            child: const Icon(
-                              Icons.close,
-                              size: 13,
-                              color: AppColors.white,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+                itemBuilder: (context, index) {
+                  final retainedIndexes = [
+                    for (var i = 0; i < existingPhotos.length; i++)
+                      if (!removedExistingIndexes.contains(i)) i,
+                  ];
+                  final isExisting = index < retainedIndexes.length;
+                  final sourceIndex = isExisting
+                      ? retainedIndexes[index]
+                      : index - retainedIndexes.length;
+                  return _PhotoPreview(
+                    source: isExisting ? existingPhotos[sourceIndex] : null,
+                    bytes: isExisting ? null : newPhotos[sourceIndex].bytes,
+                    onRemove: () => isExisting
+                        ? onRemoveExisting(sourceIndex)
+                        : onRemoveNew(sourceIndex),
+                  );
+                },
               ),
             ),
           ],
+        ],
+      ),
+    );
+  }
+}
+
+class _PhotoPreview extends StatelessWidget {
+  const _PhotoPreview({
+    required this.source,
+    required this.bytes,
+    required this.onRemove,
+  });
+
+  final String? source;
+  final Uint8List? bytes;
+  final VoidCallback onRemove;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(right: 9),
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          ColoredBox(
+            color: AppColors.neutral100,
+            child: bytes == null
+                ? _AssetImage(source ?? '')
+                : AppImage.memory(bytes!, fit: BoxFit.cover),
+          ),
+          Positioned(
+            top: 6,
+            right: 6,
+            child: InkWell(
+              onTap: onRemove,
+              child: Container(
+                width: 26,
+                height: 26,
+                decoration: const BoxDecoration(
+                  color: AppColors.inkAlpha80,
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.close,
+                  size: 13,
+                  color: AppColors.white,
+                ),
+              ),
+            ),
+          ),
         ],
       ),
     );

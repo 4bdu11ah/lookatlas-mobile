@@ -54,6 +54,48 @@ void main() {
     expect(plan.popular, isTrue);
   });
 
+  test('get_history_decodes_live_billing_shape', () async {
+    final api = _MockApiService();
+    final publicApi = _MockApiService();
+    when(
+      () => api.get<List<BillingHistoryEntry>>(
+        ApiEndpoints.billingHistory,
+        decoder: any(named: 'decoder'),
+      ),
+    ).thenAnswer((invocation) async {
+      final decoder =
+          invocation.namedArguments[#decoder]
+              as List<BillingHistoryEntry> Function(dynamic);
+      return Result.ok(
+        decoder({
+          'history': [
+            {
+              'createdAt': '2026-07-01T09:14:00Z',
+              'description': 'Pro plan renewal',
+              'amount': 99,
+              'currency': 'usd',
+              'credits': 200,
+              'balanceAfter': 200,
+            },
+          ],
+        }),
+      );
+    });
+    final dataSource = BillingRemoteDataSourceImpl(
+      api: api,
+      publicApi: publicApi,
+    );
+
+    final entry = (await dataSource.getHistory()).valueOrNull!.single;
+
+    expect(entry.occurredAt, DateTime.utc(2026, 7, 1, 9, 14));
+    expect(entry.description, 'Pro plan renewal');
+    expect(entry.amount, 99);
+    expect(entry.currencyCode, 'usd');
+    expect(entry.credits, 200);
+    expect(entry.balance, 200);
+  });
+
   test('verify_onetime_decodes_paid_status_and_offer', () async {
     final api = _MockApiService();
     final publicApi = _MockApiService();

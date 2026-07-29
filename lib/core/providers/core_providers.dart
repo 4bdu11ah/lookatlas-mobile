@@ -42,8 +42,8 @@ class TokenRefresher {
     required this.onAuthFailure,
   });
 
-  /// Performs the backend refresh call, persists the new access token (e.g.
-  /// via [AuthTokenCache.set]), and returns it — or `null` when the session
+  /// Refreshes the active backend or social session, persists the new access
+  /// token via [AuthTokenCache.set], and returns it, or `null` when the session
   /// cannot be refreshed.
   final Future<String?> Function() refreshToken;
 
@@ -51,11 +51,8 @@ class TokenRefresher {
   final Future<void> Function() onAuthFailure;
 }
 
-/// Seam for 401 token refresh. Returns `null` by default, which disables the
-/// refresh interceptor — the template ships with a local auth repo and has no
-/// token endpoint. When you wire a real backend, override this provider with
-/// a [TokenRefresher] that calls your refresh endpoint and signs the user out
-/// on failure.
+/// Seam for 401 token refresh. Bootstrap overrides this with the auth
+/// repository's refresh and session-expiry callbacks.
 final tokenRefresherProvider = Provider<TokenRefresher?>((ref) => null);
 
 /// App version + build number, e.g. "1.0.0 (1)". Shown in Settings.

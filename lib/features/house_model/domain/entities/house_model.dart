@@ -57,7 +57,30 @@ class _HouseModel {
     required this.source,
     this.photoCount = 4,
     this.heightEstimated = false,
+    this.photoUrls = const [],
   });
+
+  factory _HouseModel.fromProfile(HouseModelProfile profile) {
+    final asset = profile.imageUrl.isEmpty
+        ? '$_img/angle-example-front.png'
+        : profile.imageUrl;
+    return _HouseModel(
+      id: profile.id,
+      name: profile.name,
+      gender: _genderFromWire(profile.gender),
+      body: _bodyFromWire(profile.bodyType),
+      ethnicity: profile.ethnicity ?? 'Not specified',
+      ageRange: profile.ageRange ?? 'Not specified',
+      heightCm: profile.heightCm ?? 170,
+      asset: asset,
+      source: profile.source == HouseModelSource.lookAtlas
+          ? _ModelSource.lookAtlas
+          : _ModelSource.user,
+      photoCount: profile.photos.length,
+      heightEstimated: profile.heightEstimated,
+      photoUrls: profile.photos,
+    );
+  }
 
   final String id;
   final String name;
@@ -70,6 +93,7 @@ class _HouseModel {
   final _ModelSource source;
   final int photoCount;
   final bool heightEstimated;
+  final List<String> photoUrls;
 
   String get subtitle => '${gender.label} · ${body.label}';
 
@@ -78,6 +102,12 @@ class _HouseModel {
   bool get isLibrary => source == _ModelSource.lookAtlas;
 
   String assetForAngle(_ModelAngle angle) {
+    if (photoUrls.isNotEmpty) {
+      final index = angle.index < photoUrls.length
+          ? angle.index
+          : photoUrls.length - 1;
+      return photoUrls[index];
+    }
     return switch (angle) {
       _ModelAngle.front => asset,
       _ModelAngle.left => '$_img/angle-example-side.png',
@@ -97,6 +127,7 @@ class _HouseModel {
     _ModelSource? source,
     int? photoCount,
     bool? heightEstimated,
+    List<String>? photoUrls,
   }) {
     return _HouseModel(
       id: id,
@@ -110,8 +141,25 @@ class _HouseModel {
       source: source ?? this.source,
       photoCount: photoCount ?? this.photoCount,
       heightEstimated: heightEstimated ?? this.heightEstimated,
+      photoUrls: photoUrls ?? this.photoUrls,
     );
   }
+
+  static _ModelGender _genderFromWire(String raw) =>
+      switch (raw.toLowerCase().replaceAll('-', '_')) {
+        'female' || 'woman' || 'women' => _ModelGender.female,
+        'male' || 'man' || 'men' => _ModelGender.male,
+        'non_binary' || 'nonbinary' => _ModelGender.nonBinary,
+        _ => _ModelGender.preferNotToSay,
+      };
+
+  static _ModelBody _bodyFromWire(String? raw) =>
+      switch (raw?.toLowerCase().replaceAll(RegExp('[^a-z]'), '')) {
+        'petite' => _ModelBody.petite,
+        'slimathletic' || 'athletic' || 'slim' => _ModelBody.slimAthletic,
+        'plussizecurvy' || 'plussize' || 'curvy' => _ModelBody.plusSizeCurvy,
+        _ => _ModelBody.average,
+      };
 }
 
 class _ModelFormInput {
@@ -119,13 +167,27 @@ class _ModelFormInput {
     required this.name,
     required this.gender,
     required this.heightCm,
-    required this.photoCount,
+    required this.photos,
+    this.removedPhotoIndexes = const [],
     this.heightEstimated = false,
   });
 
   final String name;
   final _ModelGender gender;
   final int heightCm;
-  final int photoCount;
+  final List<HouseModelUpload> photos;
+  final List<int> removedPhotoIndexes;
   final bool heightEstimated;
+
+  HouseModelDraft toDraft() => HouseModelDraft(
+    name: name,
+    gender: switch (gender) {
+      _ModelGender.nonBinary => 'non_binary',
+      _ModelGender.preferNotToSay => 'unspecified',
+      _ => gender.name,
+    },
+    heightCm: heightCm,
+    heightEstimated: heightEstimated,
+    photos: photos,
+  );
 }

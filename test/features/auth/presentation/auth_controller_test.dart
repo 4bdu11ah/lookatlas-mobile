@@ -197,6 +197,19 @@ void main() {
       verify(() => subscriptions.logIn('user-1')).called(1);
     });
 
+    test('signInWithGoogle stops loading when the SDK throws', () async {
+      when(authRepository.signInWithGoogle).thenThrow(
+        StateError('Google SDK failed.'),
+      );
+
+      final succeeded = await container
+          .read(authControllerProvider.notifier)
+          .signInWithGoogle();
+
+      expect(succeeded, isFalse);
+      expect(states.last, isA<AsyncError<void>>());
+    });
+
     test('a cancelled sheet returns false without an error state', () async {
       when(authRepository.signInWithGoogle).thenAnswer(
         (_) async => const Result.err(

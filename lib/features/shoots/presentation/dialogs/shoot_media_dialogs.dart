@@ -1,22 +1,17 @@
 part of '../../../dashboard/presentation/screens/dashboard_screen.dart';
 
-const _portfolioAssets = [
-  '$_img/showcase-tshirt-after.jpg',
-  '$_img/showcase-dress-after.jpg',
-  '$_img/showcase-shoes-after.jpg',
-  '$_img/showcase-sunglasses-after.jpg',
-];
-
-class _DirectorPortfolioDialog extends StatelessWidget {
+class _DirectorPortfolioDialog extends ConsumerWidget {
   const _DirectorPortfolioDialog({required this.onPreview});
 
   final VoidCallback onPreview;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final director = _selectedShootDirector(ref);
+    final assets = _directorAssets(director);
     return _ModalFrame(
-      title: 'Alex Chen',
-      subtitle: 'Clean Professional',
+      title: director?.name ?? 'Creative Director',
+      subtitle: director?.subtitle,
       leading: Icons.person_outline,
       actions: [
         AppOutlinedButton(
@@ -34,7 +29,7 @@ class _DirectorPortfolioDialog extends StatelessWidget {
         GridView.builder(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
-          itemCount: _portfolioAssets.length,
+          itemCount: assets.length,
           gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: 2,
             crossAxisSpacing: 7,
@@ -44,7 +39,7 @@ class _DirectorPortfolioDialog extends StatelessWidget {
           itemBuilder: (context, index) => InkWell(
             key: ValueKey('portfolio-image-$index'),
             onTap: onPreview,
-            child: _AssetImage(_portfolioAssets[index]),
+            child: _AssetImage(assets[index]),
           ),
         ),
         const _Card(
@@ -74,32 +69,41 @@ class _DirectorPortfolioDialog extends StatelessWidget {
   }
 }
 
-class _PortfolioViewer extends StatefulWidget {
+class _PortfolioViewer extends ConsumerStatefulWidget {
   const _PortfolioViewer();
 
   @override
-  State<_PortfolioViewer> createState() => _PortfolioViewerState();
+  ConsumerState<_PortfolioViewer> createState() => _PortfolioViewerState();
 }
 
-class _PortfolioViewerState extends State<_PortfolioViewer> {
+class _PortfolioViewerState extends ConsumerState<_PortfolioViewer> {
   int _index = 0;
 
-  void _move(int direction) {
+  void _move(int direction, int length) {
     setState(() {
-      _index = (_index + direction) % _portfolioAssets.length;
-      if (_index < 0) _index += _portfolioAssets.length;
+      _index = (_index + direction) % length;
+      if (_index < 0) _index += length;
     });
   }
 
   @override
   Widget build(BuildContext context) {
+    final director = _selectedShootDirector(ref);
+    final assets = _directorAssets(director);
+    final index = _index.clamp(0, assets.length - 1);
     return _FullPreview(
-      asset: _portfolioAssets[_index],
-      caption: 'Crisp tailoring with clean, commercial light',
-      counter: '${_index + 1} of ${_portfolioAssets.length}',
+      asset: assets[index],
+      caption: director?.subtitle,
+      counter: '${index + 1} of ${assets.length}',
       actions: [
-        _PreviewAction(icon: Icons.arrow_back, onTap: () => _move(-1)),
-        _PreviewAction(icon: Icons.arrow_forward, onTap: () => _move(1)),
+        _PreviewAction(
+          icon: Icons.arrow_back,
+          onTap: () => _move(-1, assets.length),
+        ),
+        _PreviewAction(
+          icon: Icons.arrow_forward,
+          onTap: () => _move(1, assets.length),
+        ),
         _PreviewAction(
           icon: Icons.close,
           onTap: () => Navigator.pop(context),
@@ -109,15 +113,46 @@ class _PortfolioViewerState extends State<_PortfolioViewer> {
   }
 }
 
-class _ImagePreviewDialog extends StatelessWidget {
+ShootLook? _selectedShootDirector(WidgetRef ref) {
+  final state = ref.watch(_createShootControllerProvider);
+  if (state.directors.isEmpty) return null;
+  return state.directors[state.selectedDirector.clamp(
+    0,
+    state.directors.length - 1,
+  )];
+}
+
+List<String> _directorAssets(ShootLook? director) {
+  if (director == null) return const [''];
+  if (director.portfolioImages.isNotEmpty) return director.portfolioImages;
+  return [director.imageUrl];
+}
+
+class _ImagePreviewDialog extends ConsumerWidget {
   const _ImagePreviewDialog();
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final state = ref.watch(_shootDetailControllerProvider);
+    final controller = ref.read(_shootDetailControllerProvider.notifier);
+    final image = state.selectedImage;
     return _FullPreview(
-      asset: '$_img/showcase-bag-after.jpg',
+      asset: image?.url ?? '',
       actions: [
-        const _PreviewAction(icon: Icons.download_outlined),
+        _PreviewAction(
+          icon: Icons.download_outlined,
+          onTap: image == null
+              ? null
+              : () async {
+                  final result = await controller.download(image);
+                  if (!context.mounted) return;
+                  result.fold(
+                    (_) => AppSnackBar.show(context, 'Image downloaded'),
+                    (failure) =>
+                        AppSnackBar.showError(context, failure.message),
+                  );
+                },
+        ),
         _PreviewAction(
           icon: Icons.close,
           onTap: () => Navigator.pop(context),
@@ -226,23 +261,38 @@ class _PreviewAction extends StatelessWidget {
   }
 }
 
-class _AiEditDialog extends StatelessWidget {
+class _AiEditDialog extends ConsumerStatefulWidget {
   const _AiEditDialog({required this.onToast});
 
   final ValueChanged<String> onToast;
 
   @override
+  ConsumerState<_AiEditDialog> createState() => _AiEditDialogState();
+}
+
+class _AiEditDialogState extends ConsumerState<_AiEditDialog> {
+  final _promptController = TextEditingController();
+
+  @override
+  void dispose() {
+    _promptController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final state = ref.watch(_shootDetailControllerProvider);
+    final controller = ref.read(_shootDetailControllerProvider.notifier);
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        const SizedBox(
+        SizedBox(
           height: 230,
           child: ColoredBox(
             color: AppColors.neutralLight,
             child: Padding(
-              padding: EdgeInsets.all(12),
-              child: _AssetImage('$_img/showcase-bag-after.jpg'),
+              padding: const EdgeInsets.all(12),
+              child: _AssetImage(state.selectedImage?.url ?? ''),
             ),
           ),
         ),
@@ -258,28 +308,46 @@ class _AiEditDialog extends StatelessWidget {
               PrimaryButton(
                 label: 'Apply Edit',
                 icon: Icons.auto_fix_high,
-                onPressed: () {
+                isLoading: state.isActionRunning,
+                onPressed: () async {
+                  final prompt = _promptController.text.trim();
+                  if (prompt.isEmpty) {
+                    AppSnackBar.showError(context, 'Enter an edit prompt.');
+                    return;
+                  }
+                  final failure = await controller.editImage(prompt);
+                  if (!context.mounted) return;
+                  if (failure != null) {
+                    AppSnackBar.showError(context, failure.message);
+                    return;
+                  }
                   Navigator.pop(context);
-                  onToast('AI edit started');
+                  widget.onToast('AI edit started');
                 },
               ),
             ],
-            children: const [
-              _BodyText(
+            children: [
+              const _BodyText(
                 'Describe what you would like to change. Be specific about the edit you want.',
               ),
               AppTextField(
+                controller: _promptController,
                 labelText: 'Edit prompt',
                 hintText:
                     'Remove the shadow on the left side, make the background pure white...',
                 minLines: 5,
                 maxLines: 5,
               ),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              const Row(
                 children: [
-                  _Caption('0 / 500 words'),
-                  _Caption('Credits based on resolution'),
+                  Expanded(child: _Caption('0 / 500 words')),
+                  SizedBox(width: 8),
+                  Expanded(
+                    child: Align(
+                      alignment: Alignment.centerRight,
+                      child: _Caption('Credits based on resolution'),
+                    ),
+                  ),
                 ],
               ),
             ],
@@ -290,13 +358,29 @@ class _AiEditDialog extends StatelessWidget {
   }
 }
 
-class _VariationDialog extends StatelessWidget {
+class _VariationDialog extends ConsumerStatefulWidget {
   const _VariationDialog({required this.onToast});
 
   final ValueChanged<String> onToast;
 
   @override
+  @override
+  ConsumerState<_VariationDialog> createState() => _VariationDialogState();
+}
+
+class _VariationDialogState extends ConsumerState<_VariationDialog> {
+  final _remarksController = TextEditingController();
+
+  @override
+  void dispose() {
+    _remarksController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final state = ref.watch(_shootDetailControllerProvider);
+    final controller = ref.read(_shootDetailControllerProvider.notifier);
     return _ModalFrame(
       title: 'Add Variation',
       leading: Icons.add,
@@ -308,58 +392,75 @@ class _VariationDialog extends StatelessWidget {
         PrimaryButton(
           label: 'Generate',
           icon: Icons.auto_awesome,
-          onPressed: () {
+          isLoading: state.isActionRunning,
+          onPressed: () async {
+            final failure = await controller.addVariation(
+              _remarksController.text,
+            );
+            if (!context.mounted) return;
+            if (failure != null) {
+              AppSnackBar.showError(context, failure.message);
+              return;
+            }
             Navigator.pop(context);
-            onToast('Variation generation started');
+            widget.onToast('Variation generation started');
           },
         ),
       ],
-      children: const [
-        _CardTitle('Shot 1: Cafe Arrival'),
-        _BodyText(
+      children: [
+        _CardTitle('Shot ${state.selectedShotIndex + 1}'),
+        const _BodyText(
           'Generate a fresh variation using the same product and model references.',
         ),
         AppTextField(
+          controller: _remarksController,
           labelText: 'Extra remarks (optional)',
           hintText: 'Warmer lighting...',
           minLines: 3,
           maxLines: 3,
         ),
-        _Caption('Generated in 2K · 2 credits.'),
+        const _Caption('Generated using current shoot settings.'),
       ],
     );
   }
 }
 
-class _VersionHistoryDialog extends StatelessWidget {
+class _VersionHistoryDialog extends ConsumerWidget {
   const _VersionHistoryDialog({required this.onToast});
 
   final ValueChanged<String> onToast;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final state = ref.watch(_shootDetailControllerProvider);
+    final controller = ref.read(_shootDetailControllerProvider.notifier);
     return _ModalFrame(
       title: 'Version History',
       leading: Icons.history,
       children: [
-        const _VersionCard(
-          version: 'Version 3',
-          description: 'Pure white backdrop and softer hand shadow.',
-          asset: '$_img/showcase-bag-after.jpg',
-          active: true,
-        ),
-        _VersionCard(
-          version: 'Version 2',
-          description: 'Warmer lighting and more relaxed hand pose.',
-          asset: '$_img/showcase-tshirt-after.jpg',
-          onActivate: () => onToast('Version 2 activated'),
-        ),
-        _VersionCard(
-          version: 'Version 1',
-          description: 'Original image',
-          asset: '$_img/showcase-dress-after.jpg',
-          onActivate: () => onToast('Version 1 activated'),
-        ),
+        if (state.versions.isEmpty)
+          const _Caption('No previous versions are available.')
+        else
+          for (final version in state.versions)
+            _VersionCard(
+              version: version.label,
+              description: version.description,
+              asset: version.url,
+              active: version.isActive,
+              onActivate: version.isActive
+                  ? null
+                  : () async {
+                      final failure = await controller.setActiveVersion(
+                        version.id,
+                      );
+                      if (!context.mounted) return;
+                      if (failure != null) {
+                        AppSnackBar.showError(context, failure.message);
+                        return;
+                      }
+                      onToast('${version.label} activated');
+                    },
+            ),
       ],
     );
   }

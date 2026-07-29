@@ -5,6 +5,7 @@ import 'package:look_atlas/core/router/app_router.dart';
 import 'package:look_atlas/features/auth/di/auth_providers.dart';
 import 'package:look_atlas/features/auth/domain/entities/app_user.dart';
 import 'package:look_atlas/features/auth/presentation/screens/sign_in_screen.dart';
+import 'package:look_atlas/features/dashboard/di/dashboard_providers.dart';
 import 'package:look_atlas/features/dashboard/presentation/screens/dashboard_screen.dart';
 import 'package:look_atlas/features/onboarding/di/onboarding_providers.dart';
 import 'package:look_atlas/features/splash/presentation/screens/splash_screen.dart';
@@ -25,6 +26,9 @@ void main() {
         ),
         subscriptionRepositoryProvider.overrideWithValue(
           FakeSubscriptionRepository(),
+        ),
+        dashboardRepositoryProvider.overrideWithValue(
+          const FakeDashboardRepository(),
         ),
         onboardingStatusProvider.overrideWith(
           (ref) =>

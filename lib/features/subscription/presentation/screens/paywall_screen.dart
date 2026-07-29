@@ -23,11 +23,11 @@ class PaywallScreen extends ConsumerWidget {
   Future<void> _purchase(
     BuildContext context,
     WidgetRef ref,
-    Package package,
+    StoreProduct product,
   ) async {
     final succeeded = await ref
         .read(subscriptionActionProvider.notifier)
-        .purchase(package);
+        .purchase(product);
     if (!succeeded || !context.mounted) return;
     _handleSuccess(context, ref, message: 'You are now premium.');
   }
@@ -83,8 +83,8 @@ class PaywallScreen extends ConsumerWidget {
       body: SafeArea(
         child: status.isPremium
             ? _PremiumView(status: status)
-            : _OfferingsView(
-                onPurchase: (package) => _purchase(context, ref, package),
+            : _ProductsView(
+                onPurchase: (product) => _purchase(context, ref, product),
                 onRestore: () => _restore(context, ref),
               ),
       ),
@@ -92,33 +92,33 @@ class PaywallScreen extends ConsumerWidget {
   }
 }
 
-/// The plan list for non-premium users, with loading/error/retry UX around
-/// the offerings fetch.
-class _OfferingsView extends ConsumerWidget {
-  const _OfferingsView({required this.onPurchase, required this.onRestore});
+/// Product list for non-premium users, with loading/error/retry UX.
+class _ProductsView extends ConsumerWidget {
+  const _ProductsView({required this.onPurchase, required this.onRestore});
 
-  final void Function(Package package) onPurchase;
+  final void Function(StoreProduct product) onPurchase;
   final VoidCallback onRestore;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final packagesAsync = ref.watch(revenueCatPackagesProvider);
+    final productsAsync = ref.watch(revenueCatProductsProvider);
     final action = ref.watch(subscriptionActionProvider);
     final theme = Theme.of(context);
 
-    return packagesAsync.when(
+    return productsAsync.when(
       loading: () => const Center(child: BarSpinner(size: 32)),
       error: (error, _) => _EmptyState(
         message: error is Failure
             ? error.message
             : 'Plans are unavailable right now.',
-        onRetry: () => ref.invalidate(revenueCatPackagesProvider),
+        onRetry: () => ref.invalidate(revenueCatProductsProvider),
       ),
-      data: (packages) {
-        if (packages.isEmpty) {
+      data: (products) {
+        if (products.isEmpty) {
           return const _EmptyState(
             message:
-                'No plans configured. Add offerings in your RevenueCat dashboard.',
+                'No products configured. Add RevenueCat product IDs to the '
+                'app configuration.',
           );
         }
         return ListView(
@@ -131,16 +131,16 @@ class _OfferingsView extends ConsumerWidget {
               style: theme.textTheme.bodyMedium,
             ),
             const SizedBox(height: AppSpacing.lg),
-            for (final package in packages) ...[
+            for (final product in products) ...[
               _PlanCard(
-                package: package,
+                product: product,
                 enabled: !action.isBusy,
                 isPurchasing: switch (action) {
-                  SubscriptionPurchasing(:final packageId) =>
-                    packageId == package.identifier,
+                  SubscriptionPurchasing(:final productId) =>
+                    productId == product.identifier,
                   _ => false,
                 },
-                onTap: () => onPurchase(package),
+                onTap: () => onPurchase(product),
               ),
               const SizedBox(height: AppSpacing.md),
             ],
@@ -172,20 +172,19 @@ class _RestoreButton extends StatelessWidget {
 
 class _PlanCard extends StatelessWidget {
   const _PlanCard({
-    required this.package,
+    required this.product,
     required this.enabled,
     required this.isPurchasing,
     required this.onTap,
   });
 
-  final Package package;
+  final StoreProduct product;
   final bool enabled;
   final bool isPurchasing;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    final product = package.storeProduct;
     final theme = Theme.of(context);
     return Card(
       child: Padding(
@@ -207,7 +206,9 @@ class _PlanCard extends StatelessWidget {
             ],
             const SizedBox(height: AppSpacing.md),
             PrimaryButton(
-              label: 'Subscribe',
+              label: product.productCategory == ProductCategory.nonSubscription
+                  ? 'Buy now'
+                  : 'Subscribe',
               isLoading: isPurchasing,
               onPressed: enabled ? onTap : null,
               fitToContent: true,

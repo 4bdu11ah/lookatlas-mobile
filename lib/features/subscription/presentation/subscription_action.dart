@@ -20,11 +20,11 @@ final class SubscriptionIdle extends SubscriptionAction {
 
 /// A purchase is in flight.
 final class SubscriptionPurchasing extends SubscriptionAction {
-  const SubscriptionPurchasing(this.packageId);
+  const SubscriptionPurchasing(this.productId);
 
-  /// RevenueCat identifier of the package being bought, so the paywall can
+  /// Store identifier of the product being bought, so the paywall can
   /// show the spinner on the tapped plan only.
-  final String packageId;
+  final String productId;
 }
 
 /// A restore is in flight.

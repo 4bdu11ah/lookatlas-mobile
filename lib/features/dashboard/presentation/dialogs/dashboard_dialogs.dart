@@ -65,7 +65,6 @@ class _ModalFrame extends StatelessWidget {
     this.children = const [],
     this.actions = const [],
     this.actionFlexes = const [],
-    this.showClose = true,
   }) : assert(
          actionFlexes.length == 0 || actionFlexes.length == actions.length,
          'actionFlexes must match actions length.',
@@ -77,7 +76,6 @@ class _ModalFrame extends StatelessWidget {
   final List<Widget> children;
   final List<Widget> actions;
   final List<int> actionFlexes;
-  final bool showClose;
 
   @override
   Widget build(BuildContext context) {
@@ -111,12 +109,11 @@ class _ModalFrame extends StatelessWidget {
                   ],
                 ),
               ),
-              if (showClose)
-                _IconButton(
-                  icon: Icons.close,
-                  label: 'Close dialog',
-                  onTap: () => Navigator.pop(context),
-                ),
+              _IconButton(
+                icon: Icons.close,
+                label: 'Close dialog',
+                onTap: () => Navigator.pop(context),
+              ),
             ],
           ),
         ),

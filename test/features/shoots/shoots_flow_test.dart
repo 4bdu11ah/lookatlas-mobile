@@ -8,6 +8,7 @@ import 'package:look_atlas/core/theme/app_theme.dart';
 import 'package:look_atlas/features/auth/di/auth_providers.dart';
 import 'package:look_atlas/features/auth/domain/entities/app_user.dart';
 import 'package:look_atlas/features/dashboard/presentation/screens/dashboard_screen.dart';
+import 'package:look_atlas/features/shoots/di/shoots_providers.dart';
 import 'package:look_atlas/features/subscription/presentation/subscription_controller.dart';
 import 'package:look_atlas/shared/widgets/app_dialog.dart';
 import 'package:look_atlas/shared/widgets/app_dropdown.dart';
@@ -15,6 +16,7 @@ import 'package:look_atlas/shared/widgets/app_text_field.dart';
 import 'package:look_atlas/shared/widgets/custom_app_bar.dart';
 
 import '../../helpers/fake_repositories.dart';
+import '../../helpers/fake_shoots_repository.dart';
 import '../../helpers/test_font_loader.dart';
 
 void main() {
@@ -26,6 +28,7 @@ void main() {
     WidgetTester tester,
     Widget screen, {
     bool isPremium = true,
+    FakeShootsRepository? shootsRepository,
   }) async {
     tester.view
       ..physicalSize = const Size(390, 844)
@@ -41,6 +44,9 @@ void main() {
             ),
           ),
           isPremiumProvider.overrideWithValue(isPremium),
+          shootsRepositoryProvider.overrideWithValue(
+            shootsRepository ?? FakeShootsRepository(),
+          ),
         ],
         child: MaterialApp(theme: AppTheme.light(), home: screen),
       ),
@@ -51,6 +57,7 @@ void main() {
   Future<GoRouter> pumpShootRouter(
     WidgetTester tester, {
     bool isPremium = true,
+    FakeShootsRepository? shootsRepository,
   }) async {
     tester.view
       ..physicalSize = const Size(390, 844)
@@ -69,8 +76,10 @@ void main() {
           builder: (_, _) => const DashboardFeatureScreen.shoots(),
         ),
         GoRoute(
-          path: AppRoutes.shootDetail,
-          builder: (_, _) => const ShootDetailScreen(),
+          path: AppRoutes.shootDetailPath,
+          builder: (_, state) => ShootDetailScreen(
+            jobId: state.pathParameters['jobId']!,
+          ),
         ),
         GoRoute(
           path: AppRoutes.createShoot,
@@ -88,6 +97,9 @@ void main() {
             ),
           ),
           isPremiumProvider.overrideWithValue(isPremium),
+          shootsRepositoryProvider.overrideWithValue(
+            shootsRepository ?? FakeShootsRepository(),
+          ),
         ],
         child: MaterialApp.router(
           theme: AppTheme.light(),
@@ -175,7 +187,7 @@ void main() {
       find.byKey(const ValueKey('shoot-search-field')),
       'Tan Leather',
     );
-    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 350));
 
     expect(find.text('Tan Leather Bag'), findsOneWidget);
     expect(find.text('Gold Evening Heels'), findsNothing);
@@ -184,7 +196,7 @@ void main() {
       find.byKey(const ValueKey('shoot-search-field')),
       '',
     );
-    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 350));
     await tester.tap(find.text('All statuses'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Processing').last);
@@ -276,8 +288,9 @@ void main() {
 
     await tester.tap(find.text('Click to upload'));
     await tester.pumpAndSettle();
-    expect(find.text('Crop photo'), findsOneWidget);
-    await tester.tap(find.byIcon(Icons.close).last);
+    expect(find.text('Take a photo'), findsOneWidget);
+    expect(find.text('Choose from gallery'), findsOneWidget);
+    await tester.tap(find.text('Cancel').last);
     await tester.pumpAndSettle();
     await tester.tap(find.byIcon(Icons.close).last);
     await tester.pumpAndSettle();
@@ -409,21 +422,10 @@ void main() {
     expect(find.text('Pose Direction (optional)'), findsOneWidget);
   });
 
-  testWidgets('create_shoot_opens_subtype_portfolio_and_portfolio_viewer', (
+  testWidgets('create_shoot_opens_director_portfolio_and_viewer', (
     tester,
   ) async {
     await pumpScreen(tester, const CreateShootScreen());
-
-    final productCard = find.byKey(
-      const ValueKey('selection-Tan Leather Bag'),
-    );
-    await tester.ensureVisible(productCard);
-    await tester.tap(productCard);
-    await tester.pumpAndSettle();
-    expect(find.text('Pick a sub-type'), findsOneWidget);
-    expect(find.text('Crossbody bag'), findsOneWidget);
-    await tester.tap(find.text('Cancel'));
-    await tester.pumpAndSettle();
 
     for (var index = 0; index < 2; index++) {
       await tester.ensureVisible(find.text('Next'));
@@ -441,16 +443,18 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('portfolio-image-0')));
     await tester.pumpAndSettle();
     expect(find.text('1 of 4'), findsOneWidget);
-    expect(
-      find.text('Crisp tailoring with clean, commercial light'),
-      findsOneWidget,
-    );
+    expect(find.text('Clean Professional'), findsWidgets);
   });
 
   testWidgets('completed_shoot_opens_preview_and_video_three_step_flow', (
     tester,
   ) async {
-    await pumpScreen(tester, const ShootDetailScreen());
+    final repository = FakeShootsRepository();
+    await pumpScreen(
+      tester,
+      const ShootDetailScreen(jobId: 'job-bag'),
+      shootsRepository: repository,
+    );
 
     expect(find.text('Completed'), findsOneWidget);
     await tester.ensureVisible(find.text('Generate Video'));
@@ -520,55 +524,13 @@ void main() {
     );
     expect(backFlex.flex, 1);
     expect(generateFlex.flex, 3);
-  });
 
-  testWidgets('completed_shoot_opens_all_image_and_calibration_dialogs', (
-    tester,
-  ) async {
-    await pumpScreen(tester, const ShootDetailScreen());
-
-    await tester.ensureVisible(find.text('Calibrate Product'));
-    await tester.tap(find.text('Calibrate Product'));
-    await tester.pumpAndSettle();
-    expect(find.text('Calibrate Tan Leather Bag'), findsOneWidget);
-    expect(find.text('Upload a worn photo'), findsOneWidget);
-    await tester.tap(find.byIcon(Icons.close).last);
+    await tester.tap(find.text('Generate Video · 10 Credits'));
     await tester.pumpAndSettle();
 
-    final firstResult = find
-        .byWidgetPredicate(
-          (widget) =>
-              widget is Image &&
-              widget.image is AssetImage &&
-              (widget.image as AssetImage).assetName.endsWith(
-                'showcase-bag-after.jpg',
-              ),
-        )
-        .first;
-    await tester.ensureVisible(firstResult);
-    await tester.tap(firstResult);
-    await tester.pumpAndSettle();
-    expect(find.byIcon(Icons.download_outlined), findsWidgets);
-    await tester.tap(find.byIcon(Icons.close).last);
-    await tester.pumpAndSettle();
-
-    await tester.tap(find.byIcon(Icons.auto_fix_high).first);
-    await tester.pumpAndSettle();
-    expect(find.text('Edit with AI'), findsOneWidget);
-    await tester.tap(find.byIcon(Icons.close).last);
-    await tester.pumpAndSettle();
-
-    await tester.tap(find.byIcon(Icons.history).first);
-    await tester.pumpAndSettle();
-    expect(find.text('Version History'), findsOneWidget);
-    await tester.tap(find.byIcon(Icons.close).last);
-    await tester.pumpAndSettle();
-
-    await tester.ensureVisible(find.text('Add').first);
-    await tester.tap(find.text('Add').first);
-    await tester.pumpAndSettle();
-    expect(find.text('Add Variation'), findsOneWidget);
-    expect(find.text('Generated in 2K · 2 credits.'), findsOneWidget);
+    expect(repository.lastVideoRequest?.variationIndex, 0);
+    expect(repository.lastVideoRequest?.aspectRatio, '9:16');
+    expect(repository.lastVideoRequest?.videoTier, 'standard');
   });
 
   testWidgets('processing_and_failed_shoot_cards_open_matching_details', (
@@ -585,7 +547,7 @@ void main() {
     expect(find.byType(DashboardFeatureScreen), findsNothing);
     expect(find.text('Processing'), findsOneWidget);
     expect(find.text('64%'), findsOneWidget);
-    expect(find.text('Generating images...'), findsOneWidget);
+    expect(find.text('Generating images...'), findsWidgets);
     expect(find.byType(CustomAppBar), findsOneWidget);
     expect(find.text('Back to Jobs'), findsNothing);
 

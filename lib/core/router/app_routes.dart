@@ -20,7 +20,7 @@ abstract final class AppRoutes {
   static const workshopGuide = '/workshop/guide';
   static const createShoot = '/create';
   static const dashboardShoots = '/shoots';
-  static const shootDetail = '/shoots/detail';
+  static const shootDetailPath = '/shoots/:jobId';
   static const dashboardProducts = '/products';
   static const dashboardModels = '/models';
   static const dashboardBilling = '/billing';
@@ -30,4 +30,7 @@ abstract final class AppRoutes {
   static const chat = '/chat';
   static const paywall = '/paywall';
   static const settings = '/settings';
+
+  static String shootDetail(String jobId) =>
+      '/shoots/${Uri.encodeComponent(jobId)}';
 }

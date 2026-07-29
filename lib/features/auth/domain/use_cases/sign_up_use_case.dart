@@ -17,10 +17,12 @@ class SignUpUseCase {
     required String password,
     required String companyName,
     RegisterAttribution? attribution,
+    String? captchaToken,
   }) => _repository.signUpWithEmail(
     email: email,
     password: password,
     companyName: companyName,
     attribution: attribution,
+    captchaToken: captchaToken,
   );
 }

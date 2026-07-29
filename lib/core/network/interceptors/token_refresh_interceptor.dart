@@ -4,22 +4,23 @@ import 'package:look_atlas/core/logging/app_logger.dart';
 /// Refreshes an expired access token on 401 responses and replays the
 /// original request.
 ///
-/// Implemented as a [QueuedInterceptor]: Dio serializes the callbacks of a
-/// QueuedInterceptor, so when several in-flight requests fail with 401 at
-/// once, only one `onError` runs at a time. The first callback performs the
-/// refresh and later ones replay with the already-refreshed token, which
-/// prevents a concurrent-refresh stampede against the token endpoint.
+/// Concurrent 401 responses share [_refreshing], so the token endpoint is hit
+/// once and every failed request replays with the same fresh token.
 ///
 /// The refresh call and the sign-out reaction are injected as callbacks so
 /// this stays backend-agnostic (the template ships with a local auth repo).
-class TokenRefreshInterceptor extends QueuedInterceptor {
+class TokenRefreshInterceptor extends Interceptor {
   TokenRefreshInterceptor({
     required Dio dio,
+    required this.tokenProvider,
     required this.refreshToken,
     required this.onAuthFailure,
   }) : _dio = dio;
 
   final Dio _dio;
+
+  /// Returns the access token currently persisted by the auth layer.
+  final Future<String?> Function() tokenProvider;
 
   /// Performs the refresh call and returns the new access token, or `null`
   /// when the session cannot be refreshed. Implementations must also persist
@@ -33,34 +34,52 @@ class TokenRefreshInterceptor extends QueuedInterceptor {
   /// 401 is surfaced instead of looping forever.
   static const _retriedKey = 'token_refresh_retried';
 
+  Future<String?>? _refreshing;
+  Future<void>? _expiringSession;
+
   @override
   Future<void> onError(
     DioException err,
     ErrorInterceptorHandler handler,
   ) async {
     final alreadyRetried = err.requestOptions.extra[_retriedKey] == true;
-    if (err.response?.statusCode != 401 || alreadyRetried) {
+    if (err.response?.statusCode != 401) {
+      handler.next(err);
+      return;
+    }
+    if (alreadyRetried) {
+      await _expireSession();
       handler.next(err);
       return;
     }
 
-    String? newToken;
-    try {
-      newToken = await refreshToken();
-    } on Object catch (error) {
-      AppLogger.warning('Token refresh threw: $error');
-      newToken = null;
+    final currentToken = await tokenProvider();
+    if (currentToken == null || currentToken.isEmpty) {
+      handler.next(err);
+      return;
+    }
+    final failedAuthorization = err.requestOptions.headers['Authorization'];
+    if (failedAuthorization != 'Bearer $currentToken') {
+      await _replay(err, handler, currentToken);
+      return;
     }
 
+    final newToken = await _refreshOnce();
     if (newToken == null || newToken.isEmpty) {
-      await onAuthFailure();
       handler.next(err);
       return;
     }
+    await _replay(err, handler, newToken);
+  }
 
-    final options = err.requestOptions
+  Future<void> _replay(
+    DioException error,
+    ErrorInterceptorHandler handler,
+    String token,
+  ) async {
+    final options = error.requestOptions
       ..extra[_retriedKey] = true
-      ..headers['Authorization'] = 'Bearer $newToken';
+      ..headers['Authorization'] = 'Bearer $token';
     try {
       // `fetch` re-enters the full interceptor chain, so retry/logging still
       // apply to the replayed request.
@@ -69,5 +88,42 @@ class TokenRefreshInterceptor extends QueuedInterceptor {
     } on DioException catch (error) {
       handler.next(error);
     }
+  }
+
+  Future<String?> _refreshOnce() {
+    final activeRefresh = _refreshing;
+    if (activeRefresh != null) return activeRefresh;
+
+    late final Future<String?> refresh;
+    refresh = _performRefresh().whenComplete(() {
+      if (identical(_refreshing, refresh)) _refreshing = null;
+    });
+    _refreshing = refresh;
+    return refresh;
+  }
+
+  Future<String?> _performRefresh() async {
+    try {
+      final token = await refreshToken();
+      if (token != null && token.isNotEmpty) return token;
+    } on Object catch (error) {
+      AppLogger.warning('Token refresh threw: $error');
+    }
+    await _expireSession();
+    return null;
+  }
+
+  Future<void> _expireSession() {
+    final activeExpiration = _expiringSession;
+    if (activeExpiration != null) return activeExpiration;
+
+    late final Future<void> expiration;
+    expiration = Future<void>.sync(onAuthFailure).whenComplete(() {
+      if (identical(_expiringSession, expiration)) {
+        _expiringSession = null;
+      }
+    });
+    _expiringSession = expiration;
+    return expiration;
   }
 }

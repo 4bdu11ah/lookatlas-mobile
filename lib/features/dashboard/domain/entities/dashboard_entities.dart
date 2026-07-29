@@ -34,8 +34,6 @@ enum _DashboardPage {
 enum _ModalKind {
   contextPaywall,
   product,
-  cropProduct,
-  productSubtype,
   model,
   directorPortfolio,
   portfolioViewer,
@@ -44,7 +42,6 @@ enum _ModalKind {
   editAi,
   variation,
   versions,
-  calibration,
   videoOptions,
   videoFrame,
   videoConfirm,

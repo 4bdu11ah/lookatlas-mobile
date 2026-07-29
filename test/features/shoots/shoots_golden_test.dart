@@ -5,9 +5,11 @@ import 'package:look_atlas/core/theme/app_theme.dart';
 import 'package:look_atlas/features/auth/di/auth_providers.dart';
 import 'package:look_atlas/features/auth/domain/entities/app_user.dart';
 import 'package:look_atlas/features/dashboard/presentation/screens/dashboard_screen.dart';
+import 'package:look_atlas/features/shoots/di/shoots_providers.dart';
 import 'package:look_atlas/features/subscription/presentation/subscription_controller.dart';
 
 import '../../helpers/fake_repositories.dart';
+import '../../helpers/fake_shoots_repository.dart';
 import '../../helpers/test_font_loader.dart';
 import '../../helpers/tolerant_golden_file_comparator.dart';
 
@@ -31,6 +33,9 @@ void main() {
             ),
           ),
           isPremiumProvider.overrideWithValue(true),
+          shootsRepositoryProvider.overrideWithValue(
+            FakeShootsRepository(),
+          ),
         ],
         child: MaterialApp(
           theme: AppTheme.light(),

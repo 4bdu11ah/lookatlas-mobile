@@ -137,8 +137,9 @@ class _UserModelCard extends ConsumerWidget {
                   tooltip: 'Delete model',
                   icon: const Icon(Icons.delete_outline, size: 18),
                   color: AppColors.neutral500,
-                  onPressed: () =>
-                      _showDeleteSheet(context, ref, model, onToast),
+                  onPressed: () => unawaited(
+                    _showDeleteSheet(context, ref, model, onToast),
+                  ),
                 ),
               ],
             ),

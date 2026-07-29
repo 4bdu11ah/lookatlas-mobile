@@ -18,6 +18,7 @@ class SecureStorage {
 
   static const _accessTokenKey = 'auth_access_token';
   static const _refreshTokenKey = 'auth_refresh_token';
+  static const _supabaseRefreshTokenKey = 'auth_supabase_refresh_token';
 
   Future<String?> read(String key) => _storage.read(key: key);
 
@@ -40,11 +41,18 @@ class SecureStorage {
 
   Future<String?> get refreshToken => read(_refreshTokenKey);
   Future<void> setRefreshToken(String token) => write(_refreshTokenKey, token);
+  Future<void> deleteRefreshToken() => delete(_refreshTokenKey);
 
-  /// Deletes only the access and refresh tokens, leaving other secrets
+  Future<String?> get supabaseRefreshToken => read(_supabaseRefreshTokenKey);
+  Future<void> setSupabaseRefreshToken(String token) =>
+      write(_supabaseRefreshTokenKey, token);
+  Future<void> deleteSupabaseRefreshToken() => delete(_supabaseRefreshTokenKey);
+
+  /// Deletes only auth tokens, leaving other secrets
   /// untouched. Use this for sign-out instead of [clear].
   Future<void> clearTokens() async {
     await delete(_accessTokenKey);
     await delete(_refreshTokenKey);
+    await delete(_supabaseRefreshTokenKey);
   }
 }

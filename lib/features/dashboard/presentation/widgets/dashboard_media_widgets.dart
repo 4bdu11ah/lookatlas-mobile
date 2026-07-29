@@ -67,10 +67,13 @@ class _AssetImage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Image.asset(
+    if (asset.isEmpty) {
+      return const ColoredBox(color: AppColors.neutral200);
+    }
+    return AppImage(
       asset,
       fit: BoxFit.cover,
-      errorBuilder: (_, _, _) => Container(color: AppColors.neutral200),
+      errorWidget: const ColoredBox(color: AppColors.neutral200),
     );
   }
 }

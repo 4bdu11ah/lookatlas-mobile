@@ -20,7 +20,7 @@ class CreateShootScreen extends ConsumerWidget {
             child: SingleChildScrollView(
               padding: const EdgeInsets.fromLTRB(20, 16, 20, 28),
               child: _CreatePage(
-                onComplete: () => context.go(AppRoutes.shootDetail),
+                onComplete: (jobId) => context.go(AppRoutes.shootDetail(jobId)),
                 onOpenModal: (kind) => _openDashboardModal(context, ref, kind),
                 onToast: (text) => AppSnackBar.show(context, text),
               ),
@@ -48,7 +48,7 @@ class _CreatePage extends ConsumerWidget {
     required this.onToast,
   });
 
-  final VoidCallback onComplete;
+  final ValueChanged<String> onComplete;
   final ValueChanged<_ModalKind> onOpenModal;
   final ValueChanged<String> onToast;
 
@@ -56,7 +56,34 @@ class _CreatePage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(_createShootControllerProvider);
     final controller = ref.read(_createShootControllerProvider.notifier);
+    if (state.isLoading) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: 80),
+        child: Center(child: BarSpinner()),
+      );
+    }
+    if (state.failure != null && state.catalog == null) {
+      return _Card(
+        child: _Stack(
+          gap: 12,
+          children: [
+            Text(state.failure!.message),
+            AppOutlinedButton(
+              label: 'Try again',
+              icon: Icons.refresh,
+              onPressed: () => unawaited(controller.load()),
+            ),
+          ],
+        ),
+      );
+    }
     final index = _CreateStep.values.indexOf(state.step);
+    final canContinue = switch (state.step) {
+      _CreateStep.product => state.products.isNotEmpty,
+      _CreateStep.model => state.models.isNotEmpty,
+      _CreateStep.planning => state.chosenShots.isNotEmpty,
+      _ => true,
+    };
     return _Stack(
       gap: 14,
       children: [
@@ -89,19 +116,32 @@ class _CreatePage extends ConsumerWidget {
             Expanded(
               child: PrimaryButton(
                 label: state.step == _CreateStep.confirm
-                    ? 'Generate 5 Shots'
+                    ? 'Generate ${state.chosenShots.length} Shots'
                     : 'Next',
                 icon: state.step == _CreateStep.confirm
                     ? Icons.auto_awesome
                     : Icons.arrow_forward,
                 iconAlignment: IconAlignment.end,
+                isLoading: state.isSubmitting,
                 onPressed: state.step == _CreateStep.confirm
-                    ? () {
-                        onToast('Shoot created. Generation started.');
-                        controller.reset();
-                        onComplete();
+                    ? () async {
+                        final result = await controller.createShoot();
+                        if (!context.mounted) return;
+                        result.fold(
+                          (jobId) {
+                            onToast('Shoot created. Generation started.');
+                            controller.reset();
+                            onComplete(jobId);
+                          },
+                          (failure) => AppSnackBar.showError(
+                            context,
+                            failure.message,
+                          ),
+                        );
                       }
-                    : () => controller.setStep(_CreateStep.values[index + 1]),
+                    : canContinue
+                    ? () => controller.setStep(_CreateStep.values[index + 1])
+                    : null,
               ),
             ),
           ],
@@ -126,31 +166,45 @@ class _CreateStepBody extends StatelessWidget {
   Widget build(BuildContext context) {
     return switch (state.step) {
       _CreateStep.product => _ProductStep(
+        products: state.products,
         selected: state.selectedProduct,
-        onSelect: (index) {
-          controller.selectProduct(index);
-          if (index == 0) onOpenModal(_ModalKind.productSubtype);
-        },
+        onSelect: controller.selectProduct,
         onAdd: () => onOpenModal(_ModalKind.product),
       ),
       _CreateStep.model => _ModelStep(
+        models: state.models,
+        userModelCount: state.catalog?.userModels.length ?? 0,
+        libraryModelCount: state.catalog?.libraryModels.length ?? 0,
+        useLibraryModels: state.useLibraryModels,
         selected: state.selectedModel,
         onSelect: controller.selectModel,
+        onSourceChanged: (useLibrary) =>
+            controller.setModelSource(useLibraryModels: useLibrary),
         onAdd: () => onOpenModal(_ModalKind.model),
       ),
       _CreateStep.director => _DirectorStep(
+        directors: state.directors,
+        settings: state.settings,
         selected: state.selectedDirector,
         onSelect: controller.selectDirector,
+        onSettingsChanged: controller.updateSettings,
         onPortfolio: () => onOpenModal(_ModalKind.directorPortfolio),
       ),
       _CreateStep.planning => _PlanningStep(
         isPlanned: state.isPlanned,
+        isPlanning: state.isPlanning,
+        shots: state.plannedShots,
         selectedShots: state.selectedShots,
-        onPlan: controller.planShots,
+        onPlan: () async {
+          final failure = await controller.planShots();
+          if (failure != null && context.mounted) {
+            AppSnackBar.showError(context, failure.message);
+          }
+        },
         onToggle: controller.toggleShot,
         onCustom: () => onOpenModal(_ModalKind.customShot),
       ),
-      _CreateStep.confirm => const _ReviewStep(),
+      _CreateStep.confirm => _ReviewStep(state: state),
     };
   }
 }

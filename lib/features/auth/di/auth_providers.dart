@@ -5,6 +5,7 @@ import 'package:look_atlas/features/auth/data/data_sources/auth_local_data_sourc
 import 'package:look_atlas/features/auth/data/data_sources/auth_remote_data_source.dart';
 import 'package:look_atlas/features/auth/data/data_sources/social_auth_data_source.dart';
 import 'package:look_atlas/features/auth/data/repositories/auth_repository_impl.dart';
+import 'package:look_atlas/features/auth/data/services/turnstile_service.dart';
 import 'package:look_atlas/features/auth/domain/repositories/auth_repository.dart';
 import 'package:look_atlas/features/auth/domain/use_cases/reset_password_use_case.dart';
 import 'package:look_atlas/features/auth/domain/use_cases/sign_in_use_case.dart';
@@ -25,6 +26,10 @@ final authLocalDataSourceProvider = Provider<AuthLocalDataSource>(
 
 final socialAuthDataSourceProvider = Provider<SocialAuthDataSource>(
   (ref) => SocialAuthDataSourceImpl(),
+);
+
+final turnstileServiceProvider = Provider<TurnstileService>(
+  (ref) => TurnstileService(),
 );
 
 /// Bare API client (no bearer / token-refresh interceptors) for the public

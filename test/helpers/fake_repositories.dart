@@ -5,9 +5,71 @@ import 'package:look_atlas/core/result/result.dart';
 import 'package:look_atlas/features/auth/domain/entities/app_user.dart';
 import 'package:look_atlas/features/auth/domain/entities/register_attribution.dart';
 import 'package:look_atlas/features/auth/domain/repositories/auth_repository.dart';
+import 'package:look_atlas/features/dashboard/domain/entities/dashboard_data.dart';
+import 'package:look_atlas/features/dashboard/domain/repositories/dashboard_repository.dart';
 import 'package:look_atlas/features/subscription/domain/subscription_repository.dart';
 import 'package:look_atlas/features/subscription/domain/subscription_status.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
+
+class FakeDashboardRepository implements DashboardRepository {
+  const FakeDashboardRepository({
+    this.stats = const DashboardStats(
+      credits: 142,
+      creditsTotal: 200,
+      creditsUsed: 58,
+      totalRenders: 386,
+      activeJobs: 2,
+      completedJobs: 18,
+    ),
+    this.jobs = const [
+      DashboardRecentJob(
+        id: 'job-bag',
+        name: 'Tan Leather Bag',
+        status: 'completed',
+        renders: 15,
+        productThumbnail: 'assets/images/onboarding/showcase-bag-before.jpg',
+        modelThumbnail: 'assets/images/onboarding/showcase-dress-after.jpg',
+      ),
+      DashboardRecentJob(
+        id: 'job-heels-processing',
+        name: 'Gold Evening Heels',
+        status: 'processing',
+        renders: 6,
+        productThumbnail: 'assets/images/onboarding/showcase-shoes-before.jpg',
+        modelThumbnail: 'assets/images/onboarding/showcase-tshirt-after.jpg',
+      ),
+      DashboardRecentJob(
+        id: 'job-heels-failed',
+        name: 'Gold Evening Heels',
+        status: 'failed',
+        renders: 0,
+        productThumbnail: 'assets/images/onboarding/showcase-shoes-before.jpg',
+        modelThumbnail: 'assets/images/onboarding/showcase-dress-after.jpg',
+      ),
+    ],
+    this.subscription = const DashboardSubscription(
+      status: 'active',
+      cancelAtPeriodEnd: false,
+      accessTier: 'subscriber',
+      proUpsellActive: false,
+    ),
+  });
+
+  final DashboardStats stats;
+  final List<DashboardRecentJob> jobs;
+  final DashboardSubscription subscription;
+
+  @override
+  Future<Result<List<DashboardRecentJob>>> getRecentJobs() async =>
+      Result.ok(jobs);
+
+  @override
+  Future<Result<DashboardStats>> getStats() async => Result.ok(stats);
+
+  @override
+  Future<Result<DashboardSubscription>> getSubscription() async =>
+      Result.ok(subscription);
+}
 
 /// In-memory [AuthRepository] for widget and router tests: no storage, no
 /// validation, always succeeds. Seed a session via the constructor or the
@@ -62,6 +124,7 @@ class FakeAuthRepository implements AuthRepository {
     required String password,
     required String companyName,
     RegisterAttribution? attribution,
+    String? captchaToken,
   }) => signInWithEmail(email: email, password: password);
 
   @override
@@ -95,13 +158,13 @@ class FakeAuthRepository implements AuthRepository {
 /// state can build without RevenueCat (whose default wiring needs
 /// SharedPreferences and platform channels).
 ///
-/// Seed [packages] and the [purchaseResult]/[restoreResult] fields to walk
+/// Seed [products] and the [purchaseResult]/[restoreResult] fields to walk
 /// the paywall's happy and failure paths. Like the real repository, a
 /// successful purchase or restore updates [currentStatus] and is emitted on
 /// [statusChanges].
 class FakeSubscriptionRepository implements SubscriptionRepository {
   FakeSubscriptionRepository({
-    this.packages = const [],
+    this.products = const [],
     SubscriptionStatus status = SubscriptionStatus.free,
   }) : _status = status;
 
@@ -114,7 +177,7 @@ class FakeSubscriptionRepository implements SubscriptionRepository {
     willRenew: true,
   );
 
-  List<Package> packages;
+  List<StoreProduct> products;
   Result<SubscriptionStatus> purchaseResult = const Result.ok(premiumStatus);
   Result<SubscriptionStatus> restoreResult = const Result.ok(premiumStatus);
 
@@ -134,10 +197,11 @@ class FakeSubscriptionRepository implements SubscriptionRepository {
   Future<SubscriptionStatus> currentStatus() async => _status;
 
   @override
-  Future<Result<List<Package>>> fetchPackages() async => Result.ok(packages);
+  Future<Result<List<StoreProduct>>> fetchProducts() async =>
+      Result.ok(products);
 
   @override
-  Future<Result<SubscriptionStatus>> purchase(Package package) async =>
+  Future<Result<SubscriptionStatus>> purchase(StoreProduct product) async =>
       _complete(purchaseResult);
 
   @override
@@ -162,18 +226,14 @@ class FakeSubscriptionRepository implements SubscriptionRepository {
   void dispose() => unawaited(_controller.close());
 }
 
-/// Builds a purchasable [Package] without platform channels, for paywall
-/// widget tests.
-Package fakePackage({String id = 'monthly'}) => Package(
+/// Builds a purchasable product without platform channels.
+StoreProduct fakeProduct({String id = 'product_monthly'}) => StoreProduct(
   id,
-  PackageType.monthly,
-  const StoreProduct(
-    'product_monthly',
-    'Full access, billed monthly.',
-    'Premium Monthly',
-    9.99,
-    r'$9.99',
-    'USD',
-  ),
-  const PresentedOfferingContext('default', null, null),
+  'Full access, billed monthly.',
+  'Premium Monthly',
+  9.99,
+  r'$9.99',
+  'USD',
+  productCategory: ProductCategory.subscription,
+  subscriptionPeriod: 'P1M',
 );

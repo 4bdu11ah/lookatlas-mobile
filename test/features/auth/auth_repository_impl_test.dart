@@ -55,7 +55,11 @@ void main() {
     when(() => storage.write(any(), any())).thenAnswer((_) async {});
     when(() => storage.delete(any())).thenAnswer((_) async {});
     when(storage.clearTokens).thenAnswer((_) async {});
+    when(() => storage.supabaseRefreshToken).thenAnswer((_) async => null);
     when(() => storage.setRefreshToken(any())).thenAnswer((_) async {});
+    when(storage.deleteRefreshToken).thenAnswer((_) async {});
+    when(() => storage.setSupabaseRefreshToken(any())).thenAnswer((_) async {});
+    when(storage.deleteSupabaseRefreshToken).thenAnswer((_) async {});
     when(() => tokenCache.set(any())).thenAnswer((_) async {});
   });
 
@@ -76,6 +80,7 @@ void main() {
       expect(repository.currentUser, isNotNull);
       verify(() => tokenCache.set('access-1')).called(1);
       verify(() => storage.setRefreshToken('refresh-1')).called(1);
+      verify(storage.deleteSupabaseRefreshToken).called(1);
     });
 
     test(
@@ -165,7 +170,8 @@ void main() {
       id: 'apple-user-1',
       email: 'jane@icloud.com',
       displayName: 'Jane Doe',
-      idToken: 'apple-identity-token',
+      accessToken: 'supabase-access-1',
+      refreshToken: 'supabase-refresh-1',
     );
 
     test('persists the session and emits on success', () async {
@@ -189,7 +195,11 @@ void main() {
       expect(repository.currentUser, user);
       // Session persisted like the email flow: cached user + primed token.
       verify(() => storage.write(any(), any())).called(1);
-      verify(() => tokenCache.set('apple-identity-token')).called(1);
+      verify(() => tokenCache.set('supabase-access-1')).called(1);
+      verify(
+        () => storage.setSupabaseRefreshToken('supabase-refresh-1'),
+      ).called(1);
+      verify(storage.deleteRefreshToken).called(1);
       await Future<void>.delayed(Duration.zero);
       expect(emitted, [null, user]);
     });
@@ -270,6 +280,44 @@ void main() {
   });
 
   group('refreshSession', () {
+    test('refreshes a Supabase session and persists rotated tokens', () async {
+      when(
+        () => storage.supabaseRefreshToken,
+      ).thenAnswer((_) async => 'supabase-refresh-1');
+      when(() => socialAuth.refreshSession('supabase-refresh-1')).thenAnswer(
+        (_) async => const Result.ok(
+          SocialSessionTokens(
+            accessToken: 'supabase-access-2',
+            refreshToken: 'supabase-refresh-2',
+          ),
+        ),
+      );
+
+      final token = await repository.refreshSession();
+
+      expect(token, 'supabase-access-2');
+      verify(() => tokenCache.set('supabase-access-2')).called(1);
+      verify(
+        () => storage.setSupabaseRefreshToken('supabase-refresh-2'),
+      ).called(1);
+      verifyNever(() => remote.refresh(any()));
+    });
+
+    test('returns null when Supabase rejects the refresh token', () async {
+      when(
+        () => storage.supabaseRefreshToken,
+      ).thenAnswer((_) async => 'supabase-refresh-1');
+      when(() => socialAuth.refreshSession('supabase-refresh-1')).thenAnswer(
+        (_) async => const Result.err(
+          AuthFailure('Your social session has expired.'),
+        ),
+      );
+
+      expect(await repository.refreshSession(), isNull);
+      verifyNever(() => tokenCache.set(any()));
+      verifyNever(() => remote.refresh(any()));
+    });
+
     test('exchanges the stored refresh token and primes the cache', () async {
       when(() => storage.refreshToken).thenAnswer((_) async => 'refresh-1');
       when(

@@ -17,13 +17,13 @@ class _MockSubscriptionRepository extends Mock
     implements SubscriptionRepository {}
 
 void main() {
-  final package = fakePackage();
+  final product = fakeProduct();
 
   late _MockSubscriptionRepository repository;
   late ProviderContainer container;
   late List<SubscriptionAction> states;
 
-  setUpAll(() => registerFallbackValue(fakePackage()));
+  setUpAll(() => registerFallbackValue(fakeProduct()));
 
   setUp(() {
     repository = _MockSubscriptionRepository();
@@ -52,15 +52,15 @@ void main() {
         (_) async => const Result.ok(FakeSubscriptionRepository.premiumStatus),
       );
 
-      final succeeded = await notifier().purchase(package);
+      final succeeded = await notifier().purchase(product);
 
       expect(succeeded, isTrue);
       expect(states, [
         isA<SubscriptionIdle>(),
         isA<SubscriptionPurchasing>().having(
-          (s) => s.packageId,
-          'packageId',
-          package.identifier,
+          (s) => s.productId,
+          'productId',
+          product.identifier,
         ),
         isA<SubscriptionIdle>().having((s) => s.failure, 'failure', isNull),
       ]);
@@ -73,7 +73,7 @@ void main() {
         ),
       );
 
-      final succeeded = await notifier().purchase(package);
+      final succeeded = await notifier().purchase(product);
 
       expect(succeeded, isFalse);
       expect(
@@ -90,7 +90,7 @@ void main() {
         () => repository.purchase(any()),
       ).thenAnswer((_) async => const Result.err(failure));
 
-      final succeeded = await notifier().purchase(package);
+      final succeeded = await notifier().purchase(product);
 
       expect(succeeded, isFalse);
       expect(
@@ -111,7 +111,7 @@ void main() {
           () => repository.purchase(any()),
         ).thenAnswer((_) async => const Result.err(failure));
 
-        await notifier().purchase(package);
+        await notifier().purchase(product);
 
         final surfaced = (states.last as SubscriptionIdle).failure;
         expect(surfaced, isA<SubscriptionFailure>());
@@ -144,7 +144,7 @@ void main() {
         () => repository.purchase(any()),
       ).thenAnswer((_) => purchaseCompleter.future);
 
-      final purchaseFuture = notifier().purchase(package);
+      final purchaseFuture = notifier().purchase(product);
       final restored = await notifier().restore();
 
       expect(restored, isFalse);
@@ -166,8 +166,8 @@ void main() {
         () => repository.purchase(any()),
       ).thenAnswer((_) => purchaseCompleter.future);
 
-      final firstPurchase = notifier().purchase(package);
-      final reentrant = await notifier().purchase(package);
+      final firstPurchase = notifier().purchase(product);
+      final reentrant = await notifier().purchase(product);
 
       expect(reentrant, isFalse);
       verify(() => repository.purchase(any())).called(1);

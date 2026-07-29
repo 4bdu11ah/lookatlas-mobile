@@ -1,21 +1,24 @@
 part of '../../../dashboard/presentation/screens/dashboard_screen.dart';
 
-class _VideoOptionsDialog extends StatefulWidget {
+class _VideoOptionsDialog extends ConsumerStatefulWidget {
   const _VideoOptionsDialog({required this.onNext});
 
   final VoidCallback onNext;
 
   @override
-  State<_VideoOptionsDialog> createState() => _VideoOptionsDialogState();
+  ConsumerState<_VideoOptionsDialog> createState() =>
+      _VideoOptionsDialogState();
 }
 
-class _VideoOptionsDialogState extends State<_VideoOptionsDialog> {
+class _VideoOptionsDialogState extends ConsumerState<_VideoOptionsDialog> {
   int _quality = 0;
   int _ratio = 0;
   int _variation = 0;
 
   @override
   Widget build(BuildContext context) {
+    final images = ref.watch(_shootDetailControllerProvider).images;
+    final controller = ref.read(_shootDetailControllerProvider.notifier);
     return _ModalFrame(
       title: 'Generate Model Video',
       subtitle: 'Choose quality, format, and variation',
@@ -42,7 +45,10 @@ class _VideoOptionsDialogState extends State<_VideoOptionsDialog> {
                 body: 'Fast & clean',
                 credits: '10 credits',
                 active: _quality == 0,
-                onTap: () => setState(() => _quality = 0),
+                onTap: () {
+                  setState(() => _quality = 0);
+                  controller.updateVideo(videoTier: 'standard');
+                },
               ),
             ),
             const SizedBox(width: 8),
@@ -52,7 +58,10 @@ class _VideoOptionsDialogState extends State<_VideoOptionsDialog> {
                 body: 'Best quality',
                 credits: '25 credits',
                 active: _quality == 1,
-                onTap: () => setState(() => _quality = 1),
+                onTap: () {
+                  setState(() => _quality = 1);
+                  controller.updateVideo(videoTier: 'hd');
+                },
               ),
             ),
           ],
@@ -61,23 +70,31 @@ class _VideoOptionsDialogState extends State<_VideoOptionsDialog> {
         _InteractiveSegmented(
           choices: const ['Portrait 9:16', 'Landscape 16:9'],
           selected: _ratio,
-          onSelect: (index) => setState(() => _ratio = index),
+          onSelect: (index) {
+            setState(() => _ratio = index);
+            controller.updateVideo(
+              aspectRatio: index == 0 ? '9:16' : '16:9',
+            );
+          },
         ),
         const _FieldLabel('Starting variation'),
         GridView.builder(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
-          itemCount: 3,
+          itemCount: images.take(3).length,
           gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: 3,
             crossAxisSpacing: 7,
             childAspectRatio: 0.72,
           ),
           itemBuilder: (context, index) => _VideoImageChoice(
-            asset: _shotAssets[index],
+            asset: images[index].url,
             label: 'Variation ${index + 1}',
             active: _variation == index,
-            onTap: () => setState(() => _variation = index),
+            onTap: () {
+              setState(() => _variation = index);
+              controller.updateVideo(variationIndex: index);
+            },
           ),
         ),
       ],
@@ -85,27 +102,23 @@ class _VideoOptionsDialogState extends State<_VideoOptionsDialog> {
   }
 }
 
-class _VideoFrameDialog extends StatefulWidget {
+class _VideoFrameDialog extends ConsumerStatefulWidget {
   const _VideoFrameDialog({required this.onBack, required this.onNext});
 
   final VoidCallback onBack;
   final VoidCallback onNext;
 
   @override
-  State<_VideoFrameDialog> createState() => _VideoFrameDialogState();
+  ConsumerState<_VideoFrameDialog> createState() => _VideoFrameDialogState();
 }
 
-class _VideoFrameDialogState extends State<_VideoFrameDialog> {
+class _VideoFrameDialogState extends ConsumerState<_VideoFrameDialog> {
   int _selected = 0;
 
   @override
   Widget build(BuildContext context) {
-    const labels = [
-      'Cafe Arrival',
-      'Detail Moment',
-      'Window Portrait',
-      'Street Crossing',
-    ];
+    final images = ref.watch(_shootDetailControllerProvider).images;
+    final controller = ref.read(_shootDetailControllerProvider.notifier);
     return _ModalFrame(
       title: 'Choose Starting Frame',
       subtitle: 'Pick which image from Variation 1 starts the video',
@@ -126,7 +139,7 @@ class _VideoFrameDialogState extends State<_VideoFrameDialog> {
         GridView.builder(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
-          itemCount: _shotAssets.length,
+          itemCount: images.length,
           gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: 2,
             crossAxisSpacing: 8,
@@ -134,10 +147,13 @@ class _VideoFrameDialogState extends State<_VideoFrameDialog> {
             childAspectRatio: 0.75,
           ),
           itemBuilder: (context, index) => _VideoImageChoice(
-            asset: _shotAssets[index],
-            label: labels[index],
+            asset: images[index].url,
+            label: 'Variation ${images[index].variationIndex + 1}',
             active: _selected == index,
-            onTap: () => setState(() => _selected = index),
+            onTap: () {
+              setState(() => _selected = index);
+              controller.updateVideo(startingImageId: images[index].id);
+            },
           ),
         ),
       ],
@@ -145,7 +161,7 @@ class _VideoFrameDialogState extends State<_VideoFrameDialog> {
   }
 }
 
-class _VideoConfirmDialog extends StatelessWidget {
+class _VideoConfirmDialog extends ConsumerWidget {
   const _VideoConfirmDialog({
     required this.onBack,
     required this.onToast,
@@ -155,7 +171,9 @@ class _VideoConfirmDialog extends StatelessWidget {
   final ValueChanged<String> onToast;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final state = ref.watch(_shootDetailControllerProvider);
+    final controller = ref.read(_shootDetailControllerProvider.notifier);
     return _ModalFrame(
       title: 'Almost There',
       subtitle: 'Review and confirm',
@@ -171,17 +189,24 @@ class _VideoConfirmDialog extends StatelessWidget {
             label: 'Generate Video · 10 Credits',
             fitToContent: true,
             icon: Icons.auto_awesome,
-            onPressed: () {
+            isLoading: state.isActionRunning,
+            onPressed: () async {
+              final failure = await controller.requestVideo();
+              if (!context.mounted) return;
+              if (failure != null) {
+                AppSnackBar.showError(context, failure.message);
+                return;
+              }
               Navigator.pop(context);
               onToast('Video generation started');
             },
           ),
         ),
       ],
-      children: const [
-        _VideoStepProgress(currentStep: 3),
-        _VideoSummary(),
-        _Alert(
+      children: [
+        const _VideoStepProgress(currentStep: 3),
+        _VideoSummary(request: state.videoRequest),
+        const _Alert(
           kind: _AlertKind.warn,
           text:
               'AI video is still in early access. \nResults may vary — it sometimes takes 2-3 generations to get a great result. Credits are consumed per generation.',
@@ -359,15 +384,17 @@ class _VideoImageChoice extends StatelessWidget {
 }
 
 class _VideoSummary extends StatelessWidget {
-  const _VideoSummary();
+  const _VideoSummary({required this.request});
+
+  final ShootVideoRequest request;
 
   @override
   Widget build(BuildContext context) {
-    const rows = [
-      ('Quality', 'Video'),
-      ('Aspect Ratio', 'Portrait 9:16'),
-      ('Variation', '1'),
-      ('Cost', '10 credits'),
+    final rows = [
+      ('Quality', request.videoTier == 'hd' ? 'Video HD' : 'Video'),
+      ('Aspect Ratio', request.aspectRatio),
+      ('Variation', '${request.variationIndex + 1}'),
+      ('Cost', request.videoTier == 'hd' ? '25 credits' : '10 credits'),
     ];
     return Container(
       padding: const EdgeInsets.all(12),

@@ -22,6 +22,7 @@ class _ModelActionButton extends StatelessWidget {
     required this.onTap,
     this.icon,
     this.full = false,
+    this.isLoading = false,
     super.key,
   }) : iconAlignment = IconAlignment.start,
        compact = false,
@@ -34,6 +35,7 @@ class _ModelActionButton extends StatelessWidget {
     this.full = false,
   }) : iconAlignment = IconAlignment.start,
        compact = false,
+       isLoading = false,
        _kind = _ModelButtonKind.secondary,
        super();
 
@@ -45,7 +47,8 @@ class _ModelActionButton extends StatelessWidget {
     this.full = false,
     this.compact = false,
     super.key,
-  }) : _kind = _ModelButtonKind.ghost;
+  }) : isLoading = false,
+       _kind = _ModelButtonKind.ghost;
 
   final String label;
   final VoidCallback onTap;
@@ -53,6 +56,7 @@ class _ModelActionButton extends StatelessWidget {
   final IconAlignment iconAlignment;
   final bool full;
   final bool compact;
+  final bool isLoading;
   final _ModelButtonKind _kind;
 
   @override
@@ -71,35 +75,39 @@ class _ModelActionButton extends StatelessWidget {
         elevation: isPrimary && !full ? 8 : 0,
         shape: Border.all(color: border, width: compact ? 1 : 2),
         child: InkWell(
-          onTap: onTap,
+          onTap: isLoading ? null : onTap,
           child: Padding(
             padding: EdgeInsets.symmetric(horizontal: compact ? 11 : 18),
-            child: Row(
-              mainAxisSize: full ? MainAxisSize.max : MainAxisSize.min,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                if (icon != null && iconAlignment == IconAlignment.start) ...[
-                  Icon(icon, size: compact ? 15 : 18, color: fg),
-                  SizedBox(width: compact ? 7 : 9),
-                ],
-                Flexible(
-                  child: Text(
-                    label,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontSize: compact ? 12 : 14,
-                      fontWeight: AppTypography.bold,
-                      color: fg,
-                    ),
+            child: isLoading
+                ? Center(child: BarSpinner(size: 18, color: fg))
+                : Row(
+                    mainAxisSize: full ? MainAxisSize.max : MainAxisSize.min,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      if (icon != null &&
+                          iconAlignment == IconAlignment.start) ...[
+                        Icon(icon, size: compact ? 15 : 18, color: fg),
+                        SizedBox(width: compact ? 7 : 9),
+                      ],
+                      Flexible(
+                        child: Text(
+                          label,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: compact ? 12 : 14,
+                            fontWeight: AppTypography.bold,
+                            color: fg,
+                          ),
+                        ),
+                      ),
+                      if (icon != null &&
+                          iconAlignment == IconAlignment.end) ...[
+                        SizedBox(width: compact ? 7 : 9),
+                        Icon(icon, size: compact ? 15 : 18, color: fg),
+                      ],
+                    ],
                   ),
-                ),
-                if (icon != null && iconAlignment == IconAlignment.end) ...[
-                  SizedBox(width: compact ? 7 : 9),
-                  Icon(icon, size: compact ? 15 : 18, color: fg),
-                ],
-              ],
-            ),
           ),
         ),
       ),

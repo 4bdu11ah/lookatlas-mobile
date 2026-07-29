@@ -214,11 +214,11 @@ final routerProvider = Provider<GoRouter>((ref) {
         ),
       ),
       GoRoute(
-        path: AppRoutes.shootDetail,
+        path: AppRoutes.shootDetailPath,
         name: 'shoot_detail',
         pageBuilder: (_, state) => buildAppTransitionPage(
           state: state,
-          child: const ShootDetailScreen(),
+          child: ShootDetailScreen(jobId: state.pathParameters['jobId']!),
         ),
       ),
       GoRoute(

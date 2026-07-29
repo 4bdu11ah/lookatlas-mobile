@@ -21,7 +21,7 @@ Everything is **feature-flagged**: drop in your keys to enable a service, or lea
 
 | Concern | Choice |
 | --- | --- |
-| Language / SDK | Dart 3.9, Flutter 3.35 |
+| Language / SDK | Dart 3.9, Flutter 3.44.8 |
 | State management + DI | [Riverpod](https://riverpod.dev) 3 |
 | Routing | [go_router](https://pub.dev/packages/go_router) (auth-aware redirects) |
 | Networking | [Dio](https://pub.dev/packages/dio) + `ApiService` (retry, auth, logging interceptors) |
@@ -88,6 +88,8 @@ All config is injected at **build time** via `--dart-define` (read in `lib/core/
 | `POSTHOG_HOST` | PostHog ingestion host | `https://us.i.posthog.com` | analytics |
 | `REVENUECAT_IOS_API_KEY` | RevenueCat iOS key | _empty_ | subscriptions (iOS) |
 | `REVENUECAT_ANDROID_API_KEY` | RevenueCat Android key | _empty_ | subscriptions (Android) |
+| `REVENUECAT_SUBSCRIPTION_PRODUCT_IDS` | Comma-separated monthly subscription product IDs | _empty_ | direct RevenueCat product lookup |
+| `REVENUECAT_ONE_TIME_PRODUCT_IDS` | Comma-separated one-time product IDs | _empty_ | direct RevenueCat product lookup |
 | `REVENUECAT_ENTITLEMENT_ID` | Entitlement that grants premium | `premium` | subscriptions |
 | `AI_BASE_URL` | Anthropic base URL or your proxy | `https://api.anthropic.com` | AI |
 | `AI_API_KEY` | Anthropic key (dev only) | _empty_ | AI (dev) |

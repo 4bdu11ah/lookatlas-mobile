@@ -33,10 +33,12 @@ import 'package:look_atlas/features/onboarding/presentation/screens/starting_sho
 import 'package:look_atlas/features/onboarding/presentation/screens/swipe_results_screen.dart';
 import 'package:look_atlas/features/onboarding/presentation/screens/swipe_screen.dart';
 import 'package:look_atlas/features/subscription/di/subscription_providers.dart';
+import 'package:look_atlas/features/subscription/domain/subscription_repository.dart';
 import 'package:look_atlas/services/device/device_token_service.dart';
 import 'package:look_atlas/services/service_providers.dart';
 import 'package:look_atlas/shared/image_picker/image_picker_providers.dart';
 import 'package:mocktail/mocktail.dart';
+import 'package:purchases_flutter/purchases_flutter.dart' as revenuecat;
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../helpers/fake_repositories.dart';
@@ -60,6 +62,48 @@ const _liveShoot = StartShootResponse(
   variations: 3,
   totalImages: 15,
 );
+
+const _onboardingProducts = [
+  revenuecat.StoreProduct(
+    'starter_monthly',
+    '100 photos every month.',
+    'Starter',
+    49,
+    r'$49.00',
+    'USD',
+    productCategory: revenuecat.ProductCategory.subscription,
+    subscriptionPeriod: 'P1M',
+  ),
+  revenuecat.StoreProduct(
+    'pro_monthly',
+    '200 photos every month.',
+    'Pro',
+    99,
+    r'$99.00',
+    'USD',
+    productCategory: revenuecat.ProductCategory.subscription,
+    subscriptionPeriod: 'P1M',
+  ),
+  revenuecat.StoreProduct(
+    'studio_monthly',
+    '600 photos every month.',
+    'Studio',
+    199,
+    r'$199.00',
+    'USD',
+    productCategory: revenuecat.ProductCategory.subscription,
+    subscriptionPeriod: 'P1M',
+  ),
+  revenuecat.StoreProduct(
+    'one_time',
+    'Download this shoot in HD.',
+    'Download 15 photos',
+    8.99,
+    r'$8.99',
+    'USD',
+    productCategory: revenuecat.ProductCategory.nonSubscription,
+  ),
+];
 
 final _completedStatus = OnboardingStatus(
   freeShootUsed: true,
@@ -113,6 +157,7 @@ void main() {
     OnboardingRepository? onboardingRepository,
     ImagePicker? imagePicker,
     OnboardingStatus? onboardingStatus,
+    SubscriptionRepository? subscriptionRepository,
   }) async {
     SharedPreferences.setMockInitialValues(const {});
     final sharedPreferences = await SharedPreferences.getInstance();
@@ -140,7 +185,7 @@ void main() {
               ),
         ),
         subscriptionRepositoryProvider.overrideWithValue(
-          FakeSubscriptionRepository(),
+          subscriptionRepository ?? FakeSubscriptionRepository(),
         ),
         // No network in widget tests: serve the bundled starter library.
         lookAtlasModelsProvider.overrideWith(
@@ -509,7 +554,13 @@ void main() {
     final authRepository = FakeAuthRepository(
       user: const AppUser(id: 'user-1', email: 'jane@example.com'),
     );
-    final router = await pumpApp(tester, authRepository: authRepository);
+    final router = await pumpApp(
+      tester,
+      authRepository: authRepository,
+      subscriptionRepository: FakeSubscriptionRepository(
+        products: _onboardingProducts,
+      ),
+    );
     router.go(AppRoutes.onboardingActivate);
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 400));
@@ -521,14 +572,13 @@ void main() {
     await tester.pump(const Duration(seconds: 5));
     await tester.pump(const Duration(milliseconds: 600));
     expect(find.text('Keep your shoot going.'), findsOneWidget);
-    expect(find.text('Start Pro'), findsOneWidget);
-    expect(find.text(r'Download in HD · $8.99'), findsOneWidget);
-
-    expect(find.text('Start Studio'), findsOneWidget);
-    expect(find.text(r'Save $240/yr'), findsOneWidget);
-    await tester.tap(find.text('Monthly'));
-    await tester.pump();
-    expect(find.textContaining(r'$49'), findsOneWidget);
+    expect(find.text('Starter'), findsOneWidget);
+    expect(find.text('Pro'), findsOneWidget);
+    expect(find.text('Studio'), findsOneWidget);
+    expect(find.text(r'$49.00/month'), findsOneWidget);
+    expect(find.text('Subscribe'), findsNWidgets(3));
+    expect(find.text('Download 15 photos'), findsOneWidget);
+    expect(find.text(r'$8.99'), findsOneWidget);
 
     await teardownTree(tester);
   });
@@ -547,10 +597,20 @@ void main() {
     );
 
     router.go(AppRoutes.onboarding);
-    await tester.pumpAndSettle();
+    await tester.pump();
+    for (
+      var attempt = 0;
+      attempt < 20 && find.text('Dashboard').evaluate().isEmpty;
+      attempt++
+    ) {
+      await tester.pump(const Duration(milliseconds: 100));
+    }
+    await tester.pump(const Duration(milliseconds: 300));
 
     expect(find.text('Dashboard'), findsOneWidget);
     expect(find.byType(OnboardingWizardScreen), findsNothing);
+
+    await teardownTree(tester);
   });
 
   testWidgets('one-time success rejects a missing checkout session', (

@@ -10,7 +10,6 @@ class _DashboardPageView extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(_dashboardOverviewControllerProvider);
-    final shootsController = ref.read(_shootsControllerProvider.notifier);
     return _Stack(
       gap: 12,
       children: [
@@ -18,14 +17,66 @@ class _DashboardPageView extends ConsumerWidget {
           title: 'Dashboard',
           body: "Welcome back! Here's your Look Atlas overview.",
         ),
-        const _StatsList(),
+        switch (state) {
+          AsyncData(:final value) => _DashboardOverviewContent(
+            state: value,
+            onNavigate: onNavigate,
+            onOpenShoot: (shoot) => unawaited(
+              context.push<void>(AppRoutes.shootDetail(shoot.id)),
+            ),
+          ),
+          AsyncError(:final error) => _DashboardLoadError(
+            message: error is Failure
+                ? error.message
+                : 'Could not load your dashboard.',
+            onRetry: () => ref
+                .read(_dashboardOverviewControllerProvider.notifier)
+                .refresh(),
+          ),
+          _ => const _DashboardLoading(),
+        },
+      ],
+    );
+  }
+}
+
+class _DashboardOverviewContent extends StatelessWidget {
+  const _DashboardOverviewContent({
+    required this.state,
+    required this.onNavigate,
+    required this.onOpenShoot,
+  });
+
+  final _DashboardOverviewState state;
+  final ValueChanged<_DashboardPage> onNavigate;
+  final ValueChanged<_Shoot> onOpenShoot;
+
+  @override
+  Widget build(BuildContext context) {
+    return _Stack(
+      gap: 12,
+      children: [
+        if (state.subscription.needsPaymentUpdate)
+          const _Alert(
+            kind: _AlertKind.error,
+            text: 'Your subscription payment needs attention.',
+          )
+        else if (state.subscription.cancelAtPeriodEnd)
+          const _Alert(
+            kind: _AlertKind.warn,
+            text: 'Your subscription is set to end after this billing period.',
+          )
+        else if (state.subscription.accessTier == 'onetime_download' &&
+            state.subscription.proUpsellActive)
+          const _Alert(
+            kind: _AlertKind.info,
+            text: 'Your limited-time Pro offer is available in Billing.',
+          ),
+        _StatsList(stats: state.stats),
         _RecentShoots(
           shoots: state.shoots,
           onNavigate: onNavigate,
-          onOpenShoot: (shoot) {
-            shootsController.selectShoot(shoot);
-            unawaited(context.push<void>(AppRoutes.shootDetail));
-          },
+          onOpenShoot: onOpenShoot,
         ),
         _QuickActions(onNavigate: onNavigate),
       ],
@@ -34,18 +85,32 @@ class _DashboardPageView extends ConsumerWidget {
 }
 
 class _StatsList extends StatelessWidget {
-  const _StatsList();
+  const _StatsList({required this.stats});
+
+  final DashboardStats stats;
 
   @override
   Widget build(BuildContext context) {
     return ListView(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
-      children: const [
-        _StatCard(Icons.trending_up, 'Credits Remaining', '142'),
-        _StatCard(Icons.inventory_2_outlined, 'Total Renders', '386'),
-        _StatCard(Icons.schedule, 'Active Shoots', '2'),
-        _StatCard(Icons.check_circle_outline, 'Completed Shoots', '18'),
+      children: [
+        _StatCard(
+          Icons.trending_up,
+          'Credits Remaining',
+          '${stats.credits}',
+        ),
+        _StatCard(
+          Icons.inventory_2_outlined,
+          'Total Renders',
+          '${stats.totalRenders}',
+        ),
+        _StatCard(Icons.schedule, 'Active Shoots', '${stats.activeJobs}'),
+        _StatCard(
+          Icons.check_circle_outline,
+          'Completed Shoots',
+          '${stats.completedJobs}',
+        ),
       ],
     );
   }
@@ -121,12 +186,59 @@ class _RecentShoots extends StatelessWidget {
             ),
           ),
           const _Hairline(),
-          for (var i = 0; i < shoots.length; i++)
-            _ShootRow(
-              shoot: shoots[i],
-              striped: i.isOdd,
-              onTap: () => onOpenShoot(shoots[i]),
-            ),
+          if (shoots.isEmpty)
+            const Padding(
+              padding: EdgeInsets.all(24),
+              child: _BodyText('No recent shoots yet.'),
+            )
+          else
+            for (var i = 0; i < shoots.length; i++)
+              _ShootRow(
+                shoot: shoots[i],
+                striped: i.isOdd,
+                onTap: () => onOpenShoot(shoots[i]),
+              ),
+        ],
+      ),
+    );
+  }
+}
+
+class _DashboardLoading extends StatelessWidget {
+  const _DashboardLoading();
+
+  @override
+  Widget build(BuildContext context) {
+    return const _Card(
+      child: Padding(
+        padding: EdgeInsets.symmetric(vertical: 28),
+        child: Center(child: BarSpinner(size: 28)),
+      ),
+    );
+  }
+}
+
+class _DashboardLoadError extends StatelessWidget {
+  const _DashboardLoadError({
+    required this.message,
+    required this.onRetry,
+  });
+
+  final String message;
+  final Future<void> Function() onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    return _Card(
+      child: _Stack(
+        gap: 16,
+        children: [
+          _Alert(kind: _AlertKind.error, text: message),
+          AppOutlinedButton(
+            label: 'Try again',
+            icon: Icons.refresh,
+            onPressed: () => unawaited(onRetry()),
+          ),
         ],
       ),
     );

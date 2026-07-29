@@ -68,6 +68,16 @@ abstract final class AppConfig {
   static const String revenueCatIosKey = String.fromEnvironment(
     'REVENUECAT_IOS_API_KEY',
   );
+  static const String _revenueCatSubscriptionProductIds =
+      String.fromEnvironment('REVENUECAT_SUBSCRIPTION_PRODUCT_IDS');
+  static const String _revenueCatOneTimeProductIds = String.fromEnvironment(
+    'REVENUECAT_ONE_TIME_PRODUCT_IDS',
+  );
+
+  static List<String> get revenueCatSubscriptionProductIds =>
+      _splitCommaSeparated(_revenueCatSubscriptionProductIds);
+  static List<String> get revenueCatOneTimeProductIds =>
+      _splitCommaSeparated(_revenueCatOneTimeProductIds);
 
   /// Entitlement identifier configured in the RevenueCat dashboard that grants
   /// premium access.
@@ -75,6 +85,11 @@ abstract final class AppConfig {
     'REVENUECAT_ENTITLEMENT_ID',
     defaultValue: 'premium',
   );
+
+  static List<String> _splitCommaSeparated(String value) => [
+    for (final item in value.split(','))
+      if (item.trim().isNotEmpty) item.trim(),
+  ];
 
   // --- Social sign-in (Google) ---
   //
@@ -93,6 +108,40 @@ abstract final class AppConfig {
   );
 
   static bool get hasGoogleAuth => googleWebClientId.isNotEmpty;
+
+  // --- Supabase social auth ---
+  //
+  // Supabase is initialized lazily on the first Apple/Google sign-in tap.
+  // Replace these placeholders in the dart-define file before enabling the
+  // providers in the Supabase dashboard.
+  static const String supabaseUrl = String.fromEnvironment(
+    'SUPABASE_URL',
+    defaultValue: 'https://your-project.supabase.co',
+  );
+  static const String supabasePublishableKey = String.fromEnvironment(
+    'SUPABASE_ANON_KEY',
+    defaultValue: 'your-supabase-anon-key',
+  );
+  static bool get hasSupabaseAuth =>
+      supabaseUrl != 'https://your-project.supabase.co' &&
+      supabasePublishableKey != 'your-supabase-anon-key' &&
+      supabaseUrl.isNotEmpty &&
+      supabasePublishableKey.isNotEmpty;
+
+  // --- Cloudflare Turnstile ---
+  static const String turnstileSiteKey = String.fromEnvironment(
+    'TURNSTILE_SITE_KEY',
+    defaultValue: 'your-turnstile-site-key',
+  );
+  static const String turnstileBaseUrl = String.fromEnvironment(
+    'TURNSTILE_BASE_URL',
+    defaultValue: 'https://your-domain.example',
+  );
+  static bool get hasTurnstile =>
+      turnstileSiteKey.isNotEmpty &&
+      turnstileSiteKey != 'your-turnstile-site-key' &&
+      turnstileBaseUrl.isNotEmpty &&
+      turnstileBaseUrl != 'https://your-domain.example';
 
   // --- Social sign-in (Apple) ---
   //

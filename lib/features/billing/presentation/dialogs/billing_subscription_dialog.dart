@@ -4,7 +4,6 @@ Future<void> _openSubscriptionDialog(
   BuildContext context,
   WidgetRef ref,
 ) async {
-  ref.read(_billingControllerProvider.notifier).preparePlans();
   await _showBillingDialog<void>(
     context: context,
     maxWidth: 430,
@@ -17,69 +16,90 @@ class _BillingSubscriptionDialog extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final state = ref.watch(_billingControllerProvider);
-    final controller = ref.read(_billingControllerProvider.notifier);
+    ref.listen(subscriptionActionProvider, (_, next) {
+      if (next case SubscriptionIdle(:final failure?)) {
+        AppSnackBar.showError(context, failure.message);
+      }
+    });
+
+    final products = ref.watch(revenueCatProductsProvider);
+    final action = ref.watch(subscriptionActionProvider);
+    final currentProductId = ref
+        .watch(subscriptionControllerProvider)
+        .value
+        ?.productId;
     return _BillingModal(
       title: 'Modify Subscription',
-      subtitle: 'Choose a plan that fits your needs',
+      subtitle: 'Choose a monthly plan that fits your needs',
       onClose: () => Navigator.pop(context),
-      body: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          if (state.cancellationScheduled) ...[
-            const _BillingNotice(
-              text:
-                  'Your subscription is scheduled to cancel on Aug 1, 2026. Changing your plan now will resume your subscription.',
-            ),
-            const SizedBox(height: 24),
-          ],
-          _BillingCycleSelector(
-            selected: state.selectedCycle,
-            onSelect: controller.selectCycle,
-          ),
-          const SizedBox(height: 24),
-          for (var index = 0; index < _BillingPlan.values.length; index++) ...[
-            _BillingPlanOption(
-              id: _BillingPlan.values[index],
-              details: _billingPlans[_BillingPlan.values[index]]!,
-              cycle: state.selectedCycle,
-              samePlan: state.currentPlan == _BillingPlan.values[index],
-              current:
-                  state.currentPlan == _BillingPlan.values[index] &&
-                  state.currentCycle == state.selectedCycle,
-              onSelect: () async {
-                final changed = await _showPlanConfirmation(
-                  context,
-                  ref,
-                  _BillingPlan.values[index],
-                );
-                controller.resetAction();
-                if (changed && context.mounted) Navigator.pop(context);
-              },
-            ),
-            if (index != _BillingPlan.values.length - 1)
-              const SizedBox(height: 20),
-          ],
-        ],
+      body: products.when(
+        loading: () => const _BillingPlansLoading(),
+        error: (error, _) => _BillingPlansError(
+          message: error is Failure
+              ? error.message
+              : 'Plans are unavailable right now.',
+          onRetry: () => ref.invalidate(revenueCatProductsProvider),
+        ),
+        data: (value) => _BillingMonthlyPlans(
+          products: _monthlyProducts(value),
+          currentProductId: currentProductId,
+          action: action,
+          onPurchase: (product) =>
+              _purchaseBillingProduct(context, ref, product),
+        ),
       ),
-      footer: Column(
+      footer: _BillingActionButton(
+        label: 'Close',
+        outline: true,
+        onPressed: action.isBusy ? null : () => Navigator.pop(context),
+      ),
+    );
+  }
+}
+
+Future<void> _purchaseBillingProduct(
+  BuildContext context,
+  WidgetRef ref,
+  revenuecat.StoreProduct product,
+) async {
+  final purchased = await ref
+      .read(subscriptionActionProvider.notifier)
+      .purchase(product);
+  if (!purchased || !context.mounted) return;
+  AppSnackBar.showSuccess(context, 'Subscription updated.');
+  Navigator.pop(context);
+}
+
+class _BillingPlansLoading extends StatelessWidget {
+  const _BillingPlansLoading();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Padding(
+      padding: EdgeInsets.symmetric(vertical: 32),
+      child: Center(child: BarSpinner(size: 28)),
+    );
+  }
+}
+
+class _BillingPlansError extends StatelessWidget {
+  const _BillingPlansError({required this.message, required this.onRetry});
+
+  final String message;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 24),
+      child: Column(
         children: [
+          Text(message, textAlign: TextAlign.center),
+          const SizedBox(height: 16),
           _BillingActionButton(
-            label: 'Cancel Subscription',
-            icon: Icons.warning_amber_outlined,
-            danger: true,
+            label: 'Retry',
             outline: true,
-            onPressed: () async {
-              final cancelled = await _openCancellationDialog(context, ref);
-              controller.resetAction();
-              if (cancelled && context.mounted) Navigator.pop(context);
-            },
-          ),
-          const SizedBox(height: 12),
-          _BillingActionButton(
-            label: 'Close',
-            outline: true,
-            onPressed: () => Navigator.pop(context),
+            onPressed: onRetry,
           ),
         ],
       ),
@@ -87,338 +107,102 @@ class _BillingSubscriptionDialog extends ConsumerWidget {
   }
 }
 
-class _BillingCycleSelector extends StatelessWidget {
-  const _BillingCycleSelector({required this.selected, required this.onSelect});
+class _BillingMonthlyPlans extends StatelessWidget {
+  const _BillingMonthlyPlans({
+    required this.products,
+    required this.currentProductId,
+    required this.action,
+    required this.onPurchase,
+  });
 
-  final _BillingCycle selected;
-  final ValueChanged<_BillingCycle> onSelect;
+  final List<revenuecat.StoreProduct> products;
+  final String? currentProductId;
+  final SubscriptionAction action;
+  final ValueChanged<revenuecat.StoreProduct> onPurchase;
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
+    if (products.isEmpty) {
+      return const _BillingNotice(
+        warning: true,
+        text: 'No monthly subscription products are configured in RevenueCat.',
+      );
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        for (final cycle in _BillingCycle.values) ...[
-          Expanded(
-            child: SizedBox(
-              height: 40,
-              child: OutlinedButton(
-                style: OutlinedButton.styleFrom(
-                  minimumSize: const Size(0, 40),
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                  shape: const RoundedRectangleBorder(),
-                  backgroundColor: selected == cycle
-                      ? AppColors.black
-                      : AppColors.white,
-                  foregroundColor: selected == cycle
-                      ? AppColors.white
-                      : AppColors.neutral500,
-                  side: BorderSide(
-                    color: selected == cycle
-                        ? AppColors.black
-                        : AppColors.neutral200,
-                  ),
-                ),
-                onPressed: () => onSelect(cycle),
-                child: Text(
-                  cycle == _BillingCycle.monthly ? 'Monthly' : 'Yearly',
-                ),
-              ),
-            ),
+        for (var index = 0; index < products.length; index++) ...[
+          _BillingMonthlyPlanOption(
+            product: products[index],
+            currentProductId: currentProductId,
+            action: action,
+            onSelect: () => onPurchase(products[index]),
           ),
-          if (cycle != _BillingCycle.values.last) const SizedBox(width: 12),
+          if (index != products.length - 1) const SizedBox(height: 20),
         ],
+        const SizedBox(height: 20),
+        const _BillingNotice(
+          text:
+              'Manage or cancel an active subscription from your App Store '
+              'or Google Play account.',
+        ),
       ],
     );
   }
 }
 
-class _BillingPlanOption extends StatelessWidget {
-  const _BillingPlanOption({
-    required this.id,
-    required this.details,
-    required this.cycle,
-    required this.samePlan,
-    required this.current,
+class _BillingMonthlyPlanOption extends StatelessWidget {
+  const _BillingMonthlyPlanOption({
+    required this.product,
+    required this.currentProductId,
+    required this.action,
     required this.onSelect,
   });
 
-  final _BillingPlan id;
-  final _BillingPlanDetails details;
-  final _BillingCycle cycle;
-  final bool samePlan;
-  final bool current;
+  final revenuecat.StoreProduct product;
+  final String? currentProductId;
+  final SubscriptionAction action;
   final VoidCallback onSelect;
 
   @override
   Widget build(BuildContext context) {
-    final price = details.priceFor(cycle);
-    final showRibbon = current || details.isPopular;
-    return Padding(
-      padding: EdgeInsets.only(top: showRibbon ? 12 : 0),
-      child: Stack(
-        clipBehavior: Clip.none,
-        children: [
-          Container(
-            decoration: BoxDecoration(
-              color: AppColors.white,
-              border: Border.all(
-                color: showRibbon ? AppColors.black : AppColors.neutral200,
-                width: showRibbon ? 2 : 1,
-              ),
-            ),
-            child: Column(
-              children: [
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 32, 20, 16),
-                  child: Column(
-                    children: [
-                      Text(
-                        '${details.name} plan',
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: AppTypography.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        crossAxisAlignment: CrossAxisAlignment.baseline,
-                        textBaseline: TextBaseline.alphabetic,
-                        children: [
-                          Flexible(
-                            child: FittedBox(
-                              fit: BoxFit.scaleDown,
-                              child: Text(
-                                _billingMoney(price),
-                                style: const TextStyle(
-                                  fontSize: 36,
-                                  fontWeight: AppTypography.bold,
-                                ),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          const Text(
-                            '/month',
-                            style: TextStyle(
-                              color: AppColors.neutral500,
-                              fontSize: 14,
-                            ),
-                          ),
-                        ],
-                      ),
-                      if (cycle == _BillingCycle.yearly)
-                        Text(
-                          '${_billingMoney(id.annualPrice)} billed annually',
-                          style: const TextStyle(
-                            color: AppColors.neutral500,
-                            fontSize: 12,
-                          ),
-                        ),
-                      const SizedBox(height: 4),
-                      Text(
-                        '${details.credits} credits/month',
-                        style: const TextStyle(
-                          color: AppColors.neutral500,
-                          fontSize: 12,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        details.tagline,
-                        style: const TextStyle(
-                          color: AppColors.neutral500,
-                          fontSize: 12,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
-                  child: Column(
-                    children: [
-                      for (final feature in details.features)
-                        _BillingFeatureLine(feature: feature),
-                      for (final feature in details.excludedFeatures)
-                        _BillingFeatureLine(feature: feature, excluded: true),
-                      const SizedBox(height: 20),
-                      _BillingActionButton(
-                        key: ValueKey('billing-plan-${id.name}'),
-                        label: current
-                            ? 'Current plan'
-                            : samePlan
-                            ? 'Switch to ${cycle.name}'
-                            : id == _BillingPlan.starter
-                            ? 'Downgrade to Starter'
-                            : 'Upgrade to ${details.name}',
-                        outline: id != _BillingPlan.business,
-                        onPressed: current ? null : onSelect,
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-          if (showRibbon)
-            Positioned(
-              top: -12,
-              left: 0,
-              right: 0,
-              child: Center(
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 6,
-                  ),
-                  color: AppColors.black,
-                  child: Text(
-                    current ? 'Current Plan' : 'Most Popular',
-                    style: const TextStyle(
-                      color: AppColors.white,
-                      fontSize: 12,
-                      fontWeight: AppTypography.bold,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-        ],
+    final isCurrent = product.identifier == currentProductId;
+    final isPurchasing = switch (action) {
+      SubscriptionPurchasing(:final productId) =>
+        productId == product.identifier,
+      _ => false,
+    };
+    return Container(
+      key: ValueKey('billing-plan-${product.identifier}'),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        border: Border.all(
+          color: isCurrent ? AppColors.black : AppColors.neutral200,
+          width: isCurrent ? 2 : 1,
+        ),
       ),
-    );
-  }
-}
-
-class _BillingFeatureLine extends StatelessWidget {
-  const _BillingFeatureLine({required this.feature, this.excluded = false});
-
-  final String feature;
-  final bool excluded;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(top: 12),
-      child: Row(
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(
-            Icons.check,
-            size: 16,
-            color: excluded ? AppColors.neutral500 : AppColors.black,
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              feature,
-              style: TextStyle(
-                color: excluded ? AppColors.neutral500 : AppColors.black,
-                decoration: excluded ? TextDecoration.lineThrough : null,
-                fontSize: 14,
-                height: 1.43,
+          _BillingProductSummary(product: product),
+          if (product.description.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Text(
+              product.description,
+              style: const TextStyle(
+                color: AppColors.neutral500,
+                fontSize: 13,
               ),
             ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-Future<bool> _showPlanConfirmation(
-  BuildContext context,
-  WidgetRef ref,
-  _BillingPlan plan,
-) async {
-  return await _showBillingDialog<bool>(
-        context: context,
-        maxWidth: 430,
-        builder: (_) => _BillingPlanConfirmation(plan: plan),
-      ) ??
-      false;
-}
-
-class _BillingPlanConfirmation extends ConsumerWidget {
-  const _BillingPlanConfirmation({required this.plan});
-
-  final _BillingPlan plan;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final state = ref.watch(_billingControllerProvider);
-    final controller = ref.read(_billingControllerProvider.notifier);
-    final details = _billingPlans[plan]!;
-    final downgrade = details.credits < state.plan.credits;
-    if (state.action == _BillingAction.planChangeSuccess) {
-      return _BillingPlanChangeSuccess(
-        onClose: () => Navigator.pop(context, true),
-      );
-    }
-    final yearly = state.selectedCycle == _BillingCycle.yearly;
-    final charge = yearly
-        ? '${_billingMoney(plan.annualPrice)} billed annually, '
-              '${_billingMoney(details.yearlyPrice)}/month'
-        : '${_billingMoney(details.monthlyPrice)}/month';
-    return _BillingModal(
-      title: '${downgrade ? 'Downgrade' : 'Upgrade'} to ${details.name}',
-      onClose: () => Navigator.pop(context, false),
-      body: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          if (downgrade) ...[
-            const _BillingNotice(
-              warning: true,
-              text:
-                  "Heads up, you'll lose AI posing controls, AI-generated product videos, and faster priority rendering.",
-            ),
-            const SizedBox(height: 24),
           ],
-          Text(
-            "You'll be charged $charge today.",
-            style: const TextStyle(fontSize: 14, height: 1.55),
-          ),
-          const SizedBox(height: 12),
-          const Text(
-            'This switch is immediate. Your current plan ends today and the new one starts. Remaining credits carry over.',
-            style: TextStyle(
-              color: AppColors.neutral500,
-              fontSize: 12,
-              height: 1.5,
-            ),
-          ),
-          const SizedBox(height: 12),
-          Text(
-            'Your remaining ${state.creditsRemaining} credits will carry over, and we will add ${details.credits} more for the new plan.',
-            style: const TextStyle(fontSize: 14, height: 1.55),
-          ),
-          const SizedBox(height: 12),
-          Text(
-            "You'll have ${state.creditsRemaining + details.credits} credits to start.",
-            style: const TextStyle(
-              color: AppColors.neutral500,
-              fontSize: 12,
-            ),
-          ),
-        ],
-      ),
-      footer: Row(
-        children: [
-          Expanded(
-            child: _BillingActionButton(
-              label: 'Cancel',
-              outline: true,
-              onPressed: () => Navigator.pop(context, false),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: _BillingActionButton(
-              label: downgrade ? 'Yes, downgrade' : 'Confirm upgrade',
-              isLoading: state.action == _BillingAction.changingPlan,
-              onPressed: () => controller.changePlan(plan),
-            ),
+          const SizedBox(height: 20),
+          _BillingPlanPurchaseButton(
+            isCurrent: isCurrent,
+            hasCurrentPlan: currentProductId != null,
+            isPurchasing: isPurchasing,
+            isBusy: action.isBusy,
+            onSelect: onSelect,
           ),
         ],
       ),
@@ -426,40 +210,62 @@ class _BillingPlanConfirmation extends ConsumerWidget {
   }
 }
 
-class _BillingPlanChangeSuccess extends StatelessWidget {
-  const _BillingPlanChangeSuccess({required this.onClose});
+class _BillingPlanPurchaseButton extends StatelessWidget {
+  const _BillingPlanPurchaseButton({
+    required this.isCurrent,
+    required this.hasCurrentPlan,
+    required this.isPurchasing,
+    required this.isBusy,
+    required this.onSelect,
+  });
 
-  final VoidCallback onClose;
+  final bool isCurrent;
+  final bool hasCurrentPlan;
+  final bool isPurchasing;
+  final bool isBusy;
+  final VoidCallback onSelect;
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 48),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Icon(Icons.check_circle, size: 48, color: AppColors.black),
-          const SizedBox(height: 20),
-          const Text(
-            'Plan updated',
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: AppTypography.bold,
-            ),
+    return _BillingActionButton(
+      label: isCurrent
+          ? 'Current plan'
+          : hasCurrentPlan
+          ? 'Switch plan'
+          : 'Subscribe',
+      isLoading: isPurchasing,
+      outline: isCurrent,
+      onPressed: isCurrent || isBusy ? null : onSelect,
+    );
+  }
+}
+
+class _BillingProductSummary extends StatelessWidget {
+  const _BillingProductSummary({required this.product});
+
+  final revenuecat.StoreProduct product;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          product.title,
+          style: const TextStyle(
+            fontSize: 18,
+            fontWeight: AppTypography.bold,
           ),
-          const SizedBox(height: 12),
-          const Text(
-            'Your new plan is active.',
-            style: TextStyle(color: AppColors.neutral500, fontSize: 14),
+        ),
+        const SizedBox(height: 6),
+        Text(
+          '${product.priceString}/month',
+          style: const TextStyle(
+            fontSize: 16,
+            fontWeight: AppTypography.bold,
           ),
-          const SizedBox(height: 28),
-          _BillingActionButton(
-            key: const ValueKey('billing-plan-success-close'),
-            label: 'Close',
-            onPressed: onClose,
-          ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }

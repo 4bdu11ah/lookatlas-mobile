@@ -82,15 +82,7 @@ class _BillingUsageCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final usage = ref.watch(
-      _billingControllerProvider.select(
-        (state) => (
-          state.creditsRemaining,
-          state.monthlyCredits,
-          state.creditsUsed,
-        ),
-      ),
-    );
+    final stats = ref.watch(dashboardStatsProvider);
     return _Card(
       padding: EdgeInsets.zero,
       child: Column(
@@ -102,43 +94,83 @@ class _BillingUsageCard extends ConsumerWidget {
           ),
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  '${usage.$1}',
-                  style: const TextStyle(
-                    fontSize: 30,
-                    height: 1.2,
-                    fontWeight: AppTypography.bold,
-                  ),
-                ),
-                Text(
-                  'Remaining of ${usage.$2} credits',
-                  style: const TextStyle(
-                    fontSize: 14,
-                    color: AppColors.neutral500,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Used ${usage.$3} credits so far',
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: AppColors.neutral500,
-                  ),
-                ),
-                const SizedBox(height: 20),
-                _BillingActionButton(
-                  label: 'Buy More Credits',
-                  icon: Icons.shopping_cart_outlined,
-                  onPressed: () => _openPurchaseDialog(context, ref),
-                ),
-              ],
+            child: stats.when(
+              loading: () => const Center(child: BarSpinner()),
+              error: (_, _) => _BillingUsageError(
+                onRetry: () => ref.invalidate(dashboardStatsProvider),
+              ),
+              data: (value) => _BillingUsageContent(
+                stats: value,
+                onBuyCredits: () => _openPurchaseDialog(context, ref),
+              ),
             ),
           ),
         ],
       ),
+    );
+  }
+}
+
+class _BillingUsageContent extends StatelessWidget {
+  const _BillingUsageContent({
+    required this.stats,
+    required this.onBuyCredits,
+  });
+
+  final DashboardStats stats;
+  final VoidCallback onBuyCredits;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          '${stats.credits}',
+          style: const TextStyle(
+            fontSize: 30,
+            height: 1.2,
+            fontWeight: AppTypography.bold,
+          ),
+        ),
+        Text(
+          'Remaining of ${stats.creditsTotal} credits',
+          style: const TextStyle(fontSize: 14, color: AppColors.neutral500),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          'Used ${stats.creditsUsed} credits so far',
+          style: const TextStyle(fontSize: 12, color: AppColors.neutral500),
+        ),
+        const SizedBox(height: 20),
+        _BillingActionButton(
+          label: 'Buy More Credits',
+          icon: Icons.shopping_cart_outlined,
+          onPressed: onBuyCredits,
+        ),
+      ],
+    );
+  }
+}
+
+class _BillingUsageError extends StatelessWidget {
+  const _BillingUsageError({required this.onRetry});
+
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text('Usage is unavailable right now.'),
+        const SizedBox(height: 12),
+        _BillingActionButton(
+          label: 'Retry',
+          outline: true,
+          onPressed: onRetry,
+        ),
+      ],
     );
   }
 }
@@ -148,8 +180,8 @@ class _BillingPlanCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final state = ref.watch(_billingControllerProvider);
-    final price = state.plan.priceFor(state.currentCycle);
+    final status = ref.watch(subscriptionControllerProvider);
+    final products = ref.watch(revenueCatProductsProvider);
     return _Card(
       padding: EdgeInsets.zero,
       child: Column(
@@ -161,53 +193,22 @@ class _BillingPlanCard extends ConsumerWidget {
           ),
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Text(
-                      state.plan.name,
-                      style: const TextStyle(
-                        fontSize: 20,
-                        height: 1.4,
-                        fontWeight: AppTypography.bold,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    _BillingStatusBadge(
-                      label: state.cancellationScheduled
-                          ? 'Cancelling'
-                          : 'Active',
-                      warning: state.cancellationScheduled,
-                    ),
-                  ],
+            child: status.when(
+              loading: () => const Center(child: BarSpinner()),
+              error: (_, _) => _BillingCurrentPlanError(
+                onRetry: () => ref.invalidate(subscriptionControllerProvider),
+              ),
+              data: (value) => products.when(
+                loading: () => const Center(child: BarSpinner()),
+                error: (_, _) => _BillingCurrentPlanError(
+                  onRetry: () => ref.invalidate(revenueCatProductsProvider),
                 ),
-                Text(
-                  '${_billingMoney(price)}/month',
-                  style: const TextStyle(
-                    fontSize: 14,
-                    color: AppColors.neutral500,
-                  ),
+                data: (items) => _BillingCurrentPlan(
+                  status: value,
+                  products: items,
+                  onModify: () => _openSubscriptionDialog(context, ref),
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  state.cancellationScheduled
-                      ? 'Access until Aug 1, 2026'
-                      : 'Renews on Aug 1, 2026',
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: AppColors.neutral500,
-                  ),
-                ),
-                const SizedBox(height: 16),
-                _BillingActionButton(
-                  label: 'Modify',
-                  icon: Icons.settings_outlined,
-                  outline: true,
-                  onPressed: () => _openSubscriptionDialog(context, ref),
-                ),
-              ],
+              ),
             ),
           ),
         ],
@@ -215,6 +216,146 @@ class _BillingPlanCard extends ConsumerWidget {
     );
   }
 }
+
+class _BillingCurrentPlan extends StatelessWidget {
+  const _BillingCurrentPlan({
+    required this.status,
+    required this.products,
+    required this.onModify,
+  });
+
+  final SubscriptionStatus status;
+  final List<revenuecat.StoreProduct> products;
+  final VoidCallback onModify;
+
+  @override
+  Widget build(BuildContext context) {
+    final product = _productForId(products, status.productId);
+    final title = status.isPremium
+        ? product?.title ?? status.productId ?? 'Premium'
+        : 'No active subscription';
+    final price = product == null
+        ? 'Monthly subscription'
+        : '${product.priceString}/${_billingPeriod(product)}';
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _BillingCurrentPlanHeader(
+          title: title,
+          isPremium: status.isPremium,
+        ),
+        Text(
+          price,
+          style: const TextStyle(fontSize: 14, color: AppColors.neutral500),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          _renewalText(context, status),
+          style: const TextStyle(fontSize: 12, color: AppColors.neutral500),
+        ),
+        const SizedBox(height: 16),
+        _BillingActionButton(
+          label: status.isPremium ? 'Change plan' : 'Choose plan',
+          icon: Icons.settings_outlined,
+          outline: true,
+          onPressed: onModify,
+        ),
+      ],
+    );
+  }
+
+  static String _renewalText(
+    BuildContext context,
+    SubscriptionStatus status,
+  ) {
+    final expiresAt = status.expiresAt;
+    if (!status.isPremium) return 'Choose a monthly plan to get started.';
+    if (expiresAt == null) return 'Subscription active.';
+    final date = MaterialLocalizations.of(context).formatMediumDate(expiresAt);
+    return status.willRenew ? 'Renews on $date' : 'Access until $date';
+  }
+}
+
+class _BillingCurrentPlanHeader extends StatelessWidget {
+  const _BillingCurrentPlanHeader({
+    required this.title,
+    required this.isPremium,
+  });
+
+  final String title;
+  final bool isPremium;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Flexible(
+          child: Text(
+            title,
+            style: const TextStyle(
+              fontSize: 20,
+              height: 1.4,
+              fontWeight: AppTypography.bold,
+            ),
+          ),
+        ),
+        const SizedBox(width: 8),
+        _BillingStatusBadge(
+          label: isPremium ? 'Active' : 'Inactive',
+          warning: !isPremium,
+        ),
+      ],
+    );
+  }
+}
+
+class _BillingCurrentPlanError extends StatelessWidget {
+  const _BillingCurrentPlanError({required this.onRetry});
+
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text('Current subscription is unavailable.'),
+        const SizedBox(height: 12),
+        _BillingActionButton(
+          label: 'Retry',
+          outline: true,
+          onPressed: onRetry,
+        ),
+      ],
+    );
+  }
+}
+
+List<revenuecat.StoreProduct> _monthlyProducts(
+  List<revenuecat.StoreProduct> products,
+) => [
+  for (final product in products)
+    if (product.subscriptionPeriod == 'P1M') product,
+];
+
+revenuecat.StoreProduct? _productForId(
+  List<revenuecat.StoreProduct> products,
+  String? productId,
+) {
+  if (productId == null) return null;
+  for (final product in products) {
+    if (product.identifier == productId) return product;
+  }
+  return null;
+}
+
+String _billingPeriod(revenuecat.StoreProduct product) =>
+    switch (product.subscriptionPeriod) {
+      'P1Y' => 'year',
+      'P1M' => 'month',
+      'P1W' => 'week',
+      _ => 'billing period',
+    };
 
 class _BillingStatusBadge extends StatelessWidget {
   const _BillingStatusBadge({required this.label, required this.warning});
@@ -237,129 +378,6 @@ class _BillingStatusBadge extends StatelessWidget {
           fontSize: 12,
           fontWeight: AppTypography.bold,
         ),
-      ),
-    );
-  }
-}
-
-class _BillingHistoryCard extends ConsumerWidget {
-  const _BillingHistoryCard();
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final refreshing = ref.watch(
-      _billingControllerProvider.select((state) => state.historyRefreshing),
-    );
-    return _Card(
-      padding: EdgeInsets.zero,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                const Text(
-                  'Billing History',
-                  style: TextStyle(
-                    fontSize: 18,
-                    height: 1.55,
-                    fontWeight: AppTypography.bold,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                _BillingActionButton(
-                  label: refreshing ? 'Refreshing' : 'Refresh',
-                  outline: true,
-                  isLoading: refreshing,
-                  onPressed: refreshing
-                      ? null
-                      : ref
-                            .read(_billingControllerProvider.notifier)
-                            .refreshHistory,
-                ),
-              ],
-            ),
-          ),
-          const _Hairline(),
-          const Padding(
-            padding: EdgeInsets.all(20),
-            child: _BillingHistoryTable(),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _BillingHistoryTable extends StatelessWidget {
-  const _BillingHistoryTable();
-
-  static const _widths = [158.0, 172.0, 92.0, 92.0, 92.0];
-
-  @override
-  Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: SizedBox(
-        width: 650,
-        child: Column(
-          children: [
-            const _BillingHistoryRow(
-              values: ['DATE', 'DESCRIPTION', 'AMOUNT', 'CREDITS', 'BALANCE'],
-              header: true,
-            ),
-            for (final entry in _billingHistory)
-              _BillingHistoryRow(
-                values: [
-                  entry.date,
-                  entry.description,
-                  entry.amount,
-                  entry.credits,
-                  entry.balance,
-                ],
-              ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _BillingHistoryRow extends StatelessWidget {
-  const _BillingHistoryRow({required this.values, this.header = false});
-
-  final List<String> values;
-  final bool header;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 12),
-      decoration: const BoxDecoration(
-        border: Border(bottom: BorderSide(color: AppColors.neutral200)),
-      ),
-      child: Row(
-        children: [
-          for (var index = 0; index < values.length; index++)
-            SizedBox(
-              width: _BillingHistoryTable._widths[index],
-              child: Text(
-                values[index],
-                textAlign: index < 2 ? TextAlign.start : TextAlign.end,
-                style: TextStyle(
-                  fontSize: header ? 12 : 14,
-                  color: header || index == 4
-                      ? AppColors.neutral500
-                      : AppColors.black,
-                  fontWeight: header || index == 2
-                      ? AppTypography.bold
-                      : AppTypography.regular,
-                ),
-              ),
-            ),
-        ],
       ),
     );
   }

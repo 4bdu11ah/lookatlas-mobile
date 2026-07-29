@@ -318,10 +318,15 @@ class _ConfirmIcon extends StatelessWidget {
 }
 
 class _DangerButton extends StatelessWidget {
-  const _DangerButton({required this.label, required this.onTap});
+  const _DangerButton({
+    required this.label,
+    required this.onTap,
+    this.isLoading = false,
+  });
 
   final String label;
   final VoidCallback onTap;
+  final bool isLoading;
 
   @override
   Widget build(BuildContext context) {
@@ -330,16 +335,18 @@ class _DangerButton extends StatelessWidget {
       child: Material(
         color: AppColors.dangerDark,
         child: InkWell(
-          onTap: onTap,
+          onTap: isLoading ? null : onTap,
           child: Center(
-            child: Text(
-              label,
-              style: const TextStyle(
-                fontSize: 14,
-                fontWeight: AppTypography.bold,
-                color: AppColors.white,
-              ),
-            ),
+            child: isLoading
+                ? const BarSpinner(size: 18, color: AppColors.white)
+                : Text(
+                    label,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: AppTypography.bold,
+                      color: AppColors.white,
+                    ),
+                  ),
           ),
         ),
       ),

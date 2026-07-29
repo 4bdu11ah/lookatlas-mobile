@@ -64,3 +64,22 @@ class ProUpsellOffer {
   final bool accepted;
   final DateTime? expiresAt;
 }
+
+@immutable
+class BillingHistoryEntry {
+  const BillingHistoryEntry({
+    required this.description,
+    required this.currencyCode,
+    this.occurredAt,
+    this.amount,
+    this.credits,
+    this.balance,
+  });
+
+  final DateTime? occurredAt;
+  final String description;
+  final double? amount;
+  final String currencyCode;
+  final int? credits;
+  final int? balance;
+}

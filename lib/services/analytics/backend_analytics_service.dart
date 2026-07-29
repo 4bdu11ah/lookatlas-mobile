@@ -66,15 +66,18 @@ class BackendAnalyticsService
     final token = await tokenProvider();
     if (token == null || token.isEmpty) return;
     _isFlushing = true;
-    final size = min(_queue.length, _maxBatchSize);
-    final batch = _queue.sublist(0, size);
-    final result = await _api.post<void>(
-      ApiEndpoints.analyticsSync,
-      data: {'events': batch},
-      decoder: (_) {},
-    );
-    if (result.isOk) _queue.removeRange(0, size);
-    _isFlushing = false;
+    try {
+      final size = min(_queue.length, _maxBatchSize);
+      final batch = _queue.sublist(0, size);
+      final result = await _api.post<void>(
+        ApiEndpoints.analyticsSync,
+        data: {'events': batch},
+        decoder: (_) {},
+      );
+      if (result.isOk) _queue.removeRange(0, size);
+    } finally {
+      _isFlushing = false;
+    }
   }
 
   Future<void> dispose() async {

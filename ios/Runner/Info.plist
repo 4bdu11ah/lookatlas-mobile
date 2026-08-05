@@ -2,6 +2,8 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>Look Atlas saves generated images to your photo library when you tap Download.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Look Atlas needs access to your photo library so you can upload product photos for your shoots.</string>
 	<key>NSCameraUsageDescription</key>

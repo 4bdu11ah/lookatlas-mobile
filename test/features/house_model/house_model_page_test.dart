@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
 
@@ -15,10 +16,18 @@ import 'package:look_atlas/features/house_model/di/house_model_providers.dart';
 import 'package:look_atlas/features/house_model/domain/entities/house_model_profile.dart';
 import 'package:look_atlas/features/house_model/domain/repositories/house_models_repository.dart';
 import 'package:look_atlas/shared/image_picker/image_picker_providers.dart';
+import 'package:look_atlas/shared/widgets/app_dialog.dart';
+import 'package:look_atlas/shared/widgets/app_floating_action_button.dart';
+import 'package:look_atlas/shared/widgets/app_outlined_button.dart';
 
 import '../../helpers/fake_repositories.dart';
 
 class _FakeImagePicker extends ImagePicker {
+  _FakeImagePicker({this.imageCount = 1});
+
+  final int imageCount;
+  int? lastLimit;
+
   @override
   Future<List<XFile>> pickMultiImage({
     double? maxWidth,
@@ -26,16 +35,20 @@ class _FakeImagePicker extends ImagePicker {
     int? imageQuality,
     int? limit,
     bool requestFullMetadata = true,
-  }) async => [
-    XFile.fromData(
-      Uint8List.fromList(
-        base64Decode(
-          'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=',
+  }) async {
+    lastLimit = limit;
+    return [
+      for (var index = 0; index < imageCount; index++)
+        XFile.fromData(
+          Uint8List.fromList(
+            base64Decode(
+              'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=',
+            ),
+          ),
+          name: 'model-$index.jpg',
         ),
-      ),
-      name: 'model.jpg',
-    ),
-  ];
+    ];
+  }
 }
 
 class _FakeHouseModelsRepository implements HouseModelsRepository {
@@ -43,16 +56,20 @@ class _FakeHouseModelsRepository implements HouseModelsRepository {
     List<HouseModelProfile> userModels = const [],
     this.loadFailure,
     this.refreshFailure,
+    this.initialLoad,
   }) : _userModels = [...userModels];
 
   final List<HouseModelProfile> _userModels;
   final Failure? loadFailure;
   final Failure? refreshFailure;
+  final Future<Result<HouseModelCatalog>>? initialLoad;
   int _loadCount = 0;
+  HouseModelDraft? lastCreatedDraft;
 
   @override
   Future<Result<HouseModelCatalog>> loadCatalog() async {
     _loadCount++;
+    if (_loadCount == 1 && initialLoad != null) return initialLoad!;
     final failure = loadFailure;
     if (failure != null) return Result.err(failure);
     final refreshError = refreshFailure;
@@ -69,6 +86,7 @@ class _FakeHouseModelsRepository implements HouseModelsRepository {
 
   @override
   Future<Result<void>> createModel(HouseModelDraft draft) async {
+    lastCreatedDraft = draft;
     _userModels.add(
       HouseModelProfile(
         id: 'user-${_userModels.length + 1}',
@@ -205,6 +223,8 @@ void main() {
   Future<void> pumpModels(
     WidgetTester tester, {
     _FakeHouseModelsRepository? repository,
+    ImagePicker? imagePicker,
+    bool settle = true,
   }) async {
     final modelsRepository = repository ?? _FakeHouseModelsRepository();
     await tester.pumpWidget(
@@ -216,7 +236,9 @@ void main() {
             ),
           ),
           houseModelsRepositoryProvider.overrideWithValue(modelsRepository),
-          imagePickerProvider.overrideWithValue(_FakeImagePicker()),
+          imagePickerProvider.overrideWithValue(
+            imagePicker ?? _FakeImagePicker(),
+          ),
         ],
         child: MaterialApp(
           theme: AppTheme.light(),
@@ -224,8 +246,64 @@ void main() {
         ),
       ),
     );
-    await tester.pumpAndSettle();
+    if (settle) {
+      await tester.pumpAndSettle();
+    } else {
+      await tester.pump();
+    }
   }
+
+  testWidgets('house model first load shows both custom shimmer layouts', (
+    tester,
+  ) async {
+    Finder shimmerCards(String prefix) => find.byWidgetPredicate((widget) {
+      final key = widget.key;
+      return key is ValueKey<String> && key.value.startsWith(prefix);
+    });
+
+    final load = Completer<Result<HouseModelCatalog>>();
+    await pumpModels(
+      tester,
+      repository: _FakeHouseModelsRepository(initialLoad: load.future),
+      settle: false,
+    );
+
+    expect(
+      find.byKey(const ValueKey('house-model-library-shimmer-grid')),
+      findsOneWidget,
+    );
+    expect(
+      shimmerCards('house-model-library-shimmer-card-'),
+      findsNWidgets(6),
+    );
+    expect(
+      find.byKey(const ValueKey('house-model-user-shimmer-list')),
+      findsOneWidget,
+    );
+    expect(
+      shimmerCards('house-model-user-shimmer-card-'),
+      findsNWidgets(4),
+    );
+    expect(find.text('LookAtlas Models'), findsOneWidget);
+    expect(find.text('Your Models'), findsOneWidget);
+    expect(find.text('Loading house models...'), findsNothing);
+    expect(find.byType(AspectRatio), findsNWidgets(10));
+    for (final portrait in tester.widgetList<AspectRatio>(
+      find.byType(AspectRatio),
+    )) {
+      expect(portrait.aspectRatio, 9 / 16);
+    }
+
+    load.complete(
+      const Result.ok(
+        HouseModelCatalog(
+          libraryModels: _libraryModels,
+          userModels: [],
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+  });
 
   testWidgets('house model page expands the LookAtlas library', (tester) async {
     await pumpModels(tester);
@@ -309,6 +387,13 @@ void main() {
     // expect(find.text('3-5 clear photos work best'), findsOneWidget);
   });
 
+  testWidgets('house model actions use shared app buttons', (tester) async {
+    await pumpModels(tester);
+
+    expect(find.byType(AppFloatingActionButton), findsOneWidget);
+    expect(find.byType(AppOutlinedButton), findsWidgets);
+  });
+
   testWidgets('house model empty state actions open their flows', (
     tester,
   ) async {
@@ -317,7 +402,8 @@ void main() {
     await tester.ensureVisible(find.text('Add your first model'));
     await tester.tap(find.text('Add your first model'));
     await tester.pumpAndSettle();
-    expect(find.byType(Dialog), findsOneWidget);
+    final appDialog = tester.widget<AppDialog>(find.byType(AppDialog));
+    expect(appDialog.config.title, 'Add New Model');
     expect(find.text('Add New Model'), findsOneWidget);
 
     await tester.ensureVisible(find.text('Cancel'));
@@ -367,11 +453,12 @@ void main() {
   });
 
   testWidgets('house model page adds an uploaded model', (tester) async {
-    await pumpModels(tester);
+    final repository = _FakeHouseModelsRepository();
+    await pumpModels(tester, repository: repository);
 
     await tester.tap(find.byKey(const ValueKey('add-model-fab')));
     await tester.pumpAndSettle();
-    expect(find.byType(Dialog), findsOneWidget);
+    expect(find.byType(AppDialog), findsOneWidget);
     await tester.enterText(find.byType(TextField).at(0), 'Taylor Stone');
     await tester.enterText(find.byType(TextField).at(1), '174');
     await tester.ensureVisible(
@@ -387,6 +474,55 @@ void main() {
 
     expect(find.text('Taylor Stone'), findsOneWidget);
     expect(find.text('Model added to Your Models'), findsOneWidget);
+    expect(repository.lastCreatedDraft?.name, 'Taylor Stone');
+    expect(repository.lastCreatedDraft?.gender, 'female');
+    expect(repository.lastCreatedDraft?.heightCm, 174);
+    expect(repository.lastCreatedDraft?.photos, hasLength(1));
+  });
+
+  testWidgets('add model requires name height and one photo', (tester) async {
+    final repository = _FakeHouseModelsRepository();
+    await pumpModels(tester, repository: repository);
+
+    await tester.tap(find.byKey(const ValueKey('add-model-fab')));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.byKey(const ValueKey('submit-model-form')));
+    await tester.tap(find.byKey(const ValueKey('submit-model-form')));
+    await tester.pump();
+
+    expect(find.text('Enter a model name.'), findsOneWidget);
+    expect(find.text('Enter a height between 100 and 250 cm.'), findsOneWidget);
+    expect(find.text('Add at least one clear model photo.'), findsOneWidget);
+    expect(repository.lastCreatedDraft, isNull);
+  });
+
+  testWidgets('add model accepts at most five selected photos', (tester) async {
+    final imagePicker = _FakeImagePicker(imageCount: 7);
+    final repository = _FakeHouseModelsRepository();
+    await pumpModels(
+      tester,
+      repository: repository,
+      imagePicker: imagePicker,
+    );
+
+    await tester.tap(find.byKey(const ValueKey('add-model-fab')));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField).at(0), 'Taylor Stone');
+    await tester.enterText(find.byType(TextField).at(1), '174');
+    await tester.ensureVisible(
+      find.byKey(const ValueKey('model-photo-upload')),
+    );
+    await tester.tap(find.byKey(const ValueKey('model-photo-upload')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Choose from gallery'));
+    await tester.pumpAndSettle();
+
+    expect(imagePicker.lastLimit, 5);
+    expect(find.text('(5/5)'), findsOneWidget);
+    await tester.ensureVisible(find.byKey(const ValueKey('submit-model-form')));
+    await tester.tap(find.byKey(const ValueKey('submit-model-form')));
+    await tester.pumpAndSettle();
+    expect(repository.lastCreatedDraft?.photos, hasLength(5));
   });
 
   testWidgets('successful create closes form when catalog refresh fails', (
@@ -451,6 +587,12 @@ void main() {
     await tester.ensureVisible(find.byIcon(Icons.edit_outlined));
     await tester.tap(find.byIcon(Icons.edit_outlined));
     await tester.pumpAndSettle();
+    expect(find.byType(AppDialog), findsOneWidget);
+    expect(find.text('Edit Model'), findsOneWidget);
+    expect(
+      find.text('Update photos and details for Taylor'),
+      findsOneWidget,
+    );
     await tester.enterText(find.byType(TextField).first, 'Taylor Updated');
     await tester.ensureVisible(find.byKey(const ValueKey('submit-model-form')));
     await tester.tap(find.byKey(const ValueKey('submit-model-form')));
@@ -458,6 +600,53 @@ void main() {
 
     expect(find.text('Taylor Updated'), findsOneWidget);
     expect(find.text('Model updated'), findsOneWidget);
+  });
+
+  testWidgets('user model card shows profile details and header actions', (
+    tester,
+  ) async {
+    await pumpModels(
+      tester,
+      repository: _FakeHouseModelsRepository(
+        userModels: const [_existingUserModel],
+      ),
+    );
+
+    await tester.ensureVisible(find.text('Taylor'));
+
+    expect(find.text('Female'), findsOneWidget);
+    expect(find.text('174 cm'), findsOneWidget);
+    expect(find.byTooltip('Edit model'), findsOneWidget);
+    expect(find.byTooltip('Delete model'), findsOneWidget);
+    expect(find.text('YOUR MODEL'), findsNothing);
+  });
+
+  testWidgets('editing a current model photo confirms before deleting it', (
+    tester,
+  ) async {
+    final repository = _FakeHouseModelsRepository(
+      userModels: const [_existingUserModel],
+    );
+    await pumpModels(tester, repository: repository);
+
+    await tester.ensureVisible(find.byTooltip('Edit model'));
+    await tester.tap(find.byTooltip('Edit model'));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.byTooltip('Delete photo'));
+    await tester.tap(find.byKey(const ValueKey('existing-model-photo-0')));
+    await tester.pumpAndSettle();
+    expect(find.text('Delete Photo'), findsNothing);
+
+    await tester.tap(find.byTooltip('Delete photo'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(AppDialog), findsNWidgets(2));
+    expect(find.text('Delete Photo'), findsNWidgets(2));
+    await tester.tap(find.text('Delete Photo').last);
+    await tester.pumpAndSettle();
+
+    expect(repository._userModels.single.photos, isEmpty);
+    expect(find.text('(0 existing)'), findsOneWidget);
   });
 
   testWidgets('house model page deletes a user model after confirmation', (
@@ -473,14 +662,16 @@ void main() {
     await tester.ensureVisible(find.byTooltip('Delete model'));
     await tester.tap(find.byTooltip('Delete model'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Delete model'));
+    await tester.tap(find.text('Delete Model').last);
     await tester.pumpAndSettle();
 
     expect(find.text('Taylor'), findsNothing);
     expect(find.text('Model deleted'), findsOneWidget);
   });
 
-  testWidgets('deleting from edit closes both nested sheets', (tester) async {
+  testWidgets('editing a model closes through the dialog close action', (
+    tester,
+  ) async {
     await pumpModels(
       tester,
       repository: _FakeHouseModelsRepository(
@@ -491,13 +682,11 @@ void main() {
     await tester.ensureVisible(find.byIcon(Icons.edit_outlined));
     await tester.tap(find.byIcon(Icons.edit_outlined));
     await tester.pumpAndSettle();
-    await tester.tap(find.byTooltip('Delete model').last);
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Delete model'));
+    await tester.tap(find.byTooltip('Close'));
     await tester.pumpAndSettle();
 
     expect(find.text('Edit model'), findsNothing);
-    expect(find.text('No models added yet'), findsOneWidget);
+    expect(find.text('Taylor'), findsOneWidget);
   });
 
   testWidgets('house model page shows API load errors', (tester) async {

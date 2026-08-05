@@ -26,7 +26,6 @@ import 'package:look_atlas/features/onboarding/presentation/providers/generation
 import 'package:look_atlas/features/onboarding/presentation/providers/swipe_controller.dart';
 import 'package:look_atlas/features/onboarding/presentation/providers/wizard_controller.dart';
 import 'package:look_atlas/features/onboarding/presentation/screens/activate_paywall_screen.dart';
-import 'package:look_atlas/features/onboarding/presentation/screens/generation_progress_screen.dart';
 import 'package:look_atlas/features/onboarding/presentation/screens/onboarding_wizard_screen.dart';
 import 'package:look_atlas/features/onboarding/presentation/screens/onetime_success_screen.dart';
 import 'package:look_atlas/features/onboarding/presentation/screens/starting_shoot_screen.dart';
@@ -119,6 +118,26 @@ final _completedStatus = OnboardingStatus(
         ),
   ],
 );
+
+OnboardingStatus _generatingStatusWithReadyImages(int readyCount) =>
+    OnboardingStatus(
+      freeShootUsed: true,
+      hasCalibration: false,
+      onboardingJobStatus: 'generating',
+      onboardingJob: const OnboardingJob(
+        id: 'job-1',
+        status: 'generating',
+        progress: 10,
+      ),
+      onboardingImages: [
+        for (var variation = 1; variation <= readyCount; variation++)
+          OnboardingImage(
+            url: 'https://cdn.example/shot0-v$variation.jpg',
+            shotIndex: 0,
+            variation: variation,
+          ),
+      ],
+    );
 
 class _MockOnboardingRepository extends Mock implements OnboardingRepository {}
 
@@ -363,7 +382,8 @@ void main() {
     await tester.tap(find.text('Start My Free Shoot'));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 400));
-    expect(find.byType(GenerationProgressScreen), findsOneWidget);
+    expect(find.byType(SwipeScreen), findsOneWidget);
+    expect(find.text('Preparing your photo...'), findsOneWidget);
     final request =
         verify(
               () => onboardingRepository.startShoot(captureAny()),
@@ -464,7 +484,7 @@ void main() {
   });
 
   testWidgets(
-    'starting loader hands off to generation, then to the swipe view',
+    'starting loader hands off directly to the swipe view',
     (tester) async {
       final onboardingRepository = _MockOnboardingRepository();
       when(
@@ -484,17 +504,86 @@ void main() {
       await tester.pump(const Duration(milliseconds: 400));
       expect(find.byType(StartingShootScreen), findsOneWidget);
 
-      // The ring animation runs ~3.6s, then redirects to the grid.
+      // The ring animation runs ~3.6s, then redirects to the swipe deck.
       await tester.pump(const Duration(seconds: 4));
       await tester.pump(const Duration(milliseconds: 400));
-      expect(find.byType(GenerationProgressScreen), findsOneWidget);
-      expect(find.text('Creating your photos'), findsOneWidget);
-
-      await tester.pump();
-      await tester.pump(const Duration(seconds: 2));
-      await tester.pump(const Duration(milliseconds: 400));
       expect(find.byType(SwipeScreen), findsOneWidget);
+      expect(find.text("Save the ones you'd use"), findsOneWidget);
 
+      await teardownTree(tester);
+    },
+  );
+
+  testWidgets(
+    'swipe deck reveals each top card as its image becomes ready',
+    (tester) async {
+      final onboardingRepository = _MockOnboardingRepository();
+      var statusCalls = 0;
+      when(onboardingRepository.fetchStatus).thenAnswer((_) async {
+        statusCalls++;
+        return Result.ok(
+          _generatingStatusWithReadyImages(statusCalls == 1 ? 1 : 2),
+        );
+      });
+      final router = await pumpApp(
+        tester,
+        onboardingRepository: onboardingRepository,
+      );
+      container
+          .read(generationControllerProvider.notifier)
+          .start(shoot: _liveShoot);
+      router.go(AppRoutes.onboardingSwipe);
+      await tester.pump();
+      await tester.pump();
+
+      expect(find.text("Save the ones you'd use"), findsOneWidget);
+      expect(
+        tester
+            .widget<InkWell>(
+              find.descendant(
+                of: find.byKey(const ValueKey('swipe-save')),
+                matching: find.byType(InkWell),
+              ),
+            )
+            .onTap,
+        isNotNull,
+      );
+
+      await tester.tap(find.byKey(const ValueKey('swipe-save')));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+      await tester.pump(const Duration(milliseconds: 50));
+
+      expect(find.text('Preparing your photo...'), findsOneWidget);
+      expect(
+        tester
+            .widget<InkWell>(
+              find.descendant(
+                of: find.byKey(const ValueKey('swipe-save')),
+                matching: find.byType(InkWell),
+              ),
+            )
+            .onTap,
+        isNull,
+      );
+
+      await tester.pump(GenerationController.pollInterval);
+      await tester.pump();
+
+      expect(find.text("Save the ones you'd use"), findsOneWidget);
+      expect(
+        tester
+            .widget<InkWell>(
+              find.descendant(
+                of: find.byKey(const ValueKey('swipe-save')),
+                matching: find.byType(InkWell),
+              ),
+            )
+            .onTap,
+        isNotNull,
+      );
+
+      container.read(generationControllerProvider.notifier).reset();
       await teardownTree(tester);
     },
   );

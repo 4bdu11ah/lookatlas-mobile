@@ -15,20 +15,18 @@ Future<void> _showFilterSheet(BuildContext context, WidgetRef ref) {
           return _SheetFrame(
             title: 'Filter models',
             actions: [
-              _ModelActionButton.secondary(
+              AppOutlinedButton(
                 label: 'Clear',
-                full: true,
-                onTap: () {
+                onPressed: () {
                   ref
                       .read(_houseModelControllerProvider.notifier)
                       .applyFilters();
                   Navigator.pop(context);
                 },
               ),
-              _ModelActionButton(
+              PrimaryButton(
                 label: 'Show models',
-                full: true,
-                onTap: () {
+                onPressed: () {
                   ref
                       .read(_houseModelControllerProvider.notifier)
                       .applyFilters(gender: gender, body: body);

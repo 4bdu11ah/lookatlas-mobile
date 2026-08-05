@@ -53,7 +53,7 @@ class _ReviewStepState extends ConsumerState<ReviewStep> {
     ref.read(swipeControllerProvider.notifier).reset();
     final shoot = ref.read(onboardingSubmissionControllerProvider).shoot;
     ref.read(generationControllerProvider.notifier).start(shoot: shoot);
-    context.go(AppRoutes.onboardingGeneration);
+    context.go(AppRoutes.onboardingSwipe);
   }
 
   Future<void> _recoverConflict() async {
@@ -69,7 +69,7 @@ class _ReviewStepState extends ConsumerState<ReviewStep> {
         'completed',
       }.contains(jobStatus)) {
         ref.read(generationControllerProvider.notifier).start();
-        context.go(AppRoutes.onboardingGeneration);
+        context.go(AppRoutes.onboardingSwipe);
       } else if (status.freeShootUsed) {
         context.go(AppRoutes.onboardingActivate);
       }

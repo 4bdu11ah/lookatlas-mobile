@@ -13,7 +13,6 @@ import 'package:look_atlas/features/auth/presentation/screens/sign_up_screen.dar
 import 'package:look_atlas/features/dashboard/presentation/screens/dashboard_screen.dart';
 import 'package:look_atlas/features/onboarding/presentation/screens/activate_paywall_screen.dart';
 import 'package:look_atlas/features/onboarding/presentation/screens/billing_success_screen.dart';
-import 'package:look_atlas/features/onboarding/presentation/screens/generation_progress_screen.dart';
 import 'package:look_atlas/features/onboarding/presentation/screens/onboarding_wizard_screen.dart';
 import 'package:look_atlas/features/onboarding/presentation/screens/onetime_success_screen.dart';
 import 'package:look_atlas/features/onboarding/presentation/screens/starting_shoot_screen.dart';
@@ -103,14 +102,6 @@ final routerProvider = Provider<GoRouter>((ref) {
         pageBuilder: (_, state) => buildAppTransitionPage(
           state: state,
           child: const StartingShootScreen(),
-        ),
-      ),
-      GoRoute(
-        path: AppRoutes.onboardingGeneration,
-        name: 'onboarding_generation',
-        pageBuilder: (_, state) => buildAppTransitionPage(
-          state: state,
-          child: const GenerationProgressScreen(),
         ),
       ),
       GoRoute(

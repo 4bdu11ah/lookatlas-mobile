@@ -1,6 +1,135 @@
 part of '../../../dashboard/presentation/screens/dashboard_screen.dart';
 
-Future<void> _showModelFormSheet(
+class _ModelFormData {
+  const _ModelFormData({
+    this.name = '',
+    this.heightText = '',
+    this.gender = _ModelGender.female,
+    this.heightEstimated = false,
+    this.existingPhotos = const [],
+    this.newPhotos = const [],
+    this.submitted = false,
+    this.submitting = false,
+  });
+
+  final String name;
+  final String heightText;
+  final _ModelGender gender;
+  final bool heightEstimated;
+  final List<String> existingPhotos;
+  final List<HouseModelUpload> newPhotos;
+  final bool submitted;
+  final bool submitting;
+
+  int get photoCount => existingPhotos.length + newPhotos.length;
+
+  bool get nameValid => name.trim().isNotEmpty;
+
+  bool get heightValid {
+    final h = int.tryParse(heightText);
+    return h != null &&
+        h >= HouseModelDraft.minHeightCm &&
+        h <= HouseModelDraft.maxHeightCm;
+  }
+
+  bool get photosValid =>
+      photoCount >= HouseModelDraft.minPhotoCount &&
+      photoCount <= HouseModelDraft.maxPhotoCount;
+
+  bool get isValid => nameValid && heightValid && photosValid;
+
+  _ModelFormData copyWith({
+    String? name,
+    String? heightText,
+    _ModelGender? gender,
+    bool? heightEstimated,
+    List<String>? existingPhotos,
+    List<HouseModelUpload>? newPhotos,
+    bool? submitted,
+    bool? submitting,
+  }) {
+    return _ModelFormData(
+      name: name ?? this.name,
+      heightText: heightText ?? this.heightText,
+      gender: gender ?? this.gender,
+      heightEstimated: heightEstimated ?? this.heightEstimated,
+      existingPhotos: existingPhotos ?? this.existingPhotos,
+      newPhotos: newPhotos ?? this.newPhotos,
+      submitted: submitted ?? this.submitted,
+      submitting: submitting ?? this.submitting,
+    );
+  }
+}
+
+class _ModelFormNotifier extends Notifier<_ModelFormData> {
+  @override
+  _ModelFormData build() => const _ModelFormData();
+
+  void initialize(_HouseModel? model) {
+    if (model == null) return;
+    state = state.copyWith(
+      name: model.name,
+      heightText: model.heightCm.toString(),
+      gender: model.gender,
+      heightEstimated: model.heightEstimated,
+      existingPhotos: model.photoUrls.isNotEmpty
+          ? [...model.photoUrls]
+          : List.filled(model.photoCount, model.asset),
+    );
+  }
+
+  void setName(String value) => state = state.copyWith(name: value);
+  void setHeightText(String value) => state = state.copyWith(heightText: value);
+  void setGender(_ModelGender value) => state = state.copyWith(gender: value);
+  void setHeightEstimated({required bool value}) =>
+      state = state.copyWith(heightEstimated: value);
+
+  void addPhotos(List<HouseModelUpload> photos) =>
+      state = state.copyWith(newPhotos: [...state.newPhotos, ...photos]);
+
+  void removeExistingPhoto(int index) {
+    final photos = [...state.existingPhotos]..removeAt(index);
+    state = state.copyWith(existingPhotos: photos);
+  }
+
+  void removeNewPhoto(int index) {
+    final photos = [...state.newPhotos]..removeAt(index);
+    state = state.copyWith(newPhotos: photos);
+  }
+
+  void setSubmitted() => state = state.copyWith(submitted: true);
+  void setSubmitting({required bool value}) =>
+      state = state.copyWith(submitting: value);
+
+  Future<void> submit(
+    Future<void> Function(_ModelFormInput input) onSubmit,
+  ) async {
+    state = state.copyWith(submitted: true);
+    if (!state.isValid) return;
+    final parsedHeight = int.tryParse(state.heightText);
+    if (parsedHeight == null) return;
+    state = state.copyWith(submitting: true);
+    await onSubmit(
+      _ModelFormInput(
+        name: state.name.trim(),
+        gender: state.gender,
+        heightCm: parsedHeight,
+        photos: List.unmodifiable(state.newPhotos),
+        heightEstimated: state.heightEstimated,
+      ),
+    );
+    if (state.submitting) {
+      state = state.copyWith(submitting: false);
+    }
+  }
+}
+
+final NotifierProvider<_ModelFormNotifier, _ModelFormData> _modelFormProvider =
+    NotifierProvider<_ModelFormNotifier, _ModelFormData>(
+      _ModelFormNotifier.new,
+    );
+
+Future<void> _showModelFormDialog(
   BuildContext context,
   WidgetRef ref,
   ValueChanged<String> onToast, [
@@ -24,35 +153,41 @@ Future<void> _showModelFormSheet(
     Navigator.pop(formContext);
   }
 
-  Future<void> deleteFromForm(BuildContext formContext) async {
-    final deleted = await _showDeleteSheet(
-      formContext,
-      ref,
-      model!,
-      onToast,
-    );
-    if (deleted && formContext.mounted) Navigator.pop(formContext);
-  }
-
-  if (model == null) {
-    return showAppDialog<void>(
-      context: context,
-      builder: (context) => _ModelFormSheet(
-        dialog: true,
-        onSubmit: (input) => submit(context, input),
-      ),
-    );
-  }
-
-  return showModalBottomSheet<void>(
+  final dialogConfig = model == null
+      ? AppDialogConfig.standard
+      : const AppDialogConfig(
+          insetPadding: EdgeInsets.symmetric(horizontal: 18, vertical: 18),
+          maxWidth: 390,
+        );
+  return showAppDialog<void>(
     context: context,
-    isScrollControlled: true,
-    backgroundColor: AppColors.neutral50,
-    shape: const RoundedRectangleBorder(),
-    builder: (context) => _ModelFormSheet(
+    config: dialogConfig,
+    title: model == null ? 'Add New Model' : 'Edit Model',
+    subtitle: model == null
+        ? 'Upload photos and details for your house model'
+        : 'Update photos and details for ${model.name}',
+    builder: (context) => _ModelFormDialog(
       model: model,
       onSubmit: (input) => submit(context, input),
-      onDelete: () => unawaited(deleteFromForm(context)),
+    ),
+    footer: Consumer(
+      builder: (context, ref, _) {
+        final formState = ref.watch(_modelFormProvider);
+        final editing = model != null;
+        return AppDialogActionFooter(
+          primaryButtonKey: const ValueKey('submit-model-form'),
+          primaryLabel: editing ? 'Update Model' : 'Add Model',
+          primaryIcon: Icons.check,
+          primaryOpacity: formState.isValid ? 1 : 0.48,
+          isLoading: formState.submitting,
+          onCancel: () => Navigator.pop(context),
+          onPrimary: () => ref
+              .read(_modelFormProvider.notifier)
+              .submit(
+                (input) => submit(context, input),
+              ),
+        );
+      },
     ),
   );
 }
@@ -89,65 +224,98 @@ Future<bool> _showDeleteSheet(
   _HouseModel model,
   ValueChanged<String> onToast,
 ) async {
-  var deleting = false;
-  final deleted = await showModalBottomSheet<bool>(
+  final deleted = await showAppDialog<bool>(
     context: context,
-    backgroundColor: AppColors.white,
-    shape: const RoundedRectangleBorder(),
-    builder: (context) => StatefulBuilder(
-      builder: (context, setModalState) => SafeArea(
-        child: _SheetFrame(
-          actions: [
-            _ModelActionButton.secondary(
-              label: 'Cancel',
-              full: true,
-              onTap: () => Navigator.pop(context),
-            ),
-            _DangerButton(
-              label: 'Delete model',
-              isLoading: deleting,
-              onTap: () async {
-                setModalState(() => deleting = true);
-                final result = await ref
-                    .read(_houseModelControllerProvider.notifier)
-                    .deleteModel(model);
-                if (!context.mounted) return;
-                final failure = result.failureOrNull;
-                if (failure != null) {
-                  setModalState(() => deleting = false);
-                  AppSnackBar.showError(context, failure.message);
-                  return;
-                }
-                Navigator.pop(context, true);
-                onToast('Model deleted');
-              },
-            ),
-          ],
-          child: const Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _ConfirmIcon(),
-              Text(
-                'Delete model?',
-                style: TextStyle(
-                  fontSize: 21,
-                  fontWeight: AppTypography.bold,
-                  color: AppColors.black,
-                ),
-              ),
-              SizedBox(height: 8),
-              Text(
-                'This permanently removes the model and all associated photos. This action cannot be undone.',
-                style: TextStyle(
-                  fontSize: 13,
-                  height: 1.55,
-                  color: AppColors.neutral500,
-                ),
-              ),
-            ],
-          ),
+    barrierDismissible: false,
+    title: 'Delete Model',
+    subtitle: 'This action cannot be undone',
+    icon: Icons.delete_outline,
+    iconBackgroundColor: AppColors.dangerDark,
+    builder: (context) => const Padding(
+      padding: EdgeInsets.fromLTRB(28, 24, 28, 28),
+      child: Text(
+        'Are you sure you want to permanently delete this model? All associated photos and data will be removed from the system.',
+        style: TextStyle(
+          fontSize: 16,
         ),
+        textAlign: TextAlign.center,
       ),
+    ),
+    footer: Consumer(
+      builder: (context, ref, _) {
+        final isMutating = ref.watch(
+          _houseModelControllerProvider.select((s) => s.isMutating),
+        );
+        return AppDialogActionFooter(
+          primaryLabel: 'Delete Model',
+          primaryIcon: Icons.delete_outline,
+          danger: true,
+          isLoading: isMutating,
+          onCancel: () => Navigator.pop(context, false),
+          onPrimary: () async {
+            final result = await ref
+                .read(_houseModelControllerProvider.notifier)
+                .deleteModel(model);
+            if (!context.mounted) return;
+            final failure = result.failureOrNull;
+            if (failure != null) {
+              AppSnackBar.showError(context, failure.message);
+              return;
+            }
+            onToast('Model deleted');
+            Navigator.pop(context, true);
+          },
+        );
+      },
+    ),
+  );
+  return deleted ?? false;
+}
+
+Future<bool> _showDeletePhotoDialog(
+  BuildContext context,
+  WidgetRef ref,
+  Future<Result<void>> Function() onDelete,
+) async {
+  final deleted = await showAppDialog<bool>(
+    context: context,
+    barrierDismissible: false,
+    title: 'Delete Photo',
+    subtitle: 'This action cannot be undone',
+    icon: Icons.delete_outline,
+    iconBackgroundColor: AppColors.dangerDark,
+    builder: (context) => const Padding(
+      padding: EdgeInsets.fromLTRB(28, 24, 28, 28),
+      child: Text(
+        'Are you sure you want to permanently delete this photo? It will be removed from the model.',
+        style: TextStyle(fontSize: 16),
+        textAlign: TextAlign.center,
+      ),
+    ),
+
+    footer: Consumer(
+      builder: (context, ref, _) {
+        final isMutating = ref.watch(
+          _houseModelControllerProvider.select((s) => s.isMutating),
+        );
+        return AppDialogActionFooter(
+          primaryLabel: 'Delete Photo',
+          primaryIcon: Icons.delete_outline,
+          danger: true,
+          isLoading: isMutating,
+          onCancel: () => Navigator.pop(context, false),
+          onPrimary: () async {
+            final result = await onDelete();
+            if (!context.mounted) return;
+            final failure = result.failureOrNull;
+            if (failure != null) {
+              AppSnackBar.showError(context, failure.message);
+              return;
+            }
+            Navigator.pop(context, true);
+          },
+        );
+      },
     ),
   );
   return deleted ?? false;
@@ -229,9 +397,11 @@ class _ModelDialogFooter extends StatelessWidget {
   Widget build(BuildContext context) {
     final children = [
       for (var i = 0; i < actions.length; i++) ...[
-        if (stacked) actions[i] else Expanded(child: actions[i]),
+        if (stacked) actions[i] else actions[i],
         if (i != actions.length - 1)
-          SizedBox(width: stacked ? 0 : 12, height: stacked ? 12 : 0),
+          const SizedBox(
+            height: 12,
+          ),
       ],
     ];
 
@@ -241,40 +411,28 @@ class _ModelDialogFooter extends StatelessWidget {
         color: AppColors.neutral100,
         border: Border(top: BorderSide(color: AppColors.neutral100)),
       ),
-      child: stacked
-          ? Column(mainAxisSize: MainAxisSize.min, children: children)
-          : Row(children: children),
+      child:
+          // stacked
+          //     ?
+          Column(mainAxisSize: MainAxisSize.min, children: children),
+      // : Row(children: children),
     );
   }
 }
 
-class _ModelFormSheet extends ConsumerStatefulWidget {
-  const _ModelFormSheet({
-    required this.onSubmit,
-    this.model,
-    this.onDelete,
-    this.dialog = false,
-  });
+class _ModelFormDialog extends ConsumerStatefulWidget {
+  const _ModelFormDialog({required this.onSubmit, this.model});
 
   final _HouseModel? model;
   final Future<void> Function(_ModelFormInput input) onSubmit;
-  final VoidCallback? onDelete;
-  final bool dialog;
 
   @override
-  ConsumerState<_ModelFormSheet> createState() => _ModelFormSheetState();
+  ConsumerState<_ModelFormDialog> createState() => _ModelFormDialogState();
 }
 
-class _ModelFormSheetState extends ConsumerState<_ModelFormSheet> {
+class _ModelFormDialogState extends ConsumerState<_ModelFormDialog> {
   late final TextEditingController _nameController;
   late final TextEditingController _heightController;
-  late _ModelGender _gender;
-  late final List<String> _existingPhotos;
-  final List<HouseModelUpload> _newPhotos = [];
-  final Set<int> _removedPhotoIndexes = {};
-  bool _heightEstimated = false;
-  bool _submitted = false;
-  bool _submitting = false;
 
   @override
   void initState() {
@@ -282,22 +440,43 @@ class _ModelFormSheetState extends ConsumerState<_ModelFormSheet> {
     final model = widget.model;
     _nameController = TextEditingController(text: model?.name ?? '');
     _heightController = TextEditingController(
-      text: model == null ? '' : model.heightCm.toString(),
+      text: model?.heightCm.toString() ?? '',
     );
-    _gender = model?.gender ?? _ModelGender.female;
-    _existingPhotos = model == null
-        ? []
-        : model.photoUrls.isNotEmpty
-        ? [...model.photoUrls]
-        : List.filled(model.photoCount, model.asset);
-    _heightEstimated = model?.heightEstimated ?? false;
+    _nameController.addListener(
+      () => ref.read(_modelFormProvider.notifier).setName(_nameController.text),
+    );
+    _heightController.addListener(
+      () => ref
+          .read(_modelFormProvider.notifier)
+          .setHeightText(_heightController.text),
+    );
+    if (model != null) {
+      unawaited(
+        Future.microtask(() {
+          if (mounted) ref.read(_modelFormProvider.notifier).initialize(model);
+        }),
+      );
+    }
   }
 
-  int get _photoCount =>
-      _existingPhotos.length - _removedPhotoIndexes.length + _newPhotos.length;
+  Future<void> _deleteExistingPhoto(int index) async {
+    final formState = ref.read(_modelFormProvider);
+    if (formState.submitting || widget.model == null) return;
+    final deleted = await _showDeletePhotoDialog(
+      context,
+      ref,
+      () => ref
+          .read(_houseModelControllerProvider.notifier)
+          .deletePhoto(widget.model!, index),
+    );
+    if (deleted && mounted) {
+      ref.read(_modelFormProvider.notifier).removeExistingPhoto(index);
+    }
+  }
 
   Future<void> _pickPhotos() async {
-    final remaining = 5 - _photoCount;
+    final formState = ref.read(_modelFormProvider);
+    final remaining = HouseModelDraft.maxPhotoCount - formState.photoCount;
     if (remaining <= 0) {
       AppSnackBar.show(context, 'You can upload up to 5 photos.');
       return;
@@ -336,7 +515,7 @@ class _ModelFormSheetState extends ConsumerState<_ModelFormSheet> {
         }
         uploads.add(HouseModelUpload(bytes: bytes, fileName: file.name));
       }
-      if (mounted) setState(() => _newPhotos.addAll(uploads));
+      if (mounted) ref.read(_modelFormProvider.notifier).addPhotos(uploads);
     } on Exception {
       if (mounted) {
         AppSnackBar.showError(
@@ -356,60 +535,46 @@ class _ModelFormSheetState extends ConsumerState<_ModelFormSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final formState = ref.watch(_modelFormProvider);
     final editing = widget.model != null;
-    final nameValid = _nameController.text.trim().isNotEmpty;
-    final height = int.tryParse(_heightController.text);
-    final heightValid = height != null && height >= 100 && height <= 250;
-    final photosValid = _photoCount > 0;
-    final formValid = nameValid && heightValid && photosValid;
-    final body = SingleChildScrollView(
-      padding: widget.dialog
-          ? const EdgeInsets.fromLTRB(20, 18, 20, 20)
-          : const EdgeInsets.fromLTRB(18, 24, 18, 110),
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(20, 18, 20, 20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          if (!widget.dialog)
-            _IntroCopy(
-              title: editing ? 'Update model details' : 'Add your house model',
-              body: editing
-                  ? 'Keep this profile accurate so future shoots preserve the right appearance and proportions.'
-                  : 'Upload clear photos and a few details so the same face and proportions stay consistent across every shoot.',
-            ),
           _TextFieldBlock(
             label: 'Model Name',
             required: true,
             controller: _nameController,
             hint: 'Sarah Martinez',
-            invalid: _submitted && !nameValid,
+            invalid: formState.submitted && !formState.nameValid,
             error: 'Enter a model name.',
-            onChanged: (_) => setState(() {}),
           ),
           _SelectBlock<_ModelGender>(
             label: 'Gender',
             required: true,
-            value: _gender,
+            value: formState.gender,
             values: _ModelGender.values,
             labelFor: (value) => value.label,
-            onChanged: (value) => setState(() => _gender = value),
+            onChanged: ref.read(_modelFormProvider.notifier).setGender,
           ),
           _HeightBlock(
             controller: _heightController,
-            estimated: _heightEstimated,
-            invalid: _submitted && !heightValid,
-            onEstimatedChanged: (value) =>
-                setState(() => _heightEstimated = value),
-            onChanged: (_) => setState(() {}),
+            estimated: formState.heightEstimated,
+            invalid: formState.submitted && !formState.heightValid,
+            onEstimatedChanged: (value) => ref
+                .read(_modelFormProvider.notifier)
+                .setHeightEstimated(value: value),
           ),
           _PhotoUploadBlock(
-            existingPhotos: _existingPhotos,
-            newPhotos: _newPhotos,
-            removedExistingIndexes: _removedPhotoIndexes,
-            invalid: _submitted && !photosValid,
+            existingPhotos: formState.existingPhotos,
+            newPhotos: formState.newPhotos,
+            editing: editing,
+            invalid: formState.submitted && !formState.photosValid,
             onAdd: () => unawaited(_pickPhotos()),
-            onRemoveExisting: (index) =>
-                setState(() => _removedPhotoIndexes.add(index)),
-            onRemoveNew: (index) => setState(() => _newPhotos.removeAt(index)),
+            onRemoveExisting: (index) => unawaited(_deleteExistingPhoto(index)),
+            onRemoveNew: ref.read(_modelFormProvider.notifier).removeNewPhoto,
           ),
           const _TipCard(
             icon: Icons.info_outline,
@@ -417,80 +582,6 @@ class _ModelFormSheetState extends ConsumerState<_ModelFormSheet> {
             body:
                 'Upload 3-5 photos showing different angles and poses for best AI results.',
           ),
-        ],
-      ),
-    );
-    final actions = [
-      _ModelActionButton.secondary(
-        label: 'Cancel',
-        full: true,
-        onTap: () => Navigator.pop(context),
-      ),
-      Opacity(
-        opacity: widget.dialog && !formValid ? 0.48 : 1,
-        child: _ModelActionButton(
-          key: const ValueKey('submit-model-form'),
-          label: editing ? 'Save changes' : 'Add Model',
-          icon: Icons.check,
-          full: true,
-          isLoading: _submitting,
-          onTap: () async {
-            setState(() => _submitted = true);
-            final parsedHeight = int.tryParse(_heightController.text);
-            if (!nameValid || parsedHeight == null || !heightValid) {
-              return;
-            }
-            if (!photosValid) return;
-            setState(() => _submitting = true);
-            await widget.onSubmit(
-              _ModelFormInput(
-                name: _nameController.text.trim(),
-                gender: _gender,
-                heightCm: parsedHeight,
-                photos: List.unmodifiable(_newPhotos),
-                removedPhotoIndexes: _removedPhotoIndexes.toList(
-                  growable: false,
-                )..sort(),
-                heightEstimated: _heightEstimated,
-              ),
-            );
-            if (mounted) setState(() => _submitting = false);
-          },
-        ),
-      ),
-    ];
-
-    if (widget.dialog) {
-      return Column(
-        children: [
-          _ModelDialogHeader(
-            title: 'Add New Model',
-            subtitle: 'Upload photos and details for your house model',
-            onClose: () => Navigator.pop(context),
-          ),
-          Expanded(child: body),
-          _ModelDialogFooter(actions: actions),
-        ],
-      );
-    }
-
-    return SizedBox(
-      height: MediaQuery.sizeOf(context).height * 0.94,
-      child: Column(
-        children: [
-          _InnerHeader(
-            title: editing ? 'Edit model' : 'Add new model',
-            onClose: () => Navigator.pop(context),
-            trailing: widget.onDelete == null
-                ? null
-                : IconButton(
-                    tooltip: 'Delete model',
-                    icon: const Icon(Icons.delete_outline),
-                    onPressed: widget.onDelete,
-                  ),
-          ),
-          Expanded(child: body),
-          _SheetActionBar(actions: actions),
         ],
       ),
     );

@@ -4,7 +4,7 @@ class _TextFieldBlock extends StatelessWidget {
   const _TextFieldBlock({
     required this.label,
     required this.controller,
-    required this.onChanged,
+    this.onChanged,
     this.required = false,
     this.hint,
     this.keyboardType,
@@ -14,7 +14,7 @@ class _TextFieldBlock extends StatelessWidget {
 
   final String label;
   final TextEditingController controller;
-  final ValueChanged<String> onChanged;
+  final ValueChanged<String>? onChanged;
   final bool required;
   final String? hint;
   final TextInputType? keyboardType;
@@ -109,14 +109,12 @@ class _HeightBlock extends StatelessWidget {
     required this.estimated,
     required this.invalid,
     required this.onEstimatedChanged,
-    required this.onChanged,
   });
 
   final TextEditingController controller;
   final bool estimated;
   final bool invalid;
   final ValueChanged<bool> onEstimatedChanged;
-  final ValueChanged<String> onChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -137,7 +135,6 @@ class _HeightBlock extends StatelessWidget {
                   child: AppTextField(
                     controller: controller,
                     keyboardType: TextInputType.number,
-                    onChanged: onChanged,
                     hintText: '170',
                   ),
                 ),
@@ -213,7 +210,7 @@ class _PhotoUploadBlock extends StatelessWidget {
   const _PhotoUploadBlock({
     required this.existingPhotos,
     required this.newPhotos,
-    required this.removedExistingIndexes,
+    required this.editing,
     required this.invalid,
     required this.onAdd,
     required this.onRemoveExisting,
@@ -222,25 +219,56 @@ class _PhotoUploadBlock extends StatelessWidget {
 
   final List<String> existingPhotos;
   final List<HouseModelUpload> newPhotos;
-  final Set<int> removedExistingIndexes;
+  final bool editing;
   final bool invalid;
   final VoidCallback onAdd;
   final ValueChanged<int> onRemoveExisting;
   final ValueChanged<int> onRemoveNew;
 
-  int get count =>
-      existingPhotos.length - removedExistingIndexes.length + newPhotos.length;
+  int get count => existingPhotos.length + newPhotos.length;
 
   @override
   Widget build(BuildContext context) {
     return _FieldShell(
-      label: 'Model Photos',
+      label: editing ? 'Current Photos' : 'Model Photos',
       required: true,
       invalid: invalid,
       error: 'Add at least one clear model photo.',
-      trailingLabel: '($count/5)',
+      trailingLabel: editing
+          ? '(${existingPhotos.length} existing)'
+          : '($count/${HouseModelDraft.maxPhotoCount})',
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          if (editing && existingPhotos.isNotEmpty)
+            _CurrentPhotosStrip(
+              photos: existingPhotos,
+              onRemove: onRemoveExisting,
+            ),
+          if (editing) ...[
+            const SizedBox(height: 20),
+            Row(
+              children: [
+                const Text(
+                  'Add New Photos',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: AppTypography.bold,
+                    color: AppColors.black,
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Text(
+                  '($count/${HouseModelDraft.maxPhotoCount})',
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: AppColors.neutral500,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+          ],
           InkWell(
             key: const ValueKey('model-photo-upload'),
             onTap: onAdd,
@@ -255,25 +283,27 @@ class _PhotoUploadBlock extends StatelessWidget {
                 alignment: Alignment.center,
                 color: AppColors.white,
                 padding: const EdgeInsets.all(8),
-                child: const Column(
+                child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(
+                    const Icon(
                       Icons.file_upload_outlined,
                       size: 34,
                       color: AppColors.neutral500,
                     ),
-                    SizedBox(height: 8),
+                    const SizedBox(height: 8),
                     Text(
-                      'Click to upload photos',
-                      style: TextStyle(
+                      editing
+                          ? 'Click to add more photos'
+                          : 'Click to upload photos',
+                      style: const TextStyle(
                         fontSize: 13,
                         fontWeight: AppTypography.bold,
                         color: AppColors.black,
                       ),
                     ),
-                    SizedBox(height: 3),
-                    Text(
+                    const SizedBox(height: 3),
+                    const Text(
                       'PNG, JPG up to 10MB each',
                       textAlign: TextAlign.center,
                       style: TextStyle(
@@ -287,34 +317,127 @@ class _PhotoUploadBlock extends StatelessWidget {
               ),
             ),
           ),
-          if (count > 0) ...[
+          if (newPhotos.isNotEmpty) ...[
             const SizedBox(height: 10),
             SizedBox(
               height: 132,
               child: ListView.builder(
                 scrollDirection: Axis.horizontal,
                 itemExtent: 105,
-                itemCount: count,
+                itemCount: newPhotos.length,
                 itemBuilder: (context, index) {
-                  final retainedIndexes = [
-                    for (var i = 0; i < existingPhotos.length; i++)
-                      if (!removedExistingIndexes.contains(i)) i,
-                  ];
-                  final isExisting = index < retainedIndexes.length;
-                  final sourceIndex = isExisting
-                      ? retainedIndexes[index]
-                      : index - retainedIndexes.length;
                   return _PhotoPreview(
-                    source: isExisting ? existingPhotos[sourceIndex] : null,
-                    bytes: isExisting ? null : newPhotos[sourceIndex].bytes,
-                    onRemove: () => isExisting
-                        ? onRemoveExisting(sourceIndex)
-                        : onRemoveNew(sourceIndex),
+                    source: null,
+                    bytes: newPhotos[index].bytes,
+                    onRemove: () => onRemoveNew(index),
                   );
                 },
               ),
             ),
           ],
+        ],
+      ),
+    );
+  }
+}
+
+class _CurrentPhotosStrip extends StatelessWidget {
+  const _CurrentPhotosStrip({required this.photos, required this.onRemove});
+
+  final List<String> photos;
+  final ValueChanged<int> onRemove;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 181,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppColors.neutral50,
+        border: Border.all(color: AppColors.neutral200),
+      ),
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        itemExtent: 112,
+        itemCount: photos.length,
+        itemBuilder: (context, index) => _CurrentPhotoPreview(
+          source: photos[index],
+          label: index + 1,
+          onDelete: () => onRemove(index),
+        ),
+      ),
+    );
+  }
+}
+
+class _CurrentPhotoPreview extends StatelessWidget {
+  const _CurrentPhotoPreview({
+    required this.source,
+    required this.label,
+    required this.onDelete,
+  });
+
+  final String source;
+  final int label;
+  final VoidCallback onDelete;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(right: 8),
+      child: Stack(
+        key: ValueKey('existing-model-photo-${label - 1}'),
+        fit: StackFit.expand,
+        children: [
+          ColoredBox(
+            color: AppColors.neutral100,
+            child: _AssetImage(source),
+          ),
+          Positioned(
+            top: 6,
+            right: 6,
+            child: Tooltip(
+              message: 'Delete photo',
+              child: InkWell(
+                key: ValueKey('delete-existing-model-photo-${label - 1}'),
+                onTap: onDelete,
+                child: Container(
+                  width: 26,
+                  height: 26,
+                  decoration: const BoxDecoration(
+                    color: AppColors.inkAlpha80,
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.close,
+                    size: 13,
+                    color: AppColors.white,
+                  ),
+                ),
+              ),
+            ),
+          ),
+          Align(
+            alignment: Alignment.bottomCenter,
+            child: Container(
+              width: 32,
+              height: 32,
+              margin: const EdgeInsets.only(bottom: 8),
+              decoration: const BoxDecoration(
+                color: AppColors.blackAlpha60,
+                shape: BoxShape.circle,
+              ),
+              alignment: Alignment.center,
+              child: Text(
+                '$label',
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: AppTypography.bold,
+                  color: AppColors.white,
+                ),
+              ),
+            ),
+          ),
         ],
       ),
     );
@@ -409,13 +532,16 @@ class _FieldShell extends StatelessWidget {
               ),
               if (required)
                 const Text(' *', style: TextStyle(color: AppColors.dangerDark)),
-              const Spacer(),
               if (trailingLabel != null)
-                Text(
-                  trailingLabel!,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: AppColors.neutral500,
+                Expanded(
+                  child: Text(
+                    trailingLabel!,
+                    textAlign: TextAlign.end,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: AppColors.neutral500,
+                    ),
                   ),
                 ),
             ],

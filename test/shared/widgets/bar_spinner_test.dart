@@ -61,6 +61,43 @@ void main() {
     );
   });
 
+  testWidgets('PrimaryButton supports custom content', (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Center(
+          child: PrimaryButton(
+            onPressed: () {},
+            child: const Text('Custom content'),
+          ),
+        ),
+      ),
+    );
+
+    expect(find.text('Custom content'), findsOneWidget);
+  });
+
+  testWidgets('PrimaryButton supports custom loading content', (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Center(
+          child: PrimaryButton(
+            label: 'Generate',
+            onPressed: () {},
+            isLoading: true,
+            loadingChild: const ButtonLoader(
+              text: 'Starting…',
+              color: Colors.white,
+            ),
+          ),
+        ),
+      ),
+    );
+
+    final loader = tester.widget<ButtonLoader>(find.byType(ButtonLoader));
+    expect(find.text('Starting…'), findsOneWidget);
+    expect(loader.color, Colors.white);
+  });
+
   testWidgets('PrimaryButton fits its width to content when requested', (
     tester,
   ) async {

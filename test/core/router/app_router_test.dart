@@ -13,9 +13,11 @@ import 'package:look_atlas/features/dashboard/di/dashboard_providers.dart';
 import 'package:look_atlas/features/dashboard/presentation/screens/dashboard_screen.dart';
 import 'package:look_atlas/features/onboarding/di/onboarding_providers.dart';
 import 'package:look_atlas/features/onboarding/presentation/screens/onboarding_wizard_screen.dart';
+import 'package:look_atlas/features/products/di/products_providers.dart';
 import 'package:look_atlas/features/shoots/di/shoots_providers.dart';
 import 'package:look_atlas/features/subscription/di/subscription_providers.dart';
 import 'package:look_atlas/features/subscription/presentation/screens/paywall_screen.dart';
+import 'package:look_atlas/features/workshop/di/workshop_providers.dart';
 import 'package:look_atlas/features/workshop/presentation/screens/workshop_screen.dart';
 import 'package:look_atlas/shared/widgets/custom_app_bar.dart';
 
@@ -39,6 +41,12 @@ void main() {
           const FakeDashboardRepository(),
         ),
         shootsRepositoryProvider.overrideWithValue(FakeShootsRepository()),
+        productsRepositoryProvider.overrideWithValue(
+          const FakeProductsRepository(),
+        ),
+        workshopRepositoryProvider.overrideWithValue(
+          FakeWorkshopRepository(),
+        ),
         billingHistoryProvider.overrideWith((ref) async => const []),
         onboardingStatusProvider.overrideWith(
           (ref) =>
@@ -255,6 +263,30 @@ void main() {
 
       expect(currentUri(router).path, AppRoutes.workshop);
       expect(find.byType(WorkshopScreen), findsOneWidget);
+    });
+
+    testWidgets('workshop upgrade sheet opens the real paywall route', (
+      tester,
+    ) async {
+      final router = await pumpRouter(tester, user: user);
+
+      router.go(AppRoutes.workshop);
+      await tester.pumpAndSettle();
+      final generate = find.byKey(const Key('workshop-generate-button'));
+      await tester.scrollUntilVisible(
+        generate,
+        500,
+        scrollable: find.byType(Scrollable).last,
+      );
+      await tester.tap(generate);
+      await tester.pumpAndSettle();
+
+      expect(find.text('Unlock Workshop'), findsOneWidget);
+      await tester.tap(find.text('Upgrade to continue'));
+      await tester.pumpAndSettle();
+
+      expect(currentUri(router).path, AppRoutes.paywall);
+      expect(find.byType(PaywallScreen), findsOneWidget);
     });
 
     testWidgets('dashboard actions navigate through GoRouter paths', (

@@ -35,16 +35,10 @@ class _SwipeScreenState extends ConsumerState<SwipeScreen>
     'Studio shoots take 2-3 weeks. Yours takes minutes.',
     '15 photos. One product. Zero logistics.',
   ];
-  static const _entryLoadingDuration = Duration(milliseconds: 3500);
-  static const _entryCompleteHoldDuration = Duration(milliseconds: 400);
 
   Offset _drag = Offset.zero;
   bool _muted = false;
-  bool _entryMinimumElapsed = false;
-  bool _entryLoadingDone = false;
   String? _milestone;
-  Timer? _entryLoadingTimer;
-  Timer? _entryRevealTimer;
   Timer? _milestoneTimer;
   Timer? _proofTimer;
   int _proofIndex = 0;
@@ -80,11 +74,6 @@ class _SwipeScreenState extends ConsumerState<SwipeScreen>
     _proofTimer = Timer.periodic(const Duration(seconds: 8), (_) {
       setState(() => _proofIndex = (_proofIndex + 1) % _proofPoints.length);
     });
-    _entryLoadingTimer = Timer(_entryLoadingDuration, () {
-      if (!mounted) return;
-      setState(() => _entryMinimumElapsed = true);
-      _maybeRevealEntryLoading();
-    });
     // Deep-link safety: make sure a shoot exists to swipe through.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!ref.read(generationControllerProvider).started) {
@@ -96,23 +85,9 @@ class _SwipeScreenState extends ConsumerState<SwipeScreen>
   @override
   void dispose() {
     _release.dispose();
-    _entryLoadingTimer?.cancel();
-    _entryRevealTimer?.cancel();
     _milestoneTimer?.cancel();
     _proofTimer?.cancel();
     super.dispose();
-  }
-
-  void _maybeRevealEntryLoading() {
-    if (_entryLoadingDone ||
-        !_entryMinimumElapsed ||
-        _entryRevealTimer != null) {
-      return;
-    }
-    if (ref.read(generationControllerProvider).readyCount == 0) return;
-    _entryRevealTimer = Timer(_entryCompleteHoldDuration, () {
-      if (mounted) setState(() => _entryLoadingDone = true);
-    });
   }
 
   void _onDecision({required bool saved}) {
@@ -157,7 +132,6 @@ class _SwipeScreenState extends ConsumerState<SwipeScreen>
     final scheme = Theme.of(context).colorScheme;
     final width = MediaQuery.sizeOf(context).width;
     ref.listen(generationControllerProvider, (_, next) {
-      if (next.readyCount > 0) _maybeRevealEntryLoading();
       if (next.shouldOpenPlans && mounted) {
         context.go(AppRoutes.onboardingActivate);
       }
@@ -191,8 +165,7 @@ class _SwipeScreenState extends ConsumerState<SwipeScreen>
 
     final index = swipe.currentIndex.clamp(0, generation.images.length - 1);
     final image = generation.images[index];
-    final entryLoading = !_entryLoadingDone;
-    final waiting = entryLoading || !image.isReady;
+    final waiting = !image.isReady;
     final isFirst = index == 0;
     final loadingProgress = generation.images.isEmpty
         ? 0.0
@@ -206,9 +179,7 @@ class _SwipeScreenState extends ConsumerState<SwipeScreen>
           child: Column(
             children: [
               _TopBar(
-                count: entryLoading
-                    ? '${generation.readyCount} of ${generation.images.length}'
-                    : '${index + 1} of ${generation.images.length}',
+                count: '${index + 1} of ${generation.images.length}',
                 savedCount: swipe.savedCount,
                 milestone: _milestone,
                 muted: _muted,
@@ -219,7 +190,6 @@ class _SwipeScreenState extends ConsumerState<SwipeScreen>
               _Header(
                 isFirst: isFirst,
                 waiting: waiting,
-                entryLoading: entryLoading,
                 scheme: scheme,
               ),
               Expanded(
@@ -414,13 +384,11 @@ class _Header extends StatelessWidget {
   const _Header({
     required this.isFirst,
     required this.waiting,
-    required this.entryLoading,
     required this.scheme,
   });
 
   final bool isFirst;
   final bool waiting;
-  final bool entryLoading;
   final ColorScheme scheme;
 
   @override
@@ -461,11 +429,7 @@ class _Header extends StatelessWidget {
       );
     }
     return Text(
-      entryLoading
-          ? 'Creating your photos...'
-          : waiting
-          ? 'Creating your next photo...'
-          : 'Save or skip',
+      waiting ? 'Creating your next photo...' : 'Save or skip',
       style: TextStyle(
         fontSize: 14,
         height: 1.4,
@@ -534,7 +498,9 @@ class _CardStack extends StatelessWidget {
                 ),
                 child: waiting
                     ? _LiquidFill(
-                        key: ValueKey('liquid-${image.url}'),
+                        key: ValueKey(
+                          'liquid-${image.shot}-${image.variation}',
+                        ),
                         progress: loadingProgress,
                       )
                     : Stack(

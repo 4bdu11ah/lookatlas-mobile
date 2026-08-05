@@ -125,15 +125,6 @@ class _HouseModelController extends Notifier<_HouseModelScreenState> {
       return const Err(ValidationFailure('Another model action is running.'));
     }
     state = state.copyWith(isMutating: true, clearFailure: true);
-    for (final index in [
-      ...input.removedPhotoIndexes,
-    ]..sort((a, b) => b.compareTo(a))) {
-      final removed = await _repository.deletePhoto(model.id, index);
-      if (removed case Err(:final failure)) {
-        state = state.copyWith(isMutating: false, failure: failure);
-        return Err(failure);
-      }
-    }
     return _finishMutation(
       await _repository.updateModel(model.id, input.toDraft()),
     );
@@ -141,6 +132,9 @@ class _HouseModelController extends Notifier<_HouseModelScreenState> {
 
   Future<Result<void>> deleteModel(_HouseModel model) =>
       _mutate(() => _repository.deleteModel(model.id));
+
+  Future<Result<void>> deletePhoto(_HouseModel model, int photoIndex) =>
+      _mutate(() => _repository.deletePhoto(model.id, photoIndex));
 
   Future<Result<void>> addAiModel({
     required _ModelGender gender,

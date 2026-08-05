@@ -168,7 +168,6 @@ class _ModelFormInput {
     required this.gender,
     required this.heightCm,
     required this.photos,
-    this.removedPhotoIndexes = const [],
     this.heightEstimated = false,
   });
 
@@ -176,7 +175,6 @@ class _ModelFormInput {
   final _ModelGender gender;
   final int heightCm;
   final List<HouseModelUpload> photos;
-  final List<int> removedPhotoIndexes;
   final bool heightEstimated;
 
   HouseModelDraft toDraft() => HouseModelDraft(

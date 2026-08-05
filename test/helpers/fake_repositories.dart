@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:typed_data';
 
 import 'package:look_atlas/core/error/failure.dart';
 import 'package:look_atlas/core/result/result.dart';
@@ -7,8 +8,12 @@ import 'package:look_atlas/features/auth/domain/entities/register_attribution.da
 import 'package:look_atlas/features/auth/domain/repositories/auth_repository.dart';
 import 'package:look_atlas/features/dashboard/domain/entities/dashboard_data.dart';
 import 'package:look_atlas/features/dashboard/domain/repositories/dashboard_repository.dart';
+import 'package:look_atlas/features/products/domain/entities/product_catalog.dart';
+import 'package:look_atlas/features/products/domain/repositories/products_repository.dart';
 import 'package:look_atlas/features/subscription/domain/subscription_repository.dart';
 import 'package:look_atlas/features/subscription/domain/subscription_status.dart';
+import 'package:look_atlas/features/workshop/domain/entities/workshop_models.dart';
+import 'package:look_atlas/features/workshop/domain/repositories/workshop_repository.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
 
 class FakeDashboardRepository implements DashboardRepository {
@@ -70,6 +75,200 @@ class FakeDashboardRepository implements DashboardRepository {
   Future<Result<DashboardSubscription>> getSubscription() async =>
       Result.ok(subscription);
 }
+
+class FakeProductsRepository implements ProductsRepository {
+  const FakeProductsRepository({this.products = const []});
+
+  final List<ProductCatalogItem> products;
+
+  @override
+  Future<Result<ProductCatalogPage>> getProducts(ProductQuery query) async =>
+      Result.ok(
+        ProductCatalogPage(
+          products: products,
+          page: 1,
+          limit: 20,
+          total: products.length,
+          totalPages: 1,
+        ),
+      );
+
+  @override
+  Future<Result<Set<String>>> getCalibratedProductIds() async =>
+      const Result.ok({});
+
+  @override
+  Future<Result<void>> createProduct(CatalogProductDraft draft) async =>
+      const Result.ok(null);
+
+  @override
+  Future<Result<void>> updateProduct(
+    String productId,
+    CatalogProductDraft draft,
+  ) async => const Result.ok(null);
+
+  @override
+  Future<Result<void>> updatePhotoAngles(
+    String productId,
+    Map<int, String?> angles,
+  ) async => const Result.ok(null);
+
+  @override
+  Future<Result<void>> deleteProduct(String productId) async =>
+      const Result.ok(null);
+
+  @override
+  Future<Result<void>> deletePhoto(String productId, int photoIndex) async =>
+      const Result.ok(null);
+
+  @override
+  Future<Result<void>> replacePhoto(
+    String productId,
+    String photoId,
+    ProductUpload photo,
+  ) async => const Result.ok(null);
+
+  @override
+  Future<Result<ProductCalibrationWorkspace>> loadCalibration(
+    String productId,
+  ) async => const Result.ok(
+    ProductCalibrationWorkspace(
+      outlines: [],
+      calibration: ProductCalibration(),
+      calibratedProducts: [],
+    ),
+  );
+
+  @override
+  Future<Result<void>> uploadWornPhoto(
+    String productId,
+    ProductUpload photo,
+  ) async => const Result.ok(null);
+
+  @override
+  Future<Result<void>> uploadCutout(
+    String productId,
+    ProductUpload photo,
+  ) async => const Result.ok(null);
+
+  @override
+  Future<Result<void>> saveCalibration(
+    String productId,
+    ProductCalibrationDraft calibration,
+  ) async => const Result.ok(null);
+
+  @override
+  Future<Result<void>> copyCalibration(
+    String targetProductId,
+    String sourceProductId,
+  ) async => const Result.ok(null);
+}
+
+class FakeWorkshopRepository implements WorkshopRepository {
+  FakeWorkshopRepository({
+    this.active,
+    List<WorkshopGeneration> history = const [],
+    this.onLoad,
+    this.onGenerate,
+  }) : history = List.of(history);
+
+  WorkshopGeneration? active;
+  final List<WorkshopGeneration> history;
+  final Future<Result<WorkshopWorkspace>> Function()? onLoad;
+  final Future<Result<WorkshopGeneration>> Function(WorkshopGenerateRequest)?
+  onGenerate;
+  WorkshopGenerateRequest? lastRequest;
+  String? deletedGenerationId;
+  int detailCalls = 0;
+
+  @override
+  Future<Result<WorkshopWorkspace>> load() async {
+    if (onLoad != null) return onLoad!();
+    return Result.ok(
+      WorkshopWorkspace(active: active, history: List.unmodifiable(history)),
+    );
+  }
+
+  @override
+  Future<Result<WorkshopGeneration?>> getActive() async => Result.ok(active);
+
+  @override
+  Future<Result<List<WorkshopGeneration>>> getGenerations() async =>
+      Result.ok(List.unmodifiable(history));
+
+  @override
+  Future<Result<WorkshopGeneration>> generate(
+    WorkshopGenerateRequest request,
+  ) async {
+    lastRequest = request;
+    if (onGenerate != null) return onGenerate!(request);
+    final generation = WorkshopGeneration(
+      id: 'generated-1',
+      status: WorkshopGenerationStatus.completed,
+      prompt: request.prompt,
+      imageUrl: 'https://example.com/generated.jpg',
+      creditCost: 1,
+    );
+    history
+      ..removeWhere((item) => item.id == generation.id)
+      ..insert(0, generation);
+    return Result.ok(generation);
+  }
+
+  @override
+  Future<Result<WorkshopGeneration>> getGeneration(
+    String generationId,
+  ) async {
+    detailCalls++;
+    return Result.ok(
+      history.firstWhere(
+        (generation) => generation.id == generationId,
+        orElse: () => WorkshopGeneration(
+          id: generationId,
+          status: WorkshopGenerationStatus.processing,
+        ),
+      ),
+    );
+  }
+
+  @override
+  Future<Result<void>> deleteGeneration(String generationId) async {
+    deletedGenerationId = generationId;
+    history.removeWhere((generation) => generation.id == generationId);
+    return const Result.ok(null);
+  }
+
+  @override
+  Future<Result<Uint8List>> downloadImage(String imageUrl) async =>
+      Result.ok(Uint8List.fromList(_onePixelPng));
+}
+
+const List<int> _onePixelPng = [
+  0x89,
+  0x50,
+  0x4E,
+  0x47,
+  0x0D,
+  0x0A,
+  0x1A,
+  0x0A,
+  0,
+  0,
+  0,
+  0x0D,
+  0x49,
+  0x48,
+  0x44,
+  0x52,
+  0,
+  0,
+  0,
+  1,
+  0,
+  0,
+  0,
+  1,
+];
 
 /// In-memory [AuthRepository] for widget and router tests: no storage, no
 /// validation, always succeeds. Seed a session via the constructor or the

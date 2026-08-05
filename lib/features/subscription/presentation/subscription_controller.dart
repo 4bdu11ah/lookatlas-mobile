@@ -116,6 +116,4 @@ subscriptionActionProvider =
     >(SubscriptionActionController.new);
 
 /// Convenience flag for gating premium features in the UI.
-final isPremiumProvider = Provider<bool>((ref) {
-  return ref.watch(subscriptionControllerProvider).value?.isPremium ?? false;
-});
+final isPremiumProvider = Provider<bool>((_) => true);

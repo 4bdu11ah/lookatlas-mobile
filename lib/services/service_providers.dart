@@ -7,6 +7,7 @@ import 'package:look_atlas/services/analytics/backend_analytics_service.dart';
 import 'package:look_atlas/services/device/device_info_service.dart';
 import 'package:look_atlas/services/device/device_token_service.dart';
 import 'package:look_atlas/services/external_url_service.dart';
+import 'package:look_atlas/services/image_save_service.dart';
 
 final analyticsServiceProvider = Provider<AnalyticsService>((ref) {
   final backend = BackendAnalyticsService(
@@ -31,4 +32,8 @@ final deviceTokenServiceProvider = Provider<DeviceTokenService>(
 
 final externalUrlServiceProvider = Provider<ExternalUrlService>(
   (ref) => const ExternalUrlService(),
+);
+
+final imageSaveServiceProvider = Provider<ImageSaveService>(
+  (ref) => const ImageSaveService(),
 );

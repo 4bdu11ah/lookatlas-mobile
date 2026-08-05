@@ -8,8 +8,8 @@ import 'package:look_atlas/core/theme/app_typography.dart';
 
 /// Full-screen "starting your shoot" loader (mockup 07): a progress ring with
 /// square stroke caps around a pulsing black square, rotating status messages
-/// and milestone square-bursts at 25/50/75%. Hands off to the generation
-/// grid when it reaches 100%.
+/// and milestone square-bursts at 25/50/75%. Hands off to the swipe deck when
+/// it reaches 100%.
 class StartingShootScreen extends StatefulWidget {
   const StartingShootScreen({super.key});
 
@@ -53,7 +53,7 @@ class _StartingShootScreenState extends State<StartingShootScreen>
 
   void _onStatus(AnimationStatus status) {
     if (status == AnimationStatus.completed && mounted) {
-      context.go(AppRoutes.onboardingGeneration);
+      context.go(AppRoutes.onboardingSwipe);
     }
   }
 
@@ -66,10 +66,10 @@ class _StartingShootScreenState extends State<StartingShootScreen>
 
   (String, String) _messages(int percent) {
     if (percent >= 100) {
-      return ('Shoot started!', 'Redirecting to generation view...');
+      return ('Shoot started!', 'Opening your photos...');
     }
     if (percent >= 90) {
-      return ('Finalizing...', 'Redirecting to generation view');
+      return ('Finalizing...', 'Opening your photos');
     }
     if (percent >= 50) return ('Creating your job...', 'Almost there');
     return ('Starting your shoot...', 'Setting up the AI');

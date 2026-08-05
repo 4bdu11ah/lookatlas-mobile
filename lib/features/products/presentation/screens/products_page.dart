@@ -9,8 +9,9 @@ class _ProductsFeatureScaffold extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     return Scaffold(
       appBar: const CustomAppBar(title: 'Products', showBackButton: true),
-      floatingActionButton: _ProductFab(
-        onTap: () => _showProductFormDialog(context, onToast),
+      floatingActionButton: AppFloatingActionButton(
+        label: 'Add Product',
+        onPressed: () => _showProductFormDialog(context, ref, onToast),
       ),
       body: SafeArea(
         bottom: false,
@@ -19,10 +20,7 @@ class _ProductsFeatureScaffold extends ConsumerWidget {
             constraints: const BoxConstraints(maxWidth: 440),
             child: ColoredBox(
               color: AppColors.white,
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(16, 22, 16, 96),
-                child: _ProductsPage(onToast: onToast),
-              ),
+              child: _ProductsPage(onToast: onToast),
             ),
           ),
         ),
@@ -39,46 +37,168 @@ class _ProductsPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(_productsControllerProvider);
-    final filteredProducts = state.filteredProducts;
-    final visibleProducts = filteredProducts.take(2).toList(growable: false);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        const _ProductPageIntro(),
-        _ProductCategoryBanner(
-          onSetCategories: () => _openCalibration(context, state.products[1]),
-          onDismiss: () => _showProductPaywallDialog(context),
-        ),
-        _ProductFilterBar(
-          query: state.searchQuery,
-          categoryFilter: state.categoryFilter,
-          statusFilter: state.statusFilter,
-          sortOrder: state.sortOrder,
-          visibleCount: visibleProducts.length,
-          totalCount: state.products.length,
-          calibratedCount: state.filteredCalibratedCount,
-        ),
-        const SizedBox(height: 14),
-        if (visibleProducts.isEmpty)
-          _ProductEmptyResults(query: state.searchQuery)
-        else
-          for (final product in visibleProducts) ...[
-            _ProductCard(
-              key: ValueKey('product-card-${product.sku}'),
-              product: product,
-              onEdit: () => _showProductFormDialog(
-                context,
-                onToast,
-                product: product,
-              ),
-              onDelete: () =>
-                  _showProductDeleteDialog(context, product, onToast),
-              onCrop: () => _openCropScreen(context, product),
-              onCalibrate: () => _openCalibration(context, product),
+    final controller = ref.read(_productsControllerProvider.notifier);
+    final uncategorized = state.productsWithoutCategory;
+    if (state.isLoading && state.products.isEmpty) {
+      return const _ProductsLoadingShimmer();
+    }
+    if (state.failure != null && state.products.isEmpty) {
+      return _ProductLoadFailure(
+        message: state.failure!.message,
+        onRetry: controller.reload,
+      );
+    }
+    return CustomScrollView(
+      slivers: [
+        SliverPadding(
+          padding: const EdgeInsets.fromLTRB(16, 22, 16, 0),
+          sliver: SliverToBoxAdapter(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const _ProductPageIntro(),
+                if (uncategorized.isNotEmpty && !state.categoryBannerDismissed)
+                  _ProductCategoryBanner(
+                    count: uncategorized.length,
+                    onSetCategories: () => _showProductFormDialog(
+                      context,
+                      ref,
+                      onToast,
+                      product: uncategorized.first,
+                    ),
+                    onDismiss: controller.dismissCategoryBanner,
+                  ),
+                _ProductFilterBar(
+                  query: state.searchQuery,
+                  categoryFilter: state.categoryFilter,
+                  statusFilter: state.statusFilter,
+                  sortOrder: state.sortOrder,
+                  totalCount: state.totalCount,
+                  calibratedCount: state.calibratedCount,
+                ),
+                if (state.isLoading) ...[
+                  const SizedBox(height: 8),
+                  const LinearProgressIndicator(
+                    minHeight: 2,
+                    color: AppColors.black,
+                    backgroundColor: AppColors.neutral200,
+                  ),
+                ],
+                const SizedBox(height: 14),
+                if (state.products.isEmpty)
+                  _ProductEmptyResults(query: state.searchQuery),
+              ],
             ),
-            const SizedBox(height: 14),
-          ],
+          ),
+        ),
+        if (state.products.isNotEmpty)
+          SliverPadding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            sliver: SliverList.builder(
+              itemCount: state.products.length,
+              itemBuilder: (context, index) {
+                final product = state.products[index];
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 14),
+                  child: _ProductCard(
+                    key: ValueKey('product-card-${product.sku}'),
+                    product: product,
+                    onEdit: () => _showProductFormDialog(
+                      context,
+                      ref,
+                      onToast,
+                      product: product,
+                    ),
+                    onDelete: () => _showProductDeleteDialog(
+                      context,
+                      ref,
+                      product,
+                      onToast,
+                    ),
+                    onReplacePhoto: (photoIndex) => _openReplacePhotoScreen(
+                      context,
+                      ref,
+                      product,
+                      photoIndex,
+                      onToast,
+                    ),
+                    onCalibrate: () =>
+                        _openCalibration(context, ref, product, onToast),
+                  ),
+                );
+              },
+            ),
+          ),
+        if (state.currentPage < state.totalPages)
+          SliverPadding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            sliver: SliverToBoxAdapter(
+              child: AppOutlinedButton(
+                label: state.isLoadingMore ? 'Loading...' : 'Load more',
+                onPressed: state.isLoadingMore ? null : controller.loadNextPage,
+              ),
+            ),
+          ),
+        const SliverToBoxAdapter(child: SizedBox(height: 96)),
       ],
+    );
+  }
+}
+
+class _ProductsLoadingShimmer extends StatelessWidget {
+  const _ProductsLoadingShimmer();
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView.builder(
+      key: const ValueKey('products-loading-shimmer'),
+      padding: const EdgeInsets.fromLTRB(16, 22, 16, 96),
+      itemCount: 3,
+      itemBuilder: (_, index) => Padding(
+        padding: const EdgeInsets.only(bottom: 14),
+        child: _ProductLoadingShimmerCard(
+          key: ValueKey('product-loading-shimmer-card-$index'),
+        ),
+      ),
+    );
+  }
+}
+
+class _ProductLoadingShimmerCard extends StatelessWidget {
+  const _ProductLoadingShimmerCard({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        border: Border.all(color: AppColors.neutral200),
+      ),
+      child: const Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Expanded(child: SizedBox(height: 16, child: ShimmerBox())),
+              SizedBox(width: 32),
+              SizedBox(width: 32),
+            ],
+          ),
+          SizedBox(height: 8),
+          FractionallySizedBox(
+            widthFactor: 0.34,
+            child: SizedBox(height: 12, child: ShimmerBox()),
+          ),
+          SizedBox(height: 12),
+          AspectRatio(aspectRatio: 1, child: ShimmerBox()),
+          SizedBox(height: 11),
+          FractionallySizedBox(
+            widthFactor: 0.25,
+            child: SizedBox(height: 12, child: ShimmerBox()),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -119,10 +239,12 @@ class _ProductPageIntro extends StatelessWidget {
 
 class _ProductCategoryBanner extends StatelessWidget {
   const _ProductCategoryBanner({
+    required this.count,
     required this.onSetCategories,
     required this.onDismiss,
   });
 
+  final int count;
   final VoidCallback onSetCategories;
   final VoidCallback onDismiss;
 
@@ -138,21 +260,25 @@ class _ProductCategoryBanner extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const Text.rich(
+          Text.rich(
             TextSpan(
               children: [
-                TextSpan(
+                const TextSpan(
                   text: 'Tag your products by category',
                   style: TextStyle(fontWeight: AppTypography.bold),
                 ),
-                TextSpan(text: ' to unlock proportion calibration. '),
+                const TextSpan(
+                  text: ' to unlock proportion calibration. ',
+                ),
                 TextSpan(
-                  text: '3 products without a category.',
-                  style: TextStyle(color: AppColors.neutral500),
+                  text:
+                      '$count ${count == 1 ? 'product' : 'products'} '
+                      'without a category.',
+                  style: const TextStyle(color: AppColors.neutral500),
                 ),
               ],
             ),
-            style: TextStyle(fontSize: 13, height: 1.38),
+            style: const TextStyle(fontSize: 13, height: 1.38),
           ),
           const SizedBox(height: 10),
           Row(
@@ -196,7 +322,6 @@ class _ProductFilterBar extends ConsumerWidget {
     required this.categoryFilter,
     required this.statusFilter,
     required this.sortOrder,
-    required this.visibleCount,
     required this.totalCount,
     required this.calibratedCount,
   });
@@ -205,100 +330,211 @@ class _ProductFilterBar extends ConsumerWidget {
   final _ProductCategoryFilter categoryFilter;
   final _ProductStatusFilter statusFilter;
   final _ProductSortOrder sortOrder;
-  final int visibleCount;
   final int totalCount;
   final int calibratedCount;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final activeFilterCount = [
+      categoryFilter != _ProductCategoryFilter.all,
+      statusFilter != _ProductStatusFilter.all,
+      sortOrder != _ProductSortOrder.newest,
+    ].where((active) => active).length;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         _ProductSearchField(query: query),
-        const SizedBox(height: 8),
+        const SizedBox(height: 10),
         Row(
           children: [
             Expanded(
-              child: _ProductFilterDropdown<_ProductCategoryFilter>(
-                key: const ValueKey('product-category-filter'),
-                value: categoryFilter,
-                values: _ProductCategoryFilter.values,
-                labelFor: (value) => value.label,
-                onChanged: ref
-                    .read(_productsControllerProvider.notifier)
-                    .updateCategoryFilter,
-              ),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: _ProductFilterDropdown<_ProductStatusFilter>(
-                key: const ValueKey('product-status-filter'),
-                value: statusFilter,
-                values: _ProductStatusFilter.values,
-                labelFor: (value) => value.label,
-                onChanged: ref
-                    .read(_productsControllerProvider.notifier)
-                    .updateStatusFilter,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 8),
-        Row(
-          children: [
-            Expanded(
-              child: _ProductFilterDropdown<_ProductSortOrder>(
-                key: const ValueKey('product-sort-filter'),
-                value: sortOrder,
-                values: _ProductSortOrder.values,
-                labelFor: (value) => value.label,
-                onChanged: ref
-                    .read(_productsControllerProvider.notifier)
-                    .updateSortOrder,
-              ),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: AppOutlinedButton(
-                label: 'Clear filters',
-                onPressed: () => ref
-                    .read(_productsControllerProvider.notifier)
-                    .clearFilters(),
-                height: 46,
-                borderColor: AppColors.transparent,
-                backgroundColor: AppColors.transparent,
-                textStyle: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: AppTypography.bold,
+              child: Text.rich(
+                TextSpan(
+                  children: [
+                    TextSpan(text: '$totalCount products - '),
+                    TextSpan(
+                      text: '$calibratedCount',
+                      style: const TextStyle(
+                        color: AppColors.successDarker,
+                        fontWeight: AppTypography.bold,
+                      ),
+                    ),
+                    const TextSpan(text: ' calibrated'),
+                  ],
                 ),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 8),
-        Text.rich(
-          TextSpan(
-            children: [
-              TextSpan(text: '$totalCount products - '),
-              TextSpan(
-                text: '$calibratedCount',
                 style: const TextStyle(
-                  color: AppColors.successDarker,
-                  fontWeight: AppTypography.bold,
+                  fontSize: 12,
+                  color: AppColors.neutral500,
                 ),
               ),
-              const TextSpan(text: ' calibrated'),
-            ],
-          ),
-          style: const TextStyle(fontSize: 12, color: AppColors.neutral500),
+            ),
+            AppOutlinedButton(
+              key: const ValueKey('open-product-filter-sheet'),
+              label: activeFilterCount == 0
+                  ? 'Filters'
+                  : 'Filters ($activeFilterCount)',
+              icon: Icons.tune,
+              fitToContent: true,
+              height: 40,
+              onPressed: () => _showProductFilterSheet(context, ref),
+            ),
+          ],
         ),
       ],
     );
   }
 }
 
+class _ProductFilterSheetInitial {
+  const _ProductFilterSheetInitial({
+    required this.category,
+    required this.status,
+    required this.sort,
+  });
+
+  final _ProductCategoryFilter category;
+  final _ProductStatusFilter status;
+  final _ProductSortOrder sort;
+}
+
+class _ProductFilterSheetState {
+  const _ProductFilterSheetState({
+    required this.category,
+    required this.status,
+    required this.sort,
+  });
+
+  final _ProductCategoryFilter category;
+  final _ProductStatusFilter status;
+  final _ProductSortOrder sort;
+
+  _ProductFilterSheetState copyWith({
+    _ProductCategoryFilter? category,
+    _ProductStatusFilter? status,
+    _ProductSortOrder? sort,
+  }) => _ProductFilterSheetState(
+    category: category ?? this.category,
+    status: status ?? this.status,
+    sort: sort ?? this.sort,
+  );
+}
+
+class _ProductFilterSheetController extends Notifier<_ProductFilterSheetState> {
+  _ProductFilterSheetController(this.initial);
+
+  final _ProductFilterSheetInitial initial;
+
+  @override
+  _ProductFilterSheetState build() => _ProductFilterSheetState(
+    category: initial.category,
+    status: initial.status,
+    sort: initial.sort,
+  );
+
+  void setCategory(_ProductCategoryFilter value) =>
+      state = state.copyWith(category: value);
+  void setStatus(_ProductStatusFilter value) =>
+      state = state.copyWith(status: value);
+  void setSort(_ProductSortOrder value) => state = state.copyWith(sort: value);
+}
+
+// Riverpod's family provider type is inferred from the factory.
+// ignore: specify_nonobvious_property_types
+final _productFilterSheetProvider = NotifierProvider.autoDispose
+    .family<
+      _ProductFilterSheetController,
+      _ProductFilterSheetState,
+      _ProductFilterSheetInitial
+    >(_ProductFilterSheetController.new);
+
+Future<void> _showProductFilterSheet(BuildContext context, WidgetRef ref) {
+  final state = ref.read(_productsControllerProvider);
+  final initial = _ProductFilterSheetInitial(
+    category: state.categoryFilter,
+    status: state.statusFilter,
+    sort: state.sortOrder,
+  );
+  return showModalBottomSheet<void>(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: AppColors.white,
+    shape: const RoundedRectangleBorder(),
+    builder: (_) => _ProductFilterSheet(initial: initial),
+  );
+}
+
+class _ProductFilterSheet extends ConsumerWidget {
+  const _ProductFilterSheet({required this.initial});
+
+  final _ProductFilterSheetInitial initial;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final state = ref.watch(_productFilterSheetProvider(initial));
+    final controller = ref.read(_productFilterSheetProvider(initial).notifier);
+    return _SheetFrame(
+      title: 'Filter products',
+      actions: [
+        AppOutlinedButton(
+          label: 'Clear',
+
+          onPressed: () {
+            ref.read(_productsControllerProvider.notifier).clearFilters();
+            Navigator.pop(context);
+          },
+        ),
+        PrimaryButton(
+          label: 'Show products',
+          onPressed: () {
+            ref
+                .read(_productsControllerProvider.notifier)
+                .applyFilters(
+                  category: state.category,
+                  status: state.status,
+                  sort: state.sort,
+                );
+            Navigator.pop(context);
+          },
+        ),
+      ],
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _ProductFilterDropdown<_ProductCategoryFilter>(
+            key: const ValueKey('product-category-filter'),
+            label: 'Category',
+            value: state.category,
+            values: _ProductCategoryFilter.values,
+            labelFor: (value) => value.label,
+            onChanged: controller.setCategory,
+          ),
+          const SizedBox(height: 20),
+          _ProductFilterDropdown<_ProductStatusFilter>(
+            key: const ValueKey('product-status-filter'),
+            label: 'Calibration',
+            value: state.status,
+            values: _ProductStatusFilter.values,
+            labelFor: (value) => value.label,
+            onChanged: controller.setStatus,
+          ),
+          const SizedBox(height: 20),
+          _ProductFilterDropdown<_ProductSortOrder>(
+            key: const ValueKey('product-sort-filter'),
+            label: 'Sort by',
+            value: state.sort,
+            values: _ProductSortOrder.values,
+            labelFor: (value) => value.label,
+            onChanged: controller.setSort,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _ProductFilterDropdown<T> extends StatelessWidget {
   const _ProductFilterDropdown({
+    required this.label,
     required this.value,
     required this.values,
     required this.labelFor,
@@ -311,6 +547,7 @@ class _ProductFilterDropdown<T> extends StatelessWidget {
     horizontalPadding: 10,
   );
 
+  final String label;
   final T value;
   final List<T> values;
   final String Function(T value) labelFor;
@@ -318,12 +555,26 @@ class _ProductFilterDropdown<T> extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return AppDropdown<T>(
-      value: value,
-      values: values,
-      labelFor: labelFor,
-      onChanged: onChanged,
-      config: _config,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 13,
+            fontWeight: AppTypography.bold,
+            color: AppColors.black,
+          ),
+        ),
+        const SizedBox(height: 8),
+        AppDropdown<T>(
+          value: value,
+          values: values,
+          labelFor: labelFor,
+          onChanged: onChanged,
+          config: _config,
+        ),
+      ],
     );
   }
 }
@@ -433,12 +684,41 @@ class _ProductEmptyResults extends StatelessWidget {
   }
 }
 
+class _ProductLoadFailure extends StatelessWidget {
+  const _ProductLoadFailure({required this.message, required this.onRetry});
+
+  final String message;
+  final Future<void> Function() onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 90),
+      child: Column(
+        children: [
+          const Icon(Icons.error_outline, size: 32),
+          const SizedBox(height: 10),
+          Text(message, textAlign: TextAlign.center),
+          const SizedBox(height: 14),
+          PrimaryButton(
+            label: 'Try again',
+            onPressed: onRetry,
+            fitToContent: true,
+            backgroundColor: AppColors.black,
+            foregroundColor: AppColors.white,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _ProductCard extends StatefulWidget {
   const _ProductCard({
     required this.product,
     required this.onEdit,
     required this.onDelete,
-    required this.onCrop,
+    required this.onReplacePhoto,
     required this.onCalibrate,
     super.key,
   });
@@ -446,7 +726,7 @@ class _ProductCard extends StatefulWidget {
   final _Product product;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
-  final VoidCallback onCrop;
+  final ValueChanged<int> onReplacePhoto;
   final VoidCallback onCalibrate;
 
   @override
@@ -482,7 +762,9 @@ class _ProductCardState extends State<_ProductCard> {
   @override
   Widget build(BuildContext context) {
     final product = widget.product;
-    final photoAssets = product.photoAssets;
+    final photoAssets = product.photoAssets.isEmpty
+        ? const ['']
+        : product.photoAssets;
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
@@ -544,8 +826,8 @@ class _ProductCardState extends State<_ProductCard> {
           ),
           const SizedBox(height: 12),
           GestureDetector(
-            key: ValueKey('crop-product-${product.sku}'),
-            onTap: widget.onCrop,
+            key: ValueKey('replace-product-photo-${product.sku}'),
+            onTap: () => widget.onReplacePhoto(_photoIndex),
             child: AspectRatio(
               aspectRatio: 1,
               child: Container(
@@ -707,78 +989,180 @@ class _ProductDot extends StatelessWidget {
   }
 }
 
-class _ProductFab extends StatelessWidget {
-  const _ProductFab({required this.onTap});
+Future<ProductUpload?> _pickProductPhoto(
+  BuildContext context,
+  WidgetRef ref, {
+  required String title,
+}) async {
+  final photos = await _pickProductPhotos(
+    context,
+    ref,
+    remaining: 1,
+    title: title,
+  );
+  return photos.firstOrNull;
+}
 
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: AppColors.black,
-      elevation: 10,
-      borderRadius: BorderRadius.circular(999),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(999),
-        onTap: onTap,
-        child: Container(
-          height: 56,
-          padding: const EdgeInsets.symmetric(horizontal: 24),
-          child: const Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(Icons.add, size: 16, color: AppColors.white),
-              SizedBox(width: 8),
-              Text(
-                'Add Product',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: AppTypography.bold,
-                  color: AppColors.white,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
+Future<List<ProductUpload>> _pickProductPhotos(
+  BuildContext context,
+  WidgetRef ref, {
+  required int remaining,
+  required String title,
+}) async {
+  if (remaining <= 0) {
+    AppSnackBar.show(context, 'You can upload up to 5 photos.');
+    return const [];
+  }
+  final source = await showImageSourceSheet(context, title: title);
+  if (source == null || !context.mounted) return const [];
+  try {
+    final picker = ref.read(imagePickerProvider);
+    final files = source == ImageSource.camera
+        ? [
+            ?await picker.pickImage(
+              source: source,
+              maxWidth: 1600,
+              imageQuality: 85,
+            ),
+          ]
+        : await picker.pickMultiImage(
+            maxWidth: 1600,
+            imageQuality: 85,
+            limit: remaining,
+          );
+    final uploads = <ProductUpload>[];
+    for (final file in files.take(remaining)) {
+      final bytes = await file.readAsBytes();
+      if (bytes.lengthInBytes > 10 * 1024 * 1024) {
+        if (context.mounted) {
+          AppSnackBar.showError(context, '${file.name} is larger than 10MB.');
+        }
+        continue;
+      }
+      uploads.add(ProductUpload(bytes: bytes, fileName: file.name));
+    }
+    return uploads;
+  } on Exception {
+    if (context.mounted) {
+      AppSnackBar.showError(
+        context,
+        'Could not open your camera or photo library.',
+      );
+    }
+    return const [];
   }
 }
 
 Future<void> _showProductFormDialog(
   BuildContext context,
+  WidgetRef ref,
   ValueChanged<String> onToast, {
   _Product? product,
 }) {
   return showAppDialog<void>(
     context: context,
+    title: product == null ? 'Add New Product' : 'Edit Product',
+    subtitle: product == null
+        ? 'Add a new product to your catalog'
+        : 'Edit product details',
+    icon: product == null ? Icons.add : Icons.edit_outlined,
+    iconBackgroundColor: product == null
+        ? AppColors.black
+        : AppColors.neutral800,
     builder: (context) => _ProductFormDialog(
       product: product,
-      onSubmit: () {
-        Navigator.pop(context);
-        onToast(product == null ? 'Product added' : 'Product updated');
+      onDeletePhoto: (photoIndex) => _showProductDeletePhotoDialog(
+        context,
+        ref,
+        product!,
+        photoIndex,
+        onToast,
+      ),
+      onReplacePhoto: (photo) async {
+        final replacement = await _pickProductPhoto(
+          context,
+          ref,
+          title: 'Replace product photo',
+        );
+        if (replacement == null || !context.mounted) return false;
+        final result = await ref
+            .read(_productsControllerProvider.notifier)
+            .replacePhoto(product!, photo, replacement);
+        if (!context.mounted) return false;
+        final failure = result.failureOrNull;
+        if (failure != null) {
+          AppSnackBar.showError(context, failure.message);
+          return false;
+        }
+        onToast('Photo replaced');
+        return true;
       },
-      onDeletePhoto: () => _showProductDeletePhotoDialog(context, onToast),
+    ),
+    footer: Consumer(
+      builder: (context, ref, _) {
+        final form = ref.watch(_productFormProvider(product));
+        return AppDialogActionFooter(
+          primaryButtonKey: const ValueKey('submit-product-form'),
+          primaryLabel: product == null ? 'Add Product' : 'Update Product',
+          primaryIcon: Icons.check,
+          primaryDisabled: !form.isValid,
+          isLoading: form.isSubmitting,
+          onCancel: () => Navigator.pop(context),
+          onPrimary: () async {
+            final result = await ref
+                .read(_productFormProvider(product).notifier)
+                .submit(product);
+            if (!context.mounted || result == null) return;
+            final failure = result.failureOrNull;
+            if (failure != null) {
+              AppSnackBar.showError(context, failure.message);
+              return;
+            }
+            Navigator.pop(context);
+            onToast(product == null ? 'Product added' : 'Product updated');
+          },
+        );
+      },
     ),
   );
 }
 
 Future<void> _showProductDeleteDialog(
   BuildContext context,
+  WidgetRef ref,
   _Product product,
   ValueChanged<String> onToast,
 ) {
   return showAppDialog<void>(
     context: context,
     config: AppDialogConfig.standard.copyWith(maxHeightOffset: 80),
-    builder: (context) => _ProductConfirmDialog(
-      icon: Icons.delete_outline,
-      title: 'Delete Product',
-      subtitle: 'This action cannot be undone',
-      body:
-          'Are you sure you want to permanently delete this product? All associated photos and data will be removed from the system.',
-      actionLabel: 'Delete Product',
-      onConfirm: () {
+    title: 'Delete Product',
+    subtitle: 'This action cannot be undone',
+    icon: Icons.delete_outline,
+    iconBackgroundColor: AppColors.dangerDark,
+    builder: (context) => const Padding(
+      padding: EdgeInsets.fromLTRB(22, 24, 22, 24),
+      child: Text(
+        'Are you sure you want to permanently delete this product? All associated photos and data will be removed from the system.',
+        style: TextStyle(fontSize: 14, height: 1.55),
+      ),
+    ),
+
+    footer: AppDialogActionFooter(
+      primaryLabel: 'Delete Product',
+      primaryIcon: Icons.delete_outline,
+      danger: true,
+      onCancel: () => Navigator.pop(context),
+      onPrimary: () async {
+        final result = await ref
+            .read(_productsControllerProvider.notifier)
+            .deleteProduct(product);
+        if (!context.mounted) return;
+        final failure = result.failureOrNull;
+        if (failure != null) {
+          AppSnackBar.showError(context, failure.message);
+          return;
+        }
         Navigator.pop(context);
         onToast('${product.name} deleted');
       },
@@ -786,144 +1170,247 @@ Future<void> _showProductDeleteDialog(
   );
 }
 
-Future<void> _showProductDeletePhotoDialog(
+Future<bool> _showProductDeletePhotoDialog(
   BuildContext context,
+  WidgetRef ref,
+  _Product product,
+  int photoIndex,
   ValueChanged<String> onToast,
-) {
-  return showAppDialog<void>(
+) async {
+  final deleted = await showAppDialog<bool>(
     context: context,
     config: AppDialogConfig.standard.copyWith(maxHeightOffset: 80),
-    builder: (context) => _ProductConfirmDialog(
-      icon: Icons.photo_camera_outlined,
-      title: 'Delete Photo',
-      subtitle: 'This action cannot be undone',
-      body:
-          'Are you sure you want to permanently delete this photo from the product? This action cannot be undone.',
-      actionLabel: 'Delete Photo',
-      onConfirm: () {
-        Navigator.pop(context);
+    title: 'Delete Photo',
+    subtitle: 'This action cannot be undone',
+    icon: Icons.photo_camera_outlined,
+    iconBackgroundColor: AppColors.dangerDark,
+    builder: (context) => const Padding(
+      padding: EdgeInsets.fromLTRB(22, 24, 22, 24),
+      child: Text(
+        'Are you sure you want to permanently delete this photo from the product? This action cannot be undone.',
+        style: TextStyle(fontSize: 14, height: 1.55),
+      ),
+    ),
+
+    footer: AppDialogActionFooter(
+      primaryLabel: 'Delete Photo',
+      primaryIcon: Icons.photo_camera_outlined,
+      danger: true,
+      onCancel: () => Navigator.pop(context, false),
+      onPrimary: () async {
+        final result = await ref
+            .read(_productsControllerProvider.notifier)
+            .deletePhoto(product, photoIndex);
+        if (!context.mounted) return;
+        final failure = result.failureOrNull;
+        if (failure != null) {
+          AppSnackBar.showError(context, failure.message);
+          return;
+        }
+        Navigator.pop(context, true);
         onToast('Photo deleted');
       },
     ),
   );
+  return deleted ?? false;
 }
 
-Future<void> _showProductPaywallDialog(BuildContext context) {
-  return showAppDialog<void>(
-    context: context,
-    config: AppDialogConfig.standard.copyWith(maxHeightOffset: 80),
-    builder: (context) => const _ProductPaywallDialog(),
+class _ProductFormState {
+  const _ProductFormState({
+    this.productId,
+    this.name = '',
+    this.sku = '',
+    this.description = '',
+    this.category = 'Tops',
+    this.subtype = 'Crossbody',
+    this.existingPhotos = const [],
+    this.newPhotos = const [],
+    this.removedPhotoIndexes = const {},
+    this.angles = const {},
+    this.newAngles = const {},
+    this.isSubmitting = false,
+  });
+
+  final String? productId;
+  final String name;
+  final String sku;
+  final String description;
+  final String category;
+  final String subtype;
+  final List<ProductPhoto> existingPhotos;
+  final List<ProductUpload> newPhotos;
+  final Set<int> removedPhotoIndexes;
+  final Map<int, String?> angles;
+  final Map<int, String?> newAngles;
+  final bool isSubmitting;
+
+  List<(int, ProductPhoto)> get visibleExistingPhotos => [
+    for (final (index, photo) in existingPhotos.indexed)
+      if (!removedPhotoIndexes.contains(index)) (index, photo),
+  ];
+  int get photoCount => visibleExistingPhotos.length + newPhotos.length;
+  bool get isValid =>
+      name.trim().isNotEmpty && sku.trim().isNotEmpty && photoCount > 0;
+
+  _ProductFormState copyWith({
+    String? name,
+    String? sku,
+    String? description,
+    String? category,
+    String? subtype,
+    List<ProductPhoto>? existingPhotos,
+    List<ProductUpload>? newPhotos,
+    Set<int>? removedPhotoIndexes,
+    Map<int, String?>? angles,
+    Map<int, String?>? newAngles,
+    bool? isSubmitting,
+  }) => _ProductFormState(
+    productId: productId,
+    name: name ?? this.name,
+    sku: sku ?? this.sku,
+    description: description ?? this.description,
+    category: category ?? this.category,
+    subtype: subtype ?? this.subtype,
+    existingPhotos: existingPhotos ?? this.existingPhotos,
+    newPhotos: newPhotos ?? this.newPhotos,
+    removedPhotoIndexes: removedPhotoIndexes ?? this.removedPhotoIndexes,
+    angles: angles ?? this.angles,
+    newAngles: newAngles ?? this.newAngles,
+    isSubmitting: isSubmitting ?? this.isSubmitting,
   );
 }
 
-class _ProductDialogHeader extends StatelessWidget {
-  const _ProductDialogHeader({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-    this.danger = false,
-  });
+class _ProductFormController extends Notifier<_ProductFormState> {
+  _ProductFormController(this.product);
 
-  final IconData icon;
-  final String title;
-  final String subtitle;
-  final bool danger;
+  final _Product? product;
 
   @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: const BoxDecoration(
-        border: Border(bottom: BorderSide(color: AppColors.neutral200)),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 48,
-            height: 48,
-            alignment: Alignment.center,
-            color: danger ? AppColors.dangerDark : AppColors.black,
-            child: Icon(icon, size: 26, color: AppColors.white),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: TextStyle(
-                    fontSize: danger ? 16 : 22,
-                    height: 1.06,
-                    fontWeight: FontWeight.w900,
-                    color: AppColors.black,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  subtitle,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontSize: 13,
-                    height: 1.3,
-                    color: AppColors.neutral500,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          _ProductMiniIcon(
-            icon: Icons.close,
-            onTap: () => Navigator.pop(context),
-          ),
-        ],
-      ),
+  _ProductFormState build() => _ProductFormState(
+    productId: product?.id,
+    name: product?.name ?? '',
+    sku: product?.sku ?? '',
+    description: product?.description ?? '',
+    category: product?.category ?? 'Tops',
+    subtype: product?.subtype ?? 'Crossbody',
+    existingPhotos: product?.productPhotos ?? const [],
+    angles: {
+      for (final (index, photo) in (product?.productPhotos ?? const []).indexed)
+        index: photo.viewAngle,
+    },
+  );
+
+  void setName(String value) => state = state.copyWith(name: value);
+  void setSku(String value) => state = state.copyWith(sku: value);
+  void setDescription(String value) =>
+      state = state.copyWith(description: value);
+  void setCategory(String value) => state = state.copyWith(category: value);
+  void setSubtype(String value) => state = state.copyWith(subtype: value);
+  void addPhotos(List<ProductUpload> photos) =>
+      state = state.copyWith(newPhotos: [...state.newPhotos, ...photos]);
+  void clearNewPhotos() => state = state.copyWith(newPhotos: const []);
+  void removeExistingPhoto(int index) => state = state.copyWith(
+    removedPhotoIndexes: {...state.removedPhotoIndexes, index},
+  );
+  void setAngle(int index, String? value) =>
+      state = state.copyWith(angles: {...state.angles, index: value});
+  void setNewAngle(int index, String? value) =>
+      state = state.copyWith(newAngles: {...state.newAngles, index: value});
+
+  Future<Result<void>?> submit(_Product? product) async {
+    if (state.isSubmitting || !state.isValid) return null;
+    state = state.copyWith(isSubmitting: true);
+    final existing = state.visibleExistingPhotos;
+    final draft = CatalogProductDraft(
+      name: state.name.trim(),
+      sku: state.sku.trim(),
+      description: state.description.trim(),
+      category: state.category,
+      subCategory: state.category == 'Bags' ? state.subtype : '',
+      photos: state.newPhotos,
+      viewAngles: {
+        for (final (displayIndex, photo) in existing.indexed)
+          displayIndex: state.angles[photo.$1],
+        for (final (index, _) in state.newPhotos.indexed)
+          existing.length + index: state.newAngles[index],
+      },
     );
+    final products = ref.read(_productsControllerProvider.notifier);
+    final result = product == null
+        ? await products.createProduct(draft)
+        : await products.updateProduct(product, draft);
+    if (!result.isOk) state = state.copyWith(isSubmitting: false);
+    return result;
   }
 }
 
-class _ProductFormDialog extends StatefulWidget {
+// Riverpod's family provider type is inferred from the factory.
+// ignore: specify_nonobvious_property_types
+final _productFormProvider = NotifierProvider.autoDispose
+    .family<_ProductFormController, _ProductFormState, _Product?>(
+      _ProductFormController.new,
+    );
+
+class _ProductFormDialog extends ConsumerStatefulWidget {
   const _ProductFormDialog({
-    required this.onSubmit,
     required this.onDeletePhoto,
+    required this.onReplacePhoto,
     this.product,
   });
 
   final _Product? product;
-  final VoidCallback onSubmit;
-  final VoidCallback onDeletePhoto;
+  final Future<bool> Function(int photoIndex) onDeletePhoto;
+  final Future<bool> Function(ProductPhoto photo) onReplacePhoto;
 
   @override
-  State<_ProductFormDialog> createState() => _ProductFormDialogState();
+  ConsumerState<_ProductFormDialog> createState() => _ProductFormDialogState();
 }
 
-class _ProductFormDialogState extends State<_ProductFormDialog> {
+class _ProductFormDialogState extends ConsumerState<_ProductFormDialog> {
   late final TextEditingController _nameController;
   late final TextEditingController _skuController;
   late final TextEditingController _descriptionController;
-  String _category = 'Tops';
-  String _subtype = 'Crossbody';
-  int _photoCount = 0;
 
-  bool get _editing => widget.product != null;
+  NotifierProvider<_ProductFormController, _ProductFormState>
+  get _formProvider => _productFormProvider(widget.product);
 
   @override
   void initState() {
     super.initState();
-    final product = widget.product;
-    _nameController = TextEditingController(
-      text: product?.name ?? 'Classic Cotton T-Shirt',
+    final form = ref.read(_formProvider);
+    _nameController = TextEditingController(text: form.name)
+      ..addListener(
+        () => ref.read(_formProvider.notifier).setName(_nameController.text),
+      );
+    _skuController = TextEditingController(text: form.sku)
+      ..addListener(
+        () => ref.read(_formProvider.notifier).setSku(_skuController.text),
+      );
+    _descriptionController = TextEditingController(text: form.description)
+      ..addListener(
+        () => ref
+            .read(_formProvider.notifier)
+            .setDescription(_descriptionController.text),
+      );
+  }
+
+  Future<void> _pickPhotos() async {
+    final uploads = await _pickProductPhotos(
+      context,
+      ref,
+      remaining: 5 - ref.read(_formProvider).photoCount,
+      title: 'Add product photos',
     );
-    _skuController = TextEditingController(text: product?.sku ?? 'TSH-001');
-    _descriptionController = TextEditingController(
-      text: product == null
-          ? 'Heavyweight cotton tee with ribbed crew neck and relaxed fit.'
-          : '',
-    );
-    _category = product?.category ?? 'Tops';
-    _subtype = product?.subtype ?? 'Crossbody';
-    _photoCount = product == null ? 0 : product.photos.clamp(0, 5);
+    if (mounted && uploads.isNotEmpty) {
+      ref.read(_formProvider.notifier).addPhotos(uploads);
+    }
+  }
+
+  Future<void> _deletePhoto(int originalIndex) async {
+    final deleted = await widget.onDeletePhoto(originalIndex);
+    if (mounted && deleted) {
+      ref.read(_formProvider.notifier).removeExistingPhoto(originalIndex);
+    }
   }
 
   @override
@@ -936,118 +1423,129 @@ class _ProductFormDialogState extends State<_ProductFormDialog> {
 
   @override
   Widget build(BuildContext context) {
-    final categoryNeedsSubtype = _category == 'Bags';
-    return Column(
-      children: [
-        _ProductDialogHeader(
-          icon: _editing ? Icons.edit_outlined : Icons.inventory_2_outlined,
-          title: _editing ? 'Edit Product' : 'Add New Product',
-          subtitle: _editing
-              ? 'Update photos and details for ${widget.product!.name}'
-              : 'Upload photos and details for your product',
-        ),
-        Expanded(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(20, 18, 20, 18),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                _ProductField(
-                  label: 'Product Name',
-                  required: true,
-                  child: AppTextField(controller: _nameController),
-                ),
-                _ProductField(
-                  label: 'SKU',
-                  required: !_editing,
-                  note: _editing ? 'cannot be changed' : null,
-                  child: AppTextField(controller: _skuController),
-                ),
-                _ProductField(
-                  label: 'Category',
-                  required: true,
-                  helper:
-                      'Proportions matter for this category. Calibrate after saving for sharper results.',
-                  child: AppDropdown<String>(
-                    value: _category,
-                    values: const ['Tops', 'Bags', 'Jewelry', 'Dresses'],
-                    labelFor: (value) => value,
-                    onChanged: (value) => setState(() => _category = value),
-                  ),
-                ),
-                if (categoryNeedsSubtype)
-                  _ProductField(
-                    label: 'Sub-type',
-                    note: 'helps the AI place the product correctly',
-                    child: _SubtypeRow(
-                      value: _subtype,
-                      onChanged: (value) => setState(() => _subtype = value),
-                    ),
-                  ),
-                if (_editing)
-                  const _ProductIdCard()
-                else
-                  _ProductField(
-                    label: 'Description',
-                    note: 'optional',
-                    child: AppTextField(
-                      controller: _descriptionController,
-                      minLines: 4,
-                      maxLines: 5,
-                    ),
-                  ),
-                if (_photoCount == 0)
-                  _ProductField(
-                    label: 'Product Photos',
-                    required: true,
-                    trailing: '0/5',
-                    child: _ProductUploadBox(
-                      label: 'Click to upload photos',
-                      copy: 'or drag and drop\nPNG, JPG up to 10MB each',
-                      onTap: () => setState(() {
-                        _category = 'Bags';
-                        _photoCount = 3;
-                      }),
-                    ),
-                  )
-                else ...[
-                  _PhotoStrip(
-                    title: _editing ? 'Current Photos' : '3 photos selected',
-                    countLabel: _editing ? '3 existing' : null,
-                    clearLabel: _editing ? null : 'Clear all',
-                    product: widget.product ?? _products[1],
-                    onDeletePhoto: widget.onDeletePhoto,
-                  ),
-                  if (_editing)
-                    _ProductField(
-                      label: 'Add New Photos',
-                      trailing: '4/5 total',
-                      child: _ProductUploadBox(
-                        label: 'Click to add more photos',
-                        copy: 'PNG, JPG up to 10MB each',
-                        compact: true,
-                        onTap: () {},
-                      ),
-                    ),
-                ],
-                if (!_editing && _photoCount == 0)
-                  const _ProductTip(
-                    title: 'Pro Tip',
-                    copy:
-                        'Upload 3-5 photos showing different angles for best AI results.',
-                  ),
-              ],
+    final form = ref.watch(_formProvider);
+    final editing = widget.product != null;
+    final categoryNeedsSubtype = form.category == 'Bags';
+    return SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(20, 18, 20, 18),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _ProductField(
+            label: 'Product Name',
+            required: true,
+            child: AppTextField(
+              controller: _nameController,
             ),
           ),
-        ),
-        _ProductDialogFooter(
-          primaryLabel: _editing ? 'Update Product' : 'Add Product',
-          primaryIcon: Icons.check,
-          primaryDisabled: !_editing && _photoCount == 0,
-          onCancel: () => Navigator.pop(context),
-          onPrimary: widget.onSubmit,
-        ),
-      ],
+          _ProductField(
+            label: 'SKU',
+            required: !editing,
+            note: editing ? 'cannot be changed' : null,
+            child: IgnorePointer(
+              ignoring: editing,
+              child: AppTextField(
+                controller: _skuController,
+              ),
+            ),
+          ),
+          _ProductField(
+            label: 'Category',
+            required: true,
+            helper:
+                'Proportions matter for this category. Calibrate after saving for sharper results.',
+            child: AppDropdown<String>(
+              value: form.category,
+              values: const [
+                'Tops',
+                'Dresses',
+                'Outerwear',
+                'Bottoms',
+                'Bags',
+                'Shoes',
+                'Jewelry',
+                'Eyewear',
+                'Watches',
+                'Accessories',
+                'Other',
+              ],
+              labelFor: (value) => value,
+              onChanged: ref.read(_formProvider.notifier).setCategory,
+            ),
+          ),
+          if (categoryNeedsSubtype)
+            _ProductField(
+              label: 'Sub-type',
+              note: 'helps the AI place the product correctly',
+              child: _SubtypeRow(
+                value: form.subtype,
+                onChanged: ref.read(_formProvider.notifier).setSubtype,
+              ),
+            ),
+          if (editing) _ProductIdCard(widget.product!.id),
+          _ProductField(
+            label: 'Description',
+            note: 'optional',
+            child: AppTextField(
+              controller: _descriptionController,
+              minLines: 4,
+              maxLines: 5,
+            ),
+          ),
+          if (form.photoCount == 0)
+            _ProductField(
+              label: 'Product Photos',
+              required: true,
+              trailing: '${form.photoCount}/5',
+              child: _ProductUploadBox(
+                label: 'Click to upload photos',
+                copy: 'or drag and drop\nPNG, JPG up to 10MB each',
+                onTap: _pickPhotos,
+              ),
+            )
+          else ...[
+            _PhotoStrip(
+              title: editing
+                  ? 'Current Photos'
+                  : '${form.photoCount} photos selected',
+              countLabel: editing
+                  ? '${form.visibleExistingPhotos.length} existing'
+                  : null,
+              clearLabel: editing ? null : 'Clear all',
+              existingPhotos: form.visibleExistingPhotos,
+              newPhotos: form.newPhotos,
+              angles: form.angles,
+              newAngles: form.newAngles,
+              onAngleChanged: (index, angle) =>
+                  ref.read(_formProvider.notifier).setAngle(index, angle),
+              onNewAngleChanged: (index, angle) =>
+                  ref.read(_formProvider.notifier).setNewAngle(index, angle),
+              onDeletePhoto: _deletePhoto,
+              onReplacePhoto: widget.onReplacePhoto,
+              onClear: editing
+                  ? null
+                  : ref.read(_formProvider.notifier).clearNewPhotos,
+            ),
+            if (editing)
+              _ProductField(
+                label: 'Add New Photos',
+                trailing: '${form.photoCount}/5 total',
+                child: _ProductUploadBox(
+                  label: 'Click to add more photos',
+                  copy: 'PNG, JPG up to 10MB each',
+                  compact: true,
+                  onTap: _pickPhotos,
+                ),
+              ),
+          ],
+          if (!editing && form.photoCount == 0)
+            const _ProductTip(
+              title: 'Pro Tip',
+              copy:
+                  'Upload 3-5 photos showing different angles for best AI results.',
+            ),
+        ],
+      ),
     );
   }
 }
@@ -1249,8 +1747,15 @@ class _ProductUploadBox extends StatelessWidget {
 class _PhotoStrip extends StatelessWidget {
   const _PhotoStrip({
     required this.title,
-    required this.product,
+    required this.existingPhotos,
+    required this.newPhotos,
+    required this.angles,
+    required this.newAngles,
     required this.onDeletePhoto,
+    required this.onReplacePhoto,
+    required this.onAngleChanged,
+    required this.onNewAngleChanged,
+    this.onClear,
     this.countLabel,
     this.clearLabel,
   });
@@ -1258,8 +1763,15 @@ class _PhotoStrip extends StatelessWidget {
   final String title;
   final String? countLabel;
   final String? clearLabel;
-  final _Product product;
-  final VoidCallback onDeletePhoto;
+  final List<(int, ProductPhoto)> existingPhotos;
+  final List<ProductUpload> newPhotos;
+  final Map<int, String?> angles;
+  final Map<int, String?> newAngles;
+  final ValueChanged<int> onDeletePhoto;
+  final Future<bool> Function(ProductPhoto photo) onReplacePhoto;
+  final void Function(int index, String? angle) onAngleChanged;
+  final void Function(int index, String? angle) onNewAngleChanged;
+  final VoidCallback? onClear;
 
   @override
   Widget build(BuildContext context) {
@@ -1292,12 +1804,15 @@ class _PhotoStrip extends StatelessWidget {
                   ),
                 ),
               if (clearLabel != null)
-                Text(
-                  clearLabel!,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    fontWeight: AppTypography.semiBold,
-                    color: AppColors.neutral500,
+                InkWell(
+                  onTap: onClear,
+                  child: Text(
+                    clearLabel!,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: AppTypography.semiBold,
+                      color: AppColors.neutral500,
+                    ),
                   ),
                 ),
             ],
@@ -1307,13 +1822,28 @@ class _PhotoStrip extends StatelessWidget {
             height: 182,
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
-              itemCount: 3,
+              itemCount: existingPhotos.length + newPhotos.length,
               separatorBuilder: (_, _) => const SizedBox(width: 12),
               itemBuilder: (context, index) {
+                if (index >= existingPhotos.length) {
+                  final upload = newPhotos[index - existingPhotos.length];
+                  return _ProductThumb(
+                    displayIndex: index,
+                    upload: upload,
+                    isNew: true,
+                    angle: newAngles[index - existingPhotos.length],
+                    onAngleChanged: (angle) =>
+                        onNewAngleChanged(index - existingPhotos.length, angle),
+                  );
+                }
+                final existing = existingPhotos[index];
                 return _ProductThumb(
-                  product: product,
-                  index: index + 1,
-                  onDelete: index == 0 ? onDeletePhoto : null,
+                  displayIndex: index,
+                  url: existing.$2.url,
+                  angle: angles[existing.$1],
+                  onAngleChanged: (angle) => onAngleChanged(existing.$1, angle),
+                  onReplace: () => onReplacePhoto(existing.$2),
+                  onDelete: () => onDeletePhoto(existing.$1),
                 );
               },
             ),
@@ -1326,22 +1856,27 @@ class _PhotoStrip extends StatelessWidget {
 
 class _ProductThumb extends StatelessWidget {
   const _ProductThumb({
-    required this.product,
-    required this.index,
+    required this.displayIndex,
+    required this.angle,
+    required this.onAngleChanged,
+    this.url,
+    this.upload,
+    this.isNew = false,
+    this.onReplace,
     this.onDelete,
   });
 
-  final _Product product;
-  final int index;
+  final int displayIndex;
+  final String? url;
+  final ProductUpload? upload;
+  final bool isNew;
+  final String? angle;
+  final ValueChanged<String?> onAngleChanged;
+  final VoidCallback? onReplace;
   final VoidCallback? onDelete;
 
   @override
   Widget build(BuildContext context) {
-    final label = switch (index) {
-      1 => 'Front',
-      2 => 'Side',
-      _ => 'Custom...',
-    };
     return SizedBox(
       width: 96,
       child: Column(
@@ -1354,15 +1889,19 @@ class _ProductThumb extends StatelessWidget {
                   decoration: BoxDecoration(
                     border: Border.all(color: AppColors.neutral200),
                   ),
-                  child: _AssetImage(
-                    index == 2 ? '$_img/showcase-bag-after.jpg' : product.asset,
+                  child: upload == null
+                      ? _AssetImage(url ?? '')
+                      : AppImage.memory(upload!.bytes, fit: BoxFit.cover),
+                ),
+                if (onReplace != null)
+                  Positioned(
+                    top: 5,
+                    left: 5,
+                    child: _ThumbAction(
+                      icon: Icons.edit_outlined,
+                      onTap: onReplace!,
+                    ),
                   ),
-                ),
-                Positioned(
-                  top: 5,
-                  left: 5,
-                  child: _ThumbAction(icon: Icons.edit_outlined, onTap: () {}),
-                ),
                 if (onDelete != null)
                   Positioned(
                     top: 5,
@@ -1375,12 +1914,12 @@ class _ProductThumb extends StatelessWidget {
                   bottom: 0,
                   child: Container(
                     height: 25,
-                    color: index == 3
+                    color: isNew
                         ? AppColors.successDarker
                         : AppColors.blackAlpha90,
                     alignment: Alignment.center,
                     child: Text(
-                      index == 3 ? 'New' : '$index',
+                      isNew ? 'New' : '${displayIndex + 1}',
                       style: const TextStyle(
                         fontSize: 12,
                         fontWeight: AppTypography.bold,
@@ -1393,7 +1932,10 @@ class _ProductThumb extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 8),
-          _MiniSelect(label),
+          _MiniSelect(
+            angle ?? '',
+            onChanged: onAngleChanged,
+          ),
         ],
       ),
     );
@@ -1421,45 +1963,36 @@ class _ThumbAction extends StatelessWidget {
 }
 
 class _MiniSelect extends StatelessWidget {
-  const _MiniSelect(this.label);
+  const _MiniSelect(this.value, {required this.onChanged});
 
-  final String label;
+  final String value;
+  final ValueChanged<String?> onChanged;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    const values = ['', 'front', 'back', 'side', 'detail', 'top'];
+    return SizedBox(
       height: 32,
-      padding: const EdgeInsets.symmetric(horizontal: 8),
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        border: Border.all(color: AppColors.neutral200),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Text(
-              label,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                fontSize: 12,
-                fontWeight: AppTypography.medium,
-              ),
-            ),
-          ),
-          const Icon(
-            Icons.keyboard_arrow_down,
-            size: 13,
-            color: AppColors.neutral500,
-          ),
-        ],
+      child: AppDropdown<String>(
+        value: values.contains(value) ? value : '',
+        values: values,
+        labelFor: (angle) => angle.isEmpty
+            ? 'Choose angle'
+            : '${angle[0].toUpperCase()}${angle.substring(1)}',
+        onChanged: (angle) => onChanged(angle.isEmpty ? null : angle),
+        config: const AppDropdownConfig(
+          height: 32,
+          horizontalPadding: 7,
+        ),
       ),
     );
   }
 }
 
 class _ProductIdCard extends StatelessWidget {
-  const _ProductIdCard();
+  const _ProductIdCard(this.id);
+
+  final String id;
 
   @override
   Widget build(BuildContext context) {
@@ -1470,17 +2003,17 @@ class _ProductIdCard extends StatelessWidget {
         color: AppColors.neutral100,
         border: Border(left: BorderSide(color: AppColors.black, width: 4)),
       ),
-      child: const Column(
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
+          const Text(
             'Product ID',
             style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900),
           ),
-          SizedBox(height: 4),
+          const SizedBox(height: 4),
           Text(
-            'prod_82BAG391',
-            style: TextStyle(fontSize: 11, color: AppColors.neutral500),
+            id,
+            style: const TextStyle(fontSize: 11, color: AppColors.neutral500),
           ),
         ],
       ),
@@ -1524,242 +2057,134 @@ class _ProductTip extends StatelessWidget {
   }
 }
 
-class _ProductDialogFooter extends StatelessWidget {
-  const _ProductDialogFooter({
-    required this.primaryLabel,
-    required this.onCancel,
-    required this.onPrimary,
-    this.primaryIcon,
-    this.primaryDisabled = false,
-    this.danger = false,
-  });
-
-  final String primaryLabel;
-  final IconData? primaryIcon;
-  final VoidCallback onCancel;
-  final VoidCallback onPrimary;
-  final bool primaryDisabled;
-  final bool danger;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
-      decoration: const BoxDecoration(
-        color: AppColors.neutral100,
-        border: Border(top: BorderSide(color: AppColors.neutral200)),
-      ),
-      child: Column(
-        children: [
-          AppOutlinedButton(
-            label: 'Cancel',
-            onPressed: onCancel,
-            borderColor: AppColors.black,
-          ),
-          const SizedBox(height: 12),
-          Opacity(
-            opacity: primaryDisabled ? 0.48 : 1,
-            child: PrimaryButton(
-              label: primaryLabel,
-              icon: primaryIcon,
-              onPressed: primaryDisabled ? () {} : onPrimary,
-              backgroundColor: danger ? AppColors.dangerDark : AppColors.black,
-              foregroundColor: AppColors.white,
-              iconSize: 16,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ProductConfirmDialog extends StatelessWidget {
-  const _ProductConfirmDialog({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-    required this.body,
-    required this.actionLabel,
-    required this.onConfirm,
-  });
-
-  final IconData icon;
-  final String title;
-  final String subtitle;
-  final String body;
-  final String actionLabel;
-  final VoidCallback onConfirm;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        _ProductDialogHeader(
-          icon: icon,
-          title: title,
-          subtitle: subtitle,
-          danger: true,
-        ),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(22, 24, 22, 24),
-          child: Text(
-            body,
-            style: const TextStyle(fontSize: 14, height: 1.55),
-          ),
-        ),
-        _ProductDialogFooter(
-          primaryLabel: actionLabel,
-          primaryIcon: Icons.delete_outline,
-          danger: true,
-          onCancel: () => Navigator.pop(context),
-          onPrimary: onConfirm,
-        ),
-      ],
-    );
-  }
-}
-
-class _ProductPaywallDialog extends StatelessWidget {
-  const _ProductPaywallDialog();
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(20),
-      child: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Row(
-              children: [
-                Container(
-                  width: 48,
-                  height: 48,
-                  color: AppColors.black,
-                  child: const Icon(
-                    Icons.lock_outline,
-                    color: AppColors.white,
-                    size: 26,
-                  ),
-                ),
-                const Spacer(),
-                _ProductMiniIcon(
-                  icon: Icons.close,
-                  onTap: () => Navigator.pop(context),
-                ),
-              ],
-            ),
-            const SizedBox(height: 14),
-            const Text(
-              'Add products. Keep shooting.',
-              style: TextStyle(
-                fontSize: 24,
-                height: 1.08,
-                fontWeight: FontWeight.w900,
-              ),
-            ),
-            const SizedBox(height: 14),
-            const Text(
-              r'Upload your catalog and run a shoot whenever you are ready. Starter is $49/mo for 80 photos, Pro is $99/mo for 200 photos plus AI video.',
-              style: TextStyle(
-                fontSize: 14,
-                height: 1.45,
-                color: AppColors.neutral500,
-              ),
-            ),
-            const SizedBox(height: 14),
-            const _ProductBullet('Up to 200 photos a month on Pro'),
-            const _ProductBullet('AI video on Pro and Business'),
-            const _ProductBullet('Cancel anytime, one tap'),
-            const SizedBox(height: 14),
-            PrimaryButton(
-              label: 'View plans',
-              onPressed: () => Navigator.pop(context),
-              height: 46,
-              backgroundColor: AppColors.black,
-              foregroundColor: AppColors.white,
-              textStyle: const TextStyle(
-                fontSize: 14,
-                fontWeight: AppTypography.bold,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _ProductBullet extends StatelessWidget {
-  const _ProductBullet(this.text);
-
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 9),
-      child: Row(
-        children: [
-          const Icon(Icons.check, size: 16, color: AppColors.black),
-          const SizedBox(width: 9),
-          Expanded(
-            child: Text(
-              text,
-              style: const TextStyle(fontSize: 13, height: 1.35),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-void _openCropScreen(BuildContext context, _Product product) {
+void _openReplacePhotoScreen(
+  BuildContext context,
+  WidgetRef ref,
+  _Product product,
+  int photoIndex,
+  ValueChanged<String> onToast,
+) {
   unawaited(
     Navigator.of(context).push(
       MaterialPageRoute<void>(
         fullscreenDialog: true,
-        builder: (_) => _ProductCropScreen(product: product),
+        builder: (_) => _ProductPhotoReplaceScreen(
+          product: product,
+          photoIndex: photoIndex,
+          onReplace: (replacement) async {
+            if (product.productPhotos.isEmpty) {
+              return const Err(
+                ValidationFailure('This product has no photo to replace.'),
+              );
+            }
+            final index = photoIndex.clamp(0, product.productPhotos.length - 1);
+            final result = await ref
+                .read(_productsControllerProvider.notifier)
+                .replacePhoto(
+                  product,
+                  product.productPhotos[index],
+                  replacement,
+                );
+            if (result.isOk) onToast('Photo replaced');
+            return result;
+          },
+        ),
       ),
     ),
   );
 }
 
-void _openCalibration(BuildContext context, _Product product) {
+void _openCalibration(
+  BuildContext context,
+  WidgetRef ref,
+  _Product product,
+  ValueChanged<String> onToast,
+) {
   unawaited(
     Navigator.of(context).push(
       MaterialPageRoute<void>(
         fullscreenDialog: true,
-        builder: (_) => _ProductCalibrationScreen(product: product),
+        builder: (_) => _ProductCalibrationScreen(
+          product: product,
+          repository: ref.read(productsRepositoryProvider),
+          onSaved: () {
+            unawaited(
+              ref.read(_productsControllerProvider.notifier).reload(),
+            );
+            onToast('Calibration saved');
+          },
+        ),
       ),
     ),
   );
 }
 
-class _ProductCropScreen extends StatelessWidget {
-  const _ProductCropScreen({required this.product});
+class _ProductPhotoReplaceScreen extends ConsumerStatefulWidget {
+  const _ProductPhotoReplaceScreen({
+    required this.product,
+    required this.photoIndex,
+    required this.onReplace,
+  });
 
   final _Product product;
+  final int photoIndex;
+  final Future<Result<void>> Function(ProductUpload replacement) onReplace;
+
+  @override
+  ConsumerState<_ProductPhotoReplaceScreen> createState() =>
+      _ProductPhotoReplaceScreenState();
+}
+
+class _ProductPhotoReplaceScreenState
+    extends ConsumerState<_ProductPhotoReplaceScreen> {
+  ProductUpload? _replacement;
+  var _isSaving = false;
+
+  Future<void> _chooseReplacement() async {
+    final replacement = await _pickProductPhoto(
+      context,
+      ref,
+      title: 'Choose replacement photo',
+    );
+    if (mounted && replacement != null) {
+      setState(() => _replacement = replacement);
+    }
+  }
+
+  Future<void> _save() async {
+    final replacement = _replacement;
+    if (replacement == null || _isSaving) return;
+    setState(() => _isSaving = true);
+    final result = await widget.onReplace(replacement);
+    if (!mounted) return;
+    final failure = result.failureOrNull;
+    if (failure != null) {
+      setState(() => _isSaving = false);
+      AppSnackBar.showError(context, failure.message);
+      return;
+    }
+    Navigator.pop(context);
+  }
 
   @override
   Widget build(BuildContext context) {
+    final assets = widget.product.photoAssets;
+    final currentAsset = assets.isEmpty
+        ? ''
+        : assets[widget.photoIndex.clamp(0, assets.length - 1)];
     return Scaffold(
       backgroundColor: AppColors.white,
       body: SafeArea(
         child: Column(
           children: [
             _ProductFlowHeader(
-              title: 'Crop photo',
+              title: 'Replace photo',
               subtitle:
-                  'Drag the corners or edges to crop. Click inside the crop area and drag to move it.',
+                  'Choose a replacement photo, then save it to this product.',
               action: AppOutlinedButton(
-                label: 'Reset',
-                icon: Icons.refresh,
-                onPressed: () {},
+                label: 'Choose photo',
+                icon: Icons.photo_library_outlined,
+                onPressed: _chooseReplacement,
                 fitToContent: true,
                 height: 34,
                 borderColor: AppColors.transparent,
@@ -1776,33 +2201,22 @@ class _ProductCropScreen extends StatelessWidget {
                 color: AppColors.black,
                 padding: const EdgeInsets.all(18),
                 alignment: Alignment.center,
-                child: Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    SizedBox(
-                      width: 284,
-                      height: 420,
-                      child: Opacity(
-                        opacity: 0.84,
-                        child: _AssetImage(product.asset),
-                      ),
-                    ),
-                    Container(
-                      width: 216,
-                      height: 318,
-                      decoration: BoxDecoration(
-                        border: Border.all(color: AppColors.white, width: 2),
-                      ),
-                      child: CustomPaint(painter: _CropGridPainter()),
-                    ),
-                  ],
+                child: SizedBox(
+                  width: 284,
+                  height: 420,
+                  child: _replacement == null
+                      ? _AssetImage(currentAsset)
+                      : AppImage.memory(
+                          _replacement!.bytes,
+                          fit: BoxFit.cover,
+                        ),
                 ),
               ),
             ),
             _ProductFlowFooter(
-              primaryLabel: 'Save crop',
+              primaryLabel: 'Save replacement',
               onBack: () => Navigator.pop(context),
-              onPrimary: () => Navigator.pop(context),
+              onPrimary: _replacement == null || _isSaving ? null : _save,
             ),
           ],
         ),
@@ -1811,24 +2225,42 @@ class _ProductCropScreen extends StatelessWidget {
   }
 }
 
-class _ProductCalibrationScreen extends StatefulWidget {
-  const _ProductCalibrationScreen({required this.product});
+class _ProductCalibrationScreen extends ConsumerStatefulWidget {
+  const _ProductCalibrationScreen({
+    required this.product,
+    required this.repository,
+    required this.onSaved,
+  });
 
   final _Product product;
+  final ProductsRepository repository;
+  final VoidCallback onSaved;
 
   @override
-  State<_ProductCalibrationScreen> createState() =>
+  ConsumerState<_ProductCalibrationScreen> createState() =>
       _ProductCalibrationScreenState();
 }
 
-class _ProductCalibrationScreenState extends State<_ProductCalibrationScreen> {
+class _ProductCalibrationScreenState
+    extends ConsumerState<_ProductCalibrationScreen> {
   _CalibrationStep _step = _CalibrationStep.method;
-  final TextEditingController _notesController = TextEditingController(
-    text: 'Medium crossbody, 28 cm wide, canvas strap worn across chest.',
-  );
-  final TextEditingController _searchController = TextEditingController(
-    text: 'bag',
-  );
+  final TextEditingController _notesController = TextEditingController();
+  final TextEditingController _searchController = TextEditingController();
+  ProductCalibrationWorkspace? _workspace;
+  Failure? _failure;
+  var _bodyArea = 'full_body_front';
+  var _isLoading = true;
+  var _isMutating = false;
+  ProductUpload? _cutout;
+  var _placementX = 0.5;
+  var _placementY = 0.56;
+  var _placementScale = 1.0;
+
+  @override
+  void initState() {
+    super.initState();
+    unawaited(_load());
+  }
 
   @override
   void dispose() {
@@ -1839,8 +2271,164 @@ class _ProductCalibrationScreenState extends State<_ProductCalibrationScreen> {
 
   void _go(_CalibrationStep step) => setState(() => _step = step);
 
+  Future<void> _load() async {
+    setState(() {
+      _isLoading = true;
+      _failure = null;
+    });
+    final result = await widget.repository.loadCalibration(widget.product.id);
+    if (!mounted) return;
+    switch (result) {
+      case Ok(:final value):
+        _workspace = value;
+        _bodyArea = value.calibration.bodyArea ?? _bodyArea;
+        _notesController.text = value.calibration.userNotes ?? '';
+        final placement = value.calibration.cutoutPlacement;
+        _placementX = _placementValue(placement['x'], _placementX);
+        _placementY = _placementValue(placement['y'], _placementY);
+        _placementScale = _placementValue(
+          placement['scale'],
+          _placementScale,
+        );
+        setState(() => _isLoading = false);
+      case Err(:final failure):
+        setState(() {
+          _isLoading = false;
+          _failure = failure;
+        });
+    }
+  }
+
+  Future<ProductUpload?> _pickUpload(String title) =>
+      _pickProductPhoto(context, ref, title: title);
+
+  static double _placementValue(Object? value, double fallback) =>
+      value is num ? value.toDouble() : fallback;
+
+  void _updatePlacement(double x, double y, double scale) {
+    setState(() {
+      _placementX = x.clamp(0.1, 0.9);
+      _placementY = y.clamp(0.1, 0.9);
+      _placementScale = scale.clamp(0.5, 2);
+    });
+  }
+
+  Future<void> _uploadCutout() async {
+    final upload = await _pickUpload('Choose transparent product cutout');
+    if (upload == null || !mounted) return;
+    setState(() {
+      _cutout = upload;
+      _isMutating = true;
+      _step = _CalibrationStep.removingBackground;
+    });
+    final result = await widget.repository.uploadCutout(
+      widget.product.id,
+      upload,
+    );
+    if (!mounted) return;
+    final failure = result.failureOrNull;
+    if (failure != null) {
+      setState(() {
+        _isMutating = false;
+        _failure = failure;
+        _step = _CalibrationStep.pickPhoto;
+      });
+      AppSnackBar.showError(context, failure.message);
+      return;
+    }
+    setState(() {
+      _isMutating = false;
+      _step = _CalibrationStep.confirmCutout;
+    });
+  }
+
+  Future<void> _uploadWornPhoto() async {
+    final upload = await _pickUpload('Upload worn product photo');
+    if (upload == null || !mounted) return;
+    setState(() => _isMutating = true);
+    final result = await widget.repository.uploadWornPhoto(
+      widget.product.id,
+      upload,
+    );
+    if (!mounted) return;
+    setState(() => _isMutating = false);
+    final failure = result.failureOrNull;
+    if (failure != null) {
+      AppSnackBar.showError(context, failure.message);
+      return;
+    }
+    widget.onSaved();
+    Navigator.pop(context);
+  }
+
+  Future<void> _save() async {
+    if (_isMutating) return;
+    setState(() => _isMutating = true);
+    final result = await widget.repository.saveCalibration(
+      widget.product.id,
+      ProductCalibrationDraft(
+        bodyArea: _bodyArea,
+        shapes: const [],
+        userNotes: _notesController.text.trim(),
+        cutoutPlacement: {
+          'x': _placementX,
+          'y': _placementY,
+          'scale': _placementScale,
+        },
+      ),
+    );
+    if (!mounted) return;
+    setState(() => _isMutating = false);
+    final failure = result.failureOrNull;
+    if (failure != null) {
+      AppSnackBar.showError(context, failure.message);
+      return;
+    }
+    widget.onSaved();
+    Navigator.pop(context);
+  }
+
+  Future<void> _copyFrom(ProductCatalogItem source) async {
+    if (_isMutating) return;
+    setState(() => _isMutating = true);
+    final result = await widget.repository.copyCalibration(
+      widget.product.id,
+      source.id,
+    );
+    if (!mounted) return;
+    setState(() => _isMutating = false);
+    final failure = result.failureOrNull;
+    if (failure != null) {
+      AppSnackBar.showError(context, failure.message);
+      return;
+    }
+    widget.onSaved();
+    Navigator.pop(context);
+  }
+
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Scaffold(
+        body: SafeArea(
+          child: Center(
+            child: BarSpinner(size: 32, color: AppColors.black),
+          ),
+        ),
+      );
+    }
+    if (_workspace == null) {
+      return Scaffold(
+        appBar: const CustomAppBar(
+          title: 'Set real-world size',
+          showBackButton: true,
+        ),
+        body: _ProductLoadFailure(
+          message: _failure?.message ?? 'Could not load calibration.',
+          onRetry: _load,
+        ),
+      );
+    }
     final content = switch (_step) {
       _CalibrationStep.method => _CalibrationMethodStep(
         onBody: () => _go(_CalibrationStep.bodyView),
@@ -1848,39 +2436,60 @@ class _ProductCalibrationScreenState extends State<_ProductCalibrationScreen> {
         onCopy: () => _go(_CalibrationStep.copyFrom),
       ),
       _CalibrationStep.bodyView => _CalibrationBodyStep(
+        outlines: _workspace!.outlines,
+        selectedBodyArea: _bodyArea,
+        onSelected: (value) => setState(() => _bodyArea = value),
         onBack: () => _go(_CalibrationStep.method),
         onNext: () => _go(_CalibrationStep.pickPhoto),
       ),
       _CalibrationStep.pickPhoto => _CalibrationPickPhotoStep(
         product: widget.product,
         onBack: () => _go(_CalibrationStep.bodyView),
-        onNext: () => _go(_CalibrationStep.removingBackground),
+        onNext: _uploadCutout,
       ),
       _CalibrationStep.removingBackground => _CalibrationProgressStep(
         onBack: () => _go(_CalibrationStep.pickPhoto),
-        onNext: () => _go(_CalibrationStep.confirmCutout),
       ),
       _CalibrationStep.confirmCutout => _CalibrationConfirmCutoutStep(
         product: widget.product,
+        cutout: _cutout,
         onBack: () => _go(_CalibrationStep.pickPhoto),
         onNext: () => _go(_CalibrationStep.placeProduct),
       ),
       _CalibrationStep.placeProduct => _CalibrationPlaceStep(
         product: widget.product,
+        cutout: _cutout,
+        placementX: _placementX,
+        placementY: _placementY,
+        placementScale: _placementScale,
+        onPlacementChanged: _updatePlacement,
         onBack: () => _go(_CalibrationStep.confirmCutout),
         onNext: () => _go(_CalibrationStep.review),
       ),
       _CalibrationStep.review => _CalibrationReviewStep(
         product: widget.product,
+        cutout: _cutout,
+        placementX: _placementX,
+        placementY: _placementY,
+        placementScale: _placementScale,
         notesController: _notesController,
         onBack: () => _go(_CalibrationStep.placeProduct),
+        onSave: _save,
+        isSaving: _isMutating,
       ),
       _CalibrationStep.wornPhoto => _CalibrationWornStep(
         onBack: () => _go(_CalibrationStep.method),
+        onUpload: _uploadWornPhoto,
+        isUploading: _isMutating,
       ),
       _CalibrationStep.copyFrom => _CalibrationCopyStep(
         searchController: _searchController,
         onBack: () => _go(_CalibrationStep.method),
+        products: _workspace!.calibratedProducts
+            .where((product) => product.id != widget.product.id)
+            .toList(growable: false),
+        onCopy: _copyFrom,
+        isCopying: _isMutating,
       ),
     };
     return Scaffold(
@@ -2157,13 +2766,36 @@ class _MethodCard extends StatelessWidget {
 }
 
 class _CalibrationBodyStep extends StatelessWidget {
-  const _CalibrationBodyStep({required this.onBack, required this.onNext});
+  const _CalibrationBodyStep({
+    required this.outlines,
+    required this.selectedBodyArea,
+    required this.onSelected,
+    required this.onBack,
+    required this.onNext,
+  });
 
+  final List<CalibrationOutline> outlines;
+  final String selectedBodyArea;
+  final ValueChanged<String> onSelected;
   final VoidCallback onBack;
   final VoidCallback onNext;
 
   @override
   Widget build(BuildContext context) {
+    final views = outlines.isEmpty
+        ? const [
+            CalibrationOutline(
+              id: 'full_body_front',
+              name: 'Full Body Front',
+            ),
+            CalibrationOutline(id: 'hand_side', name: 'Hand Side'),
+            CalibrationOutline(
+              id: 'full_body_side',
+              name: 'Full Body Side',
+            ),
+            CalibrationOutline(id: 'waist_front', name: 'Waist Front'),
+          ]
+        : outlines;
     return Column(
       children: [
         const _StepIndicator(current: 'Step 1', label: '3: View'),
@@ -2179,35 +2811,26 @@ class _CalibrationBodyStep extends StatelessWidget {
                       'We have pre-selected the view that usually fits this category. Tap any other one to change it.',
                 ),
                 const SizedBox(height: 14),
-                GridView.count(
-                  crossAxisCount: 2,
-                  crossAxisSpacing: 10,
-                  mainAxisSpacing: 10,
+                GridView.builder(
+                  itemCount: views.length,
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
-                  childAspectRatio: 0.58,
-                  children: const [
-                    _BodyTile(
-                      'Full Body Front',
-                      'Clothing, bags, dresses',
-                      active: true,
-                    ),
-                    _BodyTile(
-                      'Hand Side',
-                      'Rings, bracelets, gloves',
-                      active: false,
-                    ),
-                    _BodyTile(
-                      'Full Body Side',
-                      'Crossbody, shoulder bags',
-                      active: false,
-                    ),
-                    _BodyTile(
-                      'Waist Front',
-                      'Belts, waist bags',
-                      active: false,
-                    ),
-                  ],
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 2,
+                    crossAxisSpacing: 10,
+                    mainAxisSpacing: 10,
+                    childAspectRatio: 0.58,
+                  ),
+                  itemBuilder: (context, index) {
+                    final view = views[index];
+                    return _BodyTile(
+                      view.name,
+                      'Tap to use this body view',
+                      active: selectedBodyArea == view.id,
+                      imageUrl: view.imageUrl,
+                      onTap: () => onSelected(view.id),
+                    );
+                  },
                 ),
                 const SizedBox(height: 12),
                 const Text(
@@ -2230,47 +2853,65 @@ class _CalibrationBodyStep extends StatelessWidget {
 }
 
 class _BodyTile extends StatelessWidget {
-  const _BodyTile(this.title, this.subtitle, {required this.active});
+  const _BodyTile(
+    this.title,
+    this.subtitle, {
+    required this.active,
+    required this.onTap,
+    this.imageUrl,
+  });
 
   final String title;
   final String subtitle;
   final bool active;
+  final VoidCallback onTap;
+  final String? imageUrl;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(9),
-      decoration: BoxDecoration(
-        color: active ? AppColors.neutral100 : AppColors.white,
-        border: Border.all(
-          color: active ? AppColors.black : AppColors.neutral200,
-          width: 2,
+    return InkWell(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(9),
+        decoration: BoxDecoration(
+          color: active ? AppColors.neutral100 : AppColors.white,
+          border: Border.all(
+            color: active ? AppColors.black : AppColors.neutral200,
+            width: 2,
+          ),
         ),
-      ),
-      child: Column(
-        children: [
-          if (active)
-            const Align(
-              alignment: Alignment.centerLeft,
-              child: _ProductPill.dark('Recommended'),
+        child: Column(
+          children: [
+            if (active)
+              const Align(
+                alignment: Alignment.centerLeft,
+                child: _ProductPill.dark('Selected'),
+              ),
+            Expanded(
+              child: imageUrl == null
+                  ? CustomPaint(painter: _BodyOutlinePainter())
+                  : AppImage(imageUrl!),
             ),
-          Expanded(child: CustomPaint(painter: _BodyOutlinePainter())),
-          Text(
-            title,
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w800,
+            Text(
+              title,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w800,
+              ),
             ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            subtitle,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(fontSize: 10, color: AppColors.neutral500),
-          ),
-        ],
+            const SizedBox(height: 4),
+            Text(
+              subtitle,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                fontSize: 10,
+                color: AppColors.neutral500,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -2299,9 +2940,9 @@ class _CalibrationPickPhotoStep extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const _SectionCopy(
-                  title: 'Pick a product photo',
+                  title: 'Upload a transparent product cutout',
                   copy:
-                      'We will remove its background in your browser, then you place the cutout on the body outline.',
+                      'Choose a PNG cutout with the background already removed, then place it on the body outline.',
                 ),
                 const SizedBox(height: 14),
                 Row(
@@ -2364,7 +3005,7 @@ class _CalibrationPickPhotoStep extends StatelessWidget {
                                 asset: '$_img/showcase-bag-after.jpg',
                                 label: 'Side',
                               ),
-                              const _UploadTile(),
+                              _UploadTile(onTap: onNext),
                             ],
                           ),
                         ],
@@ -2383,13 +3024,9 @@ class _CalibrationPickPhotoStep extends StatelessWidget {
 }
 
 class _CalibrationProgressStep extends StatelessWidget {
-  const _CalibrationProgressStep({
-    required this.onBack,
-    required this.onNext,
-  });
+  const _CalibrationProgressStep({required this.onBack});
 
   final VoidCallback onBack;
-  final VoidCallback onNext;
 
   @override
   Widget build(BuildContext context) {
@@ -2408,50 +3045,28 @@ class _CalibrationProgressStep extends StatelessWidget {
                       'One-time model download on first use, then it is near-instant.',
                 ),
                 const SizedBox(height: 18),
-                InkWell(
-                  onTap: onNext,
-                  child: Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 22,
-                      vertical: 30,
-                    ),
-                    decoration: BoxDecoration(
-                      color: AppColors.neutral100Alpha68,
-                      border: Border.all(color: AppColors.neutral200),
-                    ),
-                    child: Column(
-                      children: [
-                        const SizedBox(
-                          width: 28,
-                          height: 28,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 3,
-                            color: AppColors.black,
-                            backgroundColor: AppColors.neutral200,
-                          ),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 22,
+                    vertical: 30,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppColors.neutral100Alpha68,
+                    border: Border.all(color: AppColors.neutral200),
+                  ),
+                  child: const Column(
+                    children: [
+                      BarSpinner(size: 28, color: AppColors.black),
+                      SizedBox(height: 12),
+                      Text(
+                        'Uploading cutout',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: AppColors.neutral500,
                         ),
-                        const SizedBox(height: 12),
-                        Container(
-                          width: 240,
-                          height: 7,
-                          alignment: Alignment.centerLeft,
-                          color: AppColors.neutral100,
-                          child: const FractionallySizedBox(
-                            widthFactor: 0.68,
-                            child: ColoredBox(color: AppColors.black),
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        const Text(
-                          '68%',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: AppColors.neutral500,
-                          ),
-                        ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
                 ),
               ],
@@ -2467,11 +3082,13 @@ class _CalibrationProgressStep extends StatelessWidget {
 class _CalibrationConfirmCutoutStep extends StatelessWidget {
   const _CalibrationConfirmCutoutStep({
     required this.product,
+    required this.cutout,
     required this.onBack,
     required this.onNext,
   });
 
   final _Product product;
+  final ProductUpload? cutout;
   final VoidCallback onBack;
   final VoidCallback onNext;
 
@@ -2492,7 +3109,7 @@ class _CalibrationConfirmCutoutStep extends StatelessWidget {
                       'Edges do not need to be perfect. This is used as a size reference only.',
                 ),
                 const SizedBox(height: 14),
-                _CheckerBox(asset: product.asset),
+                _CheckerBox(asset: product.asset, upload: cutout),
                 const SizedBox(height: 12),
                 Wrap(
                   spacing: 8,
@@ -2539,11 +3156,21 @@ class _CalibrationConfirmCutoutStep extends StatelessWidget {
 class _CalibrationPlaceStep extends StatelessWidget {
   const _CalibrationPlaceStep({
     required this.product,
+    required this.cutout,
+    required this.placementX,
+    required this.placementY,
+    required this.placementScale,
+    required this.onPlacementChanged,
     required this.onBack,
     required this.onNext,
   });
 
   final _Product product;
+  final ProductUpload? cutout;
+  final double placementX;
+  final double placementY;
+  final double placementScale;
+  final void Function(double x, double y, double scale) onPlacementChanged;
   final VoidCallback onBack;
   final VoidCallback onNext;
 
@@ -2561,15 +3188,34 @@ class _CalibrationPlaceStep extends StatelessWidget {
                 const _SectionCopy(
                   title: 'Set the size on the body',
                   copy:
-                      'Drag to reposition, pull a corner to resize. Match the real-world size of the product compared to the body.',
+                      'Drag to reposition, then use the zoom controls to resize. Match the real-world size of the product compared to the body.',
                 ),
                 const SizedBox(height: 12),
-                const Align(
+                Align(
                   alignment: Alignment.centerRight,
-                  child: _ZoomControl(),
+                  child: _ZoomControl(
+                    onZoomOut: () => onPlacementChanged(
+                      placementX,
+                      placementY,
+                      placementScale - 0.1,
+                    ),
+                    onReset: () => onPlacementChanged(0.5, 0.56, 1),
+                    onZoomIn: () => onPlacementChanged(
+                      placementX,
+                      placementY,
+                      placementScale + 0.1,
+                    ),
+                  ),
                 ),
                 const SizedBox(height: 8),
-                _PlacementCanvas(product: product),
+                _PlacementCanvas(
+                  product: product,
+                  cutout: cutout,
+                  placementX: placementX,
+                  placementY: placementY,
+                  placementScale: placementScale,
+                  onPlacementChanged: onPlacementChanged,
+                ),
                 const SizedBox(height: 10),
                 const Text.rich(
                   TextSpan(
@@ -2622,13 +3268,25 @@ class _CalibrationPlaceStep extends StatelessWidget {
 class _CalibrationReviewStep extends StatelessWidget {
   const _CalibrationReviewStep({
     required this.product,
+    required this.cutout,
+    required this.placementX,
+    required this.placementY,
+    required this.placementScale,
     required this.notesController,
     required this.onBack,
+    required this.onSave,
+    required this.isSaving,
   });
 
   final _Product product;
+  final ProductUpload? cutout;
+  final double placementX;
+  final double placementY;
+  final double placementScale;
   final TextEditingController notesController;
   final VoidCallback onBack;
+  final VoidCallback onSave;
+  final bool isSaving;
 
   @override
   Widget build(BuildContext context) {
@@ -2649,7 +3307,13 @@ class _CalibrationReviewStep extends StatelessWidget {
                 const SizedBox(height: 14),
                 SizedBox(
                   height: 300,
-                  child: _PlacementCanvas(product: product),
+                  child: _PlacementCanvas(
+                    product: product,
+                    cutout: cutout,
+                    placementX: placementX,
+                    placementY: placementY,
+                    placementScale: placementScale,
+                  ),
                 ),
                 const SizedBox(height: 14),
                 const Text(
@@ -2679,8 +3343,8 @@ class _CalibrationReviewStep extends StatelessWidget {
         ),
         _ProductFlowFooter(
           onBack: onBack,
-          primaryLabel: 'Save calibration',
-          onPrimary: () => Navigator.pop(context),
+          primaryLabel: isSaving ? 'Saving...' : 'Save calibration',
+          onPrimary: isSaving ? null : onSave,
         ),
       ],
     );
@@ -2688,9 +3352,15 @@ class _CalibrationReviewStep extends StatelessWidget {
 }
 
 class _CalibrationWornStep extends StatelessWidget {
-  const _CalibrationWornStep({required this.onBack});
+  const _CalibrationWornStep({
+    required this.onBack,
+    required this.onUpload,
+    required this.isUploading,
+  });
 
   final VoidCallback onBack;
+  final VoidCallback onUpload;
+  final bool isUploading;
 
   @override
   Widget build(BuildContext context) {
@@ -2709,40 +3379,51 @@ class _CalibrationWornStep extends StatelessWidget {
                       'Any photo of the product on a person will do, even rough phone shots. We only use it to measure size.',
                 ),
                 const SizedBox(height: 18),
-                AppDottedBorder(
-                  color: AppColors.neutral200,
-                  strokeWidth: 2,
-                  dotWidth: 8,
-                  gap: 6,
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(minHeight: 220),
-                    child: Container(
-                      alignment: Alignment.center,
-                      child: const Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.photo_camera_outlined,
-                            size: 26,
-                            color: AppColors.neutral500,
-                          ),
-                          SizedBox(height: 10),
-                          Text(
-                            'Click or drop a photo here',
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: AppTypography.bold,
+                InkWell(
+                  onTap: isUploading ? null : onUpload,
+                  child: AppDottedBorder(
+                    color: AppColors.neutral200,
+                    strokeWidth: 2,
+                    dotWidth: 8,
+                    gap: 6,
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(minHeight: 220),
+                      child: Container(
+                        alignment: Alignment.center,
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            if (isUploading)
+                              const BarSpinner(
+                                size: 28,
+                                color: AppColors.black,
+                              )
+                            else
+                              const Icon(
+                                Icons.photo_camera_outlined,
+                                size: 26,
+                                color: AppColors.neutral500,
+                              ),
+                            const SizedBox(height: 10),
+                            Text(
+                              isUploading
+                                  ? 'Uploading photo'
+                                  : 'Tap to choose a photo',
+                              style: const TextStyle(
+                                fontSize: 14,
+                                fontWeight: AppTypography.bold,
+                              ),
                             ),
-                          ),
-                          SizedBox(height: 4),
-                          Text(
-                            'JPG, PNG, or WebP up to 10 MB',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: AppColors.neutral500,
+                            const SizedBox(height: 4),
+                            const Text(
+                              'JPG, PNG, or WebP up to 10 MB',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: AppColors.neutral500,
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     ),
                   ),
@@ -2770,10 +3451,16 @@ class _CalibrationCopyStep extends StatelessWidget {
   const _CalibrationCopyStep({
     required this.searchController,
     required this.onBack,
+    required this.products,
+    required this.onCopy,
+    required this.isCopying,
   });
 
   final TextEditingController searchController;
   final VoidCallback onBack;
+  final List<ProductCatalogItem> products;
+  final ValueChanged<ProductCatalogItem> onCopy;
+  final bool isCopying;
 
   @override
   Widget build(BuildContext context) {
@@ -2793,15 +3480,40 @@ class _CalibrationCopyStep extends StatelessWidget {
                 const SizedBox(height: 14),
                 AppTextField(controller: searchController),
                 const SizedBox(height: 14),
-                const _CopyCard(
-                  name: 'Leather Shoulder Bag',
-                  meta: 'BAG-004 - bags - crossbody',
-                  asset: '$_img/showcase-bag-after.jpg',
-                ),
-                const _CopyCard(
-                  name: 'Studio Tote',
-                  meta: 'BAG-009 - bags - tote',
-                  asset: '$_img/showcase-dress-after.jpg',
+                ValueListenableBuilder<TextEditingValue>(
+                  valueListenable: searchController,
+                  builder: (context, value, _) {
+                    final query = value.text.trim().toLowerCase();
+                    final matches = products
+                        .where(
+                          (product) =>
+                              query.isEmpty ||
+                              '${product.name} ${product.sku} '
+                                      '${product.category} '
+                                      '${product.subCategory ?? ''}'
+                                  .toLowerCase()
+                                  .contains(query),
+                        )
+                        .toList(growable: false);
+                    if (matches.isEmpty) {
+                      return const Text(
+                        'No calibrated products found.',
+                        style: TextStyle(color: AppColors.neutral500),
+                      );
+                    }
+                    return ListView.builder(
+                      itemCount: matches.length,
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemBuilder: (context, index) {
+                        final product = matches[index];
+                        return _CopyCard(
+                          product: product,
+                          onTap: isCopying ? null : () => onCopy(product),
+                        );
+                      },
+                    );
+                  },
                 ),
               ],
             ),
@@ -2902,35 +3614,43 @@ class _PhotoTile extends StatelessWidget {
 }
 
 class _UploadTile extends StatelessWidget {
-  const _UploadTile();
+  const _UploadTile({required this.onTap});
+
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    return AppDottedBorder(
-      color: AppColors.neutral200,
-      strokeWidth: 2,
-      dotWidth: 8,
-      gap: 6,
-      child: Container(
-        color: AppColors.neutral100Alpha68,
-        alignment: Alignment.center,
-        padding: const EdgeInsets.all(8),
-        child: const Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.upload, size: 20),
-            SizedBox(height: 7),
-            Text(
-              'Upload another',
-              textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 12, fontWeight: AppTypography.bold),
-            ),
-            SizedBox(height: 2),
-            Text(
-              'JPG or PNG',
-              style: TextStyle(fontSize: 10, color: AppColors.neutral500),
-            ),
-          ],
+    return InkWell(
+      onTap: onTap,
+      child: AppDottedBorder(
+        color: AppColors.neutral200,
+        strokeWidth: 2,
+        dotWidth: 8,
+        gap: 6,
+        child: Container(
+          color: AppColors.neutral100Alpha68,
+          alignment: Alignment.center,
+          padding: const EdgeInsets.all(8),
+          child: const Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.upload, size: 20),
+              SizedBox(height: 7),
+              Text(
+                'Upload cutout',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: AppTypography.bold,
+                ),
+              ),
+              SizedBox(height: 2),
+              Text(
+                'PNG preferred',
+                style: TextStyle(fontSize: 10, color: AppColors.neutral500),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -2938,9 +3658,10 @@ class _UploadTile extends StatelessWidget {
 }
 
 class _CheckerBox extends StatelessWidget {
-  const _CheckerBox({required this.asset});
+  const _CheckerBox({required this.asset, this.upload});
 
   final String asset;
+  final ProductUpload? upload;
 
   @override
   Widget build(BuildContext context) {
@@ -2952,14 +3673,28 @@ class _CheckerBox extends StatelessWidget {
           border: Border.all(color: AppColors.neutral200),
           color: AppColors.neutral50,
         ),
-        child: SizedBox(width: 176, height: 210, child: _AssetImage(asset)),
+        child: SizedBox(
+          width: 176,
+          height: 210,
+          child: upload == null
+              ? _AssetImage(asset)
+              : AppImage.memory(upload!.bytes),
+        ),
       ),
     );
   }
 }
 
 class _ZoomControl extends StatelessWidget {
-  const _ZoomControl();
+  const _ZoomControl({
+    required this.onZoomOut,
+    required this.onReset,
+    required this.onZoomIn,
+  });
+
+  final VoidCallback onZoomOut;
+  final VoidCallback onReset;
+  final VoidCallback onZoomIn;
 
   @override
   Widget build(BuildContext context) {
@@ -2969,12 +3704,12 @@ class _ZoomControl extends StatelessWidget {
           BorderSide(color: AppColors.neutral200),
         ),
       ),
-      child: const Row(
+      child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          _ZoomButton('-'),
-          _ZoomButton('Reset', wide: true),
-          _ZoomButton('+'),
+          _ZoomButton('-', onTap: onZoomOut),
+          _ZoomButton('Reset', onTap: onReset, wide: true),
+          _ZoomButton('+', onTap: onZoomIn),
         ],
       ),
     );
@@ -2982,22 +3717,30 @@ class _ZoomControl extends StatelessWidget {
 }
 
 class _ZoomButton extends StatelessWidget {
-  const _ZoomButton(this.label, {this.wide = false});
+  const _ZoomButton(
+    this.label, {
+    required this.onTap,
+    this.wide = false,
+  });
 
   final String label;
+  final VoidCallback onTap;
   final bool wide;
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      width: wide ? 58 : 38,
-      height: 34,
-      child: Center(
-        child: Text(
-          label,
-          style: const TextStyle(
-            fontSize: 11,
-            fontWeight: AppTypography.bold,
+    return InkWell(
+      onTap: onTap,
+      child: SizedBox(
+        width: wide ? 58 : 38,
+        height: 34,
+        child: Center(
+          child: Text(
+            label,
+            style: const TextStyle(
+              fontSize: 11,
+              fontWeight: AppTypography.bold,
+            ),
           ),
         ),
       ),
@@ -3006,113 +3749,140 @@ class _ZoomButton extends StatelessWidget {
 }
 
 class _PlacementCanvas extends StatelessWidget {
-  const _PlacementCanvas({required this.product});
+  const _PlacementCanvas({
+    required this.product,
+    required this.placementX,
+    required this.placementY,
+    required this.placementScale,
+    this.cutout,
+    this.onPlacementChanged,
+  });
 
   final _Product product;
+  final ProductUpload? cutout;
+  final double placementX;
+  final double placementY;
+  final double placementScale;
+  final void Function(double x, double y, double scale)? onPlacementChanged;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      height: 410,
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        border: Border.all(color: AppColors.neutral200),
-      ),
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          Positioned.fill(
-            left: 78,
-            right: 78,
-            top: 8,
-            bottom: 8,
-            child: Opacity(
-              opacity: 0.54,
-              child: CustomPaint(painter: _BodyOutlinePainter()),
-            ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final width = constraints.maxWidth;
+        final height = constraints.maxHeight.isFinite
+            ? constraints.maxHeight
+            : 410.0;
+        final productWidth = 118 * placementScale;
+        final productHeight = 138 * placementScale;
+        return Container(
+          height: 410,
+          decoration: BoxDecoration(
+            color: AppColors.white,
+            border: Border.all(color: AppColors.neutral200),
           ),
-          Positioned(
-            left: 122,
-            top: 174,
-            child: SizedBox(
-              width: 118,
-              height: 138,
-              child: _AssetImage(product.asset),
-            ),
-          ),
-          Positioned(
-            left: 116,
-            top: 168,
-            child: Container(
-              width: 130,
-              height: 150,
-              decoration: BoxDecoration(
-                border: Border.all(color: AppColors.black, width: 2),
+          child: Stack(
+            children: [
+              Positioned.fill(
+                left: 78,
+                right: 78,
+                top: 8,
+                bottom: 8,
+                child: Opacity(
+                  opacity: 0.54,
+                  child: CustomPaint(painter: _BodyOutlinePainter()),
+                ),
               ),
-            ),
+              Positioned(
+                left: placementX * width - productWidth / 2,
+                top: placementY * height - productHeight / 2,
+                child: GestureDetector(
+                  onPanUpdate: onPlacementChanged == null
+                      ? null
+                      : (details) => onPlacementChanged!(
+                          placementX + details.delta.dx / width,
+                          placementY + details.delta.dy / height,
+                          placementScale,
+                        ),
+                  child: Container(
+                    width: productWidth,
+                    height: productHeight,
+                    decoration: BoxDecoration(
+                      border: Border.all(color: AppColors.black, width: 2),
+                    ),
+                    child: cutout == null
+                        ? _AssetImage(product.asset)
+                        : AppImage.memory(cutout!.bytes),
+                  ),
+                ),
+              ),
+            ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 }
 
 class _CopyCard extends StatelessWidget {
   const _CopyCard({
-    required this.name,
-    required this.meta,
-    required this.asset,
+    required this.product,
+    required this.onTap,
   });
 
-  final String name;
-  final String meta;
-  final String asset;
+  final ProductCatalogItem product;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        border: Border.all(color: AppColors.neutral200),
-      ),
-      child: Row(
-        children: [
-          SizedBox(width: 56, height: 56, child: _AssetImage(asset)),
-          const SizedBox(width: 11),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  name,
-                  style: const TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-                const SizedBox(height: 3),
-                Text(
-                  meta,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: AppColors.neutral500,
-                  ),
-                ),
-                const SizedBox(height: 6),
-                const Wrap(
-                  spacing: 5,
-                  children: [
-                    _ProductPill.neutral('Placed on body'),
-                    _ProductPill.dark('Same category'),
-                  ],
-                ),
-              ],
+    return InkWell(
+      onTap: onTap,
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 10),
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(
+          color: AppColors.white,
+          border: Border.all(color: AppColors.neutral200),
+        ),
+        child: Row(
+          children: [
+            SizedBox(
+              width: 56,
+              height: 56,
+              child: _AssetImage(product.imageUrl),
             ),
-          ),
-          const Icon(Icons.copy_outlined, size: 16),
-        ],
+            const SizedBox(width: 11),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    product.name,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    [
+                      product.sku,
+                      product.category,
+                      ?product.subCategory,
+                    ].where((value) => value.isNotEmpty).join(' - '),
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: AppColors.neutral500,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  const _ProductPill.neutral('Calibrated'),
+                ],
+              ),
+            ),
+            const Icon(Icons.copy_outlined, size: 16),
+          ],
+        ),
       ),
     );
   }
@@ -3199,39 +3969,6 @@ class _BodyOutlinePainter extends CustomPainter {
       ..moveTo(size.width * 0.5, size.height * 0.66)
       ..lineTo(size.width * 0.68, size.height * 0.94);
     canvas.drawPath(path, paint);
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
-}
-
-class _CropGridPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = AppColors.whiteAlpha65
-      ..strokeWidth = 1;
-    canvas
-      ..drawLine(
-        Offset(0, size.height / 3),
-        Offset(size.width, size.height / 3),
-        paint,
-      )
-      ..drawLine(
-        Offset(0, size.height * 2 / 3),
-        Offset(size.width, size.height * 2 / 3),
-        paint,
-      )
-      ..drawLine(
-        Offset(size.width / 3, 0),
-        Offset(size.width / 3, size.height),
-        paint,
-      )
-      ..drawLine(
-        Offset(size.width * 2 / 3, 0),
-        Offset(size.width * 2 / 3, size.height),
-        paint,
-      );
   }
 
   @override

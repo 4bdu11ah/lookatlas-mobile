@@ -55,13 +55,12 @@ class _AiModelSheetState extends State<_AiModelSheet> {
     final ageValid = age != null && age >= 18 && age <= 100;
     final description = _descriptionController.text.trim();
     final form = _buildForm(ageValid, description.length >= 10);
-    final action = _ModelActionButton(
+    final action = PrimaryButton(
       key: const ValueKey('generate-ai-model'),
       label: _generated ? 'Generate another' : 'Generate model (20 credits)',
       icon: Icons.auto_awesome,
-      full: true,
       isLoading: _generating,
-      onTap: () => unawaited(_generate(age, ageValid, description)),
+      onPressed: () => unawaited(_generate(age, ageValid, description)),
     );
     return widget.dialog
         ? _buildDialog(form, action)
@@ -127,10 +126,9 @@ class _AiModelSheetState extends State<_AiModelSheet> {
         _ModelDialogFooter(
           stacked: true,
           actions: [
-            _ModelActionButton.secondary(
+            AppOutlinedButton(
               label: 'Close',
-              full: true,
-              onTap: () => Navigator.pop(context),
+              onPressed: () => Navigator.pop(context),
             ),
             action,
           ],
@@ -151,10 +149,9 @@ class _AiModelSheetState extends State<_AiModelSheet> {
           Expanded(child: form),
           _SheetActionBar(
             actions: [
-              _ModelActionButton.secondary(
+              AppOutlinedButton(
                 label: 'Close',
-                full: true,
-                onTap: () => Navigator.pop(context),
+                onPressed: () => Navigator.pop(context),
               ),
               action,
             ],

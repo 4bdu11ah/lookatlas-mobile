@@ -74,12 +74,10 @@ class _InnerHeader extends StatelessWidget {
   const _InnerHeader({
     required this.title,
     required this.onClose,
-    this.trailing,
   });
 
   final String title;
   final VoidCallback onClose;
-  final Widget? trailing;
 
   @override
   Widget build(BuildContext context) {
@@ -109,7 +107,7 @@ class _InnerHeader extends StatelessWidget {
               ),
             ),
           ),
-          SizedBox.square(dimension: 44, child: trailing),
+          const SizedBox.square(dimension: 44),
         ],
       ),
     );
@@ -296,59 +294,6 @@ class _TipCard extends StatelessWidget {
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _ConfirmIcon extends StatelessWidget {
-  const _ConfirmIcon();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 54,
-      height: 54,
-      margin: const EdgeInsets.only(bottom: 18),
-      color: AppColors.dangerDark,
-      alignment: Alignment.center,
-      child: const Icon(Icons.delete_outline, size: 25, color: AppColors.white),
-    );
-  }
-}
-
-class _DangerButton extends StatelessWidget {
-  const _DangerButton({
-    required this.label,
-    required this.onTap,
-    this.isLoading = false,
-  });
-
-  final String label;
-  final VoidCallback onTap;
-  final bool isLoading;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      height: 48,
-      child: Material(
-        color: AppColors.dangerDark,
-        child: InkWell(
-          onTap: isLoading ? null : onTap,
-          child: Center(
-            child: isLoading
-                ? const BarSpinner(size: 18, color: AppColors.white)
-                : Text(
-                    label,
-                    style: const TextStyle(
-                      fontSize: 14,
-                      fontWeight: AppTypography.bold,
-                      color: AppColors.white,
-                    ),
-                  ),
-          ),
-        ),
       ),
     );
   }

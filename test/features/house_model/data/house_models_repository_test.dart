@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:look_atlas/core/error/failure.dart';
 import 'package:look_atlas/core/result/result.dart';
@@ -11,6 +13,8 @@ class _MockRemoteDataSource extends Mock
 
 void main() {
   late _MockRemoteDataSource remote;
+
+  setUpAll(() => registerFallbackValue(_draft()));
 
   setUp(() {
     remote = _MockRemoteDataSource();
@@ -131,6 +135,64 @@ void main() {
     },
   );
 
+  test('create_model_accepts_one_photo', () async {
+    final draft = _draft();
+    when(
+      () => remote.createModel(draft),
+    ).thenAnswer((_) async => const Result.ok(null));
+    final repository = HouseModelsRepositoryImpl(remote);
+
+    final result = await repository.createModel(draft);
+
+    expect(result.isOk, isTrue);
+    verify(() => remote.createModel(draft)).called(1);
+  });
+
+  test('create_model_rejects_missing_name', () async {
+    final repository = HouseModelsRepositoryImpl(remote);
+
+    final result = await repository.createModel(_draft(name: ' '));
+
+    expect(result.failureOrNull, isA<ValidationFailure>());
+    verifyNever(() => remote.createModel(any()));
+  });
+
+  test('create_model_rejects_missing_gender', () async {
+    final repository = HouseModelsRepositoryImpl(remote);
+
+    final result = await repository.createModel(_draft(gender: ''));
+
+    expect(result.failureOrNull, isA<ValidationFailure>());
+    verifyNever(() => remote.createModel(any()));
+  });
+
+  test('create_model_rejects_invalid_height', () async {
+    final repository = HouseModelsRepositoryImpl(remote);
+
+    final result = await repository.createModel(_draft(heightCm: 99));
+
+    expect(result.failureOrNull, isA<ValidationFailure>());
+    verifyNever(() => remote.createModel(any()));
+  });
+
+  test('create_model_rejects_missing_photo', () async {
+    final repository = HouseModelsRepositoryImpl(remote);
+
+    final result = await repository.createModel(_draft(photoCount: 0));
+
+    expect(result.failureOrNull, isA<ValidationFailure>());
+    verifyNever(() => remote.createModel(any()));
+  });
+
+  test('create_model_rejects_more_than_five_photos', () async {
+    final repository = HouseModelsRepositoryImpl(remote);
+
+    final result = await repository.createModel(_draft(photoCount: 6));
+
+    expect(result.failureOrNull, isA<ValidationFailure>());
+    verifyNever(() => remote.createModel(any()));
+  });
+
   test('update_model_uses_patch_when_no_new_photos_exist', () async {
     const draft = HouseModelDraft(
       name: 'Taylor',
@@ -149,3 +211,22 @@ void main() {
     verifyNever(() => remote.updateModel('model-1', draft));
   });
 }
+
+HouseModelDraft _draft({
+  String name = 'Taylor',
+  String gender = 'female',
+  int heightCm = 174,
+  int photoCount = 1,
+}) => HouseModelDraft(
+  name: name,
+  gender: gender,
+  heightCm: heightCm,
+  heightEstimated: false,
+  photos: [
+    for (var index = 0; index < photoCount; index++)
+      HouseModelUpload(
+        bytes: Uint8List.fromList([index]),
+        fileName: 'model-$index.jpg',
+      ),
+  ],
+);

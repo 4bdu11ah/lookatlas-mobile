@@ -18,8 +18,11 @@ class _HouseModelFeatureScaffold extends ConsumerWidget {
         title: 'House Models',
         showBackButton: true,
       ),
-      floatingActionButton: _ModelFab(
-        onTap: () => _showModelFormSheet(context, ref, onToast),
+      floatingActionButton: AppFloatingActionButton(
+        key: const ValueKey('add-model-fab'),
+        label: 'Add Model',
+        icon: Icons.people_alt_outlined,
+        onPressed: () => _showModelFormDialog(context, ref, onToast),
       ),
 
       body: SafeArea(
@@ -56,30 +59,6 @@ class _HouseModelPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(_houseModelControllerProvider);
-    if (state.isLoading &&
-        state.libraryModels.isEmpty &&
-        state.userModels.isEmpty) {
-      return const SizedBox(
-        height: 420,
-        child: Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                Icons.hourglass_top,
-                size: 30,
-                color: AppColors.neutral500,
-              ),
-              SizedBox(height: 10),
-              Text(
-                'Loading house models...',
-                style: TextStyle(color: AppColors.neutral500),
-              ),
-            ],
-          ),
-        ),
-      );
-    }
     if (state.failure != null &&
         state.libraryModels.isEmpty &&
         state.userModels.isEmpty) {
@@ -190,10 +169,10 @@ class _HouseModelsLoadError extends StatelessWidget {
               style: const TextStyle(color: AppColors.neutral500),
             ),
             const SizedBox(height: 18),
-            _ModelActionButton.secondary(
+            AppOutlinedButton(
               label: 'Retry',
               icon: Icons.refresh,
-              onTap: () => unawaited(onRetry()),
+              onPressed: () => unawaited(onRetry()),
             ),
           ],
         ),
@@ -209,11 +188,10 @@ class _CreateAiButton extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return _ModelActionButton.secondary(
+    return AppOutlinedButton(
       label: 'Create with AI',
       icon: Icons.auto_awesome,
-      full: true,
-      onTap: () => _showAiSheet(context, ref, onToast),
+      onPressed: () => _showAiSheet(context, ref, onToast),
     );
   }
 }

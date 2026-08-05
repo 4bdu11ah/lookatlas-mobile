@@ -62,12 +62,12 @@ class _OnboardingWizardScreenState
       final jobStatus = status.onboardingJobStatus?.toLowerCase();
       if ({'generating', 'enqueued', 'processing'}.contains(jobStatus)) {
         ref.read(generationControllerProvider.notifier).start();
-        context.go(AppRoutes.onboardingGeneration);
+        context.go(AppRoutes.onboardingSwipe);
         return;
       }
       if (jobStatus == 'completed') {
         ref.read(generationControllerProvider.notifier).start();
-        context.go(AppRoutes.onboardingGeneration);
+        context.go(AppRoutes.onboardingSwipe);
         return;
       }
       if (status.freeShootUsed) {

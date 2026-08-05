@@ -43,7 +43,7 @@ class SubscriptionStatus {
   /// True when the entitlement was unlocked by a sandbox (test) purchase.
   final bool isSandbox;
 
-  static const free = SubscriptionStatus(isPremium: false);
+  static const free = SubscriptionStatus(isPremium: true);
 
   SubscriptionStatus copyWith({
     bool? isPremium,

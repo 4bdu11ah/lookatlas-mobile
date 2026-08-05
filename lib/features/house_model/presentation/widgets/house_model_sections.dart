@@ -18,6 +18,10 @@ class _LibraryModelsSection extends ConsumerWidget {
     final expanded = ref.watch(
       _houseModelControllerProvider.select((state) => state.expanded),
     );
+    final isLoading = ref.watch(
+      _houseModelControllerProvider.select((state) => state.isLoading),
+    );
+    final showLoading = isLoading && visible.isEmpty;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -25,25 +29,30 @@ class _LibraryModelsSection extends ConsumerWidget {
           icon: Icons.auto_awesome,
           title: 'LookAtlas Models',
           subtitle: 'Ready-to-use professional models',
-          trailing: _FilterButton(onTap: () => _showFilterSheet(context, ref)),
+          trailing: showLoading
+              ? null
+              : _FilterButton(onTap: () => _showFilterSheet(context, ref)),
         ),
-        const _ActiveFilters(),
-        if (visible.isEmpty)
+        if (!showLoading) const _ActiveFilters(),
+        if (showLoading)
+          const _HouseModelLibraryLoadingGrid()
+        else if (visible.isEmpty)
           const _ModelEmptyState()
         else
           _ModelGrid(models: visible),
-        if (filteredCount > 4 && !expanded) ...[
+        if (!showLoading && filteredCount > 4 && !expanded) ...[
           const SizedBox(height: 16),
-          _ModelActionButton.ghost(
+          AppOutlinedButton(
             key: const ValueKey('show-more-models'),
             label: 'Show more models',
             icon: Icons.keyboard_arrow_down,
             iconAlignment: IconAlignment.end,
-            full: true,
-            onTap: ref.read(_houseModelControllerProvider.notifier).showMore,
+            onPressed: ref
+                .read(_houseModelControllerProvider.notifier)
+                .showMore,
           ),
         ],
-        if (filteredCount > 0) ...[
+        if (!showLoading && filteredCount > 0) ...[
           const SizedBox(height: 14),
           Text(
             'Showing ${visible.length} of $filteredCount models',
@@ -66,6 +75,10 @@ class _UserModelsSection extends ConsumerWidget {
     final models = ref.watch(
       _houseModelControllerProvider.select((state) => state.userModels),
     );
+    final isLoading = ref.watch(
+      _houseModelControllerProvider.select((state) => state.isLoading),
+    );
+    final showLoading = isLoading && models.isEmpty;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -76,13 +89,16 @@ class _UserModelsSection extends ConsumerWidget {
           subtitle: "Models you've created or uploaded",
         ),
         const SizedBox(height: 16),
-        for (final model in models) ...[
-          _UserModelCard(model: model, onToast: onToast),
-          const SizedBox(height: 12),
-        ],
-        if (models.isEmpty)
+        if (showLoading)
+          const _HouseModelUserLoadingList()
+        else
+          for (final model in models) ...[
+            _UserModelCard(model: model, onToast: onToast),
+            const SizedBox(height: 12),
+          ],
+        if (!showLoading && models.isEmpty)
           _YourModelsEmptyState(
-            onAdd: () => _showModelFormSheet(context, ref, onToast),
+            onAdd: () => _showModelFormDialog(context, ref, onToast),
             onAi: () => _showAiSheet(context, ref, onToast),
           ),
       ],
@@ -325,12 +341,14 @@ class _FilterButton extends ConsumerWidget {
     return Stack(
       clipBehavior: Clip.none,
       children: [
-        _ModelActionButton.ghost(
+        AppOutlinedButton(
           key: const ValueKey('filter-models'),
           label: 'Filter',
           icon: Icons.filter_list,
-          compact: true,
-          onTap: onTap,
+          fitToContent: true,
+          height: 36,
+          iconSize: 15,
+          onPressed: onTap,
         ),
         if (active)
           Positioned(

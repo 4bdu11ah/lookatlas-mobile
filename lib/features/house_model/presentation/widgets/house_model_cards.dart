@@ -102,18 +102,116 @@ class _UserModelCard extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _CardTop(
-            title: model.name,
-            icon: Icons.edit_outlined,
-            onTap: () => _showModelFormSheet(context, ref, onToast, model),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        model.name,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: AppTypography.bold,
+                          color: AppColors.black,
+                        ),
+                      ),
+                    ),
+                    Tooltip(
+                      message: 'Edit model',
+                      child: InkWell(
+                        onTap: () => _showModelFormDialog(
+                          context,
+                          ref,
+                          onToast,
+                          model,
+                        ),
+                        child: const SizedBox.square(
+                          dimension: 32,
+                          child: Icon(
+                            Icons.edit_outlined,
+                            size: 18,
+                            color: AppColors.neutral500,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Tooltip(
+                      message: 'Delete model',
+                      child: InkWell(
+                        onTap: () => unawaited(
+                          _showDeleteSheet(context, ref, model, onToast),
+                        ),
+                        child: const SizedBox.square(
+                          dimension: 32,
+                          child: Icon(
+                            Icons.delete_outline,
+                            size: 18,
+                            color: AppColors.neutral500,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                Row(
+                  children: [
+                    Container(
+                      height: 20,
+                      padding: const EdgeInsets.symmetric(horizontal: 10),
+                      color: AppColors.neutral100,
+                      alignment: Alignment.center,
+                      child: Text(
+                        model.gender.label,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: AppTypography.bold,
+                          color: AppColors.neutral500,
+                        ),
+                      ),
+                    ),
+                    if (model.ageRange != 'Not specified') ...[
+                      const SizedBox(width: 8),
+                      Text(
+                        'Age ${model.ageRange}',
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: AppColors.neutral500,
+                        ),
+                      ),
+                    ],
+                    const SizedBox(width: 8),
+                    Text(
+                      model.heightLabel,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: AppColors.neutral500,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
+          const SizedBox(height: 12),
           AspectRatio(
-            aspectRatio: 9 / 11.3,
-            child: _ModelPhoto(asset: model.asset, label: model.source.label),
+            aspectRatio: 9 / 16,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: ColoredBox(
+                color: const Color(0xFFEEEAE2),
+                child: _AssetImage(model.asset),
+              ),
+            ),
           ),
           Container(
             height: 42,
-            padding: const EdgeInsets.symmetric(horizontal: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 16),
             decoration: const BoxDecoration(
               border: Border(top: BorderSide(color: AppColors.neutral200)),
             ),
@@ -130,15 +228,6 @@ class _UserModelCard extends ConsumerWidget {
                   style: const TextStyle(
                     fontSize: 11,
                     color: AppColors.neutral500,
-                  ),
-                ),
-                const Spacer(),
-                IconButton(
-                  tooltip: 'Delete model',
-                  icon: const Icon(Icons.delete_outline, size: 18),
-                  color: AppColors.neutral500,
-                  onPressed: () => unawaited(
-                    _showDeleteSheet(context, ref, model, onToast),
                   ),
                 ),
               ],
@@ -168,11 +257,9 @@ class _ModelCardFrame extends StatelessWidget {
 }
 
 class _CardTop extends StatelessWidget {
-  const _CardTop({required this.title, this.icon, this.onTap});
+  const _CardTop({required this.title});
 
   final String title;
-  final IconData? icon;
-  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -192,17 +279,7 @@ class _CardTop extends StatelessWidget {
               ),
             ),
           ),
-          if (icon != null) ...[
-            InkWell(
-              onTap: onTap,
-              child: SizedBox.square(
-                dimension: 28,
-                child: Icon(icon, size: 16, color: AppColors.neutral500),
-              ),
-            ),
-            const SizedBox(width: 5),
-          ] else
-            const SizedBox(width: 10),
+          const SizedBox(width: 10),
         ],
       ),
     );

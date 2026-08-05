@@ -30,6 +30,8 @@ abstract final class ApiEndpoints {
   static const String lookAtlasModels = '/lookatlas-models';
   static const String userModels = '/models';
   static const String generateModel = '/models/generate';
+  static const String calibrationOutlines = '/calibration/outlines';
+  static const String calibratedProducts = '/calibration/calibrated-products';
 
   // --- Billing ------------------------------------------------------------
   static const String billingPlans = '/billing/plans';
@@ -52,10 +54,33 @@ abstract final class ApiEndpoints {
   static const String lookFilters = '/looks/filters';
   static const String userPresets = '/user-presets';
 
+  // --- Workshop -----------------------------------------------------------
+  static const String workshopActive = '/workshop/active';
+  static const String workshopGenerations = '/workshop/generations';
+  static const String workshopGenerate = '/workshop/generate';
+
   static String product(String productId) => '/products/$productId';
 
   static String productPhotoAngles(String productId) =>
       '/products/$productId/photo-angles';
+
+  static String productPhoto(String productId, int photoIndex) =>
+      '/products/$productId/photos/$photoIndex';
+
+  static String replaceProductPhoto(String productId, String photoId) =>
+      '/products/$productId/photos/$photoId/replace';
+
+  static String productCalibration(String productId) =>
+      '/products/$productId/calibration';
+
+  static String productCalibrationWornPhoto(String productId) =>
+      '/products/$productId/calibration/worn-photo';
+
+  static String productCalibrationCutout(String productId) =>
+      '/products/$productId/calibration/cutout';
+
+  static String copyProductCalibration(String productId) =>
+      '/products/$productId/calibration/copy-from';
 
   static String userModel(String modelId) => '/models/$modelId';
 
@@ -98,6 +123,9 @@ abstract final class ApiEndpoints {
       '/jobs/$jobId/images/$imageId/set-active';
 
   static String userPreset(String presetId) => '/user-presets/$presetId';
+
+  static String workshopGeneration(String generationId) =>
+      '/workshop/generations/$generationId';
 
   // --- AI (Anthropic-compatible API or backend proxy) ---------------------
   static const String aiMessages = '/v1/messages';

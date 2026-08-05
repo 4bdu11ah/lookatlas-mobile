@@ -195,9 +195,9 @@ class DashboardFeatureScreen extends ConsumerWidget {
                   Positioned(
                     right: 16,
                     bottom: MediaQuery.paddingOf(context).bottom + 24,
-                    child: _FabButton(
+                    child: AppFloatingActionButton(
                       label: 'Add Model',
-                      onTap: () => _openDashboardModal(
+                      onPressed: () => _openDashboardModal(
                         context,
                         ref,
                         _ModalKind.model,

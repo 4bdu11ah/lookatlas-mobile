@@ -9,6 +9,7 @@ class _Shoot {
     required this.date,
     required this.productAsset,
     required this.modelAsset,
+    this.productSku,
     this.progress = 1,
     this.supportTicketId,
   });
@@ -23,6 +24,7 @@ class _Shoot {
         : DateFormat.yMMMd().format(job.date!.toLocal()),
     productAsset: job.productThumbnail,
     modelAsset: job.modelThumbnail,
+    productSku: job.productSku,
     progress: job.progress,
     supportTicketId: job.supportTicketId,
   );
@@ -34,6 +36,7 @@ class _Shoot {
   final String date;
   final String productAsset;
   final String modelAsset;
+  final String? productSku;
   final double progress;
   final String? supportTicketId;
 }

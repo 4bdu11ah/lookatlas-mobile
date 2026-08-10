@@ -70,12 +70,15 @@ class WizardButton extends StatelessWidget {
             label,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              fontSize: small ? 13 : 14,
-              height: 1.2,
-              fontWeight: AppTypography.semiBold,
-              color: fg,
-            ),
+            style:
+                (small
+                        ? Theme.of(context).textTheme.labelMedium
+                        : Theme.of(context).textTheme.labelLarge)
+                    ?.copyWith(
+                      height: 1.2,
+                      fontWeight: AppTypography.semiBold,
+                      color: fg,
+                    ),
           ),
         ),
         if (trailing != null) Icon(trailing, size: iconSize, color: fg),
@@ -259,10 +262,8 @@ class WizardStepHeader extends StatelessWidget {
         Text(
           title,
           textAlign: TextAlign.center,
-          style: TextStyle(
-            fontSize: 24,
+          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
             height: 1.2,
-            fontWeight: AppTypography.bold,
             color: scheme.onSurface,
           ),
         ),
@@ -274,8 +275,7 @@ class WizardStepHeader extends StatelessWidget {
               child: Text(
                 subtitle!,
                 textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 14,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                   height: 1.5,
                   color: scheme.onSurface.withValues(alpha: 0.6),
                 ),
@@ -305,7 +305,7 @@ class CheckLine extends StatelessWidget {
         Flexible(
           child: Text(
             text,
-            style: TextStyle(
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
               fontSize: fontSize,
               height: 1.43,
               color: scheme.onSurface.withValues(alpha: 0.8),

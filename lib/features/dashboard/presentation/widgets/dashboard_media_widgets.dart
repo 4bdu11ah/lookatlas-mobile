@@ -21,19 +21,16 @@ class _Card extends StatelessWidget {
   const _Card({
     required this.child,
     this.padding = const EdgeInsets.all(20),
-    this.margin,
   });
 
   final Widget child;
   final EdgeInsetsGeometry padding;
-  final EdgeInsetsGeometry? margin;
 
   @override
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
       padding: padding,
-      margin: margin,
       decoration: BoxDecoration(
         color: AppColors.white,
         border: Border.all(color: AppColors.neutral200),

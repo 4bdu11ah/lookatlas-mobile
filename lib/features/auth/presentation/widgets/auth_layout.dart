@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:look_atlas/core/constants/app_assets.dart';
 import 'package:look_atlas/core/theme/app_typography.dart';
+import 'package:look_atlas/shared/widgets/app_image.dart';
 import 'package:look_atlas/shared/widgets/bar_spinner.dart';
 
 /// Shared building blocks for the auth screens (sign in, sign up, reset
@@ -14,7 +15,7 @@ class AuthBrand extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Image.asset(
+    return const AppImage(
       AppAssets.logo,
       height: 60,
       width: 60,
@@ -57,10 +58,8 @@ class AuthScaffold extends StatelessWidget {
                   Text(
                     title,
                     textAlign: TextAlign.center,
-                    style: TextStyle(
+                    style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                       color: scheme.onSurface,
-                      fontSize: 30,
-                      fontWeight: AppTypography.bold,
                       letterSpacing: -0.5,
                       height: 1.2,
                     ),
@@ -69,9 +68,8 @@ class AuthScaffold extends StatelessWidget {
                   Text(
                     subtitle,
                     textAlign: TextAlign.center,
-                    style: TextStyle(
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                       color: scheme.onSurfaceVariant,
-                      fontSize: 14,
                       height: 1.4,
                     ),
                   ),
@@ -139,7 +137,10 @@ class AuthTextLink extends StatelessWidget {
         minimumSize: Size.zero,
         padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
         foregroundColor: scheme.onSurface,
-        textStyle: TextStyle(fontSize: fontSize, fontWeight: fontWeight),
+        textStyle: Theme.of(context).textTheme.labelLarge?.copyWith(
+          fontSize: fontSize,
+          fontWeight: fontWeight,
+        ),
       ),
       child: Text(
         label,
@@ -175,7 +176,9 @@ class AuthFooterLink extends StatelessWidget {
       children: [
         Text(
           '$prompt ',
-          style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 14),
+          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+            color: scheme.onSurfaceVariant,
+          ),
         ),
         AuthTextLink(label: action, onPressed: onTap),
       ],

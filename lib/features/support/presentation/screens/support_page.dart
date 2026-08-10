@@ -1,25 +1,14 @@
 part of '../../../dashboard/presentation/screens/dashboard_screen.dart';
 
-class _SupportFeatureScaffold extends StatelessWidget {
-  const _SupportFeatureScaffold();
+class SupportScreen extends StatelessWidget {
+  const SupportScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return AppFeatureScaffold(
       backgroundColor: AppColors.neutral50,
-      appBar: const CustomAppBar(
-        title: 'Support',
-        showBackButton: true,
-      ),
-      body: SafeArea(
-        bottom: false,
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 430),
-            child: const _SupportPage(),
-          ),
-        ),
-      ),
+      title: 'Support',
+      child: const _SupportPage(),
     );
   }
 }
@@ -47,22 +36,19 @@ class _SupportPageHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Column(
+    return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           'Support',
-          style: TextStyle(
-            fontSize: 30,
+          style: Theme.of(context).textTheme.headlineMedium?.copyWith(
             height: 1.2,
-            fontWeight: AppTypography.bold,
           ),
         ),
-        SizedBox(height: 4),
+        const SizedBox(height: 4),
         Text(
           "Get help with Look Atlas. We're here to assist you.",
-          style: TextStyle(
-            fontSize: 16,
+          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
             height: 1.5,
             color: AppColors.neutral500,
           ),

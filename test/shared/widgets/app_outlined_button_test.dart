@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:look_atlas/core/theme/app_theme.dart';
@@ -72,6 +74,34 @@ void main() {
       tester.getCenter(find.text('Next')).dx,
       lessThan(tester.getCenter(find.byIcon(Icons.arrow_forward)).dx),
     );
+  });
+
+  testWidgets('AppOutlinedButton rotates its icon by the supplied angle', (
+    tester,
+  ) async {
+    const angle = math.pi / 4;
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.light(),
+        home: Scaffold(
+          body: AppOutlinedButton(
+            label: 'Launch',
+            icon: Icons.arrow_forward,
+            iconAngle: angle,
+            onPressed: () {},
+          ),
+        ),
+      ),
+    );
+
+    final rotation = tester.widget<Transform>(
+      find.ancestor(
+        of: find.byIcon(Icons.arrow_forward),
+        matching: find.byType(Transform),
+      ),
+    );
+    expect(rotation.transform.entry(0, 0), closeTo(math.cos(angle), 0.0001));
+    expect(rotation.transform.entry(1, 0), closeTo(math.sin(angle), 0.0001));
   });
 
   testWidgets('AppOutlinedButton fitToContent shrinks in narrow space', (

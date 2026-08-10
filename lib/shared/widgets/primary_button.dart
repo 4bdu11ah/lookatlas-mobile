@@ -15,6 +15,7 @@ class PrimaryButton extends StatelessWidget {
     this.backgroundColor,
     this.foregroundColor,
     this.iconSize = 20,
+    this.iconAngle = 0,
     this.textStyle,
     this.child,
     this.loadingChild,
@@ -31,12 +32,23 @@ class PrimaryButton extends StatelessWidget {
   final Color? backgroundColor;
   final Color? foregroundColor;
   final double iconSize;
+
+  /// Icon rotation in radians, matching [Transform.rotate].
+  final double iconAngle;
   final TextStyle? textStyle;
   final Widget? child;
   final Widget? loadingChild;
 
+  Widget _buildIcon() {
+    final iconWidget = Icon(icon, size: iconSize);
+    return iconAngle == 0
+        ? iconWidget
+        : Transform.rotate(angle: iconAngle, child: iconWidget);
+  }
+
   @override
   Widget build(BuildContext context) {
+    final labelStyle = textStyle ?? Theme.of(context).textTheme.labelLarge;
     return SizedBox(
       width: fitToContent ? null : double.infinity,
       height: height,
@@ -48,6 +60,7 @@ class PrimaryButton extends StatelessWidget {
           foregroundColor: foregroundColor,
           disabledBackgroundColor: backgroundColor,
           disabledForegroundColor: foregroundColor,
+          textStyle: labelStyle,
         ),
         onPressed: isLoading ? null : onPressed,
         child: isLoading
@@ -61,7 +74,7 @@ class PrimaryButton extends StatelessWidget {
                     children: [
                       if (icon != null &&
                           iconAlignment == IconAlignment.start) ...[
-                        Icon(icon, size: iconSize),
+                        _buildIcon(),
                         const SizedBox(width: 8),
                       ],
                       Flexible(
@@ -69,13 +82,15 @@ class PrimaryButton extends StatelessWidget {
                           label!,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: textStyle,
+                          style: labelStyle?.copyWith(
+                            color: foregroundColor,
+                          ),
                         ),
                       ),
                       if (icon != null &&
                           iconAlignment == IconAlignment.end) ...[
                         const SizedBox(width: 8),
-                        Icon(icon, size: iconSize),
+                        _buildIcon(),
                       ],
                     ],
                   ),

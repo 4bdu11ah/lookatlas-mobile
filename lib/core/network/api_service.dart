@@ -76,7 +76,11 @@ class ApiService {
     CancelToken? cancelToken,
   }) {
     return _send(
-      () => _dio.put<dynamic>(path, data: data, cancelToken: cancelToken),
+      () => _dio.put<dynamic>(
+        path,
+        data: data,
+        cancelToken: cancelToken,
+      ),
       decoder,
     );
   }
@@ -88,7 +92,11 @@ class ApiService {
     CancelToken? cancelToken,
   }) {
     return _send(
-      () => _dio.patch<dynamic>(path, data: data, cancelToken: cancelToken),
+      () => _dio.patch<dynamic>(
+        path,
+        data: data,
+        cancelToken: cancelToken,
+      ),
       decoder,
     );
   }
@@ -100,7 +108,11 @@ class ApiService {
     CancelToken? cancelToken,
   }) {
     return _send(
-      () => _dio.delete<dynamic>(path, data: data, cancelToken: cancelToken),
+      () => _dio.delete<dynamic>(
+        path,
+        data: data,
+        cancelToken: cancelToken,
+      ),
       decoder,
     );
   }

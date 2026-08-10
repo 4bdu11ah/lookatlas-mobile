@@ -33,46 +33,21 @@ class _ShootDetailScreenState extends ConsumerState<ShootDetailScreen> {
   }
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.neutral50,
-      appBar: CustomAppBar(
-        title: 'Shoot Detail',
-        showBackButton: true,
-        onBack: () => _closeShootDetail(context),
+  Widget build(BuildContext context) => AppFeatureScaffold(
+    backgroundColor: AppColors.neutral50,
+    title: 'Shoot Detail',
+    child: SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 28),
+      child: _ShootDetailContent(
+        onOpenModal: (kind) => _openDashboardModal(context, ref, kind),
+        onToast: (text) => AppSnackBar.show(context, text),
       ),
-      body: SafeArea(
-        bottom: false,
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 430),
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 28),
-              child: _ShootDetailContent(
-                onOpenModal: (kind) => _openDashboardModal(context, ref, kind),
-                onToast: (text) => AppSnackBar.show(context, text),
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-void _closeShootDetail(BuildContext context) {
-  if (context.canPop()) {
-    context.pop();
-    return;
-  }
-  context.go(AppRoutes.dashboardShoots);
+    ),
+  );
 }
 
 class _ShootDetailContent extends ConsumerWidget {
-  const _ShootDetailContent({
-    required this.onOpenModal,
-    required this.onToast,
-  });
+  const _ShootDetailContent({required this.onOpenModal, required this.onToast});
 
   final ValueChanged<_ModalKind> onOpenModal;
   final ValueChanged<String> onToast;
@@ -81,16 +56,11 @@ class _ShootDetailContent extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(_shootDetailControllerProvider);
     final controller = ref.read(_shootDetailControllerProvider.notifier);
-    if (state.isLoading) {
-      return const Padding(
-        padding: EdgeInsets.symmetric(vertical: 80),
-        child: Center(child: BarSpinner()),
-      );
-    }
+    if (state.isLoading) return const _ShootDetailLoading();
     final job = state.job;
     if (job == null) {
       return _Card(
-        child: _Stack(
+        child: _Column(
           gap: 12,
           children: [
             Text(state.failure?.message ?? 'Could not load this shoot.'),
@@ -116,25 +86,23 @@ class _ShootDetailContent extends ConsumerWidget {
       );
     }
     final isProcessing = job.isActive;
-    return _Stack(
-      gap: 14,
+    return Column(
       children: [
         _PageHeader(
           title: shoot.name,
           body: 'Generated images for ${job.modelName ?? 'your model'}',
           small: true,
         ),
-        Align(
-          alignment: Alignment.centerLeft,
-          child: _StatusBadge(shoot.status),
-        ),
+        const SizedBox(height: 8),
         Row(
           children: [
+            _StatusBadge(shoot.status),
+            const SizedBox(width: 12),
             Expanded(
               child: AppOutlinedButton(
                 label: 'Refresh Status',
                 icon: Icons.refresh,
-                height: 36,
+                height: 44,
                 onPressed: () => _handleAction(
                   context,
                   controller.refresh,
@@ -148,7 +116,7 @@ class _ShootDetailContent extends ConsumerWidget {
                 child: AppOutlinedButton(
                   label: 'Cancel Job',
                   icon: Icons.close,
-                  height: 36,
+                  height: 44,
                   onPressed: () => _handleAction(
                     context,
                     controller.cancel,
@@ -159,12 +127,35 @@ class _ShootDetailContent extends ConsumerWidget {
             ],
           ],
         ),
-        if (isProcessing) _ShootProgress(progress: shoot.progress),
+        const SizedBox(height: 10),
+        if (isProcessing)
+          _ShootProgress(
+            progress: shoot.progress,
+            currentStep: state.progressStatus?.currentStep,
+            estimatedCompletion: state.progressStatus?.estimatedCompletion,
+          ),
+        if (!isProcessing) ...[
+          const SizedBox(height: 10),
+          _ExportActions(
+            approvedCount: state.images.where((image) => image.approved).length,
+            onExport: () => _handleAction(
+              context,
+              controller.exportApprovedImages,
+              'Export ready to share',
+            ),
+          ),
+        ],
         _ShootSummary(shoot: shoot, modelName: job.modelName),
+        const SizedBox(height: 10),
         _VideoCard(
           enabled: !isProcessing,
           onTap: () => onOpenModal(_ModalKind.videoOptions),
         ),
+        if (!isProcessing && state.images.isNotEmpty) ...[
+          const SizedBox(height: 10),
+          const _Card(padding: EdgeInsets.zero, child: _ImageReportNotice()),
+        ],
+        const SizedBox(height: 10),
         _GeneratedImages(
           isProcessing: isProcessing,
           shots: _displayShots(job),
@@ -194,9 +185,8 @@ class _ShootDetailContent extends ConsumerWidget {
             final image = _displayShots(
               job,
             ).firstWhere((shot) => shot.index == shotIndex).images.firstOrNull;
-            if (image != null) {
+            if (image != null)
               controller.selectImage(image, shotIndex: shotIndex);
-            }
             onOpenModal(_ModalKind.variation);
           },
           onDownload: (image) async {
@@ -207,8 +197,12 @@ class _ShootDetailContent extends ConsumerWidget {
               (failure) => AppSnackBar.showError(context, failure.message),
             );
           },
+          onReport: (image) => unawaited(
+            _showImageReportDialog(context, controller, image),
+          ),
         ),
-        if (!isProcessing && state.images.isNotEmpty)
+        if (!isProcessing && state.images.isNotEmpty) ...[
+          const SizedBox(height: 10),
           AppOutlinedButton(
             label: 'Redo Hand Shots',
             icon: Icons.pan_tool_outlined,
@@ -218,6 +212,7 @@ class _ShootDetailContent extends ConsumerWidget {
               'Hand shot replacement started',
             ),
           ),
+        ],
       ],
     );
   }

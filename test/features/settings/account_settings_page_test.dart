@@ -41,7 +41,7 @@ void main() {
         ],
         child: MaterialApp(
           theme: AppTheme.light(),
-          home: const DashboardFeatureScreen.account(),
+          home: const AccountSettingsScreen(),
         ),
       ),
     );

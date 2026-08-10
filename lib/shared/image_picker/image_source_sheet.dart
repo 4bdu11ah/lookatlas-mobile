@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:look_atlas/core/theme/app_typography.dart';
+import 'package:look_atlas/shared/widgets/app_bottom_sheet.dart';
 
 export 'package:image_picker/image_picker.dart' show ImageSource;
 
@@ -21,11 +22,9 @@ Future<ImageSource?> showImageSourceSheet(
   String title = 'Add a photo',
 }) {
   final scheme = Theme.of(context).colorScheme;
-  return showModalBottomSheet<ImageSource>(
-    context: context,
+  return showAppBottomSheet<ImageSource>(
+    context,
     backgroundColor: scheme.surface,
-    // Sharp corners — the brand default.
-    shape: const RoundedRectangleBorder(),
     builder: (context) => _ImageSourceSheet(title: title),
   );
 }

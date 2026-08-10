@@ -4,66 +4,137 @@ class _ShootFilters extends StatelessWidget {
   const _ShootFilters({
     required this.query,
     required this.status,
+    required this.shootCount,
     required this.onQueryChanged,
     required this.onStatusChanged,
   });
 
   final String query;
   final String status;
+  final int shootCount;
   final ValueChanged<String> onQueryChanged;
   final ValueChanged<String> onStatusChanged;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: const BoxDecoration(
-        color: AppColors.white,
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.blackAlpha07,
-            blurRadius: 9,
-            offset: Offset(0, 2),
-          ),
-        ],
-      ),
-      child: _Stack(
-        gap: 12,
-        children: [
-          _ShootSearchField(
-            query: query,
-            onChanged: onQueryChanged,
-          ),
-          Row(
-            children: [
-              Expanded(
-                child: _ShootSelect(
-                  label: 'Status',
-                  value: status,
-                  items: const {
-                    'all': 'All statuses',
-                    'completed': 'Completed',
-                    'processing': 'Processing',
-                    'failed': 'Failed',
-                  },
-                  onChanged: onStatusChanged,
+    final hasActiveFilters = status != 'all';
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _ShootSearchField(query: query, onChanged: onQueryChanged),
+        const SizedBox(height: 10),
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                '$shootCount ${shootCount == 1 ? 'shoot' : 'shoots'}',
+                style: const TextStyle(
+                  fontSize: 12,
+                  color: AppColors.neutral500,
                 ),
               ),
-              const SizedBox(width: 10),
-              const Expanded(
-                child: _ShootSelect(
-                  label: 'Per page',
-                  value: '20',
-                  items: {'20': '20'},
-                ),
+            ),
+            AppOutlinedButton(
+              key: const ValueKey('open-shoot-filter-sheet'),
+              label: hasActiveFilters ? 'Filters (1)' : 'Filters',
+              icon: Icons.tune,
+              fitToContent: true,
+              height: 40,
+              onPressed: () => _showShootFilterSheet(
+                context,
+                status: status,
+                onStatusChanged: onStatusChanged,
               ),
-            ],
-          ),
-        ],
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+      ],
+    );
+  }
+}
+
+Future<void> _showShootFilterSheet(
+  BuildContext context, {
+  required String status,
+  required ValueChanged<String> onStatusChanged,
+}) {
+  return showAppBottomSheet<void>(
+    context,
+    builder: (_) => _ShootFilterSheet(
+      initialStatus: status,
+      onStatusChanged: onStatusChanged,
+    ),
+  );
+}
+
+class _ShootFilterSheet extends ConsumerWidget {
+  const _ShootFilterSheet({
+    required this.initialStatus,
+    required this.onStatusChanged,
+  });
+
+  final String initialStatus;
+  final ValueChanged<String> onStatusChanged;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final state = ref.watch(_shootFilterSheetProvider(initialStatus));
+    final controller = ref.read(
+      _shootFilterSheetProvider(initialStatus).notifier,
+    );
+    return _SheetFrame(
+      title: 'Filter shoots',
+      actions: [
+        AppOutlinedButton(
+          label: 'Clear',
+          onPressed: () {
+            onStatusChanged('all');
+            Navigator.pop(context);
+          },
+        ),
+        PrimaryButton(
+          label: 'Show shoots',
+          foregroundColor: AppColors.white,
+          onPressed: () {
+            onStatusChanged(state.status);
+            Navigator.pop(context);
+          },
+        ),
+      ],
+      child: _ShootStatusList(
+        value: state.status,
+        onChanged: controller.setStatus,
       ),
     );
   }
 }
+
+class _ShootFilterSheetState {
+  const _ShootFilterSheetState({required this.status});
+
+  final String status;
+}
+
+class _ShootFilterSheetController extends Notifier<_ShootFilterSheetState> {
+  _ShootFilterSheetController(this.initialStatus);
+
+  final String initialStatus;
+
+  @override
+  _ShootFilterSheetState build() => _ShootFilterSheetState(
+    status: initialStatus,
+  );
+
+  void setStatus(String status) => state = _ShootFilterSheetState(
+    status: status,
+  );
+}
+
+final _shootFilterSheetProvider = NotifierProvider.autoDispose
+    .family<_ShootFilterSheetController, _ShootFilterSheetState, String>(
+      _ShootFilterSheetController.new,
+    );
 
 class _ShootSearchField extends StatefulWidget {
   const _ShootSearchField({required this.query, required this.onChanged});
@@ -105,40 +176,89 @@ class _ShootSearchFieldState extends State<_ShootSearchField> {
     return AppTextField(
       fieldKey: const ValueKey('shoot-search-field'),
       controller: _controller,
+      height: 40,
       hintText: 'Search shoots by name or product...',
       textInputAction: TextInputAction.search,
       onChanged: widget.onChanged,
-      leading: const Icon(Icons.search, size: 20),
+      leading: const Icon(Icons.search, size: 16, color: AppColors.neutral500),
+      trailing: widget.query.isEmpty
+          ? const SizedBox(width: 11)
+          : InkWell(
+              key: const ValueKey('clear-shoot-search'),
+              onTap: () => widget.onChanged(''),
+              child: const SizedBox(
+                width: 38,
+                height: 40,
+                child: Icon(Icons.close, size: 16, color: AppColors.black),
+              ),
+            ),
     );
   }
 }
 
-class _ShootSelect extends StatelessWidget {
-  const _ShootSelect({
-    required this.label,
-    required this.value,
-    required this.items,
-    this.onChanged,
-  });
+class _ShootStatusList extends StatelessWidget {
+  const _ShootStatusList({required this.value, required this.onChanged});
 
-  final String label;
+  static const _items = {
+    'all': 'All statuses',
+    'completed': 'Completed',
+    'processing': 'Processing',
+    'failed': 'Failed',
+  };
+
   final String value;
-  final Map<String, String> items;
-  final ValueChanged<String>? onChanged;
+  final ValueChanged<String> onChanged;
 
   @override
   Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _Eyebrow(label),
-        const SizedBox(height: 6),
-        AppDropdown<String>(
-          value: value,
-          values: items.keys.toList(growable: false),
-          labelFor: (value) => items[value]!,
-          enabled: onChanged != null,
-          onChanged: onChanged ?? (_) {},
+        const _Eyebrow('Status'),
+        const SizedBox(height: 8),
+        Container(
+          decoration: BoxDecoration(
+            border: Border.all(color: AppColors.neutral200),
+          ),
+          child: Column(
+            children: [
+              for (final entry in _items.entries) ...[
+                InkWell(
+                  onTap: () => onChanged(entry.key),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 14,
+                    ),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            entry.value,
+                            style: const TextStyle(
+                              fontSize: 14,
+                              color: AppColors.black,
+                            ),
+                          ),
+                        ),
+                        Icon(
+                          entry.key == value
+                              ? Icons.radio_button_checked
+                              : Icons.radio_button_off,
+                          size: 20,
+                          color: entry.key == value
+                              ? AppColors.black
+                              : AppColors.neutral400,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                if (entry.key != 'failed')
+                  const Divider(height: 1, color: AppColors.neutral200),
+              ],
+            ],
+          ),
         ),
       ],
     );
@@ -188,6 +308,7 @@ class _ShootCard extends StatelessWidget {
           const SizedBox(height: 12),
           AppOutlinedButton(
             label: 'View Details',
+            height: 40,
             onPressed: onTap,
             borderColor: AppColors.black,
           ),

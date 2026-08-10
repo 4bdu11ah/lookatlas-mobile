@@ -137,16 +137,12 @@ void main() {
       );
     });
     const selection = ShootSelection(
-      product: ShootCatalogItem(
-        id: 'product-1',
-        name: 'Bag',
-        imageUrl: '',
-      ),
-      model: ShootCatalogItem(
-        id: 'model-1',
-        name: 'Mila',
-        imageUrl: '',
-      ),
+      products: [
+        ShootCatalogItem(id: 'product-1', name: 'Bag', imageUrl: ''),
+      ],
+      models: [
+        ShootCatalogItem(id: 'model-1', name: 'Mila', imageUrl: ''),
+      ],
       settings: ShootSettings(
         useCase: 'campaign',
         directorId: 'editorial',
@@ -184,4 +180,47 @@ void main() {
     ]);
     expect(result.valueOrNull!.title, 'Macro detail');
   });
+
+  test(
+    'app_config_and_subscription_decode_unlimited_eligibility_inputs',
+    () async {
+      when(
+        () => api.get<ShootAppConfig>(
+          ApiEndpoints.appConfig,
+          decoder: any(named: 'decoder'),
+        ),
+      ).thenAnswer((invocation) async {
+        final decoder =
+            invocation.namedArguments[#decoder] as JsonDecoder<ShootAppConfig>;
+        return Result.ok(
+          decoder({
+            'supportedAspectRatios': ['4:5', '1:1'],
+            'defaultAspectRatio': '1:1',
+            'relaxEnabled': true,
+          }),
+        );
+      });
+      when(
+        () => api.get<ShootSubscription>(
+          ApiEndpoints.billingSubscription,
+          decoder: any(named: 'decoder'),
+        ),
+      ).thenAnswer((invocation) async {
+        final decoder =
+            invocation.namedArguments[#decoder]
+                as JsonDecoder<ShootSubscription>;
+        return Result.ok(decoder({'plan': 'pro', 'status': 'active'}));
+      });
+
+      final config = (await dataSource.getAppConfig()).valueOrNull!;
+      final subscription = (await dataSource.getSubscription()).valueOrNull!;
+
+      expect(config.defaultAspectRatio, '1:1');
+      expect(config.supportedAspectRatios, ['4:5', '1:1']);
+      expect(
+        subscription.isUnlimitedEligible(relaxEnabled: config.relaxEnabled),
+        isTrue,
+      );
+    },
+  );
 }

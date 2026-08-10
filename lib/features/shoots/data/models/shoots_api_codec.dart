@@ -24,6 +24,7 @@ abstract final class ShootsApiCodec {
   static ShootJob _decodeJob(Map<String, dynamic> json) {
     final product = _map(json['product']);
     final model = _map(json['model']);
+    final settings = _map(json['settings']);
     final flatImages = [
       for (final item in _imageItems(json))
         if (item is Map<String, dynamic>) _decodeImage(item),
@@ -66,8 +67,17 @@ abstract final class ShootsApiCodec {
         json['supportTicketId'] ?? json['support_ticket_id'],
       ),
       productId: _nullableString(json['productId'] ?? product['id']),
+      productSku: _nullableString(json['sku'] ?? product['sku']),
       modelId: _nullableString(json['modelId'] ?? model['id']),
       modelName: _nullableString(json['modelName'] ?? model['name']),
+      preset: _nullableString(
+        json['presetName'] ?? json['preset'] ?? settings['preset'],
+      ),
+      aspectRatio: _nullableString(
+        json['aspectRatio'] ??
+            settings['aspectRatio'] ??
+            settings['aspect_ratio'],
+      ),
       images: flatImages,
       shots: shots,
       hasActiveMediaWork: _hasActiveMediaWork(json, flatImages, shots),
@@ -129,6 +139,10 @@ abstract final class ShootsApiCodec {
             body['progress_percent'],
         status: status,
       ),
+      currentStep: _nullableString(body['currentStep'] ?? body['current_step']),
+      estimatedCompletion: _date(
+        body['estimatedCompletion'] ?? body['estimated_completion'],
+      ),
     );
   }
 
@@ -181,11 +195,46 @@ abstract final class ShootsApiCodec {
                 _firstPhoto(item),
           ),
           source: source,
+          category: _nullableString(item['category']),
+          subCategory: _nullableString(
+            item['subCategory'] ?? item['sub_category'],
+          ),
         ),
   ];
 
   static int decodeAvailableCredits(dynamic data) =>
       _integer(_map(data)['credits']);
+
+  static ShootAppConfig decodeAppConfig(dynamic data) {
+    final body = _map(data);
+    final ratios = [
+      for (final value in body['supportedAspectRatios'] as List? ?? const [])
+        if (value is String && value.isNotEmpty) value,
+    ];
+    return ShootAppConfig(
+      supportedAspectRatios: ratios.isEmpty
+          ? const ['4:5', '3:4', '1:1', '4:3', '16:9', '9:16']
+          : ratios,
+      defaultAspectRatio: _string(
+        body['defaultAspectRatio'],
+        fallback: '4:5',
+      ),
+      relaxEnabled: body['relaxEnabled'] as bool? ?? false,
+    );
+  }
+
+  static ShootSubscription decodeSubscription(dynamic data) {
+    final body = _map(data);
+    return ShootSubscription(
+      plan: _string(body['plan']).toLowerCase(),
+      status: _string(body['status']).toLowerCase(),
+    );
+  }
+
+  static Set<String> decodeCalibratedProductIds(dynamic data) => {
+    for (final item in _items(data, 'products'))
+      if (item is Map<String, dynamic>) _string(item['productId']),
+  }..remove('');
 
   static List<ShootLook> decodeLooks(dynamic data) => [
     for (final item in _items(data, 'looks'))
@@ -274,11 +323,15 @@ abstract final class ShootsApiCodec {
       'useCase': settings.useCase,
       'directorId': settings.directorId,
       'directorFeedback': settings.directorFeedback,
-      'stylingNotes': <String, dynamic>{},
       'background': settings.background,
-      'backgroundNotes': settings.backgroundNotes,
       'numberOfShots': settings.numberOfShots,
       'aspectRatio': settings.aspectRatio,
+      if (settings.background == 'custom' &&
+          settings.backgroundNotes.trim().isNotEmpty)
+        'backgroundNotes': settings.backgroundNotes.trim(),
+      if (settings.directorId == 'heirloom-children' &&
+          _trimmedEntries(settings.stylingNotes).isNotEmpty)
+        'stylingNotes': _trimmedEntries(settings.stylingNotes),
     };
   }
 
@@ -288,13 +341,17 @@ abstract final class ShootsApiCodec {
     final settings = request.selection.settings;
     return {
       'shotIdea': request.shotIdea,
-      'poseDirection': request.poseDirection,
-      'focusArea': request.focusArea,
+      if (request.poseDirection.trim().isNotEmpty)
+        'poseDirection': request.poseDirection.trim(),
+      if (request.focusArea.trim().isNotEmpty)
+        'focusArea': request.focusArea.trim(),
       'useCase': settings.useCase,
       'directorId': settings.directorId,
       'background': settings.background,
-      'backgroundNotes': settings.backgroundNotes,
       'aspectRatio': settings.aspectRatio,
+      if (settings.background == 'custom' &&
+          settings.backgroundNotes.trim().isNotEmpty)
+        'backgroundNotes': settings.backgroundNotes.trim(),
       'existingShots': [
         for (final shot in request.existingShots) shot.toJson(),
       ],
@@ -309,13 +366,18 @@ abstract final class ShootsApiCodec {
       'shots': [for (final shot in request.shots) shot.toJson()],
       'settings': {
         'useCase': settings.useCase,
+        'shootType': settings.useCase,
         'directorId': settings.directorId,
         'background': settings.background,
-        'backgroundNotes': settings.backgroundNotes,
         'aspectRatio': settings.aspectRatio,
         'imageSize': settings.imageSize,
         'variations': settings.variations,
+        if (settings.lane == ShootLane.relax) 'lane': 'relax',
+        if (settings.background == 'custom' &&
+            settings.backgroundNotes.trim().isNotEmpty)
+          'backgroundNotes': settings.backgroundNotes.trim(),
       },
+      if (request.demoGroupId != null) 'demoGroupId': request.demoGroupId,
     };
   }
 
@@ -324,16 +386,27 @@ abstract final class ShootsApiCodec {
     'modelId': selection.model.id,
     'modelSource': selection.modelSource,
     'models': [
-      {
-        'modelId': selection.model.id,
-        'source': selection.modelSource,
-        'role': 'primary',
-      },
+      for (final (index, model) in selection.models.indexed)
+        {
+          'modelId': model.id,
+          'source': model.source ?? 'user',
+          'role': switch (index) {
+            0 => 'primary',
+            1 => 'secondary-1',
+            _ => 'secondary-2',
+          },
+        },
     ],
     'products': [
-      {'productId': selection.product.id},
+      for (final product in selection.products) {'productId': product.id},
     ],
-    'productMode': 'pairing',
+    if (selection.products.length > 1)
+      'productMode': selection.productMode.name,
+  };
+
+  static Map<String, String> _trimmedEntries(Map<String, String> values) => {
+    for (final entry in values.entries)
+      if (entry.value.trim().isNotEmpty) entry.key: entry.value.trim(),
   };
 
   static List<dynamic> _imageItems(Map<String, dynamic> data) {

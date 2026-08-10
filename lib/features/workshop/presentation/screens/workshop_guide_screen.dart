@@ -409,7 +409,7 @@ class _GuideImage extends StatelessWidget {
               border: Border.all(color: AppColors.neutral200),
             ),
             clipBehavior: Clip.hardEdge,
-            child: Image.asset(asset, fit: BoxFit.cover, cacheWidth: 280),
+            child: AppImage(asset, fit: BoxFit.cover),
           ),
         ),
       ],

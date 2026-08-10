@@ -170,18 +170,24 @@ void main() {
         AppRoutes.dashboardSupport: 'Support',
         AppRoutes.dashboardGuides: 'Guides',
       };
+      final screens = <String, Type>{
+        AppRoutes.dashboardShoots: ShootsScreen,
+        AppRoutes.shootDetail('job-bag'): ShootDetailScreen,
+        AppRoutes.dashboardProducts: ProductsScreen,
+        AppRoutes.dashboardModels: HouseModelsScreen,
+        AppRoutes.dashboardBilling: BillingScreen,
+        AppRoutes.dashboardAccount: AccountSettingsScreen,
+        AppRoutes.dashboardSupport: SupportScreen,
+        AppRoutes.dashboardGuides: GuidesScreen,
+      };
 
       for (final entry in cases.entries) {
         router.go(entry.key);
-        await tester.pumpAndSettle();
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 300));
 
         expect(currentUri(router).path, entry.key);
-        if (entry.key == AppRoutes.shootDetail('job-bag')) {
-          expect(find.byType(ShootDetailScreen), findsOneWidget);
-          expect(find.byType(DashboardFeatureScreen), findsNothing);
-        } else {
-          expect(find.byType(DashboardFeatureScreen), findsOneWidget);
-        }
+        expect(find.byType(screens[entry.key]!), findsOneWidget);
         expect(find.byType(Drawer), findsNothing);
         expect(find.byIcon(Icons.menu), findsNothing);
         expect(find.byType(CustomAppBar), findsOneWidget);
@@ -206,7 +212,6 @@ void main() {
 
       expect(currentUri(router).path, AppRoutes.createShoot);
       expect(find.byType(CreateShootScreen), findsOneWidget);
-      expect(find.byType(DashboardFeatureScreen), findsNothing);
       expect(find.byType(CustomAppBar), findsOneWidget);
       expect(find.text('Create Shoot'), findsWidgets);
     });
@@ -326,7 +331,7 @@ void main() {
       expect(find.text('Products'), findsWidgets);
     });
 
-    testWidgets('drawer pushes feature routes so back returns to dashboard', (
+    testWidgets('drawer pushes the selected feature over the dashboard', (
       tester,
     ) async {
       final router = await pumpRouter(tester, user: user);
@@ -336,10 +341,11 @@ void main() {
       await tester.tap(find.byIcon(Icons.menu));
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('dashboard-drawer-models')));
-      await tester.pumpAndSettle();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
 
       expect(find.byType(Drawer), findsNothing);
-      expect(find.byType(DashboardFeatureScreen), findsOneWidget);
+      expect(find.byType(HouseModelsScreen), findsOneWidget);
       expect(find.text('House Models'), findsOneWidget);
 
       router.pop();

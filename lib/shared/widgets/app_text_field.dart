@@ -96,8 +96,7 @@ class _AppTextFieldState extends State<AppTextField> {
           widget.labelText!,
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
-          style: TextStyle(
-            fontSize: 12,
+          style: Theme.of(context).textTheme.labelMedium?.copyWith(
             fontWeight: FontWeight.w700,
             color: Theme.of(context).colorScheme.onSurface,
           ),
@@ -123,8 +122,7 @@ class _AppTextFieldState extends State<AppTextField> {
           valueListenable: _controller,
           builder: (_, value, _) => Text(
             '${value.text.characters.length}/${widget.maxLength}',
-            style: TextStyle(
-              fontSize: 12,
+            style: Theme.of(context).textTheme.labelMedium?.copyWith(
               color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
           ),

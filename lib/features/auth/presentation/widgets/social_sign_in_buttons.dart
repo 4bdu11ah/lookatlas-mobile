@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:look_atlas/core/config/app_config.dart';
 import 'package:look_atlas/core/constants/app_assets.dart';
 import 'package:look_atlas/core/theme/app_colors.dart';
 import 'package:look_atlas/features/auth/presentation/auth_controller.dart';
+import 'package:look_atlas/shared/widgets/app_image.dart';
 
 /// "or continue with" divider plus the Apple and Google sign-in buttons.
 ///
@@ -110,7 +110,7 @@ class _GoogleButton extends StatelessWidget {
       onPressed: onPressed,
       // Official multicolor "G" per
       // https://developers.google.com/identity/branding-guidelines.
-      icon: SvgPicture.asset(
+      icon: const AppImage(
         AppAssets.googleLogo,
         width: 18,
         height: 18,

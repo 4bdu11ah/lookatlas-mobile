@@ -4,11 +4,9 @@ Future<void> _showFilterSheet(BuildContext context, WidgetRef ref) {
   final state = ref.read(_houseModelControllerProvider);
   var gender = state.genderFilter;
   var body = state.bodyFilter;
-  return showModalBottomSheet<void>(
-    context: context,
+  return showAppBottomSheet<void>(
+    context,
     isScrollControlled: true,
-    backgroundColor: AppColors.white,
-    shape: const RoundedRectangleBorder(),
     builder: (context) {
       return StatefulBuilder(
         builder: (context, setSheetState) {

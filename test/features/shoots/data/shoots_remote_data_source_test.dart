@@ -207,17 +207,25 @@ void main() {
       );
     });
     const selection = ShootSelection(
-      product: ShootCatalogItem(
-        id: 'product-1',
-        name: 'Bag',
-        imageUrl: '',
-      ),
-      model: ShootCatalogItem(
-        id: 'model-1',
-        name: 'Mila',
-        imageUrl: '',
-        source: 'user',
-      ),
+      products: [
+        ShootCatalogItem(id: 'product-1', name: 'Bag', imageUrl: ''),
+        ShootCatalogItem(id: 'product-2', name: 'Shoes', imageUrl: ''),
+      ],
+      models: [
+        ShootCatalogItem(
+          id: 'model-1',
+          name: 'Mila',
+          imageUrl: '',
+          source: 'user',
+        ),
+        ShootCatalogItem(
+          id: 'model-2',
+          name: 'Ava',
+          imageUrl: '',
+          source: 'lookatlas',
+        ),
+      ],
+      productMode: ProductMode.pairing,
       settings: ShootSettings(
         directorFeedback: 'Natural light',
         numberOfShots: 6,
@@ -238,6 +246,15 @@ void main() {
     expect(body['productId'], 'product-1');
     expect(body['modelId'], 'model-1');
     expect(body['modelSource'], 'user');
+    expect(body['productMode'], 'pairing');
+    expect(body['products'], [
+      {'productId': 'product-1'},
+      {'productId': 'product-2'},
+    ]);
+    expect(body['models'], [
+      {'modelId': 'model-1', 'source': 'user', 'role': 'primary'},
+      {'modelId': 'model-2', 'source': 'lookatlas', 'role': 'secondary-1'},
+    ]);
     expect(body['directorId'], 'clean-pro');
     expect(body['directorFeedback'], 'Natural light');
     expect(body['numberOfShots'], 6);
@@ -262,17 +279,13 @@ void main() {
     });
     const request = CreateShootRequest(
       selection: ShootSelection(
-        product: ShootCatalogItem(
-          id: 'product-1',
-          name: 'Bag',
-          imageUrl: '',
-        ),
-        model: ShootCatalogItem(
-          id: 'model-1',
-          name: 'Mila',
-          imageUrl: '',
-        ),
-        settings: ShootSettings(variations: 2),
+        products: [
+          ShootCatalogItem(id: 'product-1', name: 'Bag', imageUrl: ''),
+        ],
+        models: [
+          ShootCatalogItem(id: 'model-1', name: 'Mila', imageUrl: ''),
+        ],
+        settings: ShootSettings(variations: 2, lane: ShootLane.relax),
       ),
       shots: [
         PlannedShootShot(title: 'Hero', description: 'Front view'),
@@ -294,6 +307,7 @@ void main() {
     expect(body['shots'], [
       {'title': 'Hero', 'shortDescription': 'Front view'},
     ]);
+    expect((body['settings'] as Map<String, dynamic>)['lane'], 'relax');
     expect(result.valueOrNull, 'job-created');
   });
 
@@ -487,7 +501,7 @@ void main() {
     ).called(1);
   });
 
-  test('load_create_catalog_starts_all_seven_requests_in_parallel', () async {
+  test('load_create_catalog_starts_all_requests_in_parallel', () async {
     final remote = _MockRemoteDataSource();
     final products = Completer<Result<List<ShootCatalogItem>>>();
     final userModels = Completer<Result<List<ShootCatalogItem>>>();
@@ -496,6 +510,9 @@ void main() {
     final looks = Completer<Result<List<ShootLook>>>();
     final filters = Completer<Result<Map<String, List<String>>>>();
     final presets = Completer<Result<List<ShootPreset>>>();
+    final appConfig = Completer<Result<ShootAppConfig>>();
+    final subscription = Completer<Result<ShootSubscription>>();
+    final calibratedIds = Completer<Result<Set<String>>>();
     when(remote.getProducts).thenAnswer((_) => products.future);
     when(remote.getUserModels).thenAnswer((_) => userModels.future);
     when(remote.getLibraryModels).thenAnswer((_) => libraryModels.future);
@@ -503,6 +520,11 @@ void main() {
     when(remote.getLooks).thenAnswer((_) => looks.future);
     when(remote.getLookFilters).thenAnswer((_) => filters.future);
     when(remote.getPresets).thenAnswer((_) => presets.future);
+    when(remote.getAppConfig).thenAnswer((_) => appConfig.future);
+    when(remote.getSubscription).thenAnswer((_) => subscription.future);
+    when(
+      remote.getCalibratedProductIds,
+    ).thenAnswer((_) => calibratedIds.future);
 
     final future = ShootsRepositoryImpl(remote).loadCreateCatalog();
 
@@ -513,6 +535,9 @@ void main() {
     verify(remote.getLooks).called(1);
     verify(remote.getLookFilters).called(1);
     verify(remote.getPresets).called(1);
+    verify(remote.getAppConfig).called(1);
+    verify(remote.getSubscription).called(1);
+    verify(remote.getCalibratedProductIds).called(1);
     products.complete(const Result.ok([]));
     userModels.complete(const Result.ok([]));
     libraryModels.complete(const Result.ok([]));
@@ -520,9 +545,17 @@ void main() {
     looks.complete(const Result.ok([]));
     filters.complete(const Result.ok({}));
     presets.complete(const Result.ok([]));
+    appConfig.complete(
+      const Result.ok(ShootAppConfig(relaxEnabled: true)),
+    );
+    subscription.complete(
+      const Result.ok(ShootSubscription(plan: 'pro', status: 'active')),
+    );
+    calibratedIds.complete(const Result.ok({}));
 
     final result = await future;
 
     expect(result.valueOrNull!.availableCredits, 20);
+    expect(result.valueOrNull!.isUnlimitedEligible, isTrue);
   });
 }

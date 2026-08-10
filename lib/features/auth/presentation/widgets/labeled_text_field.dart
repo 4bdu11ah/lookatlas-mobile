@@ -38,9 +38,8 @@ class LabeledTextField extends StatelessWidget {
       children: [
         Text(
           label,
-          style: TextStyle(
+          style: Theme.of(context).textTheme.labelLarge?.copyWith(
             color: scheme.onSurface,
-            fontSize: 14,
             fontWeight: AppTypography.medium,
           ),
         ),
@@ -54,7 +53,7 @@ class LabeledTextField extends StatelessWidget {
           textInputAction: textInputAction,
           validator: validator,
           onFieldSubmitted: onFieldSubmitted,
-          style: const TextStyle(fontSize: 16),
+          style: Theme.of(context).textTheme.bodyLarge,
           decoration: InputDecoration(
             hintText: hintText,
             suffixIcon: switch (passwordVisibility) {
@@ -79,7 +78,9 @@ class LabeledTextField extends StatelessWidget {
           const SizedBox(height: 8),
           Text(
             helperText!,
-            style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 12),
+            style: Theme.of(context).textTheme.labelMedium?.copyWith(
+              color: scheme.onSurfaceVariant,
+            ),
           ),
         ],
       ],

@@ -13,8 +13,11 @@ class ShootJob {
     this.progress = 1,
     this.supportTicketId,
     this.productId,
+    this.productSku,
     this.modelId,
     this.modelName,
+    this.preset,
+    this.aspectRatio,
     this.images = const [],
     this.shots = const [],
     this.hasActiveMediaWork = false,
@@ -30,19 +33,21 @@ class ShootJob {
   final double progress;
   final String? supportTicketId;
   final String? productId;
+  final String? productSku;
   final String? modelId;
   final String? modelName;
+  final String? preset;
+  final String? aspectRatio;
   final List<ShootImage> images;
   final List<ShootShot> shots;
   final bool hasActiveMediaWork;
 
   bool get isActive => const {
     'pending',
-    'queued',
     'enqueued',
     'processing',
-    'generating',
-    'running',
+    'retrying',
+    'cancel_requested',
   }.contains(status.toLowerCase());
 
   bool get isCompleted => status.toLowerCase() == 'completed';
@@ -65,8 +70,11 @@ class ShootJob {
       progress: progress ?? this.progress,
       supportTicketId: supportTicketId,
       productId: productId,
+      productSku: productSku,
       modelId: modelId,
       modelName: modelName,
+      preset: preset,
+      aspectRatio: aspectRatio,
       images: images ?? this.images,
       shots: shots ?? this.shots,
       hasActiveMediaWork: hasActiveMediaWork,
@@ -137,18 +145,21 @@ class ShootProgressStatus {
   const ShootProgressStatus({
     required this.status,
     required this.progress,
+    this.currentStep,
+    this.estimatedCompletion,
   });
 
   final String status;
   final double progress;
+  final String? currentStep;
+  final DateTime? estimatedCompletion;
 
   bool get isActive => const {
     'pending',
-    'queued',
     'enqueued',
     'processing',
-    'generating',
-    'running',
+    'retrying',
+    'cancel_requested',
   }.contains(status.toLowerCase());
 }
 

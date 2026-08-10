@@ -9,6 +9,7 @@ class _ShootDetailState {
     this.failure,
     this.selectedImage,
     this.selectedShotIndex = 0,
+    this.progressStatus,
     this.versions = const [],
     this.videoRequest = const ShootVideoRequest(),
   });
@@ -20,6 +21,7 @@ class _ShootDetailState {
   final Failure? failure;
   final ShootImage? selectedImage;
   final int selectedShotIndex;
+  final ShootProgressStatus? progressStatus;
   final List<ShootImageVersion> versions;
   final ShootVideoRequest videoRequest;
 
@@ -40,6 +42,7 @@ class _ShootDetailState {
     Failure? failure,
     ShootImage? selectedImage,
     int? selectedShotIndex,
+    ShootProgressStatus? progressStatus,
     List<ShootImageVersion>? versions,
     ShootVideoRequest? videoRequest,
     bool clearFailure = false,
@@ -51,6 +54,7 @@ class _ShootDetailState {
     failure: clearFailure ? null : failure ?? this.failure,
     selectedImage: selectedImage ?? this.selectedImage,
     selectedShotIndex: selectedShotIndex ?? this.selectedShotIndex,
+    progressStatus: progressStatus ?? this.progressStatus,
     versions: versions ?? this.versions,
     videoRequest: videoRequest ?? this.videoRequest,
   );
@@ -103,6 +107,13 @@ class _ShootDetailController extends Notifier<_ShootDetailState> {
   }
 
   Future<Failure?> refresh() async {
+    final statusResult = await _repository.getJobStatus(state.jobId);
+    if (_disposed) return null;
+    if (statusResult case Err(:final failure)) {
+      state = state.copyWith(failure: failure);
+      return failure;
+    }
+    _applyProgress(statusResult.valueOrNull!);
     await load(state.jobId, silent: true);
     return state.failure;
   }
@@ -135,6 +146,16 @@ class _ShootDetailController extends Notifier<_ShootDetailState> {
 
   Future<Result<Uint8List>> download(ShootImage image) =>
       _repository.downloadImage(state.jobId, image.id);
+
+  Future<Failure?> exportApprovedImages() {
+    final job = state.job;
+    if (job == null)
+      return Future.value(const UnknownFailure('Load the shoot first.'));
+    return const ShootExportService().exportApprovedImages(
+      job: job,
+      download: download,
+    );
+  }
 
   void selectImage(ShootImage image, {int? shotIndex}) {
     state = state.copyWith(
@@ -179,6 +200,33 @@ class _ShootDetailController extends Notifier<_ShootDetailState> {
       return failure;
     }
     _startEditPolling(image.id);
+    return null;
+  }
+
+  Future<Failure?> reportImage({
+    required ShootImage image,
+    required String reason,
+    required String comment,
+  }) async {
+    final trimmedComment = comment.trim();
+    if (trimmedComment.length < 20 || trimmedComment.length > 1000) {
+      return const UnknownFailure(
+        'Tell us what is wrong in 20 to 1000 characters.',
+      );
+    }
+    state = state.copyWith(isActionRunning: true, clearFailure: true);
+    final result = await _repository.reportImage(
+      state.jobId,
+      image.id,
+      reason: reason,
+      comment: trimmedComment,
+    );
+    if (_disposed) return null;
+    state = state.copyWith(isActionRunning: false);
+    if (result case Err(:final failure)) {
+      state = state.copyWith(failure: failure);
+      return failure;
+    }
     return null;
   }
 
@@ -273,19 +321,26 @@ class _ShootDetailController extends Notifier<_ShootDetailState> {
     if (_disposed) return;
     final progress = result.valueOrNull;
     if (progress == null) return;
-    final job = state.job;
-    if (job != null) {
-      state = state.copyWith(
-        job: job.copyWith(
-          status: progress.status,
-          progress: progress.progress,
-        ),
-      );
+    final previous = state.job;
+    final detailNeedsRefresh =
+        previous == null ||
+        previous.status != progress.status ||
+        previous.progress != progress.progress;
+    _applyProgress(progress);
+    if (detailNeedsRefresh || !progress.isActive) {
+      await load(state.jobId, silent: true);
     }
     if (!progress.isActive) {
       _statusTimer?.cancel();
-      await load(state.jobId, silent: true);
     }
+  }
+
+  void _applyProgress(ShootProgressStatus progress) {
+    final job = state.job;
+    state = state.copyWith(
+      progressStatus: progress,
+      job: job?.copyWith(status: progress.status, progress: progress.progress),
+    );
   }
 
   void _startDetailPolling() {

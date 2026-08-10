@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:dio/dio.dart';
 import 'package:look_atlas/core/config/app_config.dart';
+import 'package:look_atlas/core/error/failure.dart';
 import 'package:look_atlas/core/network/api_endpoints.dart';
 import 'package:look_atlas/core/network/api_service.dart';
 import 'package:look_atlas/core/result/result.dart';
@@ -65,12 +66,18 @@ class ProductsRemoteDataSourceImpl implements ProductsRemoteDataSource {
       );
 
   @override
-  Future<Result<void>> createProduct(CatalogProductDraft draft) =>
-      _api.post<void>(
-        ApiEndpoints.products,
-        data: _productFormData(draft, includeAngles: true),
-        decoder: (_) {},
-      );
+  Future<Result<void>> createProduct(CatalogProductDraft draft) async {
+    final created = await _api.post<void>(
+      ApiEndpoints.products,
+      data: _productFormData(draft, includeAngles: true),
+      decoder: (_) {},
+    );
+    final existingProductId = _duplicateSkuProductId(created.failureOrNull);
+    if (existingProductId == null) return created;
+    final retried = await updateProduct(existingProductId, draft);
+    if (!retried.isOk || draft.viewAngles.isEmpty) return retried;
+    return updatePhotoAngles(existingProductId, draft.viewAngles);
+  }
 
   @override
   Future<Result<void>> updateProduct(
@@ -121,24 +128,33 @@ class ProductsRemoteDataSourceImpl implements ProductsRemoteDataSource {
   );
 
   @override
-  Future<Result<List<CalibrationOutline>>> getCalibrationOutlines() =>
-      _publicApi.get<List<CalibrationOutline>>(
-        ApiEndpoints.calibrationOutlines,
-        decoder: (data) => [
-          for (final item in _items(data, const ['outlines']))
-            if (item is Map<String, dynamic>)
-              CalibrationOutline(
-                id: _string(item['id'] ?? item['value']),
-                name: _string(
-                  item['name'] ?? item['label'],
-                  fallback: 'Body view',
-                ),
-                imageUrl: _absoluteUrl(
+  Future<Result<List<CalibrationOutline>>>
+  getCalibrationOutlines() => _publicApi.get<List<CalibrationOutline>>(
+    ApiEndpoints.calibrationOutlines,
+    decoder: (data) => [
+      for (final item in _items(data, const ['outlines']))
+        if (item is Map<String, dynamic>)
+          CalibrationOutline(
+            id: _string(
+              item['bodyArea'] ??
+                  item['body_area'] ??
+                  item['id'] ??
+                  item['value'],
+            ),
+            name: _string(
+              item['name'] ?? item['label'],
+              fallback: 'Body view',
+            ),
+            imageUrl:
+                _absoluteUrl(
                   _nullableString(item['imageUrl'] ?? item['image_url']),
+                ) ??
+                _absoluteUrl(
+                  '${ApiEndpoints.calibrationOutlines}/${_string(item['bodyArea'] ?? item['body_area'] ?? item['id'] ?? item['value'])}.png',
                 ),
-              ),
-        ],
-      );
+          ),
+    ],
+  );
 
   @override
   Future<Result<ProductCalibration>> getCalibration(String productId) =>
@@ -279,7 +295,7 @@ class ProductsRemoteDataSourceImpl implements ProductsRemoteDataSource {
     return ProductCalibration(
       bodyArea: _nullableString(json['bodyArea'] ?? json['body_area']),
       shapes: [
-        for (final shape in json['shapes'] as List? ?? const [])
+        for (final shape in _shapeItems(json['shapes']))
           if (shape is Map<String, dynamic>) shape,
       ],
       userNotes: _nullableString(json['userNotes'] ?? json['user_notes']),
@@ -290,8 +306,14 @@ class ProductsRemoteDataSourceImpl implements ProductsRemoteDataSource {
         _nullableString(json['wornPhotoUrl'] ?? json['worn_photo_url']),
       ),
       cutoutUrl: _absoluteUrl(
-        _nullableString(json['cutoutUrl'] ?? json['cutout_url']),
+        _nullableString(
+          json['productCutoutUrl'] ??
+              json['product_cutout_url'] ??
+              json['cutoutUrl'] ??
+              json['cutout_url'],
+        ),
       ),
+      hasLegacyShapes: _shapeItems(json['shapes']).isNotEmpty,
     );
   }
 
@@ -302,10 +324,14 @@ class ProductsRemoteDataSourceImpl implements ProductsRemoteDataSource {
     final data = FormData();
     data.fields
       ..add(MapEntry('name', draft.name))
-      ..add(MapEntry('sku', draft.sku))
-      ..add(MapEntry('description', draft.description))
-      ..add(MapEntry('category', draft.category))
-      ..add(MapEntry('sub_category', draft.subCategory));
+      ..add(MapEntry('sku', draft.sku));
+    if (draft.description.isNotEmpty) {
+      data.fields.add(MapEntry('description', draft.description));
+    }
+    data.fields.add(MapEntry('category', draft.category.toLowerCase()));
+    if (draft.subCategory.isNotEmpty) {
+      data.fields.add(MapEntry('sub_category', draft.subCategory));
+    }
     if (includeAngles && draft.viewAngles.isNotEmpty) {
       data.fields.add(
         MapEntry(
@@ -320,7 +346,39 @@ class ProductsRemoteDataSourceImpl implements ProductsRemoteDataSource {
     for (final photo in draft.photos) {
       data.files.add(MapEntry('photos', _multipart(photo)));
     }
+    if (draft.photos.isNotEmpty) {
+      data.fields.add(
+        MapEntry(
+          'photo_keys',
+          jsonEncode([
+            for (final (index, photo) in draft.photos.indexed)
+              _photoKey(photo, index),
+          ]),
+        ),
+      );
+    }
     return data;
+  }
+
+  static String _photoKey(ProductUpload photo, int index) {
+    var hash = 0;
+    for (final byte in photo.bytes) {
+      hash = (hash * 31 + byte) & 0x7fffffff;
+    }
+    return '${photo.fileName}-${photo.bytes.lengthInBytes}-$hash-$index';
+  }
+
+  static String? _duplicateSkuProductId(Failure? failure) {
+    if (failure is! NetworkFailure ||
+        failure.statusCode != 409 ||
+        failure.code != 'DUPLICATE_SKU') {
+      return null;
+    }
+    final response = (failure.cause as DioException?)?.response?.data;
+    final error = _map(response)['error'];
+    return error is Map<String, dynamic>
+        ? _nullableString(error['existingProductId'])
+        : null;
   }
 
   static FormData _singleUpload(String field, ProductUpload upload) =>
@@ -344,6 +402,14 @@ class ProductsRemoteDataSourceImpl implements ProductsRemoteDataSource {
     for (final key in keys) {
       final value = body[key];
       if (value is List) return value;
+    }
+    return const [];
+  }
+
+  static List<dynamic> _shapeItems(Object? value) {
+    if (value is List) return value;
+    if (value is Map<String, dynamic> && value['shapes'] is List) {
+      return value['shapes'] as List<dynamic>;
     }
     return const [];
   }

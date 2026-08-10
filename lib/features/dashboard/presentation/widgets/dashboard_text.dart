@@ -19,13 +19,15 @@ class _PageHeader extends StatelessWidget {
         Text(
           title,
           softWrap: true,
-          style: TextStyle(
-            fontSize: small ? 24 : 30,
-            height: small ? 1.1 : 1.05,
-            fontWeight: AppTypography.bold,
-            letterSpacing: -0.6,
-            color: AppColors.black,
-          ),
+          style:
+              (small
+                      ? Theme.of(context).textTheme.headlineSmall
+                      : Theme.of(context).textTheme.headlineMedium)
+                  ?.copyWith(
+                    height: small ? 1.1 : 1.05,
+                    letterSpacing: -0.6,
+                    color: AppColors.black,
+                  ),
         ),
         const SizedBox(height: 6),
         _BodyText(body),
@@ -44,10 +46,8 @@ class _SectionTitle extends StatelessWidget {
     return Text(
       text,
       softWrap: true,
-      style: const TextStyle(
-        fontSize: 20,
+      style: Theme.of(context).textTheme.titleLarge?.copyWith(
         height: 1.2,
-        fontWeight: AppTypography.bold,
         letterSpacing: -0.2,
         color: AppColors.black,
       ),
@@ -66,10 +66,8 @@ class _CardTitle extends StatelessWidget {
       text,
       overflow: TextOverflow.ellipsis,
       maxLines: 2,
-      style: const TextStyle(
-        fontSize: 15,
+      style: Theme.of(context).textTheme.titleMedium?.copyWith(
         height: 1.2,
-        fontWeight: AppTypography.bold,
         color: AppColors.black,
       ),
     );
@@ -88,8 +86,7 @@ class _BodyText extends StatelessWidget {
       text,
       textAlign: textAlign,
       softWrap: true,
-      style: const TextStyle(
-        fontSize: 14,
+      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
         height: 1.55,
         color: AppColors.neutral500,
       ),
@@ -107,8 +104,7 @@ class _Caption extends StatelessWidget {
     return Text(
       text,
       softWrap: true,
-      style: const TextStyle(
-        fontSize: 12,
+      style: Theme.of(context).textTheme.bodySmall?.copyWith(
         height: 1.45,
         color: AppColors.neutral500,
       ),
@@ -117,18 +113,18 @@ class _Caption extends StatelessWidget {
 }
 
 class _Eyebrow extends StatelessWidget {
-  const _Eyebrow(this.text);
+  const _Eyebrow(this.text, {this.maxLines = 1});
 
   final String text;
+  final int maxLines;
 
   @override
   Widget build(BuildContext context) {
     return Text(
       text.toUpperCase(),
-      maxLines: 1,
-      overflow: TextOverflow.ellipsis,
-      style: const TextStyle(
-        fontSize: 11,
+      maxLines: maxLines,
+      overflow: maxLines == 1 ? TextOverflow.ellipsis : TextOverflow.visible,
+      style: Theme.of(context).textTheme.labelSmall?.copyWith(
         height: 1.3,
         letterSpacing: 1.1,
         fontWeight: AppTypography.bold,
@@ -149,8 +145,7 @@ class _FieldLabel extends StatelessWidget {
       text,
       maxLines: 1,
       overflow: TextOverflow.ellipsis,
-      style: const TextStyle(
-        fontSize: 12,
+      style: Theme.of(context).textTheme.labelMedium?.copyWith(
         fontWeight: AppTypography.bold,
         color: AppColors.black,
       ),

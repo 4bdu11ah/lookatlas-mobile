@@ -178,7 +178,21 @@ class OnboardingRemoteDataSourceImpl implements OnboardingRemoteDataSource {
     data.fields
       ..add(MapEntry('name', draft.name))
       ..add(MapEntry('sku', draft.sku))
-      ..add(MapEntry('category', draft.category));
+      ..add(
+        MapEntry(
+          'photo_keys',
+          jsonEncode([for (final upload in draft.photos) _photoKey(upload)]),
+        ),
+      );
+    if (draft.category.trim().isNotEmpty) {
+      data.fields.add(MapEntry('category', draft.category.trim()));
+    }
+    if (draft.description.trim().isNotEmpty) {
+      data.fields.add(MapEntry('description', draft.description.trim()));
+    }
+    if (draft.subCategory.trim().isNotEmpty) {
+      data.fields.add(MapEntry('sub_category', draft.subCategory.trim()));
+    }
     if (draft.viewAngles.isNotEmpty) {
       data.fields.add(MapEntry('view_angles', jsonEncode(draft.viewAngles)));
     }
@@ -205,11 +219,22 @@ class OnboardingRemoteDataSourceImpl implements OnboardingRemoteDataSource {
           MultipartFile.fromBytes(
             upload.bytes,
             filename: upload.fileName,
-            contentType: DioMediaType('image', 'jpeg'),
+            contentType: DioMediaType(
+              'image',
+              upload.fileName.toLowerCase().endsWith('.png') ? 'png' : 'jpeg',
+            ),
           ),
         ),
       );
     }
+  }
+
+  static String _photoKey(OnboardingUpload upload) {
+    var hash = 0xcbf29ce484222325;
+    for (final byte in upload.bytes) {
+      hash = ((hash ^ byte) * 0x100000001b3) & 0x7fffffffffffffff;
+    }
+    return '${upload.fileName}:$hash';
   }
 
   static Map<String, dynamic> _map(dynamic data) =>

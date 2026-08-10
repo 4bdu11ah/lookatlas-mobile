@@ -22,10 +22,7 @@ abstract final class DioClient {
               connectTimeout: const Duration(seconds: 15),
               receiveTimeout: const Duration(seconds: 30),
               sendTimeout: const Duration(seconds: 30),
-              headers: {
-                'Content-Type': 'application/json',
-                ...?headers,
-              },
+              headers: {...?headers},
             ),
           )
           // Decode large JSON bodies off the main isolate so parsing a big
@@ -98,19 +95,26 @@ Failure mapDioError(DioException error) {
     message,
     statusCode: status,
     code: serverError.$1,
+    details: serverError.$3,
     cause: error,
     stackTrace: error.stackTrace,
   );
 }
 
-(String?, String?) _serverError(Object? body) {
-  if (body is! Map<String, dynamic>) return (null, null);
+(String?, String?, Map<String, dynamic>) _serverError(Object? body) {
+  if (body is! Map<String, dynamic>) return (null, null, const {});
   final error = body['error'];
   if (error is Map<String, dynamic>) {
     final code = error['code'];
     final message = error['message'];
-    return (code is String ? code : null, message is String ? message : null);
+    return (
+      code is String ? code : null,
+      message is String ? message : null,
+      Map<String, dynamic>.from(error)
+        ..remove('code')
+        ..remove('message'),
+    );
   }
   final message = body['message'];
-  return (null, message is String ? message : null);
+  return (null, message is String ? message : null, const {});
 }

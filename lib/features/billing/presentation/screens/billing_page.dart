@@ -1,25 +1,14 @@
 part of '../../../dashboard/presentation/screens/dashboard_screen.dart';
 
-class _BillingFeatureScaffold extends StatelessWidget {
-  const _BillingFeatureScaffold();
+class BillingScreen extends StatelessWidget {
+  const BillingScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return const AppFeatureScaffold(
       backgroundColor: AppColors.neutral50,
-      appBar: const CustomAppBar(
-        title: 'Billing',
-        showBackButton: true,
-      ),
-      body: SafeArea(
-        bottom: false,
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 430),
-            child: const _BillingPage(),
-          ),
-        ),
-      ),
+      title: 'Billing',
+      child: _BillingPage(),
     );
   }
 }
@@ -52,22 +41,19 @@ class _BillingPageHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Column(
+    return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           'Billing',
-          style: TextStyle(
-            fontSize: 24,
+          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
             height: 1.33,
-            fontWeight: AppTypography.bold,
           ),
         ),
-        SizedBox(height: 4),
+        const SizedBox(height: 4),
         Text(
           'Manage your subscription and view usage',
-          style: TextStyle(
-            fontSize: 14,
+          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
             height: 1.43,
             color: AppColors.neutral500,
           ),

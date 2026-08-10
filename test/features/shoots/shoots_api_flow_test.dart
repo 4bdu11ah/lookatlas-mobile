@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:look_atlas/core/router/app_routes.dart';
+import 'package:look_atlas/core/error/failure.dart';
+import 'package:look_atlas/core/result/result.dart';
 import 'package:look_atlas/core/theme/app_theme.dart';
 import 'package:look_atlas/features/auth/di/auth_providers.dart';
 import 'package:look_atlas/features/auth/domain/entities/app_user.dart';
@@ -42,6 +44,89 @@ void main() {
     await tester.pumpAndSettle();
   }
 
+  testWidgets('admin_demo_creates_one_job_per_director_with_shared_group', (
+    tester,
+  ) async {
+    tester.view
+      ..physicalSize = const Size(390, 844)
+      ..devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final repository = FakeShootsRepository(
+      createResults: const [
+        Result.err(NetworkFailure('First director failed.')),
+        Result.ok('job-created'),
+      ],
+    );
+    final router = GoRouter(
+      initialLocation: AppRoutes.createShoot,
+      routes: [
+        GoRoute(
+          path: AppRoutes.createShoot,
+          builder: (_, _) => const CreateShootScreen(),
+        ),
+        GoRoute(
+          path: AppRoutes.shootDetailPath,
+          builder: (_, state) => ShootDetailScreen(
+            jobId: state.pathParameters['jobId']!,
+          ),
+        ),
+      ],
+    );
+    addTearDown(router.dispose);
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          authRepositoryProvider.overrideWithValue(
+            FakeAuthRepository(
+              user: const AppUser(
+                id: 'admin-1',
+                email: 'admin@example.com',
+                role: 'admin',
+              ),
+            ),
+          ),
+          isPremiumProvider.overrideWithValue(true),
+          shootsRepositoryProvider.overrideWithValue(repository),
+        ],
+        child: MaterialApp.router(
+          theme: AppTheme.light(),
+          routerConfig: router,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('demo-shoot-toggle')));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('Next'));
+    await tester.tap(find.text('Next'));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('Next'));
+    await tester.tap(find.text('Next'));
+    await tester.pumpAndSettle();
+    final isabellaCard = find.byKey(
+      const ValueKey('selection-Isabella Romano'),
+    );
+    await tester.ensureVisible(isabellaCard);
+    await tester.tap(isabellaCard);
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('Next'));
+    await tester.tap(find.text('Next'));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('Generate 2 Directors'));
+    await tester.tap(find.text('Generate 2 Directors'));
+    await tester.pumpAndSettle();
+
+    expect(repository.planShotsCalls, 2);
+    expect(repository.createShootCalls, 2);
+    final groupIds = repository.createRequests
+        .map((request) => request.demoGroupId)
+        .toSet();
+    expect(groupIds, hasLength(1));
+    expect(groupIds.single, isNotEmpty);
+  });
+
   Future<GoRouter> pumpRouter(
     WidgetTester tester,
     FakeShootsRepository repository,
@@ -56,7 +141,7 @@ void main() {
       routes: [
         GoRoute(
           path: AppRoutes.dashboardShoots,
-          builder: (_, _) => const DashboardFeatureScreen.shoots(),
+          builder: (_, _) => const ShootsScreen(),
         ),
         GoRoute(
           path: AppRoutes.createShoot,
@@ -98,7 +183,7 @@ void main() {
     final repository = FakeShootsRepository();
     await pumpScreen(
       tester,
-      const DashboardFeatureScreen.shoots(),
+      const ShootsScreen(),
       repository,
     );
     final initialCalls = repository.getJobsCalls;
@@ -129,6 +214,29 @@ void main() {
     await tester.pump();
   });
 
+  testWidgets('active_shoot_detail_refreshes_data_when_progress_changes', (
+    tester,
+  ) async {
+    final repository = FakeShootsRepository();
+    await pumpScreen(
+      tester,
+      const ShootDetailScreen(jobId: 'job-heels-processing'),
+      repository,
+    );
+    final initialDetailCalls = repository.getJobCalls;
+    final index = repository.jobs.indexWhere(
+      (job) => job.id == 'job-heels-processing',
+    );
+    repository.jobs[index] = repository.jobs[index].copyWith(progress: .72);
+
+    await tester.pump(const Duration(seconds: 3));
+    await tester.pump();
+
+    expect(repository.getJobCalls, initialDetailCalls + 1);
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump();
+  });
+
   testWidgets('image_ai_edit_submits_prompt_to_selected_image_api', (
     tester,
   ) async {
@@ -152,6 +260,33 @@ void main() {
     expect(repository.lastEditPrompt, 'Remove the left shadow');
   });
 
+  testWidgets('image quality report sends a valid reason and comment', (
+    tester,
+  ) async {
+    final repository = FakeShootsRepository();
+    await pumpScreen(
+      tester,
+      const ShootDetailScreen(jobId: 'job-bag'),
+      repository,
+    );
+
+    await tester.ensureVisible(find.byIcon(Icons.flag_outlined).last);
+    await tester.tap(find.byIcon(Icons.flag_outlined).last);
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.widgetWithText(AppTextField, 'What is wrong?'),
+      'The product shape is broken around the shoulder.',
+    );
+    await tester.tap(find.text('Report product deformation'));
+    await tester.pumpAndSettle();
+
+    expect(repository.lastReportReason, 'product_deformed');
+    expect(
+      repository.lastReportComment,
+      'The product shape is broken around the shoulder.',
+    );
+  });
+
   testWidgets('add_variation_submits_real_shot_index', (tester) async {
     final repository = FakeShootsRepository();
     await pumpScreen(
@@ -160,8 +295,8 @@ void main() {
       repository,
     );
 
-    await tester.ensureVisible(find.text('Add').last);
-    await tester.tap(find.text('Add').last);
+    await tester.ensureVisible(find.text('Add Variation').last);
+    await tester.tap(find.text('Add Variation').last);
     await tester.pumpAndSettle();
     await tester.enterText(
       find.widgetWithText(AppTextField, 'Extra remarks (optional)'),
@@ -211,10 +346,10 @@ void main() {
     await tester.tap(find.byIcon(Icons.close).last);
     await tester.pumpAndSettle();
 
-    await tester.ensureVisible(find.text('Add').first);
-    await tester.tap(find.text('Add').first);
+    await tester.ensureVisible(find.text('Add Variation').first);
+    await tester.tap(find.text('Add Variation').first);
     await tester.pumpAndSettle();
-    expect(find.text('Add Variation'), findsOneWidget);
+    expect(find.text('Add Variation'), findsWidgets);
     expect(
       find.text('Generated using current shoot settings.'),
       findsOneWidget,

@@ -8,6 +8,7 @@ import 'package:look_atlas/core/theme/app_colors.dart';
 import 'package:look_atlas/core/theme/app_typography.dart';
 import 'package:look_atlas/features/billing/domain/entities/billing_checkout.dart';
 import 'package:look_atlas/features/billing/presentation/controllers/onetime_verification_controller.dart';
+import 'package:look_atlas/shared/widgets/app_bottom_sheet.dart';
 import 'package:look_atlas/shared/widgets/bar_spinner.dart';
 
 /// Where the one-time purchase flow can land (mockup 12, states A–E).
@@ -65,8 +66,8 @@ class _OnetimeSuccessScreenState extends ConsumerState<OnetimeSuccessScreen> {
 
   void _showProUpsell() {
     unawaited(
-      showModalBottomSheet<void>(
-        context: context,
+      showAppBottomSheet<void>(
+        context,
         backgroundColor: AppColors.transparent,
         barrierColor: AppColors.blackAlpha70,
         builder: (context) => _ProUpsellSheet(

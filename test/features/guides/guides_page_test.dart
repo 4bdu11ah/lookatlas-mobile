@@ -15,7 +15,7 @@ void main() {
       ProviderScope(
         child: MaterialApp(
           theme: AppTheme.light(),
-          home: const DashboardFeatureScreen.guides(),
+          home: const GuidesScreen(),
         ),
       ),
     );

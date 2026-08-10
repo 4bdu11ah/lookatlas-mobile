@@ -1,5 +1,37 @@
 part of '../../../dashboard/presentation/screens/dashboard_screen.dart';
 
+class ShootsScreen extends ConsumerWidget {
+  const ShootsScreen({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final isPremium = ref.watch(isPremiumProvider);
+    return AppFeatureScaffold(
+      title: 'Shoots',
+      backgroundColor: AppColors.neutral50,
+      useResponsiveContent: false,
+      floatingActionButton: AppFloatingActionButton(
+        key: const ValueKey('new-shoot-button'),
+        label: 'New Shoot',
+        icon: Icons.play_arrow_outlined,
+        onPressed: isPremium
+            ? () => _openCreateShoot(context)
+            : () => _openDashboardModal(
+                context,
+                ref,
+                _ModalKind.contextPaywall,
+              ),
+      ),
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 28),
+        child: _JobsPage(
+          onOpenModal: (kind) => _openDashboardModal(context, ref, kind),
+        ),
+      ),
+    );
+  }
+}
+
 class _JobsPage extends ConsumerWidget {
   const _JobsPage({required this.onOpenModal});
 
@@ -11,35 +43,26 @@ class _JobsPage extends ConsumerWidget {
     final controller = ref.read(_shootsControllerProvider.notifier);
     final isPremium = ref.watch(isPremiumProvider);
     final shoots = state.shoots;
-    return _Stack(
-      gap: 14,
+    if (state.isLoading) {
+      return const _ShootsLoading();
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const _PageHeader(
-          title: 'Shoots',
-          body: 'Monitor your photo shoots and generation progress.',
+        const _BodyText(
+          'Monitor your photo shoots and generation progress.',
         ),
-        PrimaryButton(
-          key: const ValueKey('new-shoot-button'),
-          label: 'New Shoot',
-          icon: Icons.play_arrow_outlined,
-          onPressed: isPremium
-              ? () => _openCreateShoot(context)
-              : () => onOpenModal(_ModalKind.contextPaywall),
-        ),
+        const SizedBox(height: 16),
         _ShootFilters(
           query: state.query,
           status: state.status,
+          shootCount: shoots.length,
           onQueryChanged: controller.setQuery,
           onStatusChanged: controller.setStatus,
         ),
-        if (state.isLoading)
-          const Padding(
-            padding: EdgeInsets.symmetric(vertical: 40),
-            child: Center(child: BarSpinner()),
-          )
-        else if (state.failure != null && shoots.isEmpty)
+        if (state.failure != null && shoots.isEmpty)
           _Card(
-            child: _Stack(
+            child: _Column(
               gap: 12,
               children: [
                 Text(state.failure!.message),

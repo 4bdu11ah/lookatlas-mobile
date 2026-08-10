@@ -13,6 +13,7 @@ class ShootsRepositoryImpl implements ShootsRepository {
 
   @override
   Future<Result<ShootCreateCatalog>> loadCreateCatalog() async {
+    final calibratedProductIds = _remote.getCalibratedProductIds();
     final results = await (
       _remote.getProducts(),
       _remote.getUserModels(),
@@ -21,21 +22,37 @@ class ShootsRepositoryImpl implements ShootsRepository {
       _remote.getLooks(),
       _remote.getLookFilters(),
       _remote.getPresets(),
+      _remote.getAppConfig(),
+      _remote.getSubscription(),
     ).wait;
+    final calibratedResult = await calibratedProductIds;
     final productsFailure = results.$1.failureOrNull;
     if (productsFailure != null) return Err(productsFailure);
     if (results.$2.isErr && results.$3.isErr) {
       return Err(results.$2.failureOrNull!);
     }
+    final appConfig = results.$8.valueOrNull ?? const ShootAppConfig();
+    final subscription = results.$9.valueOrNull ?? const ShootSubscription();
+    final calibratedIds = calibratedResult.valueOrNull ?? const <String>{};
     return Ok(
       ShootCreateCatalog(
-        products: results.$1.valueOrNull!,
+        products: [
+          for (final product in results.$1.valueOrNull!)
+            product.copyWith(isCalibrated: calibratedIds.contains(product.id)),
+        ],
         userModels: results.$2.valueOrNull ?? const [],
         libraryModels: results.$3.valueOrNull ?? const [],
         availableCredits: results.$4.valueOrNull ?? 0,
-        looks: results.$5.valueOrNull ?? const [],
+        looks: _mergeDirectors(results.$5.valueOrNull ?? const []),
         lookFilters: results.$6.valueOrNull ?? const {},
         presets: results.$7.valueOrNull ?? const [],
+        supportedAspectRatios: appConfig.supportedAspectRatios,
+        defaultAspectRatio: appConfig.defaultAspectRatio,
+        relaxEnabled: appConfig.relaxEnabled,
+        plan: subscription.plan,
+        isUnlimitedEligible: subscription.isUnlimitedEligible(
+          relaxEnabled: appConfig.relaxEnabled,
+        ),
       ),
     );
   }
@@ -97,6 +114,19 @@ class ShootsRepositoryImpl implements ShootsRepository {
   ) => _remote.getImageEditStatus(jobId, imageId);
 
   @override
+  Future<Result<void>> reportImage(
+    String jobId,
+    String imageId, {
+    required String reason,
+    required String comment,
+  }) => _remote.reportImage(
+    jobId,
+    imageId,
+    reason: reason,
+    comment: comment,
+  );
+
+  @override
   Future<Result<void>> addVariation(
     String jobId,
     int shotIndex,
@@ -135,6 +165,12 @@ class ShootsRepositoryImpl implements ShootsRepository {
       _remote.createShoot(request);
 
   @override
+  Future<Result<void>> updateProductSubCategory(
+    String productId,
+    String subCategory,
+  ) => _remote.updateProductSubCategory(productId, subCategory);
+
+  @override
   Future<Result<void>> savePreset({
     required String name,
     required Map<String, dynamic> settings,
@@ -152,4 +188,13 @@ class ShootsRepositoryImpl implements ShootsRepository {
   @override
   Future<Result<void>> deletePreset(String presetId) =>
       _remote.deletePreset(presetId);
+}
+
+List<ShootLook> _mergeDirectors(List<ShootLook> remote) {
+  final byId = {for (final director in remote) director.id: director};
+  return [
+    for (final director in defaultShootDirectors)
+      byId.remove(director.id) ?? director,
+    ...byId.values,
+  ];
 }

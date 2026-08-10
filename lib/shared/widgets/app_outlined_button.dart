@@ -12,6 +12,7 @@ class AppOutlinedButton extends StatelessWidget {
     this.foregroundColor,
     this.backgroundColor,
     this.iconSize = 20,
+    this.iconAngle = 0,
     this.textStyle,
     super.key,
   });
@@ -26,12 +27,23 @@ class AppOutlinedButton extends StatelessWidget {
   final Color? foregroundColor;
   final Color? backgroundColor;
   final double iconSize;
+
+  /// Icon rotation in radians, matching [Transform.rotate].
+  final double iconAngle;
   final TextStyle? textStyle;
+
+  Widget _buildIcon(Color color) {
+    final iconWidget = Icon(icon, size: iconSize, color: color);
+    return iconAngle == 0
+        ? iconWidget
+        : Transform.rotate(angle: iconAngle, child: iconWidget);
+  }
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final effectiveForeground = foregroundColor ?? scheme.onSurface;
+    final labelStyle = textStyle ?? Theme.of(context).textTheme.labelLarge;
     return SizedBox(
       width: fitToContent ? null : double.infinity,
       height: height,
@@ -42,6 +54,7 @@ class AppOutlinedButton extends StatelessWidget {
           side: BorderSide(color: borderColor ?? scheme.primary),
           foregroundColor: effectiveForeground,
           backgroundColor: backgroundColor,
+          textStyle: labelStyle,
         ),
         onPressed: onPressed,
         child: Row(
@@ -49,7 +62,7 @@ class AppOutlinedButton extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             if (icon != null && iconAlignment == IconAlignment.start) ...[
-              Icon(icon, size: iconSize, color: effectiveForeground),
+              _buildIcon(effectiveForeground),
               const SizedBox(width: 8),
             ],
             Flexible(
@@ -57,12 +70,12 @@ class AppOutlinedButton extends StatelessWidget {
                 label,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: textStyle,
+                style: labelStyle,
               ),
             ),
             if (icon != null && iconAlignment == IconAlignment.end) ...[
               const SizedBox(width: 8),
-              Icon(icon, size: iconSize, color: effectiveForeground),
+              _buildIcon(effectiveForeground),
             ],
           ],
         ),

@@ -93,10 +93,11 @@ class ProductQuery {
 
 @immutable
 class ProductUpload {
-  const ProductUpload({required this.bytes, required this.fileName});
+  const ProductUpload({required this.bytes, required this.fileName, this.path});
 
   final Uint8List bytes;
   final String fileName;
+  final String? path;
 }
 
 @immutable
@@ -142,6 +143,7 @@ class ProductCalibration {
     this.cutoutPlacement = const {},
     this.wornPhotoUrl,
     this.cutoutUrl,
+    this.hasLegacyShapes = false,
   });
 
   final String? bodyArea;
@@ -150,6 +152,11 @@ class ProductCalibration {
   final Map<String, dynamic> cutoutPlacement;
   final String? wornPhotoUrl;
   final String? cutoutUrl;
+  final bool hasLegacyShapes;
+
+  bool get hasPlacement => cutoutPlacement.isNotEmpty && cutoutUrl != null;
+  bool get isLegacyOnly =>
+      hasLegacyShapes && !hasPlacement && wornPhotoUrl == null;
 }
 
 @immutable
@@ -157,20 +164,20 @@ class ProductCalibrationDraft {
   const ProductCalibrationDraft({
     required this.bodyArea,
     required this.shapes,
-    required this.userNotes,
-    required this.cutoutPlacement,
+    this.userNotes,
+    this.cutoutPlacement,
   });
 
   final String bodyArea;
   final List<Map<String, dynamic>> shapes;
-  final String userNotes;
-  final Map<String, dynamic> cutoutPlacement;
+  final String? userNotes;
+  final Map<String, dynamic>? cutoutPlacement;
 
   Map<String, dynamic> toJson() => {
     'bodyArea': bodyArea,
     'shapes': shapes,
-    'userNotes': userNotes,
-    'cutoutPlacement': cutoutPlacement,
+    if (userNotes != null) 'userNotes': userNotes,
+    if (cutoutPlacement != null) 'cutoutPlacement': cutoutPlacement,
   };
 }
 

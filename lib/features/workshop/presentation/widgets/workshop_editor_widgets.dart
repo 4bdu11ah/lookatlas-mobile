@@ -10,11 +10,10 @@ class _WorkshopHeader extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
+        Text(
           'Reshape any photo with a sentence. Swap a face, recolor a product, '
           'drop a new model into the same shot. 1 credit per generation.',
-          style: TextStyle(
-            fontSize: 14,
+          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
             height: 20 / 14,
             color: AppColors.neutral500,
           ),

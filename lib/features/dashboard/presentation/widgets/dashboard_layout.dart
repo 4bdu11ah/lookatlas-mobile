@@ -1,7 +1,7 @@
 part of '../screens/dashboard_screen.dart';
 
-class _Stack extends StatelessWidget {
-  const _Stack({required this.children, this.gap = 20});
+class _Column extends StatelessWidget {
+  const _Column({required this.children, this.gap = 20});
 
   final List<Widget> children;
   final double gap;

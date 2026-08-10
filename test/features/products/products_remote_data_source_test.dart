@@ -4,6 +4,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:look_atlas/core/network/api_endpoints.dart';
 import 'package:look_atlas/core/network/api_service.dart';
+import 'package:look_atlas/core/error/failure.dart';
 import 'package:look_atlas/core/result/result.dart';
 import 'package:look_atlas/features/products/data/data_sources/products_remote_data_source.dart';
 import 'package:look_atlas/features/products/domain/entities/product_catalog.dart';
@@ -161,9 +162,10 @@ void main() {
       'name': 'Canvas Bag',
       'sku': 'BAG-1',
       'description': 'Natural canvas',
-      'category': 'Bags',
+      'category': 'bags',
       'sub_category': 'Crossbody',
       'view_angles': '["front","side"]',
+      'photo_keys': '["front.png-2-33-0","side.jpg-2-97-1"]',
     });
     expect(createData.files.map((part) => part.key), ['photos', 'photos']);
     expect(
@@ -174,6 +176,62 @@ void main() {
       Map<String, String>.fromEntries(updateData.fields),
       isNot(contains('view_angles')),
     );
+  });
+
+  test('create_retries_duplicate_sku_with_existing_product_id', () async {
+    final requestOptions = RequestOptions(path: ApiEndpoints.products);
+    when(
+      () => api.post<void>(
+        ApiEndpoints.products,
+        data: any(named: 'data'),
+        decoder: any(named: 'decoder'),
+      ),
+    ).thenAnswer(
+      (_) async => Result.err(
+        NetworkFailure(
+          'Duplicate SKU',
+          statusCode: 409,
+          code: 'DUPLICATE_SKU',
+          cause: DioException(
+            requestOptions: requestOptions,
+            response: Response<dynamic>(
+              requestOptions: requestOptions,
+              statusCode: 409,
+              data: {
+                'error': {
+                  'code': 'DUPLICATE_SKU',
+                  'existingProductId': 'existing-product',
+                },
+              },
+            ),
+          ),
+        ),
+      ),
+    );
+    when(
+      () => api.put<void>(
+        ApiEndpoints.product('existing-product'),
+        data: any(named: 'data'),
+        decoder: any(named: 'decoder'),
+      ),
+    ).thenAnswer((_) async => const Result.ok(null));
+
+    final result = await dataSource.createProduct(
+      const CatalogProductDraft(
+        name: 'Canvas Bag',
+        sku: 'BAG-1',
+        category: 'Bags',
+      ),
+    );
+
+    expect(result.isOk, isTrue);
+    verify(
+      () => api.put<void>(
+        ApiEndpoints.product('existing-product'),
+        data: any(named: 'data'),
+        decoder: any(named: 'decoder'),
+      ),
+    ).called(1);
   });
 
   test('product_photo_actions_use_documented_paths_and_payloads', () async {
@@ -281,7 +339,8 @@ void main() {
           'calibration': {
             'bodyArea': 'full_body_front',
             'userNotes': 'Medium size',
-            'cutoutPlacement': {'scale': 1.2},
+            'productCutoutUrl': '/cutouts/product-1.png',
+            'cutoutPlacement': {'x': 500, 'y': 750, 'w': 220, 'h': 260},
           },
         }),
       );
@@ -312,7 +371,9 @@ void main() {
 
     expect(outlines.single.id, 'full_body_front');
     expect(calibration.userNotes, 'Medium size');
-    expect(calibration.cutoutPlacement['scale'], 1.2);
+    expect(calibration.cutoutPlacement['w'], 220);
+    expect(calibration.cutoutUrl, contains('/cutouts/product-1.png'));
+    expect(calibration.hasPlacement, isTrue);
     expect(products.single.id, 'product-2');
   });
 
@@ -388,5 +449,17 @@ void main() {
         decoder: any(named: 'decoder'),
       ),
     ).called(1);
+  });
+
+  test('calibration_draft_omits_optional_values_for_notes_only_save', () {
+    const draft = ProductCalibrationDraft(
+      bodyArea: 'full_body_front',
+      shapes: [],
+    );
+
+    expect(draft.toJson(), {
+      'bodyArea': 'full_body_front',
+      'shapes': <Map<String, dynamic>>[],
+    });
   });
 }

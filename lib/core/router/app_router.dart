@@ -201,7 +201,7 @@ final routerProvider = Provider<GoRouter>((ref) {
         name: 'dashboard_shoots',
         pageBuilder: (_, state) => buildAppTransitionPage(
           state: state,
-          child: const DashboardFeatureScreen.shoots(),
+          child: const ShootsScreen(),
         ),
       ),
       GoRoute(
@@ -217,7 +217,7 @@ final routerProvider = Provider<GoRouter>((ref) {
         name: 'dashboard_products',
         pageBuilder: (_, state) => buildAppTransitionPage(
           state: state,
-          child: const DashboardFeatureScreen.products(),
+          child: const ProductsScreen(),
         ),
       ),
       GoRoute(
@@ -225,7 +225,7 @@ final routerProvider = Provider<GoRouter>((ref) {
         name: 'dashboard_models',
         pageBuilder: (_, state) => buildAppTransitionPage(
           state: state,
-          child: const DashboardFeatureScreen.models(),
+          child: const HouseModelsScreen(),
         ),
       ),
       GoRoute(
@@ -233,7 +233,7 @@ final routerProvider = Provider<GoRouter>((ref) {
         name: 'dashboard_billing',
         pageBuilder: (_, state) => buildAppTransitionPage(
           state: state,
-          child: const DashboardFeatureScreen.billing(),
+          child: const BillingScreen(),
         ),
       ),
       GoRoute(
@@ -241,7 +241,7 @@ final routerProvider = Provider<GoRouter>((ref) {
         name: 'dashboard_account',
         pageBuilder: (_, state) => buildAppTransitionPage(
           state: state,
-          child: const DashboardFeatureScreen.account(),
+          child: const AccountSettingsScreen(),
         ),
       ),
       GoRoute(
@@ -249,7 +249,7 @@ final routerProvider = Provider<GoRouter>((ref) {
         name: 'dashboard_support',
         pageBuilder: (_, state) => buildAppTransitionPage(
           state: state,
-          child: const DashboardFeatureScreen.support(),
+          child: const SupportScreen(),
         ),
       ),
       GoRoute(
@@ -257,7 +257,7 @@ final routerProvider = Provider<GoRouter>((ref) {
         name: 'dashboard_guides',
         pageBuilder: (_, state) => buildAppTransitionPage(
           state: state,
-          child: const DashboardFeatureScreen.guides(),
+          child: const GuidesScreen(),
         ),
       ),
       GoRoute(

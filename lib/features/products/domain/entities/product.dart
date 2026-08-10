@@ -20,7 +20,7 @@ class _Product {
   int get photos => item.photos.length;
   List<ProductPhoto> get productPhotos => item.photos;
   String get asset => item.imageUrl;
-  String get status => calibrated ? 'Calibrated' : 'Recommended';
+  String get status => calibrated ? 'Calibrated' : 'Calibrate size';
   String get addedLabel => item.createdAt == null
       ? 'Recently added'
       : DateFormat('MMM d').format(item.createdAt!.toLocal());

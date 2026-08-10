@@ -44,6 +44,13 @@ abstract interface class ShootsRepository {
     String imageId,
   );
 
+  Future<Result<void>> reportImage(
+    String jobId,
+    String imageId, {
+    required String reason,
+    required String comment,
+  });
+
   Future<Result<void>> addVariation(
     String jobId,
     int shotIndex,
@@ -74,6 +81,11 @@ abstract interface class ShootsRepository {
   );
 
   Future<Result<String>> createShoot(CreateShootRequest request);
+
+  Future<Result<void>> updateProductSubCategory(
+    String productId,
+    String subCategory,
+  );
 
   Future<Result<void>> savePreset({
     required String name,

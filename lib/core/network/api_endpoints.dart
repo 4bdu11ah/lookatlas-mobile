@@ -110,6 +110,9 @@ abstract final class ApiEndpoints {
   static String jobImageEditStatus(String jobId, String imageId) =>
       '/jobs/$jobId/images/$imageId/edit-status';
 
+  static String reportJobImage(String jobId, String imageId) =>
+      '/jobs/$jobId/images/$imageId/report';
+
   static String addJobVariation(String jobId, int shotIndex) =>
       '/jobs/$jobId/shots/$shotIndex/add-variation';
 

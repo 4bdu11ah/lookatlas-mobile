@@ -121,7 +121,7 @@ class _ModalFrame extends StatelessWidget {
         Flexible(
           child: SingleChildScrollView(
             padding: const EdgeInsets.all(17),
-            child: _Stack(gap: 12, children: children),
+            child: _Column(gap: 12, children: children),
           ),
         ),
         if (actions.isNotEmpty) ...[

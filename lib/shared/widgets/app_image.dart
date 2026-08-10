@@ -33,6 +33,9 @@ class AppImage extends StatelessWidget {
     this.semanticLabel,
     this.placeholder,
     this.errorWidget,
+    this.onRemove,
+    this.removeTooltip = 'Remove image',
+    this.removeIcon = Icons.close,
     super.key,
   }) : bytes = null;
 
@@ -47,6 +50,9 @@ class AppImage extends StatelessWidget {
     this.semanticLabel,
     this.placeholder,
     this.errorWidget,
+    this.onRemove,
+    this.removeTooltip = 'Remove image',
+    this.removeIcon = Icons.close,
     super.key,
   }) : source = null;
 
@@ -62,6 +68,9 @@ class AppImage extends StatelessWidget {
   final String? semanticLabel;
   final Widget? placeholder;
   final Widget? errorWidget;
+  final VoidCallback? onRemove;
+  final String removeTooltip;
+  final IconData removeIcon;
 
   bool get _isSvg {
     final s = source;
@@ -83,8 +92,31 @@ class AppImage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final image = _buildImage(context);
-    if (borderRadius == null) return image;
-    return ClipRRect(borderRadius: borderRadius!, child: image);
+    final clipped = borderRadius == null
+        ? image
+        : ClipRRect(borderRadius: borderRadius!, child: image);
+    if (onRemove == null) return clipped;
+    return Stack(
+      fit: StackFit.passthrough,
+      children: [
+        clipped,
+        Positioned(
+          top: 4,
+          right: 4,
+          child: Material(
+            color: AppColors.black,
+            shape: const CircleBorder(),
+            child: IconButton(
+              tooltip: removeTooltip,
+              onPressed: onRemove,
+              icon: Icon(removeIcon, color: AppColors.white, size: 18),
+              constraints: const BoxConstraints.tightFor(width: 36, height: 36),
+              padding: EdgeInsets.zero,
+            ),
+          ),
+        ),
+      ],
+    );
   }
 
   Widget _buildImage(BuildContext context) {

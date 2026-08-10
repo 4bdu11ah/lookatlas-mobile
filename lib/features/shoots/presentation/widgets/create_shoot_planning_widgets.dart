@@ -22,7 +22,7 @@ class _PlanningStep extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (!isPlanned) {
-      return _Stack(
+      return _Column(
         gap: 14,
         children: [
           const _CreateSectionHeader(
@@ -56,7 +56,7 @@ class _PlanningStep extends StatelessWidget {
         ],
       );
     }
-    return _Stack(
+    return _Column(
       gap: 11,
       children: [
         const _CreateSectionHeader(
@@ -98,25 +98,41 @@ class _PlanningStep extends StatelessWidget {
 }
 
 class _ReviewStep extends StatelessWidget {
-  const _ReviewStep({required this.state});
+  const _ReviewStep({required this.state, required this.onLaneChanged});
 
   final _CreateShootState state;
+  final ValueChanged<ShootLane> onLaneChanged;
 
   @override
   Widget build(BuildContext context) {
-    return _Stack(
+    return _Column(
       gap: 12,
       children: [
-        const _CreateSectionHeader(
-          title: 'Review & Generate',
-          subtitle: 'Confirm your shoot settings',
+        _CreateSectionHeader(
+          title: state.isDemo ? 'Review Demo Shoot' : 'Review & Generate',
+          subtitle: state.isDemo
+              ? 'One job per director in a single client demo'
+              : 'Confirm your shoot settings',
         ),
         _ReviewGrid(state: state),
         const _Alert(
           kind: _AlertKind.info,
           text: 'Each selected shot is generated in every requested variation.',
         ),
+        if (state.canUseUnlimited && !state.isDemo) ...[
+          const _FieldLabel('Generation speed'),
+          _SegmentedChoices(
+            choices: const ['Instant · Credits', 'Unlimited · Included'],
+            selected: state.settings.lane.index,
+            onSelect: (index) => onLaneChanged(ShootLane.values[index]),
+          ),
+        ],
         _CreditSummary(state: state),
+        if (!state.canGenerate && state.settings.lane == ShootLane.fast)
+          const _Alert(
+            kind: _AlertKind.warn,
+            text: 'Not enough credits. Reduce images or choose Unlimited.',
+          ),
       ],
     );
   }
@@ -184,20 +200,39 @@ class _ReviewGrid extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final selection = state.selection;
+    final productNames = state.selectedProducts
+        .map((item) => item.name)
+        .join(' + ');
+    final modelNames = state.selectedModels.indexed
+        .map(
+          (item) =>
+              '${item.$2.name} · ${item.$1 == 0 ? 'Primary' : 'Secondary ${item.$1}'}',
+        )
+        .join('\n');
+    final demoDirectors = [
+      for (final id in state.selectedDirectorIds)
+        '${state.directors.firstWhere((item) => item.id == id).name} · '
+            '${state.demoConfigs[id]?.numberOfShots ?? 5} × '
+            '${state.demoConfigs[id]?.variations ?? 2}',
+    ].join('\n');
     final items = [
       (
-        'Product',
-        selection?.product.name ?? 'Not selected',
+        'Products (${state.selectedProducts.length})',
+        productNames.isEmpty ? 'Not selected' : productNames,
         selection?.product.imageUrl ?? '',
       ),
       (
-        'Model',
-        selection?.model.name ?? 'Not selected',
+        'Models (${state.selectedModels.length})',
+        modelNames.isEmpty ? 'Not selected' : modelNames,
         selection?.model.imageUrl ?? '',
       ),
       (
-        'Shots × Variations',
-        '${state.chosenShots.length} shots × ${state.settings.variations}',
+        state.isDemo
+            ? 'Directors (${state.selectedDirectorIds.length})'
+            : 'Shots × Variations',
+        state.isDemo
+            ? demoDirectors
+            : '${state.chosenShots.length} shots × ${state.settings.variations}',
         '',
       ),
       (
@@ -210,8 +245,8 @@ class _ReviewGrid extends StatelessWidget {
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       itemCount: items.length,
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
+      gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+        maxCrossAxisExtent: 260,
         crossAxisSpacing: 8,
         mainAxisSpacing: 8,
         childAspectRatio: 1.15,
@@ -252,8 +287,8 @@ class _CreditSummary extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final multiplier = _creditMultiplier(state.settings.imageSize);
-    final requiredCredits =
-        state.chosenShots.length * state.settings.variations * multiplier;
+    final requiredCredits = state.requiredCredits;
+    final unlimited = state.settings.lane == ShootLane.relax;
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
@@ -266,10 +301,14 @@ class _CreditSummary extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const _CardTitle('Credits Required'),
+                _CardTitle(
+                  unlimited ? 'Included with Unlimited' : 'Credits Required',
+                ),
                 _Caption(
-                  '${state.chosenShots.length} shots × '
-                  '${state.settings.variations} variations × $multiplier',
+                  state.isDemo
+                      ? '${state.demoTotalImages} images × 2 credits'
+                      : '${state.chosenShots.length} shots × '
+                            '${state.settings.variations} variations × $multiplier',
                 ),
               ],
             ),
@@ -278,7 +317,7 @@ class _CreditSummary extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Text(
-                '$requiredCredits',
+                unlimited ? 'Included' : '$requiredCredits',
                 style: const TextStyle(
                   fontSize: 24,
                   fontWeight: AppTypography.bold,
@@ -300,7 +339,7 @@ class _CreditSummary extends StatelessWidget {
 }
 
 int _creditMultiplier(String imageSize) => switch (imageSize) {
-  '4K' => 4,
+  '4K' => 3,
   '2K' => 2,
   _ => 1,
 };

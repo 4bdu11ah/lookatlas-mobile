@@ -11,8 +11,8 @@ class _ModelGrid extends StatelessWidget {
       padding: const EdgeInsets.only(top: 16),
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
+      gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+        maxCrossAxisExtent: 205,
         crossAxisSpacing: 11,
         mainAxisSpacing: 11,
         childAspectRatio: 0.52,

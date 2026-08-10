@@ -1,5 +1,46 @@
 part of '../../../dashboard/presentation/screens/dashboard_screen.dart';
 
+class _AddProductPhotos extends Notifier<List<OnboardingUpload>> {
+  @override
+  List<OnboardingUpload> build() => const [];
+  void set(List<OnboardingUpload> value) => state = value;
+}
+
+class _AddProductSubmitting extends Notifier<bool> {
+  @override
+  bool build() => false;
+  void set(bool value) => state = value;
+}
+
+class _AddModelPhotos extends Notifier<List<HouseModelUpload>> {
+  @override
+  List<HouseModelUpload> build() => const [];
+  void set(List<HouseModelUpload> value) => state = value;
+}
+
+class _AddModelSubmitting extends Notifier<bool> {
+  @override
+  bool build() => false;
+  void set(bool value) => state = value;
+}
+
+final _addProductPhotosProvider =
+    NotifierProvider.autoDispose<_AddProductPhotos, List<OnboardingUpload>>(
+      _AddProductPhotos.new,
+    );
+final _addProductSubmittingProvider =
+    NotifierProvider.autoDispose<_AddProductSubmitting, bool>(
+      _AddProductSubmitting.new,
+    );
+final _addModelPhotosProvider =
+    NotifierProvider.autoDispose<_AddModelPhotos, List<HouseModelUpload>>(
+      _AddModelPhotos.new,
+    );
+final _addModelSubmittingProvider =
+    NotifierProvider.autoDispose<_AddModelSubmitting, bool>(
+      _AddModelSubmitting.new,
+    );
+
 class _AddProductDialog extends ConsumerStatefulWidget {
   const _AddProductDialog({required this.onToast});
 
@@ -13,14 +54,14 @@ class _AddProductDialogState extends ConsumerState<_AddProductDialog> {
   final _nameController = TextEditingController();
   final _skuController = TextEditingController();
   final _categoryController = TextEditingController();
-  final List<OnboardingUpload> _photos = [];
-  bool _isSubmitting = false;
+  final _descriptionController = TextEditingController();
 
   @override
   void dispose() {
     _nameController.dispose();
     _skuController.dispose();
     _categoryController.dispose();
+    _descriptionController.dispose();
     super.dispose();
   }
 
@@ -28,27 +69,25 @@ class _AddProductDialogState extends ConsumerState<_AddProductDialog> {
     final files = await _pickShootPhotos(
       context,
       ref,
-      remaining: 5 - _photos.length,
+      remaining: 5 - ref.read(_addProductPhotosProvider).length,
       title: 'Add product photos',
     );
     if (!mounted) return;
-    setState(() {
-      _photos.addAll([
-        for (final file in files)
-          OnboardingUpload(bytes: file.$1, fileName: file.$2),
-      ]);
-    });
+    ref.read(_addProductPhotosProvider.notifier).set([
+      ...ref.read(_addProductPhotosProvider),
+      for (final file in files)
+        OnboardingUpload(bytes: file.$1, fileName: file.$2),
+    ]);
   }
 
   Future<void> _submit() async {
     if (_nameController.text.trim().isEmpty ||
         _skuController.text.trim().isEmpty ||
-        _categoryController.text.trim().isEmpty ||
-        _photos.isEmpty) {
+        ref.read(_addProductPhotosProvider).isEmpty) {
       AppSnackBar.showError(context, 'Complete all required product fields.');
       return;
     }
-    setState(() => _isSubmitting = true);
+    ref.read(_addProductSubmittingProvider.notifier).set(true);
     final result = await ref
         .read(onboardingRepositoryProvider)
         .createProduct(
@@ -56,16 +95,19 @@ class _AddProductDialogState extends ConsumerState<_AddProductDialog> {
             name: _nameController.text.trim(),
             sku: _skuController.text.trim(),
             category: _categoryController.text.trim(),
-            photos: _photos,
+            description: _descriptionController.text.trim(),
+            photos: ref.read(_addProductPhotosProvider),
           ),
         );
     if (!mounted) return;
-    setState(() => _isSubmitting = false);
+    ref.read(_addProductSubmittingProvider.notifier).set(false);
     if (result case Err(:final failure)) {
       AppSnackBar.showError(context, failure.message);
       return;
     }
-    await ref.read(_createShootControllerProvider.notifier).load();
+    await ref
+        .read(_createShootControllerProvider.notifier)
+        .load(preferredProductId: result.valueOrNull);
     if (!mounted) return;
     Navigator.pop(context);
     widget.onToast('Product added');
@@ -73,6 +115,8 @@ class _AddProductDialogState extends ConsumerState<_AddProductDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final photos = ref.watch(_addProductPhotosProvider);
+    final isSubmitting = ref.watch(_addProductSubmittingProvider);
     return _ModalFrame(
       title: 'Add New Product',
       subtitle: 'It will also be saved to Products',
@@ -85,7 +129,7 @@ class _AddProductDialogState extends ConsumerState<_AddProductDialog> {
         PrimaryButton(
           label: 'Add Product',
           icon: Icons.check,
-          isLoading: _isSubmitting,
+          isLoading: isSubmitting,
           onPressed: _submit,
         ),
       ],
@@ -102,11 +146,18 @@ class _AddProductDialogState extends ConsumerState<_AddProductDialog> {
         ),
         AppTextField(
           controller: _categoryController,
-          labelText: 'Category *',
+          labelText: 'Category (optional)',
           hintText: 'e.g., Bags',
         ),
+        AppTextField(
+          controller: _descriptionController,
+          labelText: 'Description (optional)',
+          hintText: 'Describe your product',
+          minLines: 3,
+          maxLines: 3,
+        ),
         _DialogUpload(
-          label: 'Photos · ${_photos.length}/5',
+          label: 'Photos · ${photos.length}/5',
           onTap: _pickPhotos,
         ),
       ],
@@ -127,8 +178,6 @@ class _AddModelDialogState extends ConsumerState<_AddModelDialog> {
   final _nameController = TextEditingController();
   final _genderController = TextEditingController(text: 'female');
   final _heightController = TextEditingController();
-  final List<HouseModelUpload> _photos = [];
-  bool _isSubmitting = false;
 
   @override
   void dispose() {
@@ -142,16 +191,15 @@ class _AddModelDialogState extends ConsumerState<_AddModelDialog> {
     final files = await _pickShootPhotos(
       context,
       ref,
-      remaining: 5 - _photos.length,
+      remaining: 5 - ref.read(_addModelPhotosProvider).length,
       title: 'Add model photos',
     );
     if (!mounted) return;
-    setState(() {
-      _photos.addAll([
-        for (final file in files)
-          HouseModelUpload(bytes: file.$1, fileName: file.$2),
-      ]);
-    });
+    ref.read(_addModelPhotosProvider.notifier).set([
+      ...ref.read(_addModelPhotosProvider),
+      for (final file in files)
+        HouseModelUpload(bytes: file.$1, fileName: file.$2),
+    ]);
   }
 
   Future<void> _submit() async {
@@ -159,11 +207,16 @@ class _AddModelDialogState extends ConsumerState<_AddModelDialog> {
     if (_nameController.text.trim().isEmpty ||
         _genderController.text.trim().isEmpty ||
         height == null ||
-        _photos.isEmpty) {
-      AppSnackBar.showError(context, 'Complete all required model fields.');
+        height < HouseModelDraft.minHeightCm ||
+        height > HouseModelDraft.maxHeightCm ||
+        ref.read(_addModelPhotosProvider).isEmpty) {
+      AppSnackBar.showError(
+        context,
+        'Complete all fields. Height must be between 100 and 250 cm.',
+      );
       return;
     }
-    setState(() => _isSubmitting = true);
+    ref.read(_addModelSubmittingProvider.notifier).set(true);
     final result = await ref
         .read(houseModelsRepositoryProvider)
         .createModel(
@@ -172,16 +225,18 @@ class _AddModelDialogState extends ConsumerState<_AddModelDialog> {
             gender: _genderController.text.trim().toLowerCase(),
             heightCm: height,
             heightEstimated: false,
-            photos: _photos,
+            photos: ref.read(_addModelPhotosProvider),
           ),
         );
     if (!mounted) return;
-    setState(() => _isSubmitting = false);
+    ref.read(_addModelSubmittingProvider.notifier).set(false);
     if (result case Err(:final failure)) {
       AppSnackBar.showError(context, failure.message);
       return;
     }
-    await ref.read(_createShootControllerProvider.notifier).load();
+    await ref
+        .read(_createShootControllerProvider.notifier)
+        .load(preferredModelName: _nameController.text.trim());
     if (!mounted) return;
     Navigator.pop(context);
     widget.onToast('Model added');
@@ -189,6 +244,8 @@ class _AddModelDialogState extends ConsumerState<_AddModelDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final photos = ref.watch(_addModelPhotosProvider);
+    final isSubmitting = ref.watch(_addModelSubmittingProvider);
     return _ModalFrame(
       title: 'Add New Model',
       subtitle: 'Upload photos and details',
@@ -201,7 +258,7 @@ class _AddModelDialogState extends ConsumerState<_AddModelDialog> {
         PrimaryButton(
           label: 'Add Model',
           icon: Icons.check,
-          isLoading: _isSubmitting,
+          isLoading: isSubmitting,
           onPressed: _submit,
         ),
       ],
@@ -233,7 +290,7 @@ class _AddModelDialogState extends ConsumerState<_AddModelDialog> {
           ],
         ),
         _DialogUpload(
-          label: 'Photos · ${_photos.length}/5',
+          label: 'Photos · ${photos.length}/5',
           onTap: _pickPhotos,
         ),
       ],

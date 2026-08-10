@@ -1,24 +1,18 @@
 part of '../../../dashboard/presentation/screens/dashboard_screen.dart';
 
-class _VideoOptionsDialog extends ConsumerStatefulWidget {
+class _VideoOptionsDialog extends ConsumerWidget {
   const _VideoOptionsDialog({required this.onNext});
 
   final VoidCallback onNext;
 
   @override
-  ConsumerState<_VideoOptionsDialog> createState() =>
-      _VideoOptionsDialogState();
-}
-
-class _VideoOptionsDialogState extends ConsumerState<_VideoOptionsDialog> {
-  int _quality = 0;
-  int _ratio = 0;
-  int _variation = 0;
-
-  @override
-  Widget build(BuildContext context) {
-    final images = ref.watch(_shootDetailControllerProvider).images;
+  Widget build(BuildContext context, WidgetRef ref) {
+    final state = ref.watch(_shootDetailControllerProvider);
+    final images = state.images;
     final controller = ref.read(_shootDetailControllerProvider.notifier);
+    final quality = state.videoRequest.videoTier == 'hd' ? 1 : 0;
+    final ratio = state.videoRequest.aspectRatio == '16:9' ? 1 : 0;
+    final variation = state.videoRequest.variationIndex;
     return _ModalFrame(
       title: 'Generate Model Video',
       subtitle: 'Choose quality, format, and variation',
@@ -31,7 +25,7 @@ class _VideoOptionsDialogState extends ConsumerState<_VideoOptionsDialog> {
           label: 'Next',
           icon: Icons.arrow_forward,
           iconAlignment: IconAlignment.end,
-          onPressed: widget.onNext,
+          onPressed: onNext,
         ),
       ],
       children: [
@@ -44,9 +38,8 @@ class _VideoOptionsDialogState extends ConsumerState<_VideoOptionsDialog> {
                 title: 'Video',
                 body: 'Fast & clean',
                 credits: '10 credits',
-                active: _quality == 0,
+                active: quality == 0,
                 onTap: () {
-                  setState(() => _quality = 0);
                   controller.updateVideo(videoTier: 'standard');
                 },
               ),
@@ -57,9 +50,8 @@ class _VideoOptionsDialogState extends ConsumerState<_VideoOptionsDialog> {
                 title: 'Video HD',
                 body: 'Best quality',
                 credits: '25 credits',
-                active: _quality == 1,
+                active: quality == 1,
                 onTap: () {
-                  setState(() => _quality = 1);
                   controller.updateVideo(videoTier: 'hd');
                 },
               ),
@@ -69,9 +61,8 @@ class _VideoOptionsDialogState extends ConsumerState<_VideoOptionsDialog> {
         const _FieldLabel('Aspect ratio'),
         _InteractiveSegmented(
           choices: const ['Portrait 9:16', 'Landscape 16:9'],
-          selected: _ratio,
+          selected: ratio,
           onSelect: (index) {
-            setState(() => _ratio = index);
             controller.updateVideo(
               aspectRatio: index == 0 ? '9:16' : '16:9',
             );
@@ -90,9 +81,8 @@ class _VideoOptionsDialogState extends ConsumerState<_VideoOptionsDialog> {
           itemBuilder: (context, index) => _VideoImageChoice(
             asset: images[index].url,
             label: 'Variation ${index + 1}',
-            active: _variation == index,
+            active: variation == index,
             onTap: () {
-              setState(() => _variation = index);
               controller.updateVideo(variationIndex: index);
             },
           ),
@@ -102,22 +92,16 @@ class _VideoOptionsDialogState extends ConsumerState<_VideoOptionsDialog> {
   }
 }
 
-class _VideoFrameDialog extends ConsumerStatefulWidget {
+class _VideoFrameDialog extends ConsumerWidget {
   const _VideoFrameDialog({required this.onBack, required this.onNext});
 
   final VoidCallback onBack;
   final VoidCallback onNext;
 
   @override
-  ConsumerState<_VideoFrameDialog> createState() => _VideoFrameDialogState();
-}
-
-class _VideoFrameDialogState extends ConsumerState<_VideoFrameDialog> {
-  int _selected = 0;
-
-  @override
-  Widget build(BuildContext context) {
-    final images = ref.watch(_shootDetailControllerProvider).images;
+  Widget build(BuildContext context, WidgetRef ref) {
+    final state = ref.watch(_shootDetailControllerProvider);
+    final images = state.images;
     final controller = ref.read(_shootDetailControllerProvider.notifier);
     return _ModalFrame(
       title: 'Choose Starting Frame',
@@ -125,13 +109,13 @@ class _VideoFrameDialogState extends ConsumerState<_VideoFrameDialog> {
       actions: [
         AppOutlinedButton(
           label: 'Back',
-          onPressed: widget.onBack,
+          onPressed: onBack,
         ),
         PrimaryButton(
           label: 'Next',
           icon: Icons.arrow_forward,
           iconAlignment: IconAlignment.end,
-          onPressed: widget.onNext,
+          onPressed: onNext,
         ),
       ],
       children: [
@@ -149,9 +133,8 @@ class _VideoFrameDialogState extends ConsumerState<_VideoFrameDialog> {
           itemBuilder: (context, index) => _VideoImageChoice(
             asset: images[index].url,
             label: 'Variation ${images[index].variationIndex + 1}',
-            active: _selected == index,
+            active: state.videoRequest.startingImageId == images[index].id,
             onTap: () {
-              setState(() => _selected = index);
               controller.updateVideo(startingImageId: images[index].id);
             },
           ),
@@ -209,7 +192,7 @@ class _VideoConfirmDialog extends ConsumerWidget {
         const _Alert(
           kind: _AlertKind.warn,
           text:
-              'AI video is still in early access. \nResults may vary — it sometimes takes 2-3 generations to get a great result. Credits are consumed per generation.',
+              'AI video is still in early access. \nResults may vary. It sometimes takes 2-3 generations to get a great result. Credits are consumed per generation.',
         ),
       ],
     );

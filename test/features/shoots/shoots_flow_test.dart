@@ -1,19 +1,24 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:look_atlas/core/router/app_routes.dart';
+import 'package:look_atlas/core/result/result.dart';
 import 'package:look_atlas/core/theme/app_colors.dart';
 import 'package:look_atlas/core/theme/app_theme.dart';
 import 'package:look_atlas/features/auth/di/auth_providers.dart';
 import 'package:look_atlas/features/auth/domain/entities/app_user.dart';
 import 'package:look_atlas/features/dashboard/presentation/screens/dashboard_screen.dart';
 import 'package:look_atlas/features/shoots/di/shoots_providers.dart';
+import 'package:look_atlas/features/shoots/domain/entities/shoot_create.dart';
 import 'package:look_atlas/features/subscription/presentation/subscription_controller.dart';
 import 'package:look_atlas/shared/widgets/app_dialog.dart';
 import 'package:look_atlas/shared/widgets/app_dropdown.dart';
 import 'package:look_atlas/shared/widgets/app_text_field.dart';
 import 'package:look_atlas/shared/widgets/custom_app_bar.dart';
+import 'package:look_atlas/shared/widgets/shimmer_box.dart';
 
 import '../../helpers/fake_repositories.dart';
 import '../../helpers/fake_shoots_repository.dart';
@@ -73,7 +78,7 @@ void main() {
         ),
         GoRoute(
           path: AppRoutes.dashboardShoots,
-          builder: (_, _) => const DashboardFeatureScreen.shoots(),
+          builder: (_, _) => const ShootsScreen(),
         ),
         GoRoute(
           path: AppRoutes.shootDetailPath,
@@ -114,7 +119,7 @@ void main() {
   testWidgets('shoots_free_user_opens_new_shoot_paywall', (tester) async {
     await pumpScreen(
       tester,
-      const DashboardFeatureScreen.shoots(),
+      const ShootsScreen(),
       isPremium: false,
     );
 
@@ -132,7 +137,7 @@ void main() {
   testWidgets('shoot_dialogs_use_default_app_dialog_style', (tester) async {
     await pumpScreen(
       tester,
-      const DashboardFeatureScreen.shoots(),
+      const ShootsScreen(),
       isPremium: false,
     );
 
@@ -175,10 +180,78 @@ void main() {
     expect(find.byKey(const ValueKey('new-shoot-button')), findsOneWidget);
   });
 
+  testWidgets('create_shoot_first_step_cancel_opens_shoots', (tester) async {
+    await pumpShootRouter(tester);
+
+    await tester.tap(find.byKey(const ValueKey('new-shoot-button')));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey('create-shoot-cancel')),
+      findsOneWidget,
+    );
+    expect(find.byKey(const ValueKey('create-shoot-back')), findsNothing);
+
+    final cancelButton = find.byKey(const ValueKey('create-shoot-cancel'));
+    await tester.ensureVisible(cancelButton);
+    await tester.tap(cancelButton);
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('new-shoot-button')), findsOneWidget);
+  });
+
+  testWidgets('create_shoot_content_stays_aligned_to_top', (tester) async {
+    await pumpScreen(tester, const CreateShootScreen());
+
+    final alignment = tester.widget<Align>(
+      find.byKey(const ValueKey('create-shoot-top-alignment')),
+    );
+
+    expect(alignment.alignment, Alignment.topCenter);
+  });
+
+  testWidgets('create_shoot_later_steps_show_back_instead_of_cancel', (
+    tester,
+  ) async {
+    await pumpScreen(tester, const CreateShootScreen());
+
+    await tester.ensureVisible(find.text('Next'));
+    await tester.tap(find.text('Next'));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('create-shoot-back')), findsOneWidget);
+    expect(find.byKey(const ValueKey('create-shoot-cancel')), findsNothing);
+  });
+
+  testWidgets('create_shoot_loading_shows_shimmer_in_product_grid', (
+    tester,
+  ) async {
+    final repository = _DelayedCreateCatalogRepository();
+    await pumpScreen(
+      tester,
+      const CreateShootScreen(),
+      shootsRepository: repository,
+    );
+
+    final grid = find.byKey(const ValueKey('create-product-grid-shimmer'));
+    expect(find.text('Select Product'), findsOneWidget);
+    expect(grid, findsOneWidget);
+    expect(
+      find.descendant(of: grid, matching: find.byType(ShimmerBox)),
+      findsNWidgets(4),
+    );
+    expect(find.byType(ContentShimmer), findsNothing);
+
+    repository.completeCatalog();
+    await tester.pumpAndSettle();
+
+    expect(grid, findsNothing);
+  });
+
   testWidgets('shoots_search_and_status_filter_update_visible_cards', (
     tester,
   ) async {
-    await pumpScreen(tester, const DashboardFeatureScreen.shoots());
+    await pumpScreen(tester, const ShootsScreen());
 
     expect(find.byType(AppTextField), findsOneWidget);
     expect(find.byType(AppDropdown<String>), findsNWidgets(2));
@@ -283,7 +356,7 @@ void main() {
         of: find.byType(AppDialog),
         matching: find.byType(AppTextField),
       ),
-      findsNWidgets(3),
+      findsNWidgets(4),
     );
 
     await tester.tap(find.text('Click to upload'));
@@ -308,94 +381,59 @@ void main() {
     expect(find.text('Add New Model'), findsOneWidget);
   });
 
-  testWidgets('create_shoot_product_grid_pages_and_preserves_selection', (
-    tester,
-  ) async {
-    await pumpScreen(tester, const CreateShootScreen());
+  testWidgets(
+    'create_shoot_product_selection_matches_single_and_multi_states',
+    (tester) async {
+      await pumpScreen(tester, const CreateShootScreen());
 
-    expect(find.text('Tan Leather Bag'), findsNWidgets(2));
-    expect(find.text('Silver Necklace'), findsNothing);
-    expect(find.text('Previous page'), findsNothing);
-    expect(find.text('Next page'), findsNothing);
-    final previousButton = tester.widget<IconButton>(
-      find.byKey(const ValueKey('create-product-previous-page')),
-    );
-    final nextButton = tester.widget<IconButton>(
-      find.byKey(const ValueKey('create-product-next-page')),
-    );
-    expect(
-      previousButton.style?.shape?.resolve({}),
-      isA<RoundedRectangleBorder>(),
-    );
-    expect(nextButton.style?.shape?.resolve({}), isA<RoundedRectangleBorder>());
-    expect(
-      previousButton.style?.side?.resolve({})?.color,
-      AppColors.neutral200,
-    );
-    expect(nextButton.style?.side?.resolve({})?.color, AppColors.neutral200);
-    final paginationBoxSizes = [
-      tester.getSize(
-        find.byKey(const ValueKey('create-product-previous-page')),
-      ),
-      tester.getSize(find.byKey(const ValueKey('create-product-page-1'))),
-      tester.getSize(find.byKey(const ValueKey('create-product-page-2'))),
-      tester.getSize(find.byKey(const ValueKey('create-product-next-page'))),
-    ];
-    expect(paginationBoxSizes.toSet(), {const Size.square(36)});
-    expect(
-      find.descendant(
-        of: find.byKey(const ValueKey('create-product-page-1')),
-        matching: find.byType(FilledButton),
-      ),
-      findsOneWidget,
-    );
-    expect(
-      find.descendant(
-        of: find.byKey(const ValueKey('create-product-page-2')),
-        matching: find.byType(OutlinedButton),
-      ),
-      findsOneWidget,
-    );
+      expect(find.text('5\nproducts'), findsOneWidget);
+      expect(find.text('Add New Product'), findsOneWidget);
+      expect(find.text('1/3 products'), findsOneWidget);
+      expect(
+        find.text('Set real-world size so the model renders it to scale'),
+        findsOneWidget,
+      );
+      expect(find.text('Worn together'), findsNothing);
+      expect(find.text('Colour / style variants'), findsNothing);
+      expect(find.text('Tan Leather Bag'), findsNWidgets(2));
+      expect(find.text('Silver Necklace'), findsOneWidget);
 
-    final nextPage = find.byKey(const ValueKey('create-product-next-page'));
-    await tester.ensureVisible(nextPage);
-    await tester.tap(nextPage);
-    await tester.pumpAndSettle();
+      final product = find.byKey(
+        const ValueKey('selection-Silver Necklace'),
+      );
+      await tester.ensureVisible(product);
+      await tester.tap(product);
+      await tester.pumpAndSettle();
 
-    expect(find.text('Tan Leather Bag'), findsOneWidget);
-    expect(find.text('Silver Necklace'), findsOneWidget);
-    expect(
-      find.descendant(
-        of: find.byKey(const ValueKey('create-product-page-2')),
-        matching: find.byType(FilledButton),
-      ),
-      findsOneWidget,
-    );
+      expect(
+        find.text('2/3 products · worn together in every shot'),
+        findsOneWidget,
+      );
+      expect(find.text('Worn together'), findsOneWidget);
+      expect(find.text('Colour / style variants'), findsOneWidget);
+      expect(find.text('Product 2'), findsNWidgets(2));
+      expect(find.text('Silver Necklace'), findsNWidgets(2));
 
-    final product = find.byKey(
-      const ValueKey('selection-Silver Necklace'),
-    );
-    await tester.ensureVisible(product);
-    await tester.tap(product);
-    await tester.pumpAndSettle();
-    expect(find.text('Silver Necklace'), findsNWidgets(2));
+      await tester.tap(find.text('Colour / style variants'));
+      await tester.pumpAndSettle();
+      expect(
+        find.text('2/6 products · split across shots as variants'),
+        findsOneWidget,
+      );
 
-    final previousPage = find.byKey(
-      const ValueKey('create-product-previous-page'),
-    );
-    await tester.ensureVisible(previousPage);
-    await tester.tap(previousPage);
-    await tester.pumpAndSettle();
+      await tester.tap(find.byTooltip('Remove Silver Necklace'));
+      await tester.pumpAndSettle();
+      expect(find.text('1/3 products'), findsOneWidget);
+      expect(find.text('Worn together'), findsNothing);
 
-    expect(
-      find.descendant(
-        of: find.byKey(const ValueKey('create-product-page-1')),
-        matching: find.byType(FilledButton),
-      ),
-      findsOneWidget,
-    );
-    expect(find.text('Silver Necklace'), findsOneWidget);
-  });
+      await tester.tap(find.text('Clear all'));
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(const ValueKey('create-product-selection-panel')),
+        findsNothing,
+      );
+    },
+  );
 
   testWidgets('create_shoot_planning_builds_plan_and_custom_shot_dialog', (
     tester,
@@ -444,6 +482,56 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('1 of 4'), findsOneWidget);
     expect(find.text('Clean Professional'), findsWidgets);
+  });
+
+  testWidgets('create_shoot_director_step_matches_updated_spec', (
+    tester,
+  ) async {
+    await pumpScreen(tester, const CreateShootScreen());
+
+    for (var index = 0; index < 2; index++) {
+      await tester.ensureVisible(find.text('Next'));
+      await tester.tap(find.text('Next'));
+      await tester.pumpAndSettle();
+    }
+
+    expect(find.text('Choose Your Creative Director'), findsOneWidget);
+    expect(
+      find.text("Select what you're creating and who should direct the shoot"),
+      findsOneWidget,
+    );
+    expect(find.text('E-commerce PDP'), findsOneWidget);
+    expect(find.text('Social Media'), findsOneWidget);
+    expect(find.text('Lookbook'), findsOneWidget);
+    expect(find.text('Campaign'), findsOneWidget);
+    expect(find.text('Marketplace'), findsOneWidget);
+    expect(find.text('Like Uniqlo, Everlane'), findsOneWidget);
+    expect(find.text('Brief Alex Chen (optional)'), findsOneWidget);
+    expect(
+      find.text("Anything specific you'd like the director to consider?"),
+      findsOneWidget,
+    );
+    expect(find.text('Resolution'), findsNothing);
+    expect(find.text('Additional Settings'), findsNothing);
+
+    final grid = tester.widget<GridView>(
+      find.byKey(const ValueKey('create-director-grid')),
+    );
+    final delegate =
+        grid.gridDelegate as SliverGridDelegateWithFixedCrossAxisCount;
+    expect(delegate.crossAxisCount, 2);
+    expect(delegate.crossAxisSpacing, 16);
+    expect(delegate.mainAxisSpacing, 16);
+    expect(delegate.childAspectRatio, 3 / 4);
+
+    final isabella = find.byKey(
+      const ValueKey('selection-Isabella Romano'),
+    );
+    await tester.ensureVisible(isabella);
+    await tester.tap(isabella);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Brief Isabella Romano (optional)'), findsOneWidget);
   });
 
   testWidgets('completed_shoot_opens_preview_and_video_three_step_flow', (
@@ -544,7 +632,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byType(ShootDetailScreen), findsOneWidget);
-    expect(find.byType(DashboardFeatureScreen), findsNothing);
+    expect(find.byType(ShootsScreen), findsNothing);
     expect(find.text('Processing'), findsOneWidget);
     expect(find.text('64%'), findsOneWidget);
     expect(find.text('Generating images...'), findsWidgets);
@@ -571,4 +659,16 @@ void main() {
     expect(find.text('job_7f2a9c13'), findsOneWidget);
     expect(find.text('Rerun Job'), findsOneWidget);
   });
+}
+
+class _DelayedCreateCatalogRepository extends FakeShootsRepository {
+  final _catalogCompleter = Completer<Result<ShootCreateCatalog>>();
+
+  @override
+  Future<Result<ShootCreateCatalog>> loadCreateCatalog() =>
+      _catalogCompleter.future;
+
+  void completeCatalog() => _catalogCompleter.complete(
+    super.loadCreateCatalog(),
+  );
 }

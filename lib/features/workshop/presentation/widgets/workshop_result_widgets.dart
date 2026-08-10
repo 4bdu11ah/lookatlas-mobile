@@ -575,8 +575,8 @@ class _PreviewImage extends StatelessWidget {
       height: width * 3 / 2,
       child: source != null && source.isNotEmpty
           ? source.startsWith('assets/')
-                ? Image.asset(source, fit: BoxFit.contain)
-                : AppImage(source, width: width)
+                ? AppImage(source)
+                : AppImage(source)
           : const Center(
               child: Text(
                 'Image is still processing.',

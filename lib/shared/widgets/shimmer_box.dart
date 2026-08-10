@@ -23,6 +23,34 @@ class ShimmerBox extends StatefulWidget {
   State<ShimmerBox> createState() => _ShimmerBoxState();
 }
 
+/// Lightweight content skeleton for a list or form while its initial data is
+/// loading. Use a feature-specific skeleton only when the final layout needs
+/// a more accurate shape.
+class ContentShimmer extends StatelessWidget {
+  const ContentShimmer({
+    required this.itemCount,
+    this.itemHeight = 96,
+    this.gap = 12,
+    super.key,
+  });
+
+  final int itemCount;
+  final double itemHeight;
+  final double gap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        for (var index = 0; index < itemCount; index++) ...[
+          SizedBox(height: itemHeight, child: const ShimmerBox()),
+          if (index != itemCount - 1) SizedBox(height: gap),
+        ],
+      ],
+    );
+  }
+}
+
 /// True when running under the widget-test harness.
 final bool _isTestEnvironment =
     !kIsWeb && Platform.environment.containsKey('FLUTTER_TEST');

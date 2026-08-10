@@ -9,6 +9,7 @@ class AppUserModel extends AppUser {
     super.displayName,
     super.photoUrl,
     super.companyName,
+    super.role,
   });
 
   factory AppUserModel.fromJson(Map<String, dynamic> json) => AppUserModel(
@@ -17,6 +18,7 @@ class AppUserModel extends AppUser {
     displayName: json['display_name'] as String?,
     photoUrl: json['photo_url'] as String?,
     companyName: json['company_name'] as String?,
+    role: json['role'] as String? ?? 'user',
   );
 
   /// Wraps a domain [AppUser] so it can be persisted.
@@ -26,6 +28,7 @@ class AppUserModel extends AppUser {
     displayName: user.displayName,
     photoUrl: user.photoUrl,
     companyName: user.companyName,
+    role: user.role,
   );
 
   Map<String, dynamic> toJson() => {
@@ -34,5 +37,6 @@ class AppUserModel extends AppUser {
     'display_name': displayName,
     'photo_url': photoUrl,
     'company_name': companyName,
+    'role': role,
   };
 }

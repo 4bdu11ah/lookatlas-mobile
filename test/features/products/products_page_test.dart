@@ -11,6 +11,7 @@ import 'package:look_atlas/features/dashboard/presentation/screens/dashboard_scr
 import 'package:look_atlas/features/products/di/products_providers.dart';
 import 'package:look_atlas/features/products/domain/entities/product_catalog.dart';
 import 'package:look_atlas/features/products/domain/repositories/products_repository.dart';
+import 'package:look_atlas/shared/widgets/custom_app_bar.dart';
 
 import '../../helpers/fake_repositories.dart';
 
@@ -159,6 +160,7 @@ class _FakeProductsRepository implements ProductsRepository {
   ) async => Result.ok(
     ProductCalibrationWorkspace(
       outlines: const [
+        CalibrationOutline(id: 'hand_side', name: 'Hand Side'),
         CalibrationOutline(
           id: 'full_body_front',
           name: 'Full Body Front',
@@ -237,7 +239,7 @@ void main() {
         ],
         child: MaterialApp(
           theme: AppTheme.light(),
-          home: const DashboardFeatureScreen.products(),
+          home: const ProductsScreen(),
         ),
       ),
     );
@@ -584,13 +586,34 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('calibrate-product-TSH-001')));
     await tester.pumpAndSettle();
     expect(find.text('Set real-world size'), findsOneWidget);
+    expect(find.byType(CustomAppBar), findsOneWidget);
     expect(
       find.text('How should we learn the real-world size?'),
       findsOneWidget,
     );
 
-    await tester.tap(find.text('Next'));
+    await tester.tap(find.text('Place the product on a body outline'));
     await tester.pumpAndSettle();
     expect(find.text('Pick a body view'), findsOneWidget);
+    expect(
+      tester.getTopLeft(find.text('Full Body Front')).dx,
+      lessThan(tester.getTopLeft(find.text('Hand Side')).dx),
+      reason: 'The recommended body view should be shown first.',
+    );
+    await tester.ensureVisible(find.text('Hand Side'));
+    await tester.tap(find.text('Hand Side'));
+    await tester.pumpAndSettle();
+    expect(
+      tester.getTopLeft(find.text('Full Body Front')).dx,
+      lessThan(tester.getTopLeft(find.text('Hand Side')).dx),
+      reason: 'Selecting a view must not change the grid order.',
+    );
+    await tester.tap(find.text('Next'));
+    await tester.pumpAndSettle();
+    expect(find.text('Pick a product photo'), findsOneWidget);
+    expect(find.text('PLACING ON'), findsOneWidget);
+    expect(find.text('hand side'), findsOneWidget);
+    expect(find.text('YOUR PRODUCT PHOTOS'), findsOneWidget);
+    expect(find.text('Upload another'), findsOneWidget);
   });
 }

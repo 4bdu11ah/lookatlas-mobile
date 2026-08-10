@@ -93,6 +93,7 @@ abstract final class AppTheme {
           shape: squareShape,
           side: BorderSide(color: scheme.outline),
           foregroundColor: scheme.onSurface,
+          textStyle: base.textTheme.labelLarge,
         ),
       ),
       cardTheme: CardThemeData(

@@ -23,8 +23,7 @@ class AppTextButton extends StatelessWidget {
       label,
       maxLines: 1,
       overflow: TextOverflow.ellipsis,
-      style: TextStyle(
-        fontSize: 12,
+      style: Theme.of(context).textTheme.labelMedium?.copyWith(
         fontWeight: AppTypography.bold,
         color: scheme.onSurface,
       ),

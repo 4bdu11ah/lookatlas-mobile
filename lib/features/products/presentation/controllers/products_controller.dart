@@ -249,12 +249,38 @@ class _ProductsController extends Notifier<_ProductsScreenState> {
   ) async {
     final updated = await _mutate(
       () => _repository.updateProduct(product.id, draft),
-      reloadAfter: draft.viewAngles.isEmpty,
+      reloadAfter: draft.photos.isNotEmpty && draft.viewAngles.isEmpty,
     );
     if (updated case Err()) return updated;
-    if (draft.viewAngles.isEmpty) return updated;
-    return _mutate(
-      () => _repository.updatePhotoAngles(product.id, draft.viewAngles),
+    if (draft.viewAngles.isNotEmpty) {
+      return _mutate(
+        () => _repository.updatePhotoAngles(product.id, draft.viewAngles),
+      );
+    }
+    if (draft.photos.isEmpty) _applyMetadataUpdate(product, draft);
+    return updated;
+  }
+
+  void _applyMetadataUpdate(_Product product, CatalogProductDraft draft) {
+    final updated = _Product(
+      item: ProductCatalogItem(
+        id: product.item.id,
+        name: draft.name,
+        sku: product.item.sku,
+        description: draft.description,
+        category: draft.category,
+        subCategory: draft.subCategory.isEmpty ? null : draft.subCategory,
+        createdAt: product.item.createdAt,
+        thumbnail: product.item.thumbnail,
+        photos: product.item.photos,
+      ),
+      calibrated: product.calibrated,
+    );
+    state = state.copyWith(
+      products: [
+        for (final item in state.products)
+          if (item.id == product.id) updated else item,
+      ],
     );
   }
 

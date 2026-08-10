@@ -242,7 +242,7 @@ void main() {
         ],
         child: MaterialApp(
           theme: AppTheme.light(),
-          home: const DashboardFeatureScreen.models(),
+          home: const HouseModelsScreen(),
         ),
       ),
     );

@@ -11,6 +11,7 @@ class AppUser {
     this.displayName,
     this.photoUrl,
     this.companyName,
+    this.role = 'user',
   });
 
   final String id;
@@ -20,6 +21,9 @@ class AppUser {
 
   /// Company entered at sign-up; null for social sign-ins and legacy sessions.
   final String? companyName;
+  final String role;
+
+  bool get isAdmin => role.toLowerCase() == 'admin';
 
   AppUser copyWith({
     String? id,
@@ -27,12 +31,14 @@ class AppUser {
     String? displayName,
     String? photoUrl,
     String? companyName,
+    String? role,
   }) => AppUser(
     id: id ?? this.id,
     email: email ?? this.email,
     displayName: displayName ?? this.displayName,
     photoUrl: photoUrl ?? this.photoUrl,
     companyName: companyName ?? this.companyName,
+    role: role ?? this.role,
   );
 
   @override
@@ -42,9 +48,10 @@ class AppUser {
       other.email == email &&
       other.displayName == displayName &&
       other.photoUrl == photoUrl &&
-      other.companyName == companyName;
+      other.companyName == companyName &&
+      other.role == role;
 
   @override
   int get hashCode =>
-      Object.hash(id, email, displayName, photoUrl, companyName);
+      Object.hash(id, email, displayName, photoUrl, companyName, role);
 }

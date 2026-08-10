@@ -6,6 +6,15 @@ import 'package:look_atlas/features/shoots/domain/entities/shoot_job.dart';
 import 'package:look_atlas/features/shoots/domain/repositories/shoots_repository.dart';
 
 class FakeShootsRepository implements ShootsRepository {
+  FakeShootsRepository({
+    ShootCreateCatalog catalog = _catalog,
+    List<Result<String>> createResults = const [],
+  }) : _createCatalog = catalog,
+       createResults = [...createResults];
+
+  final ShootCreateCatalog _createCatalog;
+  final List<Result<String>> createResults;
+
   final List<ShootJob> jobs = [
     _job(
       id: 'job-bag',
@@ -40,12 +49,16 @@ class FakeShootsRepository implements ShootsRepository {
   int getJobStatusCalls = 0;
   int planShotsCalls = 0;
   int createShootCalls = 0;
+  final List<ShootSelection> plannedSelections = [];
+  final List<CreateShootRequest> createRequests = [];
   String lastStatus = '';
   String lastSearch = '';
   String? lastJobId;
   String? lastApprovedImageId;
   bool? lastApprovedValue;
   String? lastEditPrompt;
+  String? lastReportReason;
+  String? lastReportComment;
   int? lastVariationShotIndex;
   ShootVideoRequest? lastVideoRequest;
 
@@ -141,6 +154,18 @@ class FakeShootsRepository implements ShootsRepository {
   ) async => const Result.ok(ShootImageEditState.completed);
 
   @override
+  Future<Result<void>> reportImage(
+    String jobId,
+    String imageId, {
+    required String reason,
+    required String comment,
+  }) async {
+    lastReportReason = reason;
+    lastReportComment = comment;
+    return const Result.ok(null);
+  }
+
+  @override
   Future<Result<void>> addVariation(
     String jobId,
     int shotIndex,
@@ -183,13 +208,14 @@ class FakeShootsRepository implements ShootsRepository {
 
   @override
   Future<Result<ShootCreateCatalog>> loadCreateCatalog() async =>
-      const Result.ok(_catalog);
+      Result.ok(_createCatalog);
 
   @override
   Future<Result<List<PlannedShootShot>>> planShots(
     ShootSelection selection,
   ) async {
     planShotsCalls++;
+    plannedSelections.add(selection);
     return const Result.ok(_plannedShots);
   }
 
@@ -206,6 +232,11 @@ class FakeShootsRepository implements ShootsRepository {
   @override
   Future<Result<String>> createShoot(CreateShootRequest request) async {
     createShootCalls++;
+    createRequests.add(request);
+    if (createResults.isNotEmpty) {
+      final result = createResults.removeAt(0);
+      if (result.isErr) return result;
+    }
     jobs.add(
       _job(
         id: 'job-created',
@@ -217,6 +248,12 @@ class FakeShootsRepository implements ShootsRepository {
     );
     return const Result.ok('job-created');
   }
+
+  @override
+  Future<Result<void>> updateProductSubCategory(
+    String productId,
+    String subCategory,
+  ) async => const Result.ok(null);
 
   @override
   Future<Result<void>> savePreset({
@@ -361,6 +398,13 @@ const _catalog = ShootCreateCatalog(
         'assets/images/onboarding/showcase-shoes-after.jpg',
         'assets/images/onboarding/showcase-sunglasses-after.jpg',
       ],
+    ),
+    ShootLook(
+      id: 'luxury-editorial',
+      name: 'Isabella Romano',
+      subtitle: 'Luxury Editorial',
+      imageUrl: 'assets/directors/covers/isabella.jpeg',
+      settings: {},
     ),
   ],
   lookFilters: {},

@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:look_atlas/core/constants/app_assets.dart';
+import 'package:look_atlas/core/layout/app_responsive.dart';
 import 'package:look_atlas/core/router/app_routes.dart';
 import 'package:look_atlas/core/theme/app_colors.dart';
 import 'package:look_atlas/core/theme/app_typography.dart';
@@ -64,24 +65,21 @@ class _WorkshopScreenState extends ConsumerState<WorkshopScreen> {
         title: 'Workshop',
         showBackButton: true,
       ),
-      body: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 430),
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
-            child: _WorkshopContent(
-              state: state,
-              isPremium: isPremium,
-              promptController: _promptController,
-              actions: _WorkshopScreenActions(
-                showGuide: _showGuide,
-                pickBase: _pickBaseImage,
-                addReference: _addReference,
-                generate: _handleGenerate,
-                downloadResult: () => _download(state.result),
-                useResultAsBase: _useResultAsBase,
-                openHistory: _openHistory,
-              ),
+      body: ResponsiveContent(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+          child: _WorkshopContent(
+            state: state,
+            isPremium: isPremium,
+            promptController: _promptController,
+            actions: _WorkshopScreenActions(
+              showGuide: _showGuide,
+              pickBase: _pickBaseImage,
+              addReference: _addReference,
+              generate: _handleGenerate,
+              downloadResult: () => _download(state.result),
+              useResultAsBase: _useResultAsBase,
+              openHistory: _openHistory,
             ),
           ),
         ),

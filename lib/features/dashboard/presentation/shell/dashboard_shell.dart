@@ -7,7 +7,9 @@ class DashboardScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(_dashboardShellControllerProvider);
     final controller = ref.read(_dashboardShellControllerProvider.notifier);
-    final screen = _buildDashboardPage(context, ref, _DashboardPage.dashboard);
+    final screen = _DashboardPageView(
+      onNavigate: (page) => _navigateDashboard(context, ref, page),
+    );
     final user = ref.watch(authStateProvider).value;
     final company = user?.companyName?.trim();
     final email = user?.email.trim();
@@ -25,187 +27,63 @@ class DashboardScreen extends ConsumerWidget {
       ),
       body: SafeArea(
         bottom: false,
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 430),
-            child: Stack(
-              children: [
-                Column(
-                  children: [
-                    _Header(
-                      initial: initial,
-                      userMenuOpen: state.userMenuOpen,
-                      onToggleUserMenu: controller.toggleUserMenu,
-                    ),
-                    Expanded(
-                      child: RefreshIndicator(
-                        onRefresh: () => ref
-                            .read(
-                              _dashboardOverviewControllerProvider.notifier,
-                            )
-                            .refresh(),
-                        child: SingleChildScrollView(
-                          physics: const AlwaysScrollableScrollPhysics(),
-                          padding: const EdgeInsets.fromLTRB(
-                            20,
-                            10,
-                            20,
-                            10,
-                          ),
-                          child: screen,
+        child: ResponsiveContent(
+          child: Stack(
+            children: [
+              Column(
+                children: [
+                  _Header(
+                    initial: initial,
+                    userMenuOpen: state.userMenuOpen,
+                    onToggleUserMenu: controller.toggleUserMenu,
+                  ),
+                  Expanded(
+                    child: RefreshIndicator(
+                      onRefresh: () => ref
+                          .read(
+                            _dashboardOverviewControllerProvider.notifier,
+                          )
+                          .refresh(),
+                      child: SingleChildScrollView(
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        padding: const EdgeInsets.fromLTRB(
+                          20,
+                          10,
+                          20,
+                          10,
                         ),
+                        child: screen,
                       ),
-                    ),
-                  ],
-                ),
-                if (state.userMenuOpen)
-                  Positioned.fill(
-                    child: GestureDetector(
-                      behavior: HitTestBehavior.translucent,
-                      onTap: controller.closeUserMenu,
                     ),
                   ),
-                if (state.userMenuOpen)
-                  Positioned(
-                    top: 72,
-                    right: 16,
-                    child: _UserMenu(
-                      onSettings: () => _navigateDashboard(
-                        context,
-                        ref,
-                        _DashboardPage.settings,
-                      ),
-                      onBilling: () => _navigateDashboard(
-                        context,
-                        ref,
-                        _DashboardPage.billing,
-                      ),
-                      onLogOut: () => _logOut(context, ref),
-                    ),
-                  ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class DashboardFeatureScreen extends ConsumerWidget {
-  const DashboardFeatureScreen.shoots({super.key})
-    : _page = _DashboardPage.jobs;
-
-  const DashboardFeatureScreen.products({super.key})
-    : _page = _DashboardPage.products;
-
-  const DashboardFeatureScreen.models({super.key})
-    : _page = _DashboardPage.models;
-
-  const DashboardFeatureScreen.billing({super.key})
-    : _page = _DashboardPage.billing;
-
-  const DashboardFeatureScreen.account({super.key})
-    : _page = _DashboardPage.settings;
-
-  const DashboardFeatureScreen.support({super.key})
-    : _page = _DashboardPage.support;
-
-  const DashboardFeatureScreen.guides({super.key})
-    : _page = _DashboardPage.guides;
-
-  final _DashboardPage _page;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    if (_page == _DashboardPage.billing) {
-      return const _BillingFeatureScaffold();
-    }
-    if (_page == _DashboardPage.support) {
-      return const _SupportFeatureScaffold();
-    }
-    if (_page == _DashboardPage.settings) {
-      return const _SettingsFeatureScaffold();
-    }
-    if (_page == _DashboardPage.guides) {
-      return _GuidesFeatureScaffold(
-        onNavigate: (page) => _navigateDashboard(context, ref, page),
-      );
-    }
-    if (_page == _DashboardPage.models) {
-      final user = ref.watch(authStateProvider).value;
-      final company = user?.companyName?.trim();
-      final email = user?.email.trim();
-      final initialSource = company != null && company.isNotEmpty
-          ? company
-          : email;
-      final initial = initialSource != null && initialSource.isNotEmpty
-          ? initialSource[0].toUpperCase()
-          : 'A';
-      return _HouseModelFeatureScaffold(
-        initial: initial,
-        onNavigate: (page) => _navigateDashboard(context, ref, page),
-        onToast: (text) => _toastDashboard(context, text),
-      );
-    }
-    if (_page == _DashboardPage.products) {
-      return _ProductsFeatureScaffold(
-        onToast: (text) => _toastDashboard(context, text),
-      );
-    }
-    if (_page == _DashboardPage.jobs) {
-      final screen = _buildDashboardPage(context, ref, _page);
-      return Scaffold(
-        backgroundColor: AppColors.neutral50,
-        appBar: CustomAppBar(
-          title: 'Shoots',
-          showBackButton: true,
-          onBack: () =>
-              _navigateDashboard(context, ref, _DashboardPage.dashboard),
-        ),
-        body: SafeArea(
-          bottom: false,
-          child: Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 430),
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(16, 16, 16, 28),
-                child: screen,
+                ],
               ),
-            ),
-          ),
-        ),
-      );
-    }
-    final screen = _buildDashboardPage(context, ref, _page);
-    return Scaffold(
-      backgroundColor: AppColors.neutral100,
-      body: SafeArea(
-        bottom: false,
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 430),
-            child: Stack(
-              children: [
-                SingleChildScrollView(
-                  padding: const EdgeInsets.fromLTRB(20, 10, 20, 10),
-                  child: screen,
-                ),
-                if (_page == _DashboardPage.models)
-                  Positioned(
-                    right: 16,
-                    bottom: MediaQuery.paddingOf(context).bottom + 24,
-                    child: AppFloatingActionButton(
-                      label: 'Add Model',
-                      onPressed: () => _openDashboardModal(
-                        context,
-                        ref,
-                        _ModalKind.model,
-                      ),
-                    ),
+              if (state.userMenuOpen)
+                Positioned.fill(
+                  child: GestureDetector(
+                    behavior: HitTestBehavior.translucent,
+                    onTap: controller.closeUserMenu,
                   ),
-              ],
-            ),
+                ),
+              if (state.userMenuOpen)
+                Positioned(
+                  top: 72,
+                  right: 16,
+                  child: _UserMenu(
+                    onSettings: () => _navigateDashboard(
+                      context,
+                      ref,
+                      _DashboardPage.settings,
+                    ),
+                    onBilling: () => _navigateDashboard(
+                      context,
+                      ref,
+                      _DashboardPage.billing,
+                    ),
+                    onLogOut: () => _logOut(context, ref),
+                  ),
+                ),
+            ],
           ),
         ),
       ),
@@ -222,7 +100,11 @@ void _navigateDashboard(
   if (Scaffold.maybeOf(context)?.isDrawerOpen ?? false) {
     Navigator.pop(context);
   }
-  context.go(page.routePath);
+  if (page == _DashboardPage.dashboard) {
+    context.go(page.routePath);
+  } else {
+    unawaited(context.push<void>(page.routePath));
+  }
 }
 
 Future<void> _openDashboardModal(
@@ -250,37 +132,6 @@ Future<void> _logOut(BuildContext context, WidgetRef ref) async {
   if (result.isErr && context.mounted) {
     AppSnackBar.showError(context, 'Could not log out. Please try again.');
   }
-}
-
-Widget _buildDashboardPage(
-  BuildContext context,
-  WidgetRef ref,
-  _DashboardPage page,
-) {
-  return switch (page) {
-    _DashboardPage.dashboard => _DashboardPageView(
-      onNavigate: (nextPage) => _navigateDashboard(context, ref, nextPage),
-    ),
-    _DashboardPage.workshop => throw StateError(
-      'Workshop uses its own GoRouter screen.',
-    ),
-    _DashboardPage.jobs => _JobsPage(
-      onOpenModal: (kind) => _openDashboardModal(context, ref, kind),
-    ),
-    _DashboardPage.products => _ProductsPage(
-      onToast: (text) => _toastDashboard(context, text),
-    ),
-    _DashboardPage.models => _HouseModelPage(
-      onOpenModal: (kind) => _openDashboardModal(context, ref, kind),
-      onToast: (text) => _toastDashboard(context, text),
-    ),
-    _DashboardPage.billing => const _BillingPage(),
-    _DashboardPage.settings => const _SettingsPage(),
-    _DashboardPage.support => const _SupportPage(),
-    _DashboardPage.guides => _GuidesPage(
-      onNavigate: (nextPage) => _navigateDashboard(context, ref, nextPage),
-    ),
-  };
 }
 
 class _Header extends StatelessWidget {
@@ -379,7 +230,7 @@ class _DashboardDrawer extends StatelessWidget {
                     decoration: BoxDecoration(
                       border: Border.all(color: AppColors.neutral200),
                     ),
-                    child: Image.asset('assets/images/logo.png'),
+                    child: const AppImage('assets/images/logo.png'),
                   ),
                   const SizedBox(width: 10),
                   const Expanded(
@@ -416,11 +267,7 @@ class _DashboardDrawer extends StatelessWidget {
                       final router = GoRouter.of(context);
                       Scaffold.of(context).closeDrawer();
                       onSelect(item);
-                      if (item == _DashboardPage.dashboard) {
-                        router.go(item.routePath);
-                        return;
-                      }
-                      unawaited(router.push(item.routePath));
+                      unawaited(router.push<void>(item.routePath));
                     },
                   );
                 },

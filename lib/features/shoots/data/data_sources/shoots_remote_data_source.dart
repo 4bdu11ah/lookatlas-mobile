@@ -40,6 +40,12 @@ abstract interface class ShootsRemoteDataSource {
     String jobId,
     String imageId,
   );
+  Future<Result<void>> reportImage(
+    String jobId,
+    String imageId, {
+    required String reason,
+    required String comment,
+  });
   Future<Result<void>> addVariation(
     String jobId,
     int shotIndex,
@@ -59,6 +65,9 @@ abstract interface class ShootsRemoteDataSource {
   Future<Result<List<ShootCatalogItem>>> getUserModels();
   Future<Result<List<ShootCatalogItem>>> getLibraryModels();
   Future<Result<int>> getAvailableCredits();
+  Future<Result<ShootAppConfig>> getAppConfig();
+  Future<Result<ShootSubscription>> getSubscription();
+  Future<Result<Set<String>>> getCalibratedProductIds();
   Future<Result<List<ShootLook>>> getLooks();
   Future<Result<Map<String, List<String>>>> getLookFilters();
   Future<Result<List<ShootPreset>>> getPresets();
@@ -69,6 +78,10 @@ abstract interface class ShootsRemoteDataSource {
     CustomShootShotRequest request,
   );
   Future<Result<String>> createShoot(CreateShootRequest request);
+  Future<Result<void>> updateProductSubCategory(
+    String productId,
+    String subCategory,
+  );
   Future<Result<void>> savePreset({
     required String name,
     required Map<String, dynamic> settings,
@@ -80,9 +93,14 @@ abstract interface class ShootsRemoteDataSource {
 }
 
 class ShootsRemoteDataSourceImpl implements ShootsRemoteDataSource {
-  const ShootsRemoteDataSourceImpl({required ApiService api}) : _api = api;
+  ShootsRemoteDataSourceImpl({
+    required ApiService api,
+    ApiService? publicApi,
+  }) : _api = api,
+       _publicApi = publicApi ?? api;
 
   final ApiService _api;
+  final ApiService _publicApi;
 
   @override
   Future<Result<ShootPage>> getJobs({
@@ -192,6 +210,18 @@ class ShootsRemoteDataSourceImpl implements ShootsRemoteDataSource {
   );
 
   @override
+  Future<Result<void>> reportImage(
+    String jobId,
+    String imageId, {
+    required String reason,
+    required String comment,
+  }) => _api.post<void>(
+    ApiEndpoints.reportJobImage(jobId, imageId),
+    data: {'reason': reason, 'comment': comment},
+    decoder: (_) {},
+  );
+
+  @override
   Future<Result<void>> addVariation(
     String jobId,
     int shotIndex,
@@ -265,6 +295,27 @@ class ShootsRemoteDataSourceImpl implements ShootsRemoteDataSource {
   );
 
   @override
+  Future<Result<ShootAppConfig>> getAppConfig() =>
+      _publicApi.get<ShootAppConfig>(
+        ApiEndpoints.appConfig,
+        decoder: ShootsApiCodec.decodeAppConfig,
+      );
+
+  @override
+  Future<Result<ShootSubscription>> getSubscription() =>
+      _api.get<ShootSubscription>(
+        ApiEndpoints.billingSubscription,
+        decoder: ShootsApiCodec.decodeSubscription,
+      );
+
+  @override
+  Future<Result<Set<String>>> getCalibratedProductIds() =>
+      _api.get<Set<String>>(
+        ApiEndpoints.calibratedProducts,
+        decoder: ShootsApiCodec.decodeCalibratedProductIds,
+      );
+
+  @override
   Future<Result<List<ShootLook>>> getLooks() => _api.get<List<ShootLook>>(
     ApiEndpoints.looks,
     decoder: ShootsApiCodec.decodeLooks,
@@ -308,6 +359,16 @@ class ShootsRemoteDataSourceImpl implements ShootsRemoteDataSource {
         data: ShootsApiCodec.createPayload(request),
         decoder: ShootsApiCodec.decodeCreatedJobId,
       );
+
+  @override
+  Future<Result<void>> updateProductSubCategory(
+    String productId,
+    String subCategory,
+  ) => _api.put<void>(
+    ApiEndpoints.product(productId),
+    data: FormData.fromMap({'sub_category': subCategory}),
+    decoder: (_) {},
+  );
 
   @override
   Future<Result<void>> savePreset({

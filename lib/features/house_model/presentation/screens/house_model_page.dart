@@ -1,48 +1,32 @@
 part of '../../../dashboard/presentation/screens/dashboard_screen.dart';
 
-class _HouseModelFeatureScaffold extends ConsumerWidget {
-  const _HouseModelFeatureScaffold({
-    required this.initial,
-    required this.onNavigate,
-    required this.onToast,
-  });
-
-  final String initial;
-  final ValueChanged<_DashboardPage> onNavigate;
-  final ValueChanged<String> onToast;
+class HouseModelsScreen extends ConsumerWidget {
+  const HouseModelsScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return Scaffold(
-      appBar: const CustomAppBar(
-        title: 'House Models',
-        showBackButton: true,
-      ),
+    return AppFeatureScaffold(
+      title: 'House Models',
+      contentBackgroundColor: AppColors.neutral50,
+      maxContentWidth: 440,
       floatingActionButton: AppFloatingActionButton(
         key: const ValueKey('add-model-fab'),
         label: 'Add Model',
         icon: Icons.people_alt_outlined,
-        onPressed: () => _showModelFormDialog(context, ref, onToast),
+        onPressed: () => _showModelFormDialog(
+          context,
+          ref,
+          (text) => _toastDashboard(context, text),
+        ),
       ),
 
-      body: SafeArea(
-        bottom: false,
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 440),
-            child: ColoredBox(
-              color: AppColors.neutral50,
-              child: RefreshIndicator(
-                onRefresh: ref
-                    .read(_houseModelControllerProvider.notifier)
-                    .reload,
-                child: SingleChildScrollView(
-                  physics: const AlwaysScrollableScrollPhysics(),
-                  padding: const EdgeInsets.fromLTRB(20, 22, 20, 112),
-                  child: _HouseModelPage(onToast: onToast),
-                ),
-              ),
-            ),
+      child: RefreshIndicator(
+        onRefresh: ref.read(_houseModelControllerProvider.notifier).reload,
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.fromLTRB(20, 22, 20, 112),
+          child: _HouseModelPage(
+            onToast: (text) => _toastDashboard(context, text),
           ),
         ),
       ),
@@ -67,17 +51,16 @@ class _HouseModelPage extends ConsumerWidget {
         onRetry: ref.read(_houseModelControllerProvider.notifier).reload,
       );
     }
-    return _Stack(
+    return _Column(
       children: [
         if (state.failure != null)
           _HouseModelsRefreshError(
             message: state.failure!.message,
             onRetry: ref.read(_houseModelControllerProvider.notifier).reload,
           ),
-        const Text(
+        Text(
           'Manage your brand models for consistent on-model imagery.',
-          style: TextStyle(
-            fontSize: 14,
+          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
             height: 1.45,
             color: AppColors.neutral500,
           ),

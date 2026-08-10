@@ -152,7 +152,7 @@ void main() {
         ],
         child: MaterialApp(
           theme: AppTheme.light(),
-          home: const DashboardFeatureScreen.billing(),
+          home: const BillingScreen(),
         ),
       ),
     );

@@ -62,20 +62,20 @@ class ProductsRepositoryImpl implements ProductsRepository {
     final outlines = results[0] as Result<List<CalibrationOutline>>;
     var calibration = results[1] as Result<ProductCalibration>;
     final calibrated = results[2] as Result<List<ProductCatalogItem>>;
-    if (outlines case Err(:final failure)) return Err(failure);
+    final availableOutlines =
+        outlines.valueOrNull ?? const <CalibrationOutline>[];
     if (calibration case Err(:final failure)) {
       if (failure is NetworkFailure && failure.statusCode == 404) {
         calibration = const Ok(ProductCalibration());
       } else {
-        return Err(failure);
+        calibration = const Ok(ProductCalibration());
       }
     }
-    if (calibrated case Err(:final failure)) return Err(failure);
     return Ok(
       ProductCalibrationWorkspace(
-        outlines: outlines.valueOrNull!,
+        outlines: availableOutlines,
         calibration: calibration.valueOrNull!,
-        calibratedProducts: calibrated.valueOrNull!,
+        calibratedProducts: calibrated.valueOrNull ?? const [],
       ),
     );
   }

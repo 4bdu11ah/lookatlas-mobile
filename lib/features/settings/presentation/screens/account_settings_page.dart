@@ -1,25 +1,14 @@
 part of '../../../dashboard/presentation/screens/dashboard_screen.dart';
 
-class _SettingsFeatureScaffold extends StatelessWidget {
-  const _SettingsFeatureScaffold();
+class AccountSettingsScreen extends StatelessWidget {
+  const AccountSettingsScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return AppFeatureScaffold(
       backgroundColor: AppColors.neutral50,
-      appBar: const CustomAppBar(
-        title: 'Settings',
-        showBackButton: true,
-      ),
-      body: SafeArea(
-        bottom: false,
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 430),
-            child: const _SettingsPage(),
-          ),
-        ),
-      ),
+      title: 'Settings',
+      child: const _SettingsPage(),
     );
   }
 }
@@ -56,22 +45,19 @@ class _SettingsPageHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Column(
+    return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           'Settings',
-          style: TextStyle(
-            fontSize: 30,
+          style: Theme.of(context).textTheme.headlineMedium?.copyWith(
             height: 1.2,
-            fontWeight: AppTypography.bold,
           ),
         ),
-        SizedBox(height: 4),
+        const SizedBox(height: 4),
         Text(
           'Configure your account and application preferences',
-          style: TextStyle(
-            fontSize: 16,
+          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
             height: 1.5,
             color: AppColors.neutral500,
           ),
@@ -99,17 +85,15 @@ class _SettingsAccountCard extends StatelessWidget {
         children: [
           Padding(
             padding: EdgeInsets.all(padding),
-            child: const Row(
+            child: Row(
               children: [
-                _SettingsTitleIcon(),
-                SizedBox(width: 12),
+                const _SettingsTitleIcon(),
+                const SizedBox(width: 12),
                 Expanded(
                   child: Text(
                     'Account Information',
-                    style: TextStyle(
-                      fontSize: 20,
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
                       height: 1.4,
-                      fontWeight: AppTypography.bold,
                     ),
                   ),
                 ),

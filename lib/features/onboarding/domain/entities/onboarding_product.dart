@@ -16,6 +16,8 @@ class ProductDraft {
     required this.category,
     required this.photos,
     this.viewAngles = const [],
+    this.description = '',
+    this.subCategory = '',
   });
 
   final String name;
@@ -23,6 +25,8 @@ class ProductDraft {
   final String category;
   final List<OnboardingUpload> photos;
   final List<String?> viewAngles;
+  final String description;
+  final String subCategory;
 }
 
 @immutable

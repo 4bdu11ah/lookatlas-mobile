@@ -5,7 +5,10 @@ import 'package:look_atlas/features/shoots/data/repositories/shoots_repository_i
 import 'package:look_atlas/features/shoots/domain/repositories/shoots_repository.dart';
 
 final shootsRemoteDataSourceProvider = Provider<ShootsRemoteDataSource>(
-  (ref) => ShootsRemoteDataSourceImpl(api: ref.watch(apiServiceProvider)),
+  (ref) => ShootsRemoteDataSourceImpl(
+    api: ref.watch(apiServiceProvider),
+    publicApi: ref.watch(publicApiServiceProvider),
+  ),
 );
 
 final shootsRepositoryProvider = Provider<ShootsRepository>(

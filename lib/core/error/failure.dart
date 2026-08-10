@@ -21,12 +21,14 @@ class NetworkFailure extends Failure {
     super.message, {
     this.statusCode,
     this.code,
+    this.details = const {},
     super.cause,
     super.stackTrace,
   });
 
   final int? statusCode;
   final String? code;
+  final Map<String, dynamic> details;
 }
 
 class AuthFailure extends Failure {

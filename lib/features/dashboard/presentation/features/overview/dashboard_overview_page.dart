@@ -10,7 +10,7 @@ class _DashboardPageView extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(_dashboardOverviewControllerProvider);
-    return _Stack(
+    return _Column(
       gap: 12,
       children: [
         const _PageHeader(
@@ -53,7 +53,7 @@ class _DashboardOverviewContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return _Stack(
+    return _Column(
       gap: 12,
       children: [
         if (state.subscription.needsPaymentUpdate)
@@ -91,27 +91,34 @@ class _StatsList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ListView(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      children: [
-        _StatCard(
-          Icons.trending_up,
-          'Credits Remaining',
-          '${stats.credits}',
+    final cards = [
+      _StatCard(Icons.trending_up, 'Credits Remaining', '${stats.credits}'),
+      _StatCard(
+        Icons.inventory_2_outlined,
+        'Total Renders',
+        '${stats.totalRenders}',
+      ),
+      _StatCard(Icons.schedule, 'Active Shoots', '${stats.activeJobs}'),
+      _StatCard(
+        Icons.check_circle_outline,
+        'Completed Shoots',
+        '${stats.completedJobs}',
+      ),
+    ];
+
+    return LayoutBuilder(
+      builder: (context, constraints) => GridView.builder(
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        itemCount: cards.length,
+        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: _dashboardStatColumns(constraints.maxWidth),
+          mainAxisExtent: 192,
+          mainAxisSpacing: 12,
+          crossAxisSpacing: 12,
         ),
-        _StatCard(
-          Icons.inventory_2_outlined,
-          'Total Renders',
-          '${stats.totalRenders}',
-        ),
-        _StatCard(Icons.schedule, 'Active Shoots', '${stats.activeJobs}'),
-        _StatCard(
-          Icons.check_circle_outline,
-          'Completed Shoots',
-          '${stats.completedJobs}',
-        ),
-      ],
+        itemBuilder: (context, index) => cards[index],
+      ),
     );
   }
 }
@@ -127,14 +134,13 @@ class _StatCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return _Card(
       padding: const EdgeInsets.all(24),
-      margin: const EdgeInsets.only(bottom: 12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
           _SquareIcon(icon),
           const SizedBox(height: 16),
-          _Eyebrow(label),
+          _Eyebrow(label, maxLines: 2),
           const SizedBox(height: 4),
           Text(
             value,
@@ -209,14 +215,30 @@ class _DashboardLoading extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const _Card(
-      child: Padding(
-        padding: EdgeInsets.symmetric(vertical: 28),
-        child: Center(child: BarSpinner(size: 28)),
+    return LayoutBuilder(
+      builder: (context, constraints) => _Column(
+        gap: 12,
+        children: [
+          GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: 4,
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: _dashboardStatColumns(constraints.maxWidth),
+              mainAxisExtent: 192,
+              mainAxisSpacing: 12,
+              crossAxisSpacing: 12,
+            ),
+            itemBuilder: (_, _) => const ShimmerBox(),
+          ),
+          const ContentShimmer(itemCount: 2, itemHeight: 104),
+        ],
       ),
     );
   }
 }
+
+int _dashboardStatColumns(double width) => width >= 600 ? 3 : 2;
 
 class _DashboardLoadError extends StatelessWidget {
   const _DashboardLoadError({
@@ -230,7 +252,7 @@ class _DashboardLoadError extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return _Card(
-      child: _Stack(
+      child: _Column(
         gap: 16,
         children: [
           _Alert(kind: _AlertKind.error, text: message),
@@ -252,7 +274,7 @@ class _QuickActions extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return _Stack(
+    return _Column(
       gap: 12,
       children: [
         const _SectionTitle('Quick Actions'),

@@ -1,5 +1,14 @@
 part of '../../../dashboard/presentation/screens/dashboard_screen.dart';
 
+class _PortfolioIndex extends Notifier<int> {
+  @override
+  int build() => 0;
+  void set(int value) => state = value;
+}
+
+final _portfolioIndexProvider =
+    NotifierProvider.autoDispose<_PortfolioIndex, int>(_PortfolioIndex.new);
+
 class _DirectorPortfolioDialog extends ConsumerWidget {
   const _DirectorPortfolioDialog({required this.onPreview});
 
@@ -69,28 +78,17 @@ class _DirectorPortfolioDialog extends ConsumerWidget {
   }
 }
 
-class _PortfolioViewer extends ConsumerStatefulWidget {
+class _PortfolioViewer extends ConsumerWidget {
   const _PortfolioViewer();
 
   @override
-  ConsumerState<_PortfolioViewer> createState() => _PortfolioViewerState();
-}
-
-class _PortfolioViewerState extends ConsumerState<_PortfolioViewer> {
-  int _index = 0;
-
-  void _move(int direction, int length) {
-    setState(() {
-      _index = (_index + direction) % length;
-      if (_index < 0) _index += length;
-    });
-  }
-
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final director = _selectedShootDirector(ref);
     final assets = _directorAssets(director);
-    final index = _index.clamp(0, assets.length - 1);
+    final index = ref
+        .watch(_portfolioIndexProvider)
+        .clamp(0, assets.length - 1);
     return _FullPreview(
       asset: assets[index],
       caption: director?.subtitle,
@@ -98,11 +96,11 @@ class _PortfolioViewerState extends ConsumerState<_PortfolioViewer> {
       actions: [
         _PreviewAction(
           icon: Icons.arrow_back,
-          onTap: () => _move(-1, assets.length),
+          onTap: () => _movePortfolio(ref, -1, assets.length),
         ),
         _PreviewAction(
           icon: Icons.arrow_forward,
-          onTap: () => _move(1, assets.length),
+          onTap: () => _movePortfolio(ref, 1, assets.length),
         ),
         _PreviewAction(
           icon: Icons.close,
@@ -111,6 +109,12 @@ class _PortfolioViewerState extends ConsumerState<_PortfolioViewer> {
       ],
     );
   }
+}
+
+void _movePortfolio(WidgetRef ref, int direction, int length) {
+  var index = (ref.read(_portfolioIndexProvider) + direction) % length;
+  if (index < 0) index += length;
+  ref.read(_portfolioIndexProvider.notifier).set(index);
 }
 
 ShootLook? _selectedShootDirector(WidgetRef ref) {
@@ -525,4 +529,113 @@ class _VersionCard extends StatelessWidget {
       ),
     );
   }
+}
+
+Future<void> _showImageReportDialog(
+  BuildContext context,
+  _ShootDetailController controller,
+  ShootImage image,
+) => showAppDialog<void>(
+  context: context,
+  title: 'Report image quality',
+  subtitle: 'Describe the issue so our team can review it.',
+  icon: Icons.flag_outlined,
+  builder: (dialogContext) => _ImageReportForm(
+    pageContext: context,
+    dialogContext: dialogContext,
+    controller: controller,
+    image: image,
+  ),
+);
+
+class _ImageReportForm extends StatefulWidget {
+  const _ImageReportForm({
+    required this.pageContext,
+    required this.dialogContext,
+    required this.controller,
+    required this.image,
+  });
+
+  final BuildContext pageContext;
+  final BuildContext dialogContext;
+  final _ShootDetailController controller;
+  final ShootImage image;
+
+  @override
+  State<_ImageReportForm> createState() => _ImageReportFormState();
+}
+
+class _ImageReportFormState extends State<_ImageReportForm> {
+  final _commentController = TextEditingController();
+
+  @override
+  void dispose() {
+    _commentController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => Column(
+    mainAxisSize: MainAxisSize.min,
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    children: [
+      AppTextField(
+        controller: _commentController,
+        labelText: 'What is wrong?',
+        hintText: 'At least 20 characters',
+        maxLines: 5,
+      ),
+      const SizedBox(height: 12),
+      _reportButton(
+        label: 'Report product deformation',
+        icon: Icons.inventory_2_outlined,
+        reason: 'product_deformed',
+      ),
+      const SizedBox(height: 8),
+      _reportButton(
+        label: 'Report model deformation',
+        icon: Icons.person_outline,
+        reason: 'model_deformed',
+      ),
+    ],
+  );
+
+  Widget _reportButton({
+    required String label,
+    required IconData icon,
+    required String reason,
+  }) => AppOutlinedButton(
+    label: label,
+    icon: icon,
+    onPressed: () => _submitImageReport(
+      context: widget.pageContext,
+      dialogContext: widget.dialogContext,
+      controller: widget.controller,
+      image: widget.image,
+      reason: reason,
+      comment: _commentController.text,
+    ),
+  );
+}
+
+Future<void> _submitImageReport({
+  required BuildContext context,
+  required BuildContext dialogContext,
+  required _ShootDetailController controller,
+  required ShootImage image,
+  required String reason,
+  required String comment,
+}) async {
+  final failure = await controller.reportImage(
+    image: image,
+    reason: reason,
+    comment: comment,
+  );
+  if (!context.mounted) return;
+  if (failure != null) {
+    AppSnackBar.showError(context, failure.message);
+    return;
+  }
+  if (dialogContext.mounted) Navigator.pop(dialogContext);
+  AppSnackBar.show(context, 'Quality report submitted');
 }

@@ -1,5 +1,16 @@
 part of '../../../dashboard/presentation/screens/dashboard_screen.dart';
 
+class _CustomShotSubmitting extends Notifier<bool> {
+  @override
+  bool build() => false;
+  void set(bool value) => state = value;
+}
+
+final _customShotSubmittingProvider =
+    NotifierProvider.autoDispose<_CustomShotSubmitting, bool>(
+      _CustomShotSubmitting.new,
+    );
+
 class _ShootDialog extends StatelessWidget {
   const _ShootDialog({
     required this.kind,
@@ -171,7 +182,6 @@ class _CustomShotDialogState extends ConsumerState<_CustomShotDialog> {
   final _ideaController = TextEditingController();
   final _poseController = TextEditingController();
   final _focusController = TextEditingController();
-  bool _isSubmitting = false;
 
   @override
   void dispose() {
@@ -184,6 +194,7 @@ class _CustomShotDialogState extends ConsumerState<_CustomShotDialog> {
   @override
   Widget build(BuildContext context) {
     final controller = ref.read(_createShootControllerProvider.notifier);
+    final isSubmitting = ref.watch(_customShotSubmittingProvider);
     return _ModalFrame(
       title: 'Create Custom Shot',
       subtitle: 'Describe your vision, we will format it',
@@ -196,21 +207,21 @@ class _CustomShotDialogState extends ConsumerState<_CustomShotDialog> {
         PrimaryButton(
           label: 'Add Shot',
           icon: Icons.add,
-          isLoading: _isSubmitting,
+          isLoading: isSubmitting,
           onPressed: () async {
             final idea = _ideaController.text.trim();
             if (idea.isEmpty) {
               AppSnackBar.showError(context, 'Describe your shot idea.');
               return;
             }
-            setState(() => _isSubmitting = true);
+            ref.read(_customShotSubmittingProvider.notifier).set(true);
             final failure = await controller.addCustomShot(
               shotIdea: idea,
               poseDirection: _poseController.text.trim(),
               focusArea: _focusController.text.trim(),
             );
             if (!context.mounted) return;
-            setState(() => _isSubmitting = false);
+            ref.read(_customShotSubmittingProvider.notifier).set(false);
             if (failure != null) {
               AppSnackBar.showError(context, failure.message);
               return;

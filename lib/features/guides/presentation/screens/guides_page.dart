@@ -1,26 +1,15 @@
 part of '../../../dashboard/presentation/screens/dashboard_screen.dart';
 
-class _GuidesFeatureScaffold extends StatelessWidget {
-  const _GuidesFeatureScaffold({required this.onNavigate});
-
-  final ValueChanged<_DashboardPage> onNavigate;
+class GuidesScreen extends ConsumerWidget {
+  const GuidesScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
+  Widget build(BuildContext context, WidgetRef ref) {
+    return AppFeatureScaffold(
       backgroundColor: AppColors.neutral50,
-      appBar: const CustomAppBar(
-        title: 'Guides',
-        showBackButton: true,
-      ),
-      body: SafeArea(
-        bottom: false,
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 430),
-            child: _GuidesPage(onNavigate: onNavigate),
-          ),
-        ),
+      title: 'Guides',
+      child: _GuidesPage(
+        onNavigate: (page) => _navigateDashboard(context, ref, page),
       ),
     );
   }

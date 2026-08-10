@@ -136,8 +136,8 @@ class _GuideModelGrid extends StatelessWidget {
     return GridView.builder(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
+      gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+        maxCrossAxisExtent: 205,
         crossAxisSpacing: 12,
         mainAxisSpacing: 12,
         mainAxisExtent: 100,

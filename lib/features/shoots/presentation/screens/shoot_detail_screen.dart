@@ -185,8 +185,9 @@ class _ShootDetailContent extends ConsumerWidget {
             final image = _displayShots(
               job,
             ).firstWhere((shot) => shot.index == shotIndex).images.firstOrNull;
-            if (image != null)
+            if (image != null) {
               controller.selectImage(image, shotIndex: shotIndex);
+            }
             onOpenModal(_ModalKind.variation);
           },
           onDownload: (image) async {

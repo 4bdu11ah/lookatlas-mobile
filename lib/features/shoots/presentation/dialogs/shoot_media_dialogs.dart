@@ -3,10 +3,14 @@ part of '../../../dashboard/presentation/screens/dashboard_screen.dart';
 class _PortfolioIndex extends Notifier<int> {
   @override
   int build() => 0;
-  void set(int value) => state = value;
+
+  void _set({required int value}) {
+    if (state == value) return;
+    state = value;
+  }
 }
 
-final _portfolioIndexProvider =
+final NotifierProvider<_PortfolioIndex, int> _portfolioIndexProvider =
     NotifierProvider.autoDispose<_PortfolioIndex, int>(_PortfolioIndex.new);
 
 class _DirectorPortfolioDialog extends ConsumerWidget {
@@ -114,7 +118,7 @@ class _PortfolioViewer extends ConsumerWidget {
 void _movePortfolio(WidgetRef ref, int direction, int length) {
   var index = (ref.read(_portfolioIndexProvider) + direction) % length;
   if (index < 0) index += length;
-  ref.read(_portfolioIndexProvider.notifier).set(index);
+  ref.read(_portfolioIndexProvider.notifier)._set(value: index);
 }
 
 ShootLook? _selectedShootDirector(WidgetRef ref) {

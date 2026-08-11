@@ -16,8 +16,8 @@ class _ShootsLoading extends StatelessWidget {
         const SizedBox(height: 14),
         const SizedBox(height: 40, child: ShimmerBox()),
         const SizedBox(height: 10),
-        Row(
-          children: const [
+        const Row(
+          children: [
             Expanded(
               child: FractionallySizedBox(
                 widthFactor: 0.22,

@@ -35,10 +35,9 @@ class HouseModelsScreen extends ConsumerWidget {
 }
 
 class _HouseModelPage extends ConsumerWidget {
-  const _HouseModelPage({required this.onToast, this.onOpenModal});
+  const _HouseModelPage({required this.onToast});
 
   final ValueChanged<String> onToast;
-  final ValueChanged<_ModalKind>? onOpenModal;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {

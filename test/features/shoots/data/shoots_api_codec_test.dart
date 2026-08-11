@@ -13,7 +13,7 @@ void main() {
           models: [
             ShootCatalogItem(id: 'model-1', name: 'Mila', imageUrl: ''),
           ],
-          settings: ShootSettings(background: 'ai_decide'),
+          settings: ShootSettings(),
         ),
         shotIdea: 'Close detail of stitching',
         existingShots: [],

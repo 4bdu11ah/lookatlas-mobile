@@ -211,9 +211,7 @@ class _ReviewGrid extends StatelessWidget {
         .join('\n');
     final demoDirectors = [
       for (final id in state.selectedDirectorIds)
-        '${state.directors.firstWhere((item) => item.id == id).name} · '
-            '${state.demoConfigs[id]?.numberOfShots ?? 5} × '
-            '${state.demoConfigs[id]?.variations ?? 2}',
+        '${state.directors.firstWhere((item) => item.id == id).name} · ${state.demoConfigs[id]?.numberOfShots ?? 5} × ${state.demoConfigs[id]?.variations ?? 2}',
     ].join('\n');
     final items = [
       (

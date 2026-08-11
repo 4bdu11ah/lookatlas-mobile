@@ -3,10 +3,15 @@ part of '../../../dashboard/presentation/screens/dashboard_screen.dart';
 class _CustomShotSubmitting extends Notifier<bool> {
   @override
   bool build() => false;
-  void set(bool value) => state = value;
+
+  void _set({required bool value}) {
+    if (state == value) return;
+    state = value;
+  }
 }
 
-final _customShotSubmittingProvider =
+final NotifierProvider<_CustomShotSubmitting, bool>
+_customShotSubmittingProvider =
     NotifierProvider.autoDispose<_CustomShotSubmitting, bool>(
       _CustomShotSubmitting.new,
     );
@@ -214,14 +219,14 @@ class _CustomShotDialogState extends ConsumerState<_CustomShotDialog> {
               AppSnackBar.showError(context, 'Describe your shot idea.');
               return;
             }
-            ref.read(_customShotSubmittingProvider.notifier).set(true);
+            ref.read(_customShotSubmittingProvider.notifier)._set(value: true);
             final failure = await controller.addCustomShot(
               shotIdea: idea,
               poseDirection: _poseController.text.trim(),
               focusArea: _focusController.text.trim(),
             );
             if (!context.mounted) return;
-            ref.read(_customShotSubmittingProvider.notifier).set(false);
+            ref.read(_customShotSubmittingProvider.notifier)._set(value: false);
             if (failure != null) {
               AppSnackBar.showError(context, failure.message);
               return;

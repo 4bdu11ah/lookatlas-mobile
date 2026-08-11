@@ -149,8 +149,9 @@ class _ShootDetailController extends Notifier<_ShootDetailState> {
 
   Future<Failure?> exportApprovedImages() {
     final job = state.job;
-    if (job == null)
+    if (job == null) {
       return Future.value(const UnknownFailure('Load the shoot first.'));
+    }
     return const ShootExportService().exportApprovedImages(
       job: job,
       download: download,

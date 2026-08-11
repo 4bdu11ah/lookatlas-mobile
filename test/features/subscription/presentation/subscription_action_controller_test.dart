@@ -46,6 +46,30 @@ void main() {
   SubscriptionActionController notifier() =>
       container.read(subscriptionActionProvider.notifier);
 
+  group('premium access', () {
+    test('free status does not grant premium access', () async {
+      when(repository.statusChanges).thenAnswer((_) => const Stream.empty());
+      when(
+        repository.currentStatus,
+      ).thenAnswer((_) async => SubscriptionStatus.free);
+
+      await container.read(subscriptionControllerProvider.future);
+
+      expect(container.read(isPremiumProvider), isFalse);
+    });
+
+    test('active entitlement grants premium access', () async {
+      when(repository.statusChanges).thenAnswer((_) => const Stream.empty());
+      when(repository.currentStatus).thenAnswer(
+        (_) async => FakeSubscriptionRepository.premiumStatus,
+      );
+
+      await container.read(subscriptionControllerProvider.future);
+
+      expect(container.read(isPremiumProvider), isTrue);
+    });
+  });
+
   group('purchase', () {
     test('goes busy then idle and returns true on success', () async {
       when(() => repository.purchase(any())).thenAnswer(

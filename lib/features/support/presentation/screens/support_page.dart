@@ -5,10 +5,10 @@ class SupportScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return AppFeatureScaffold(
+    return const AppFeatureScaffold(
       backgroundColor: AppColors.neutral50,
       title: 'Support',
-      child: const _SupportPage(),
+      child: _SupportPage(),
     );
   }
 }

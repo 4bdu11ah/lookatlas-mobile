@@ -1,8 +1,8 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:look_atlas/core/network/dio_client.dart';
-import 'package:look_atlas/core/network/api_service.dart';
 import 'package:look_atlas/core/error/failure.dart';
+import 'package:look_atlas/core/network/api_service.dart';
+import 'package:look_atlas/core/network/dio_client.dart';
 
 void main() {
   test('post_form_data_uses_multipart_content_type', () async {

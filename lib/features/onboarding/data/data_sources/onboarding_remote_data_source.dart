@@ -230,9 +230,11 @@ class OnboardingRemoteDataSourceImpl implements OnboardingRemoteDataSource {
   }
 
   static String _photoKey(OnboardingUpload upload) {
-    var hash = 0xcbf29ce484222325;
+    var hash = BigInt.parse('cbf29ce484222325', radix: 16);
+    final prime = BigInt.parse('100000001b3', radix: 16);
+    final mask = BigInt.parse('7fffffffffffffff', radix: 16);
     for (final byte in upload.bytes) {
-      hash = ((hash ^ byte) * 0x100000001b3) & 0x7fffffffffffffff;
+      hash = ((hash ^ BigInt.from(byte)) * prime) & mask;
     }
     return '${upload.fileName}:$hash';
   }

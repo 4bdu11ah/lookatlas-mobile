@@ -100,6 +100,12 @@ class _CreateShootState {
 
   bool get canUseUnlimited => catalog?.isUnlimitedEligible ?? false;
 
+  bool get needsPrimaryProductSubCategory {
+    final product = selection?.product;
+    return product?.category?.toLowerCase() == 'bags' &&
+        (product?.subCategory?.trim().isEmpty ?? true);
+  }
+
   bool get canGenerate =>
       (isDemo ? selectedDirectorIds.isNotEmpty : chosenShots.isNotEmpty) &&
       (settings.lane == ShootLane.relax ||
@@ -486,12 +492,6 @@ class _CreateShootController extends Notifier<_CreateShootState> {
       clearFailure: result.isOk,
     );
     return result;
-  }
-
-  bool get needsPrimaryProductSubCategory {
-    final product = state.selection?.product;
-    return product?.category?.toLowerCase() == 'bags' &&
-        (product?.subCategory?.trim().isEmpty ?? true);
   }
 
   Future<Failure?> setPrimaryProductSubCategory(String subCategory) async {

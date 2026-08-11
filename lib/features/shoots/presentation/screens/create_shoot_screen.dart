@@ -141,7 +141,7 @@ class _CreatePage extends ConsumerWidget {
                           ? () async {
                               await _submitCreateShoot(
                                 context,
-                                controller,
+                                ref,
                                 onComplete,
                                 onToast,
                                 onOpenModal,
@@ -162,12 +162,14 @@ class _CreatePage extends ConsumerWidget {
 
 Future<void> _submitCreateShoot(
   BuildContext context,
-  _CreateShootController controller,
+  WidgetRef ref,
   ValueChanged<String> onComplete,
   ValueChanged<String> onToast,
   ValueChanged<_ModalKind> onOpenModal,
 ) async {
-  if (controller.needsPrimaryProductSubCategory) {
+  final state = ref.read(_createShootControllerProvider);
+  final controller = ref.read(_createShootControllerProvider.notifier);
+  if (state.needsPrimaryProductSubCategory) {
     final subCategory = await _selectBagSubCategory(context);
     if (subCategory == null || !context.mounted) return;
     final failure = await controller.setPrimaryProductSubCategory(subCategory);

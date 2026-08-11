@@ -27,7 +27,7 @@ class _ShootProgress extends StatelessWidget {
               Expanded(
                 child: Text(
                   currentStep ?? 'Generating images...',
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontSize: 12,
                     fontWeight: AppTypography.bold,
                   ),
@@ -398,23 +398,15 @@ class _ShotGroup extends StatelessWidget {
                 label: 'Approve all',
                 fitToContent: true,
                 height: 36,
-                onPressed: () {
-                  for (final image in images.where(
-                    (image) => !image.approved,
-                  )) {
-                    onApprove(image);
-                  }
-                },
+                onPressed: () =>
+                    images.where((image) => !image.approved).forEach(onApprove),
               ),
               AppOutlinedButton(
                 label: 'Clear',
                 fitToContent: true,
                 height: 36,
-                onPressed: () {
-                  for (final image in images.where((image) => image.approved)) {
-                    onApprove(image);
-                  }
-                },
+                onPressed: () =>
+                    images.where((image) => image.approved).forEach(onApprove),
               ),
             ],
           ),
@@ -537,14 +529,14 @@ class _ImageReportNotice extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(14),
+    return const Padding(
+      padding: EdgeInsets.all(14),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const _SquareIcon(Icons.flag_outlined),
-          const SizedBox(width: 12),
-          const Expanded(
+          _SquareIcon(Icons.flag_outlined),
+          SizedBox(width: 12),
+          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [

@@ -460,7 +460,13 @@ class _ProductCalibrationScreenState
       await _processCutout(upload);
     } finally {
       final path = upload.path;
-      if (path != null) unawaited(File(path).delete().catchError((_) {}));
+      if (path != null) {
+        try {
+          await File(path).delete();
+        } on FileSystemException {
+          // Temporary file may already have been removed by the platform.
+        }
+      }
     }
   }
 

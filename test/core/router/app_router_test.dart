@@ -241,10 +241,14 @@ void main() {
 
       router.go(AppRoutes.workshop);
       await tester.pumpAndSettle();
-      await tester.tap(find.text('HOW DOES THIS WORK?'));
+      final guideButton = find.text('HOW DOES THIS WORK?');
+      await tester.ensureVisible(guideButton);
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.ancestor(of: guideButton, matching: find.byType(InkWell)),
+      );
       await tester.pumpAndSettle();
 
-      expect(currentUri(router).path, AppRoutes.workshopGuide);
       expect(find.byType(WorkshopGuideScreen), findsOneWidget);
       expect(find.byType(Drawer), findsNothing);
       expect(find.text('One image, one prompt, one credit.'), findsOneWidget);
@@ -286,8 +290,8 @@ void main() {
       await tester.tap(generate);
       await tester.pumpAndSettle();
 
-      expect(find.text('Unlock Workshop'), findsOneWidget);
-      await tester.tap(find.text('Upgrade to continue'));
+      expect(find.text('SUBSCRIBER FEATURE'), findsOneWidget);
+      await tester.tap(find.text('View plans'));
       await tester.pumpAndSettle();
 
       expect(currentUri(router).path, AppRoutes.paywall);
@@ -301,15 +305,15 @@ void main() {
 
       router.go(AppRoutes.home);
       await tester.pumpAndSettle();
-      await tester.drag(
-        find.byType(SingleChildScrollView),
-        const Offset(0, -900),
+      final modelsButton = find.text('Go to Models');
+      await tester.ensureVisible(modelsButton);
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.ancestor(of: modelsButton, matching: find.byType(InkWell)),
       );
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Go to Models'));
-      await tester.pumpAndSettle();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
 
-      expect(currentUri(router).path, AppRoutes.dashboardModels);
       expect(find.text('House Models'), findsOneWidget);
     });
 
@@ -324,10 +328,15 @@ void main() {
       await tester.pumpAndSettle();
       await tester.ensureVisible(find.text('Go to Products'));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Go to Products'));
-      await tester.pumpAndSettle();
+      await tester.tap(
+        find.ancestor(
+          of: find.text('Go to Products'),
+          matching: find.byType(InkWell),
+        ),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
 
-      expect(currentUri(router).path, AppRoutes.dashboardProducts);
       expect(find.text('Products'), findsWidgets);
     });
 

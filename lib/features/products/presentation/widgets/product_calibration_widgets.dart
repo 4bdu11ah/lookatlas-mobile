@@ -126,10 +126,9 @@ class _Kicker extends StatelessWidget {
 }
 
 class _PhotoTile extends StatelessWidget {
-  const _PhotoTile({required this.asset, this.label, this.onTap, super.key});
+  const _PhotoTile({required this.asset, this.onTap, super.key});
 
   final String asset;
-  final String? label;
   final VoidCallback? onTap;
 
   @override
@@ -146,25 +145,6 @@ class _PhotoTile extends StatelessWidget {
             ),
             child: _AssetImage(asset),
           ),
-          if (label != null)
-            Positioned(
-              left: 5,
-              right: 5,
-              bottom: 5,
-              child: Container(
-                padding: const EdgeInsets.symmetric(vertical: 3),
-                color: AppColors.black,
-                alignment: Alignment.center,
-                child: Text(
-                  label!.toUpperCase(),
-                  style: const TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.w900,
-                    color: AppColors.white,
-                  ),
-                ),
-              ),
-            ),
         ],
       ),
     );
@@ -310,10 +290,10 @@ class _PlacementCanvas extends StatelessWidget {
   const _PlacementCanvas({
     required this.product,
     required this.bodyArea,
-    this.bodyZoom = 1,
     required this.placementX,
     required this.placementY,
     required this.placementScale,
+    this.bodyZoom = 1,
     this.cutout,
     this.onPlacementChanged,
   });
@@ -373,7 +353,7 @@ class _PlacementCanvas extends StatelessWidget {
                           placementY + details.delta.dy / height,
                           placementScale,
                         ),
-                  child: Container(
+                  child: SizedBox(
                     width: productWidth,
                     height: productHeight,
                     child: Stack(

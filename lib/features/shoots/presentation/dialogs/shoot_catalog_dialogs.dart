@@ -3,40 +3,59 @@ part of '../../../dashboard/presentation/screens/dashboard_screen.dart';
 class _AddProductPhotos extends Notifier<List<OnboardingUpload>> {
   @override
   List<OnboardingUpload> build() => const [];
-  void set(List<OnboardingUpload> value) => state = value;
+
+  void _set({required List<OnboardingUpload> value}) {
+    if (identical(state, value)) return;
+    state = value;
+  }
 }
 
 class _AddProductSubmitting extends Notifier<bool> {
   @override
   bool build() => false;
-  void set(bool value) => state = value;
+
+  void _set({required bool value}) {
+    if (state == value) return;
+    state = value;
+  }
 }
 
 class _AddModelPhotos extends Notifier<List<HouseModelUpload>> {
   @override
   List<HouseModelUpload> build() => const [];
-  void set(List<HouseModelUpload> value) => state = value;
+
+  void _set({required List<HouseModelUpload> value}) {
+    if (identical(state, value)) return;
+    state = value;
+  }
 }
 
 class _AddModelSubmitting extends Notifier<bool> {
   @override
   bool build() => false;
-  void set(bool value) => state = value;
+
+  void _set({required bool value}) {
+    if (state == value) return;
+    state = value;
+  }
 }
 
-final _addProductPhotosProvider =
+final NotifierProvider<_AddProductPhotos, List<OnboardingUpload>>
+_addProductPhotosProvider =
     NotifierProvider.autoDispose<_AddProductPhotos, List<OnboardingUpload>>(
       _AddProductPhotos.new,
     );
-final _addProductSubmittingProvider =
+final NotifierProvider<_AddProductSubmitting, bool>
+_addProductSubmittingProvider =
     NotifierProvider.autoDispose<_AddProductSubmitting, bool>(
       _AddProductSubmitting.new,
     );
-final _addModelPhotosProvider =
+final NotifierProvider<_AddModelPhotos, List<HouseModelUpload>>
+_addModelPhotosProvider =
     NotifierProvider.autoDispose<_AddModelPhotos, List<HouseModelUpload>>(
       _AddModelPhotos.new,
     );
-final _addModelSubmittingProvider =
+final NotifierProvider<_AddModelSubmitting, bool> _addModelSubmittingProvider =
     NotifierProvider.autoDispose<_AddModelSubmitting, bool>(
       _AddModelSubmitting.new,
     );
@@ -73,11 +92,15 @@ class _AddProductDialogState extends ConsumerState<_AddProductDialog> {
       title: 'Add product photos',
     );
     if (!mounted) return;
-    ref.read(_addProductPhotosProvider.notifier).set([
-      ...ref.read(_addProductPhotosProvider),
-      for (final file in files)
-        OnboardingUpload(bytes: file.$1, fileName: file.$2),
-    ]);
+    ref
+        .read(_addProductPhotosProvider.notifier)
+        ._set(
+          value: [
+            ...ref.read(_addProductPhotosProvider),
+            for (final file in files)
+              OnboardingUpload(bytes: file.$1, fileName: file.$2),
+          ],
+        );
   }
 
   Future<void> _submit() async {
@@ -87,7 +110,7 @@ class _AddProductDialogState extends ConsumerState<_AddProductDialog> {
       AppSnackBar.showError(context, 'Complete all required product fields.');
       return;
     }
-    ref.read(_addProductSubmittingProvider.notifier).set(true);
+    ref.read(_addProductSubmittingProvider.notifier)._set(value: true);
     final result = await ref
         .read(onboardingRepositoryProvider)
         .createProduct(
@@ -100,7 +123,7 @@ class _AddProductDialogState extends ConsumerState<_AddProductDialog> {
           ),
         );
     if (!mounted) return;
-    ref.read(_addProductSubmittingProvider.notifier).set(false);
+    ref.read(_addProductSubmittingProvider.notifier)._set(value: false);
     if (result case Err(:final failure)) {
       AppSnackBar.showError(context, failure.message);
       return;
@@ -195,11 +218,15 @@ class _AddModelDialogState extends ConsumerState<_AddModelDialog> {
       title: 'Add model photos',
     );
     if (!mounted) return;
-    ref.read(_addModelPhotosProvider.notifier).set([
-      ...ref.read(_addModelPhotosProvider),
-      for (final file in files)
-        HouseModelUpload(bytes: file.$1, fileName: file.$2),
-    ]);
+    ref
+        .read(_addModelPhotosProvider.notifier)
+        ._set(
+          value: [
+            ...ref.read(_addModelPhotosProvider),
+            for (final file in files)
+              HouseModelUpload(bytes: file.$1, fileName: file.$2),
+          ],
+        );
   }
 
   Future<void> _submit() async {
@@ -216,7 +243,7 @@ class _AddModelDialogState extends ConsumerState<_AddModelDialog> {
       );
       return;
     }
-    ref.read(_addModelSubmittingProvider.notifier).set(true);
+    ref.read(_addModelSubmittingProvider.notifier)._set(value: true);
     final result = await ref
         .read(houseModelsRepositoryProvider)
         .createModel(
@@ -229,7 +256,7 @@ class _AddModelDialogState extends ConsumerState<_AddModelDialog> {
           ),
         );
     if (!mounted) return;
-    ref.read(_addModelSubmittingProvider.notifier).set(false);
+    ref.read(_addModelSubmittingProvider.notifier)._set(value: false);
     if (result case Err(:final failure)) {
       AppSnackBar.showError(context, failure.message);
       return;

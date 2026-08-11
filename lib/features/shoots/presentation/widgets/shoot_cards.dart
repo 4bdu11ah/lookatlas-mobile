@@ -104,7 +104,7 @@ class _ShootFilterSheet extends ConsumerWidget {
       ],
       child: _ShootStatusList(
         value: state.status,
-        onChanged: controller.setStatus,
+        onChanged: (status) => controller._setStatus(status: status),
       ),
     );
   }
@@ -126,11 +126,13 @@ class _ShootFilterSheetController extends Notifier<_ShootFilterSheetState> {
     status: initialStatus,
   );
 
-  void setStatus(String status) => state = _ShootFilterSheetState(
-    status: status,
-  );
+  void _setStatus({required String status}) {
+    state = _ShootFilterSheetState(status: status);
+  }
 }
 
+// Riverpod does not expose a stable public family type for this provider.
+// ignore: specify_nonobvious_property_types
 final _shootFilterSheetProvider = NotifierProvider.autoDispose
     .family<_ShootFilterSheetController, _ShootFilterSheetState, String>(
       _ShootFilterSheetController.new,

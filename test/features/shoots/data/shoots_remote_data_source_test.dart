@@ -225,7 +225,6 @@ void main() {
           source: 'lookatlas',
         ),
       ],
-      productMode: ProductMode.pairing,
       settings: ShootSettings(
         directorFeedback: 'Natural light',
         numberOfShots: 6,

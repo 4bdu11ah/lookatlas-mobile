@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:look_atlas/core/layout/app_responsive.dart';
+import 'package:look_atlas/core/router/app_routes.dart';
 import 'package:look_atlas/core/theme/app_colors.dart';
 import 'package:look_atlas/shared/widgets/custom_app_bar.dart';
 
@@ -36,7 +37,7 @@ class AppFeatureScaffold extends StatelessWidget {
       appBar: CustomAppBar(
         title: title,
         showBackButton: true,
-        onBack: onBack ?? () => context.pop(),
+        onBack: onBack ?? () => _goBack(context),
       ),
       floatingActionButton: floatingActionButton,
       body: SafeArea(
@@ -46,5 +47,13 @@ class AppFeatureScaffold extends StatelessWidget {
             : content,
       ),
     );
+  }
+
+  void _goBack(BuildContext context) {
+    if (context.canPop()) {
+      context.pop();
+      return;
+    }
+    context.go(AppRoutes.home);
   }
 }

@@ -3,30 +3,45 @@ part of '../../../dashboard/presentation/screens/dashboard_screen.dart';
 class _CreateProductQueryController extends Notifier<String> {
   @override
   String build() => '';
-  void set(String value) => state = value;
+
+  void _set({required String value}) {
+    if (state == value) return;
+    state = value;
+  }
 }
 
 class _CreateProductPageController extends Notifier<int> {
   @override
   int build() => 0;
-  void set(int value) => state = value;
+
+  void _set({required int value}) {
+    if (state == value) return;
+    state = value;
+  }
 }
 
 class _CreateModelQueryController extends Notifier<String> {
   @override
   String build() => '';
-  void set(String value) => state = value;
+
+  void _set({required String value}) {
+    if (state == value) return;
+    state = value;
+  }
 }
 
-final _createProductQueryProvider =
+final NotifierProvider<_CreateProductQueryController, String>
+_createProductQueryProvider =
     NotifierProvider.autoDispose<_CreateProductQueryController, String>(
       _CreateProductQueryController.new,
     );
-final _createProductPageProvider =
+final NotifierProvider<_CreateProductPageController, int>
+_createProductPageProvider =
     NotifierProvider.autoDispose<_CreateProductPageController, int>(
       _CreateProductPageController.new,
     );
-final _createModelQueryProvider =
+final NotifierProvider<_CreateModelQueryController, String>
+_createModelQueryProvider =
     NotifierProvider.autoDispose<_CreateModelQueryController, String>(
       _CreateModelQueryController.new,
     );
@@ -193,8 +208,8 @@ class _ProductStepState extends ConsumerState<_ProductStep> {
           textInputAction: TextInputAction.search,
           leading: const Icon(Icons.search, size: 20),
           onChanged: (value) {
-            ref.read(_createProductQueryProvider.notifier).set(value);
-            ref.read(_createProductPageProvider.notifier).set(0);
+            ref.read(_createProductQueryProvider.notifier)._set(value: value);
+            ref.read(_createProductPageProvider.notifier)._set(value: 0);
           },
         ),
         if (widget.selectedProducts.isNotEmpty)
@@ -236,8 +251,9 @@ class _ProductStepState extends ConsumerState<_ProductStep> {
           _ProductPagination(
             pageIndex: pageIndex,
             pageCount: pageCount,
-            onPageChanged: (value) =>
-                ref.read(_createProductPageProvider.notifier).set(value),
+            onPageChanged: (value) => ref
+                .read(_createProductPageProvider.notifier)
+                ._set(value: value),
           ),
       ],
     );
@@ -479,7 +495,7 @@ class _ModelStepState extends ConsumerState<_ModelStep> {
           textInputAction: TextInputAction.search,
           leading: const Icon(Icons.search, size: 20),
           onChanged: (value) =>
-              ref.read(_createModelQueryProvider.notifier).set(value),
+              ref.read(_createModelQueryProvider.notifier)._set(value: value),
         ),
         _SelectionGrid(
           items: visibleModels,

@@ -4,8 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
-import 'package:look_atlas/core/router/app_routes.dart';
 import 'package:look_atlas/core/result/result.dart';
+import 'package:look_atlas/core/router/app_routes.dart';
 import 'package:look_atlas/core/theme/app_colors.dart';
 import 'package:look_atlas/core/theme/app_theme.dart';
 import 'package:look_atlas/features/auth/di/auth_providers.dart';
@@ -15,7 +15,6 @@ import 'package:look_atlas/features/shoots/di/shoots_providers.dart';
 import 'package:look_atlas/features/shoots/domain/entities/shoot_create.dart';
 import 'package:look_atlas/features/subscription/presentation/subscription_controller.dart';
 import 'package:look_atlas/shared/widgets/app_dialog.dart';
-import 'package:look_atlas/shared/widgets/app_dropdown.dart';
 import 'package:look_atlas/shared/widgets/app_text_field.dart';
 import 'package:look_atlas/shared/widgets/custom_app_bar.dart';
 import 'package:look_atlas/shared/widgets/shimmer_box.dart';
@@ -254,7 +253,10 @@ void main() {
     await pumpScreen(tester, const ShootsScreen());
 
     expect(find.byType(AppTextField), findsOneWidget);
-    expect(find.byType(AppDropdown<String>), findsNWidgets(2));
+    expect(
+      find.byKey(const ValueKey('open-shoot-filter-sheet')),
+      findsOneWidget,
+    );
 
     await tester.enterText(
       find.byKey(const ValueKey('shoot-search-field')),
@@ -270,9 +272,13 @@ void main() {
       '',
     );
     await tester.pump(const Duration(milliseconds: 350));
-    await tester.tap(find.text('All statuses'));
+    await tester.tap(
+      find.byKey(const ValueKey('open-shoot-filter-sheet')),
+    );
     await tester.pumpAndSettle();
     await tester.tap(find.text('Processing').last);
+    await tester.pump();
+    await tester.tap(find.text('Show shoots'));
     await tester.pumpAndSettle();
 
     expect(find.text('Tan Leather Bag'), findsNothing);
@@ -348,9 +354,9 @@ void main() {
       findsOneWidget,
     );
     expect(find.byType(AppTextField), findsOneWidget);
-    await tester.tap(find.text('Add New Product'));
+    await tester.tap(find.text('Add Product'));
     await tester.pumpAndSettle();
-    expect(find.text('Add New Product'), findsNWidgets(2));
+    expect(find.text('Add New Product'), findsOneWidget);
     expect(
       find.descendant(
         of: find.byType(AppDialog),
@@ -386,8 +392,7 @@ void main() {
     (tester) async {
       await pumpScreen(tester, const CreateShootScreen());
 
-      expect(find.text('5\nproducts'), findsOneWidget);
-      expect(find.text('Add New Product'), findsOneWidget);
+      expect(find.text('Add Product'), findsOneWidget);
       expect(find.text('1/3 products'), findsOneWidget);
       expect(
         find.text('Set real-world size so the model renders it to scale'),

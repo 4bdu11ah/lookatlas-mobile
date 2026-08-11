@@ -194,7 +194,7 @@ class _ProductCard extends ConsumerWidget {
           const SizedBox(height: 12),
           GestureDetector(
             key: ValueKey('replace-product-photo-${product.sku}'),
-            // onTap: () => onReplacePhoto(photoIndex),
+            onTap: () => onReplacePhoto(photoIndex),
             child: AspectRatio(
               aspectRatio: 1,
               child: Container(

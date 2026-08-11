@@ -5,9 +5,9 @@ class _ShootDetailLoading extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
+    return const Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: const [
+      children: [
         _ShootDetailLoadingHeader(),
         SizedBox(height: 14),
         _ShootDetailLoadingSummary(),
@@ -138,7 +138,6 @@ class _ShootDetailLoadingVideo extends StatelessWidget {
           SizedBox(height: 12),
           FractionallySizedBox(
             widthFactor: 0.72,
-            alignment: Alignment.center,
             child: SizedBox(height: 12, child: ShimmerBox()),
           ),
           SizedBox(height: 12),

@@ -33,7 +33,6 @@ class _SmallOverlayButton extends StatelessWidget {
   const _SmallOverlayButton({
     required this.icon,
     required this.onTap,
-    super.key,
   });
 
   final IconData icon;

@@ -6,7 +6,6 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
-import 'package:native_cutout/native_cutout.dart';
 import 'package:look_atlas/core/error/failure.dart';
 import 'package:look_atlas/core/layout/app_responsive.dart';
 import 'package:look_atlas/core/result/result.dart';
@@ -52,6 +51,7 @@ import 'package:look_atlas/shared/widgets/bar_spinner.dart';
 import 'package:look_atlas/shared/widgets/custom_app_bar.dart';
 import 'package:look_atlas/shared/widgets/primary_button.dart';
 import 'package:look_atlas/shared/widgets/shimmer_box.dart';
+import 'package:native_cutout/native_cutout.dart';
 import 'package:purchases_flutter/purchases_flutter.dart' as revenuecat;
 import 'package:uuid/uuid.dart';
 

@@ -45,16 +45,21 @@ _createModelQueryProvider =
     NotifierProvider.autoDispose<_CreateModelQueryController, String>(
       _CreateModelQueryController.new,
     );
+final NotifierProvider<_CreateProductPageController, int>
+_createModelPageProvider =
+    NotifierProvider.autoDispose<_CreateProductPageController, int>(
+      _CreateProductPageController.new,
+    );
 
 class _CreateShootHeader extends StatelessWidget {
   const _CreateShootHeader({
     required this.isAdmin,
-    required this.isDemo,
+    required this.demoMode,
     required this.onDemoChanged,
   });
 
   final bool isAdmin;
-  final bool isDemo;
+  final bool demoMode;
   final ValueChanged<bool> onDemoChanged;
 
   @override
@@ -62,36 +67,43 @@ class _CreateShootHeader extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Wrap(
-          spacing: 8,
-          runSpacing: 5,
-          crossAxisAlignment: WrapCrossAlignment.center,
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              isDemo ? 'New Demo Shoot' : 'New Shoot',
-              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                height: 1.1,
+            Expanded(
+              child: Wrap(
+                spacing: 8,
+                runSpacing: 5,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                children: [
+                  Text(
+                    demoMode ? 'New Demo Shoot' : 'New Shoot',
+                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                      height: 1.1,
+                    ),
+                  ),
+                  const _Badge('AI Director', kind: _BadgeKind.dark),
+                ],
               ),
             ),
-            const _Badge('AI Director', kind: _BadgeKind.dark),
+            if (isAdmin)
+              AppOutlinedButton(
+                key: const ValueKey('create-demo-toggle'),
+                label: 'Demo shoot',
+                icon: Icons.auto_awesome,
+                fitToContent: true,
+                backgroundColor: demoMode ? AppColors.black : AppColors.white,
+                foregroundColor: demoMode ? AppColors.white : AppColors.black,
+                onPressed: () => onDemoChanged(!demoMode),
+              ),
           ],
         ),
         const SizedBox(height: 4),
         _Caption(
-          isDemo
+          demoMode
               ? 'Bundle multiple directors into one client demo'
               : 'AI Director handles everything for you',
         ),
-        if (isAdmin) ...[
-          const SizedBox(height: 10),
-          FilterChip(
-            key: const ValueKey('demo-shoot-toggle'),
-            label: const Text('Demo Shoot'),
-            avatar: const Icon(Icons.admin_panel_settings_outlined, size: 18),
-            selected: isDemo,
-            onSelected: onDemoChanged,
-          ),
-        ],
       ],
     );
   }
@@ -117,6 +129,7 @@ class _CreateSectionHeader extends StatelessWidget {
       children: [
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Flexible(child: _SectionTitle(title)),
             if (onAdd != null) ...[
@@ -287,7 +300,7 @@ class _ProductSelectionPanel extends StatelessWidget {
         : 'split across shots as variants';
     return Container(
       key: const ValueKey('create-product-selection-panel'),
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
         color: AppColors.neutral50,
         border: Border.all(color: AppColors.neutral200),
@@ -301,8 +314,10 @@ class _ProductSelectionPanel extends StatelessWidget {
                 child: _Caption(
                   '${products.length}/$maxProducts products'
                   '${hasMultiple ? ' · $modeSummary' : ''}',
+                  fontSize: 12,
                 ),
               ),
+              const SizedBox(width: 8),
               GestureDetector(
                 onTap: onClear,
                 child: const Text(
@@ -323,14 +338,18 @@ class _ProductSelectionPanel extends StatelessWidget {
               fitToContent: true,
               iconAngle: 0.7853981633974483,
               height: 30,
-              borderColor: AppColors.neutral250,
               onPressed: onCalibrate,
+              iconSize: 12,
+              textStyle: const TextStyle(
+                fontSize: 11,
+              ),
             ),
           ),
           _Caption(
             hasMultiple
                 ? 'Sets real-world size for the primary product (${products.first.name})'
                 : 'Set real-world size so the model renders it to scale',
+            fontSize: 11,
           ),
           if (hasMultiple)
             Row(
@@ -387,10 +406,17 @@ Widget _productModeCard({
     ),
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        _CardTitle(title),
+        _CardTitle(
+          title,
+          fontSize: 14,
+        ),
         const SizedBox(height: 4),
-        _Caption(description),
+        _Caption(
+          description,
+          fontSize: 12,
+        ),
       ],
     ),
   ),
@@ -400,23 +426,29 @@ Widget _selectedProductRow({
   required ShootCatalogItem product,
   required String role,
   required VoidCallback onRemove,
+  EdgeInsetsGeometry? margin,
 }) => Container(
-  padding: const EdgeInsets.fromLTRB(8, 6, 4, 6),
+  padding: const EdgeInsets.fromLTRB(6, 4, 0, 4),
+  margin: margin,
   decoration: BoxDecoration(
     color: AppColors.white,
     border: Border.all(color: AppColors.neutral200),
   ),
   child: Row(
     children: [
-      _AssetBox(product.imageUrl, width: 42, height: 42),
+      _AssetBox(
+        product.imageUrl,
+        width: 40,
+        height: 40,
+      ),
       const SizedBox(width: 9),
       Expanded(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _CardTitle(product.name),
+            _CardTitle(product.name, fontSize: 13),
             const SizedBox(height: 2),
-            _Caption(role),
+            _Caption(role, fontSize: 12),
           ],
         ),
       ),
@@ -438,6 +470,8 @@ class _ModelStep extends ConsumerStatefulWidget {
     required this.selectedKeys,
     required this.selectedModels,
     required this.onSelect,
+    required this.onRemove,
+    required this.onClear,
     required this.onSourceChanged,
     required this.onAdd,
   });
@@ -449,6 +483,8 @@ class _ModelStep extends ConsumerStatefulWidget {
   final Set<String> selectedKeys;
   final List<ShootCatalogItem> selectedModels;
   final ValueChanged<int> onSelect;
+  final ValueChanged<String> onRemove;
+  final VoidCallback onClear;
   final ValueChanged<bool> onSourceChanged;
   final VoidCallback onAdd;
 
@@ -457,16 +493,41 @@ class _ModelStep extends ConsumerStatefulWidget {
 }
 
 class _ModelStepState extends ConsumerState<_ModelStep> {
+  static const _pageSize = 10;
+
   @override
   Widget build(BuildContext context) {
     final query = ref.watch(_createModelQueryProvider);
+    final pageIndex = ref.watch(_createModelPageProvider);
     final normalizedQuery = query.trim().toLowerCase();
-    final visibleModels = [
+    final filteredModels = [
       for (final (index, model) in widget.models.indexed)
         if (normalizedQuery.isEmpty ||
             model.name.toLowerCase().contains(normalizedQuery))
           (index, model.name, model.subtitle, model.imageUrl),
     ];
+    final pageCount = (filteredModels.length / _pageSize).ceil().clamp(1, 1000);
+    final firstModelIndex = pageIndex * _pageSize;
+    final lastModelIndex = (firstModelIndex + _pageSize).clamp(
+      0,
+      filteredModels.length,
+    );
+    final visibleModels = firstModelIndex < filteredModels.length
+        ? filteredModels.sublist(firstModelIndex, lastModelIndex)
+        : const <(int, String, String, String)>[];
+    final selectedPositions = {
+      for (final (position, model) in widget.selectedModels.indexed)
+        _modelKey(model): position,
+    };
+    final selectedIndices = {
+      for (final (index, model) in widget.models.indexed)
+        if (widget.selectedKeys.contains(_modelKey(model))) index,
+    };
+    final secondaryCount = widget.selectedModels.length - 1;
+    final selectionSummary = secondaryCount > 0
+        ? '${widget.selectedModels.length}/3 models · 1 primary + '
+              "$secondaryCount secondary · they'll appear together in 1 shot"
+        : '${widget.selectedModels.length}/3 models';
     return _Column(
       gap: 12,
       children: [
@@ -474,131 +535,61 @@ class _ModelStepState extends ConsumerState<_ModelStep> {
           title: 'Select Model',
           subtitle: 'Choose a model to wear your product',
           onAdd: widget.onAdd,
+          addLabel: 'Add Model',
         ),
-
         _SegmentedChoices(
           choices: [
             'My Models · ${widget.userModelCount}',
             'LookAtlas · ${widget.libraryModelCount}',
           ],
           selected: widget.useLibraryModels ? 1 : 0,
-          onSelect: (index) => widget.onSourceChanged(index == 1),
+          onSelect: (index) {
+            ref.read(_createModelPageProvider.notifier)._set(value: 0);
+            widget.onSourceChanged(index == 1);
+          },
         ),
         if (widget.selectedModels.isNotEmpty)
           _SelectedRoster(
-            count: '${widget.selectedModels.length}/3 models',
+            count: selectionSummary,
             items: widget.selectedModels,
+            onClear: widget.onClear,
+            onRemove: widget.onRemove,
           ),
         AppTextField(
           fieldKey: const ValueKey('create-model-search'),
           hintText: 'Search models by name...',
           textInputAction: TextInputAction.search,
           leading: const Icon(Icons.search, size: 20),
-          onChanged: (value) =>
-              ref.read(_createModelQueryProvider.notifier)._set(value: value),
+          onChanged: (value) {
+            ref.read(_createModelQueryProvider.notifier)._set(value: value);
+            ref.read(_createModelPageProvider.notifier)._set(value: 0);
+          },
         ),
         _SelectionGrid(
           items: visibleModels,
-          selectedIndices: {
+          selectedIndices: selectedIndices,
+          disabledIndices: widget.selectedKeys.length < 3
+              ? const {}
+              : widget.models.indexed
+                    .where((item) => !selectedIndices.contains(item.$1))
+                    .map((item) => item.$1)
+                    .toSet(),
+          selectedLabels: {
             for (final (index, model) in widget.models.indexed)
-              if (widget.selectedKeys.contains(_modelKey(model))) index,
+              if (selectedPositions[_modelKey(model)] case final position?)
+                index: position == 0 ? 'Primary' : 'Secondary $position',
           },
+          selectedLabelOnLeft: true,
           onSelect: widget.onSelect,
         ),
-      ],
-    );
-  }
-}
-
-class _DirectorStep extends StatelessWidget {
-  const _DirectorStep({
-    required this.directors,
-    required this.settings,
-    required this.selected,
-    required this.onSelect,
-    required this.onSettingsChanged,
-    required this.onPortfolio,
-    required this.isDemo,
-    required this.selectedDirectorIds,
-    required this.onDemoSelect,
-  });
-
-  final List<ShootLook> directors;
-  final ShootSettings settings;
-  final int selected;
-  final ValueChanged<int> onSelect;
-  final ValueChanged<ShootSettings> onSettingsChanged;
-  final ValueChanged<int> onPortfolio;
-  final bool isDemo;
-  final Set<String> selectedDirectorIds;
-  final ValueChanged<int> onDemoSelect;
-
-  @override
-  Widget build(BuildContext context) {
-    return _Column(
-      gap: 12,
-      children: [
-        const _CreateSectionHeader(
-          title: 'Choose Your Creative Director',
-          subtitle:
-              "Select what you're creating and who should direct the shoot",
-        ),
-        const _FieldLabel('What are you creating?'),
-        _UseCaseGrid(
-          selected: const [
-            'pdp',
-            'social',
-            'lookbook',
-            'campaign',
-            'marketplace',
-          ].indexOf(settings.useCase).clamp(0, 4),
-          onSelect: (index) => onSettingsChanged(
-            settings.copyWith(
-              useCase: const [
-                'pdp',
-                'social',
-                'lookbook',
-                'campaign',
-                'marketplace',
-              ][index],
-            ),
+        if (pageCount > 1)
+          _ProductPagination(
+            pageIndex: pageIndex,
+            pageCount: pageCount,
+            keyPrefix: 'model',
+            onPageChanged: (value) =>
+                ref.read(_createModelPageProvider.notifier)._set(value: value),
           ),
-        ),
-        _FieldLabel(
-          isDemo ? 'Select directors (one or more)' : 'Select a Director',
-        ),
-        if (isDemo)
-          const _Caption(
-            'Each director becomes one section of the demo, so the client can see their products in several styles.',
-          ),
-        _DirectorGrid(
-          directors: directors,
-          selectedIndices: isDemo
-              ? {
-                  for (final (index, director) in directors.indexed)
-                    if (selectedDirectorIds.contains(director.id)) index,
-                }
-              : {selected},
-          onSelect: isDemo ? onDemoSelect : onSelect,
-          onPreview: onPortfolio,
-        ),
-        _FieldLabel(
-          isDemo
-              ? 'Brief the directors (optional)'
-              : 'Brief ${directors.isEmpty ? 'director' : directors[selected.clamp(0, directors.length - 1)].name} (optional)',
-        ),
-        TextField(
-          key: const ValueKey('create-director-brief'),
-          minLines: 3,
-          maxLines: 4,
-          decoration: const InputDecoration(
-            hintText: "Anything specific you'd like the director to consider?",
-            alignLabelWithHint: true,
-          ),
-          onChanged: (value) => onSettingsChanged(
-            settings.copyWith(directorFeedback: value),
-          ),
-        ),
       ],
     );
   }

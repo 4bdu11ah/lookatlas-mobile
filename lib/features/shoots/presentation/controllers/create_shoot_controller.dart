@@ -8,6 +8,9 @@ class _CreateShootState {
     this.selectedProductIds = const [],
     this.selectedModelKeys = const [],
     this.selectedDirector = 0,
+    this.previewDirector = 0,
+    this.demoMode = false,
+    this.demoDirectors = const [],
     this.useLibraryModels = false,
     this.settings = const ShootSettings(),
     this.plannedShots = const [],
@@ -15,10 +18,6 @@ class _CreateShootState {
     this.isLoading = true,
     this.isPlanning = false,
     this.isSubmitting = false,
-    this.isAdmin = false,
-    this.isDemo = false,
-    this.selectedDirectorIds = const [],
-    this.demoConfigs = const {},
     this.failure,
   });
 
@@ -28,6 +27,9 @@ class _CreateShootState {
   final List<String> selectedProductIds;
   final List<String> selectedModelKeys;
   final int selectedDirector;
+  final int previewDirector;
+  final bool demoMode;
+  final List<DemoDirectorConfig> demoDirectors;
   final bool useLibraryModels;
   final ShootSettings settings;
   final List<PlannedShootShot> plannedShots;
@@ -35,10 +37,6 @@ class _CreateShootState {
   final bool isLoading;
   final bool isPlanning;
   final bool isSubmitting;
-  final bool isAdmin;
-  final bool isDemo;
-  final List<String> selectedDirectorIds;
-  final Map<String, DemoDirectorConfig> demoConfigs;
   final Failure? failure;
 
   List<ShootCatalogItem> get products => catalog?.products ?? const [];
@@ -85,20 +83,35 @@ class _CreateShootState {
       if (selectedShots.contains(index)) shot,
   ];
 
-  int get totalImages =>
-      isDemo ? demoTotalImages : chosenShots.length * settings.variations;
+  int get totalImages => chosenShots.length * settings.variations;
 
   int get requiredCredits =>
       totalImages *
-      (isDemo
-          ? 2
-          : switch (settings.imageSize) {
-              '4K' => 3,
-              '2K' => 2,
-              _ => 1,
-            });
+      switch (settings.imageSize) {
+        '4K' => 3,
+        '2K' => 2,
+        _ => 1,
+      };
 
   bool get canUseUnlimited => catalog?.isUnlimitedEligible ?? false;
+
+  bool get canContinueFromDirector => demoMode
+      ? demoDirectors.isNotEmpty &&
+            demoDirectors.every(
+              (config) => config.numberOfShots > 0 && config.variations > 0,
+            )
+      : directors.isNotEmpty &&
+            settings.useCase.isNotEmpty &&
+            settings.directorId.isNotEmpty;
+
+  int get demoRequiredCredits => demoDirectors.fold<int>(
+    0,
+    (total, config) => total + config.numberOfShots * config.variations * 2,
+  );
+
+  bool get canGenerateDemo =>
+      canContinueFromDirector &&
+      demoRequiredCredits <= (catalog?.availableCredits ?? 0);
 
   bool get needsPrimaryProductSubCategory {
     final product = selection?.product;
@@ -107,11 +120,11 @@ class _CreateShootState {
   }
 
   bool get canGenerate =>
-      (isDemo ? selectedDirectorIds.isNotEmpty : chosenShots.isNotEmpty) &&
+      chosenShots.isNotEmpty &&
       (settings.lane == ShootLane.relax ||
           requiredCredits <= (catalog?.availableCredits ?? 0));
 
-  List<_CreateStep> get steps => isDemo
+  List<_CreateStep> get steps => demoMode
       ? const [
           _CreateStep.product,
           _CreateStep.model,
@@ -120,14 +133,6 @@ class _CreateShootState {
         ]
       : _CreateStep.values;
 
-  int get demoTotalImages => selectedDirectorIds.fold(
-    0,
-    (total, id) {
-      final config = demoConfigs[id] ?? const DemoDirectorConfig();
-      return total + config.numberOfShots * config.variations;
-    },
-  );
-
   _CreateShootState copyWith({
     _CreateStep? step,
     ShootCreateCatalog? catalog,
@@ -135,6 +140,9 @@ class _CreateShootState {
     List<String>? selectedProductIds,
     List<String>? selectedModelKeys,
     int? selectedDirector,
+    int? previewDirector,
+    bool? demoMode,
+    List<DemoDirectorConfig>? demoDirectors,
     bool? useLibraryModels,
     ShootSettings? settings,
     List<PlannedShootShot>? plannedShots,
@@ -142,10 +150,6 @@ class _CreateShootState {
     bool? isLoading,
     bool? isPlanning,
     bool? isSubmitting,
-    bool? isAdmin,
-    bool? isDemo,
-    List<String>? selectedDirectorIds,
-    Map<String, DemoDirectorConfig>? demoConfigs,
     Failure? failure,
     bool clearFailure = false,
   }) => _CreateShootState(
@@ -155,6 +159,9 @@ class _CreateShootState {
     selectedProductIds: selectedProductIds ?? this.selectedProductIds,
     selectedModelKeys: selectedModelKeys ?? this.selectedModelKeys,
     selectedDirector: selectedDirector ?? this.selectedDirector,
+    previewDirector: previewDirector ?? this.previewDirector,
+    demoMode: demoMode ?? this.demoMode,
+    demoDirectors: demoDirectors ?? this.demoDirectors,
     useLibraryModels: useLibraryModels ?? this.useLibraryModels,
     settings: settings ?? this.settings,
     plannedShots: plannedShots ?? this.plannedShots,
@@ -162,26 +169,25 @@ class _CreateShootState {
     isLoading: isLoading ?? this.isLoading,
     isPlanning: isPlanning ?? this.isPlanning,
     isSubmitting: isSubmitting ?? this.isSubmitting,
-    isAdmin: isAdmin ?? this.isAdmin,
-    isDemo: isDemo ?? this.isDemo,
-    selectedDirectorIds: selectedDirectorIds ?? this.selectedDirectorIds,
-    demoConfigs: demoConfigs ?? this.demoConfigs,
     failure: clearFailure ? null : failure ?? this.failure,
   );
 }
 
-class _CreateShootController extends Notifier<_CreateShootState> {
+class _CreateShootController extends Notifier<_CreateShootState>
+    with _CreateShootDemoController {
+  @override
   bool _disposed = false;
+  @override
   bool _createInFlight = false;
 
+  @override
   ShootsRepository get _repository => ref.read(shootsRepositoryProvider);
 
   @override
   _CreateShootState build() {
     ref.onDispose(() => _disposed = true);
     unawaited(Future<void>.microtask(load));
-    final user = ref.read(authRepositoryProvider).currentUser;
-    return _CreateShootState(isAdmin: user?.isAdmin ?? false);
+    return const _CreateShootState();
   }
 
   Future<void> load({
@@ -197,13 +203,19 @@ class _CreateShootController extends Notifier<_CreateShootState> {
     }
     final catalog = result.valueOrNull!;
     final preferredModel = _findModel(catalog.userModels, preferredModelName);
+    final currentSettings = state.catalog == null
+        ? state.settings.copyWith(aspectRatio: catalog.defaultAspectRatio)
+        : catalog.supportedAspectRatios.contains(state.settings.aspectRatio)
+        ? state.settings
+        : state.settings.copyWith(aspectRatio: catalog.defaultAspectRatio);
     state = state.copyWith(
       catalog: catalog,
-      settings: state.catalog == null
-          ? state.settings.copyWith(aspectRatio: catalog.defaultAspectRatio)
-          : catalog.supportedAspectRatios.contains(state.settings.aspectRatio)
-          ? state.settings
-          : state.settings.copyWith(aspectRatio: catalog.defaultAspectRatio),
+      settings: currentSettings.copyWith(
+        imageSize: catalog.isUnlimitedEligible && catalog.plan == 'pro'
+            ? '2K'
+            : currentSettings.imageSize,
+        lane: catalog.isUnlimitedEligible ? ShootLane.relax : ShootLane.fast,
+      ),
       selectedProductIds: preferredProductId != null
           ? [
               ...state.selectedProductIds.where(
@@ -231,33 +243,12 @@ class _CreateShootController extends Notifier<_CreateShootState> {
           : state.selectedModelKeys,
       useLibraryModels:
           catalog.userModels.isEmpty && catalog.libraryModels.isNotEmpty,
-      selectedDirectorIds:
-          state.selectedDirectorIds.isEmpty && catalog.looks.isNotEmpty
-          ? [catalog.looks.first.id]
-          : state.selectedDirectorIds,
-      demoConfigs: state.demoConfigs.isEmpty && catalog.looks.isNotEmpty
-          ? {catalog.looks.first.id: const DemoDirectorConfig()}
-          : state.demoConfigs,
       isLoading: false,
       clearFailure: true,
     );
   }
 
   void setStep(_CreateStep step) => state = state.copyWith(step: step);
-
-  void setDemo({required bool isDemo}) {
-    if (!state.isAdmin) return;
-    state = state.copyWith(
-      isDemo: isDemo,
-      step: state.step == _CreateStep.planning
-          ? _CreateStep.director
-          : state.step,
-      settings: state.settings.copyWith(
-        lane: ShootLane.fast,
-        imageSize: isDemo ? '2K' : state.settings.imageSize,
-      ),
-    );
-  }
 
   void setProductMode(ProductMode productMode) {
     final max = productMode == ProductMode.pairing ? 3 : 6;
@@ -316,6 +307,22 @@ class _CreateShootController extends Notifier<_CreateShootState> {
     );
   }
 
+  void removeModel(String key) {
+    state = state.copyWith(
+      selectedModelKeys: [...state.selectedModelKeys]..remove(key),
+      plannedShots: const [],
+      selectedShots: const {},
+    );
+  }
+
+  void clearModels() {
+    state = state.copyWith(
+      selectedModelKeys: const [],
+      plannedShots: const [],
+      selectedShots: const {},
+    );
+  }
+
   void setModelSource({required bool useLibraryModels}) {
     state = state.copyWith(
       useLibraryModels: useLibraryModels,
@@ -327,7 +334,7 @@ class _CreateShootController extends Notifier<_CreateShootState> {
   void selectDirector(int index) {
     if (index < 0 || index >= state.directors.length) return;
     final directorId = state.directors[index].id;
-    final maxShots = directorId == 'fine-jewelry' ? 7 : 10;
+    final maxShots = directorId == 'fine-jewelry' ? 7 : 8;
     state = state.copyWith(
       selectedDirector: index,
       settings: state.settings.copyWith(
@@ -339,22 +346,9 @@ class _CreateShootController extends Notifier<_CreateShootState> {
     );
   }
 
-  void toggleDemoDirector(int index) {
+  void previewDirectorAt(int index) {
     if (index < 0 || index >= state.directors.length) return;
-    final id = state.directors[index].id;
-    final selected = [...state.selectedDirectorIds];
-    final configs = {...state.demoConfigs};
-    if (selected.contains(id)) {
-      selected.remove(id);
-      configs.remove(id);
-    } else {
-      selected.add(id);
-      configs[id] = const DemoDirectorConfig();
-    }
-    state = state.copyWith(
-      selectedDirectorIds: selected,
-      demoConfigs: configs,
-    );
+    state = state.copyWith(previewDirector: index);
   }
 
   void updateSettings(ShootSettings settings) {
@@ -460,10 +454,7 @@ class _CreateShootController extends Notifier<_CreateShootState> {
       return const Err(ValidationFailure('Shoot creation is already running.'));
     }
     final selection = state.selection;
-    if (selection == null ||
-        (state.isDemo
-            ? state.selectedDirectorIds.isEmpty
-            : state.chosenShots.isEmpty)) {
+    if (selection == null || state.chosenShots.isEmpty) {
       return const Err(
         UnknownFailure('Select a product, model, and at least one shot.'),
       );
@@ -472,14 +463,9 @@ class _CreateShootController extends Notifier<_CreateShootState> {
     state = state.copyWith(isSubmitting: true, clearFailure: true);
     late final Result<String> result;
     try {
-      result = state.isDemo
-          ? await _createDemo(selection)
-          : await _repository.createShoot(
-              CreateShootRequest(
-                selection: selection,
-                shots: state.chosenShots,
-              ),
-            );
+      result = await _repository.createShoot(
+        CreateShootRequest(selection: selection, shots: state.chosenShots),
+      );
     } finally {
       _createInFlight = false;
     }
@@ -506,49 +492,6 @@ class _CreateShootController extends Notifier<_CreateShootState> {
     if (result case Err(:final failure)) return failure;
     await load();
     return null;
-  }
-
-  Future<Result<String>> _createDemo(ShootSelection baseSelection) async {
-    final demoGroupId = const Uuid().v4();
-    final createdIds = <String>[];
-    Failure? lastFailure;
-    for (final directorId in state.selectedDirectorIds) {
-      final config =
-          state.demoConfigs[directorId] ?? const DemoDirectorConfig();
-      final settings = baseSelection.settings.copyWith(
-        directorId: directorId,
-        numberOfShots: config.numberOfShots,
-        variations: config.variations,
-        imageSize: '2K',
-        lane: ShootLane.fast,
-      );
-      final selection = ShootSelection(
-        products: baseSelection.products,
-        models: baseSelection.models,
-        settings: settings,
-        productMode: baseSelection.productMode,
-      );
-      final planned = await _repository.planShots(selection);
-      if (planned case Err(:final failure)) {
-        lastFailure = failure;
-        continue;
-      }
-      final shots = planned.valueOrNull!.take(config.numberOfShots).toList();
-      final created = await _repository.createShoot(
-        CreateShootRequest(
-          selection: selection,
-          shots: shots,
-          demoGroupId: demoGroupId,
-        ),
-      );
-      if (created case Err(:final failure)) {
-        lastFailure = failure;
-      } else {
-        createdIds.add(created.valueOrNull!);
-      }
-    }
-    if (createdIds.isNotEmpty) return Ok(createdIds.first);
-    return Err(lastFailure ?? const UnknownFailure('Demo shoot failed.'));
   }
 
   void reset() {
@@ -613,3 +556,16 @@ _createShootControllerProvider =
     NotifierProvider<_CreateShootController, _CreateShootState>(
       _CreateShootController.new,
     );
+
+String _newDemoGroupId() {
+  final random = Random.secure();
+  final bytes = List<int>.generate(16, (_) => random.nextInt(256));
+  bytes[6] = (bytes[6] & 0x0f) | 0x40;
+  bytes[8] = (bytes[8] & 0x3f) | 0x80;
+  final hex = bytes
+      .map((byte) => byte.toRadixString(16).padLeft(2, '0'))
+      .join();
+  return '${hex.substring(0, 8)}-${hex.substring(8, 12)}-'
+      '${hex.substring(12, 16)}-${hex.substring(16, 20)}-'
+      '${hex.substring(20)}';
+}

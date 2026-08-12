@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -23,6 +24,8 @@ import 'package:look_atlas/features/house_model/domain/entities/house_model_prof
 import 'package:look_atlas/features/house_model/domain/repositories/house_models_repository.dart';
 import 'package:look_atlas/features/onboarding/di/onboarding_providers.dart';
 import 'package:look_atlas/features/onboarding/domain/entities/onboarding_product.dart';
+import 'package:look_atlas/features/onboarding/domain/onboarding_models.dart';
+import 'package:look_atlas/features/onboarding/presentation/widgets/director_portfolio_modal.dart';
 import 'package:look_atlas/features/products/di/products_providers.dart';
 import 'package:look_atlas/features/products/domain/entities/product_catalog.dart';
 import 'package:look_atlas/features/products/domain/repositories/products_repository.dart';
@@ -31,6 +34,7 @@ import 'package:look_atlas/features/shoots/domain/entities/shoot_create.dart';
 import 'package:look_atlas/features/shoots/domain/entities/shoot_job.dart';
 import 'package:look_atlas/features/shoots/domain/repositories/shoots_repository.dart';
 import 'package:look_atlas/features/shoots/presentation/services/shoot_export_service.dart';
+import 'package:look_atlas/features/studio_school/presentation/school_dashboard_helper.dart';
 import 'package:look_atlas/features/subscription/di/subscription_providers.dart';
 import 'package:look_atlas/features/subscription/domain/subscription_status.dart';
 import 'package:look_atlas/features/subscription/presentation/subscription_action.dart';
@@ -53,7 +57,6 @@ import 'package:look_atlas/shared/widgets/primary_button.dart';
 import 'package:look_atlas/shared/widgets/shimmer_box.dart';
 import 'package:native_cutout/native_cutout.dart';
 import 'package:purchases_flutter/purchases_flutter.dart' as revenuecat;
-import 'package:uuid/uuid.dart';
 
 part '../../domain/entities/dashboard_entities.dart';
 part '../../data/dashboard_mock_data.dart';
@@ -77,8 +80,11 @@ part '../../../shoots/presentation/dialogs/shoot_media_dialogs.dart';
 part '../../../shoots/presentation/dialogs/shoot_video_dialogs.dart';
 part '../../../shoots/domain/entities/create_step.dart';
 part '../../../shoots/presentation/controllers/create_shoot_controller.dart';
+part '../../../shoots/presentation/controllers/create_shoot_demo_controller.dart';
 part '../../../shoots/presentation/screens/create_shoot_screen.dart';
 part '../../../shoots/presentation/widgets/create_shoot_widgets.dart';
+part '../../../shoots/presentation/widgets/create_shoot_director_widgets.dart';
+part '../../../shoots/presentation/widgets/create_shoot_director_settings.dart';
 part '../../../shoots/presentation/widgets/create_shoot_planning_widgets.dart';
 part '../../../shoots/presentation/widgets/create_shoot_selection_widgets.dart';
 part '../../../products/domain/entities/product.dart';

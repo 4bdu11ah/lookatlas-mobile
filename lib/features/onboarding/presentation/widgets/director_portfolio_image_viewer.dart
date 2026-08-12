@@ -52,10 +52,10 @@ class _PortfolioImageViewerState extends State<_PortfolioImageViewer> {
   }
 
   void _goTo(int index) {
-    if (index < 0 || index >= widget.urls.length) return;
+    final wrappedIndex = index % widget.urls.length;
     unawaited(
       _controller.animateToPage(
-        index,
+        wrappedIndex,
         duration: const Duration(milliseconds: 180),
         curve: Curves.easeOutCubic,
       ),
@@ -122,7 +122,7 @@ class _PortfolioImageViewerState extends State<_PortfolioImageViewer> {
               child: Center(
                 child: _ViewerNavButton(
                   icon: Icons.chevron_left,
-                  onTap: _index == 0 ? null : () => _goTo(_index - 1),
+                  onTap: () => _goTo(_index - 1),
                 ),
               ),
             ),
@@ -133,9 +133,7 @@ class _PortfolioImageViewerState extends State<_PortfolioImageViewer> {
               child: Center(
                 child: _ViewerNavButton(
                   icon: Icons.chevron_right,
-                  onTap: _index == widget.urls.length - 1
-                      ? null
-                      : () => _goTo(_index + 1),
+                  onTap: () => _goTo(_index + 1),
                 ),
               ),
             ),

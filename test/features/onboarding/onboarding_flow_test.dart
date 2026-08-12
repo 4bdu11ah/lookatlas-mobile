@@ -476,7 +476,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(
       container.read(wizardControllerProvider).selectedDirector?.id,
-      'alex',
+      'clean-pro',
     );
     expect(find.text('Portfolio'), findsNothing);
 

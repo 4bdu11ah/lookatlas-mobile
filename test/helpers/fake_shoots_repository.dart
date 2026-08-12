@@ -385,31 +385,13 @@ const _catalog = ShootCreateCatalog(
       source: 'lookatlas',
     ),
   ],
-  looks: [
-    ShootLook(
-      id: 'clean-pro',
-      name: 'Alex Chen',
-      subtitle: 'Clean Professional',
-      imageUrl: 'assets/images/onboarding/showcase-tshirt-after.jpg',
-      settings: {},
-      portfolioImages: [
-        'assets/images/onboarding/showcase-tshirt-after.jpg',
-        'assets/images/onboarding/showcase-dress-after.jpg',
-        'assets/images/onboarding/showcase-shoes-after.jpg',
-        'assets/images/onboarding/showcase-sunglasses-after.jpg',
-      ],
-    ),
-    ShootLook(
-      id: 'luxury-editorial',
-      name: 'Isabella Romano',
-      subtitle: 'Luxury Editorial',
-      imageUrl: 'assets/directors/covers/isabella.jpeg',
-      settings: {},
-    ),
-  ],
+  looks: defaultShootDirectors,
   lookFilters: {},
   presets: [],
   availableCredits: 124,
+  relaxEnabled: true,
+  plan: 'pro',
+  isUnlimitedEligible: true,
 );
 
 const _plannedShots = [

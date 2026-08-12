@@ -23,8 +23,6 @@ class AppUser {
   final String? companyName;
   final String role;
 
-  bool get isAdmin => role.toLowerCase() == 'admin';
-
   AppUser copyWith({
     String? id,
     String? email,

@@ -14,7 +14,7 @@ class ShootsScreen extends ConsumerWidget {
         key: const ValueKey('new-shoot-button'),
         label: 'New Shoot',
         icon: Icons.play_arrow_outlined,
-        onPressed: isPremium
+        onPressed: !isPremium
             ? () => _openCreateShoot(context)
             : () => _openDashboardModal(
                 context,

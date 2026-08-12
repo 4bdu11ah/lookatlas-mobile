@@ -22,6 +22,7 @@ class _PortfolioGrid extends StatelessWidget {
                 SizedBox(
                   width: tileWidth,
                   child: _PortfolioTile(
+                    key: ValueKey('portfolio-image-$i'),
                     url: director.portfolioUrls[i],
                     caption: captions[i],
                     onTap: () => unawaited(
@@ -47,6 +48,7 @@ class _PortfolioTile extends StatelessWidget {
     required this.url,
     required this.caption,
     required this.onTap,
+    super.key,
   });
 
   final String url;

@@ -39,20 +39,6 @@ enum ProductMode { pairing, variant }
 enum ShootLane { fast, relax }
 
 @immutable
-class DemoDirectorConfig {
-  const DemoDirectorConfig({this.numberOfShots = 5, this.variations = 2});
-
-  final int numberOfShots;
-  final int variations;
-
-  DemoDirectorConfig copyWith({int? numberOfShots, int? variations}) =>
-      DemoDirectorConfig(
-        numberOfShots: numberOfShots ?? this.numberOfShots,
-        variations: variations ?? this.variations,
-      );
-}
-
-@immutable
 class ShootAppConfig {
   const ShootAppConfig({
     this.supportedAspectRatios = const [
@@ -82,7 +68,7 @@ class ShootSubscription {
   bool isUnlimitedEligible({required bool relaxEnabled}) =>
       relaxEnabled &&
       const {'pro', 'enterprise'}.contains(plan) &&
-      const {'active', 'trialing'}.contains(status);
+      const {'active', 'past_due'}.contains(status);
 }
 
 @immutable
@@ -296,6 +282,26 @@ class ShootSettings {
     lane: lane ?? this.lane,
     stylingNotes: stylingNotes ?? this.stylingNotes,
   );
+}
+
+@immutable
+class DemoDirectorConfig {
+  const DemoDirectorConfig({
+    required this.directorId,
+    this.numberOfShots = 5,
+    this.variations = 2,
+  });
+
+  final String directorId;
+  final int numberOfShots;
+  final int variations;
+
+  DemoDirectorConfig copyWith({int? numberOfShots, int? variations}) =>
+      DemoDirectorConfig(
+        directorId: directorId,
+        numberOfShots: numberOfShots ?? this.numberOfShots,
+        variations: variations ?? this.variations,
+      );
 }
 
 @immutable

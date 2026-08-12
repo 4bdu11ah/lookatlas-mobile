@@ -113,6 +113,33 @@ Future<void> _openDashboardModal(
   _ModalKind kind,
 ) {
   ref.read(_dashboardShellControllerProvider.notifier).closeUserMenu();
+  if (kind == _ModalKind.directorPortfolio) {
+    final createState = ref.read(_createShootControllerProvider);
+    final shootDirector = _selectedShootDirector(ref);
+    final director = _onboardingDirectorFor(shootDirector);
+    if (director != null) {
+      final selected = createState.demoMode
+          ? createState.demoDirectors.any(
+              (config) => config.directorId == shootDirector?.id,
+            )
+          : createState.selectedDirector == createState.previewDirector;
+      return showDirectorPortfolio(
+        context,
+        director: director,
+        isSelected: selected,
+        onSelect: () {
+          final controller = ref.read(
+            _createShootControllerProvider.notifier,
+          );
+          if (createState.demoMode) {
+            controller.toggleDemoDirector(createState.previewDirector);
+          } else {
+            controller.selectDirector(createState.previewDirector);
+          }
+        },
+      );
+    }
+  }
   return showAppDialog<void>(
     context: context,
     builder: (_) => _DashboardModal(
@@ -122,6 +149,18 @@ Future<void> _openDashboardModal(
       onToast: (text) => _toastDashboard(context, text),
     ),
   );
+}
+
+Director? _onboardingDirectorFor(ShootLook? shootDirector) {
+  if (shootDirector == null) return null;
+  for (final director in directors) {
+    if (director.apiId == shootDirector.id ||
+        director.id == shootDirector.id ||
+        director.name == shootDirector.name) {
+      return director;
+    }
+  }
+  return null;
 }
 
 void _toastDashboard(BuildContext context, String text) =>
@@ -203,7 +242,7 @@ class _DashboardDrawer extends StatelessWidget {
     _DashboardPage.jobs,
     _DashboardPage.billing,
     _DashboardPage.support,
-    _DashboardPage.guides,
+    _DashboardPage.school,
     _DashboardPage.settings,
   ];
 

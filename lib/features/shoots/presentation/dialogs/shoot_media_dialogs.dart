@@ -124,7 +124,7 @@ void _movePortfolio(WidgetRef ref, int direction, int length) {
 ShootLook? _selectedShootDirector(WidgetRef ref) {
   final state = ref.watch(_createShootControllerProvider);
   if (state.directors.isEmpty) return null;
-  return state.directors[state.selectedDirector.clamp(
+  return state.directors[state.previewDirector.clamp(
     0,
     state.directors.length - 1,
   )];

@@ -56,9 +56,15 @@ class _SectionTitle extends StatelessWidget {
 }
 
 class _CardTitle extends StatelessWidget {
-  const _CardTitle(this.text);
+  const _CardTitle(
+    this.text, {
+    this.fontSize,
+    this.color,
+  });
 
   final String text;
+  final double? fontSize;
+  final Color? color;
 
   @override
   Widget build(BuildContext context) {
@@ -68,7 +74,8 @@ class _CardTitle extends StatelessWidget {
       maxLines: 2,
       style: Theme.of(context).textTheme.titleMedium?.copyWith(
         height: 1.2,
-        color: AppColors.black,
+        fontSize: fontSize,
+        color: color ?? AppColors.black,
       ),
     );
   }
@@ -95,9 +102,15 @@ class _BodyText extends StatelessWidget {
 }
 
 class _Caption extends StatelessWidget {
-  const _Caption(this.text);
+  const _Caption(
+    this.text, {
+    this.fontSize,
+    this.color,
+  });
 
   final String text;
+  final double? fontSize;
+  final Color? color;
 
   @override
   Widget build(BuildContext context) {
@@ -106,7 +119,8 @@ class _Caption extends StatelessWidget {
       softWrap: true,
       style: Theme.of(context).textTheme.bodySmall?.copyWith(
         height: 1.45,
-        color: AppColors.neutral500,
+        fontSize: fontSize,
+        color: color ?? AppColors.neutral500,
       ),
     );
   }

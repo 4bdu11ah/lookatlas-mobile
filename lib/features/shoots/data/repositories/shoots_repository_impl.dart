@@ -195,6 +195,6 @@ List<ShootLook> _mergeDirectors(List<ShootLook> remote) {
   return [
     for (final director in defaultShootDirectors)
       byId.remove(director.id) ?? director,
-    ...byId.values,
+    // ...byId.values,
   ];
 }

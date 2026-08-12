@@ -72,6 +72,7 @@ class _DashboardOverviewContent extends StatelessWidget {
             kind: _AlertKind.info,
             text: 'Your limited-time Pro offer is available in Billing.',
           ),
+        const SchoolDashboardHelper(),
         _StatsList(stats: state.stats),
         _RecentShoots(
           shoots: state.shoots,

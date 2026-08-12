@@ -12,6 +12,14 @@ enum _GuideTab {
   final IconData icon;
 }
 
+_GuideTab? _guideTabFromId(String? id) => switch (id) {
+  'getting-started' => _GuideTab.gettingStarted,
+  'product-photos' => _GuideTab.productPhotos,
+  'models' => _GuideTab.models,
+  'jobs' => _GuideTab.shoots,
+  _ => null,
+};
+
 class _GuidesScreenState {
   const _GuidesScreenState({required this.selectedTab});
 

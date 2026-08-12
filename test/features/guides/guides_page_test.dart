@@ -8,6 +8,7 @@ void main() {
   Future<void> pumpGuides(
     WidgetTester tester, {
     Size size = const Size(390, 844),
+    String? initialTab,
   }) async {
     await tester.binding.setSurfaceSize(size);
     addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -15,7 +16,7 @@ void main() {
       ProviderScope(
         child: MaterialApp(
           theme: AppTheme.light(),
-          home: const GuidesScreen(),
+          home: GuidesScreen(initialTab: initialTab),
         ),
       ),
     );
@@ -61,6 +62,13 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Mastering Shoots'), findsOneWidget);
     expect(find.text('Complete Job Workflow'), findsOneWidget);
+  });
+
+  testWidgets('deep link selects the requested guide tab', (tester) async {
+    await pumpGuides(tester, initialTab: 'product-photos');
+
+    expect(find.text('Taking Great Product Photos'), findsOneWidget);
+    expect(find.text('Welcome to Look Atlas'), findsNothing);
   });
 
   testWidgets('guide tab controls expose accessible labels', (tester) async {

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
+import 'package:look_atlas/core/providers/core_providers.dart';
 import 'package:look_atlas/core/router/app_router.dart';
 import 'package:look_atlas/core/router/app_routes.dart';
 import 'package:look_atlas/features/auth/di/auth_providers.dart';
@@ -15,22 +16,29 @@ import 'package:look_atlas/features/onboarding/di/onboarding_providers.dart';
 import 'package:look_atlas/features/onboarding/presentation/screens/onboarding_wizard_screen.dart';
 import 'package:look_atlas/features/products/di/products_providers.dart';
 import 'package:look_atlas/features/shoots/di/shoots_providers.dart';
+import 'package:look_atlas/features/studio_school/di/studio_school_providers.dart';
+import 'package:look_atlas/features/studio_school/presentation/studio_school_screen.dart';
 import 'package:look_atlas/features/subscription/di/subscription_providers.dart';
 import 'package:look_atlas/features/subscription/presentation/screens/paywall_screen.dart';
 import 'package:look_atlas/features/workshop/di/workshop_providers.dart';
 import 'package:look_atlas/features/workshop/presentation/screens/workshop_screen.dart';
 import 'package:look_atlas/shared/widgets/custom_app_bar.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../helpers/fake_repositories.dart';
 import '../../helpers/fake_shoots_repository.dart';
+import '../../helpers/fake_welcome_repository.dart';
 
 void main() {
   const user = AppUser(id: 'user-1', email: 'jane@example.com');
 
   /// Builds the real app router against a fake auth session and pumps it.
   Future<GoRouter> pumpRouter(WidgetTester tester, {AppUser? user}) async {
+    SharedPreferences.setMockInitialValues({});
+    final preferences = await SharedPreferences.getInstance();
     final container = ProviderContainer(
       overrides: [
+        sharedPreferencesProvider.overrideWithValue(preferences),
         authRepositoryProvider.overrideWithValue(
           FakeAuthRepository(user: user),
         ),
@@ -40,6 +48,7 @@ void main() {
         dashboardRepositoryProvider.overrideWithValue(
           const FakeDashboardRepository(),
         ),
+        welcomeRepositoryProvider.overrideWithValue(FakeWelcomeRepository()),
         shootsRepositoryProvider.overrideWithValue(FakeShootsRepository()),
         productsRepositoryProvider.overrideWithValue(
           const FakeProductsRepository(),
@@ -153,6 +162,26 @@ void main() {
 
       expect(currentUri(router).path, '/paywall');
       expect(find.byType(PaywallScreen), findsOneWidget);
+    });
+
+    testWidgets('school deep link restores after sign-in', (tester) async {
+      final router = await pumpRouter(tester, user: user);
+
+      router.go('/sign-in?from=%2Fschool');
+      await tester.pumpAndSettle();
+
+      expect(currentUri(router).path, AppRoutes.studioSchool);
+      expect(find.byType(StudioSchoolScreen), findsOneWidget);
+    });
+
+    testWidgets('unknown route redirects to dashboard', (tester) async {
+      final router = await pumpRouter(tester, user: user);
+
+      router.go('/not-a-real-route');
+      await tester.pumpAndSettle();
+
+      expect(currentUri(router).path, AppRoutes.home);
+      expect(find.byType(DashboardScreen), findsOneWidget);
     });
 
     testWidgets('dashboard feature paths render the matching section', (

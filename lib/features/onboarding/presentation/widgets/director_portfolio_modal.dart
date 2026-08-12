@@ -16,6 +16,8 @@ part 'director_portfolio_sections.dart';
 Future<void> showDirectorPortfolio(
   BuildContext context, {
   required Director director,
+  bool? isSelected,
+  VoidCallback? onSelect,
 }) {
   return showAppDialog<void>(
     context: context,
@@ -25,29 +27,42 @@ Future<void> showDirectorPortfolio(
       maxHeightOffset: 32,
       barrierColor: AppColors.blackAlpha80,
     ),
-    builder: (context) => _DirectorPortfolioModal(director: director),
+    builder: (context) => _DirectorPortfolioModal(
+      director: director,
+      isSelected: isSelected,
+      onSelect: onSelect,
+    ),
   );
 }
 
 class _DirectorPortfolioModal extends ConsumerWidget {
-  const _DirectorPortfolioModal({required this.director});
+  const _DirectorPortfolioModal({
+    required this.director,
+    this.isSelected,
+    this.onSelect,
+  });
 
   final Director director;
+  final bool? isSelected;
+  final VoidCallback? onSelect;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final isSelected = ref.watch(
-      wizardControllerProvider.select(
-        (state) => state.selectedDirector?.id == director.id,
+    final directorIsSelected = switch (isSelected) {
+      final selected? => selected,
+      null => ref.watch(
+        wizardControllerProvider.select(
+          (state) => state.selectedDirector?.id == director.id,
+        ),
       ),
-    );
+    };
     final content = _DirectorPortfolioContent.from(director);
 
     return Column(
       children: [
         _PortfolioHeader(
           director: director,
-          isSelected: isSelected,
+          isSelected: directorIsSelected,
           onClose: () => Navigator.of(context).pop(),
         ),
         Expanded(
@@ -81,12 +96,16 @@ class _DirectorPortfolioModal extends ConsumerWidget {
         ),
         _PortfolioFooter(
           director: director,
-          isSelected: isSelected,
+          isSelected: directorIsSelected,
           onClose: () => Navigator.of(context).pop(),
           onSelect: () {
-            ref
-                .read(wizardControllerProvider.notifier)
-                .selectDirector(director);
+            if (onSelect case final callback?) {
+              callback();
+            } else {
+              ref
+                  .read(wizardControllerProvider.notifier)
+                  .selectDirector(director);
+            }
             Navigator.of(context).pop();
           },
         ),

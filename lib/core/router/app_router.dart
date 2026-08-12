@@ -20,10 +20,10 @@ import 'package:look_atlas/features/onboarding/presentation/screens/swipe_result
 import 'package:look_atlas/features/onboarding/presentation/screens/swipe_screen.dart';
 import 'package:look_atlas/features/settings/presentation/screens/settings_screen.dart';
 import 'package:look_atlas/features/splash/presentation/screens/splash_screen.dart';
+import 'package:look_atlas/features/studio_school/presentation/studio_school_screen.dart';
 import 'package:look_atlas/features/subscription/presentation/screens/paywall_screen.dart';
 import 'package:look_atlas/features/workshop/presentation/screens/workshop_screen.dart';
 import 'package:look_atlas/services/service_providers.dart';
-import 'package:look_atlas/shared/widgets/not_found_screen.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
@@ -42,11 +42,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       SentryNavigatorObserver(),
       AnalyticsRouteObserver(ref.watch(analyticsServiceProvider)),
     ],
-    errorBuilder: (context, state) {
-      // Never surface raw GoException text in the UI; log it and let
-      // NotFoundScreen show its friendly default message.
+    onException: (_, state, router) {
       AppLogger.warning('Navigation error at ${state.uri}: ${state.error}');
-      return const NotFoundScreen();
+      final loggedIn = ref.read(authRepositoryProvider).currentUser != null;
+      router.go(loggedIn ? AppRoutes.home : AppRoutes.signIn);
     },
     redirect: (context, state) {
       final loggedIn = ref.read(authRepositoryProvider).currentUser != null;
@@ -76,7 +75,10 @@ final routerProvider = Provider<GoRouter>((ref) {
         // Preserve the checkout callback only. All normal auth entries must
         // pass through onboarding before reaching protected app features.
         final from = state.uri.queryParameters['from'];
-        if (from == AppRoutes.billingSuccess) return from;
+        if (from == AppRoutes.billingSuccess ||
+            from == AppRoutes.studioSchool) {
+          return from;
+        }
         return AppRoutes.onboarding;
       }
       return null;
@@ -253,11 +255,21 @@ final routerProvider = Provider<GoRouter>((ref) {
         ),
       ),
       GoRoute(
+        path: AppRoutes.studioSchool,
+        name: 'studio_school',
+        pageBuilder: (_, state) => buildAppTransitionPage(
+          state: state,
+          child: StudioSchoolScreen(
+            entrySource: state.uri.queryParameters['source'] ?? 'deep_link',
+          ),
+        ),
+      ),
+      GoRoute(
         path: AppRoutes.dashboardGuides,
         name: 'dashboard_guides',
         pageBuilder: (_, state) => buildAppTransitionPage(
           state: state,
-          child: const GuidesScreen(),
+          child: GuidesScreen(initialTab: state.uri.queryParameters['tab']),
         ),
       ),
       GoRoute(

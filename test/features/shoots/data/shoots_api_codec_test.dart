@@ -44,7 +44,40 @@ void main() {
     expect(payload['stylingNotes'], {'dressLength': 'Below knee'});
   });
 
-  test('create_payload_round_trips_shot_payload_and_demo_group', () {
+  test('plan_payload_omits_blank_director_feedback', () {
+    final payload = ShootsApiCodec.planPayload(
+      const ShootSelection(
+        products: [
+          ShootCatalogItem(id: 'product-1', name: 'Dress', imageUrl: ''),
+        ],
+        models: [
+          ShootCatalogItem(id: 'model-1', name: 'Mila', imageUrl: ''),
+        ],
+        settings: ShootSettings(directorFeedback: '   '),
+      ),
+    );
+
+    expect(payload, isNot(contains('directorFeedback')));
+  });
+
+  test('subscription_unlimited_eligibility_matches_director_spec', () {
+    expect(
+      const ShootSubscription(
+        plan: 'pro',
+        status: 'past_due',
+      ).isUnlimitedEligible(relaxEnabled: true),
+      isTrue,
+    );
+    expect(
+      const ShootSubscription(
+        plan: 'enterprise',
+        status: 'trialing',
+      ).isUnlimitedEligible(relaxEnabled: true),
+      isFalse,
+    );
+  });
+
+  test('create_payload_round_trips_shot_payload', () {
     final payload = ShootsApiCodec.createPayload(
       const CreateShootRequest(
         selection: ShootSelection(
@@ -69,11 +102,10 @@ void main() {
             },
           ),
         ],
-        demoGroupId: 'demo-1',
       ),
     );
 
-    expect(payload['demoGroupId'], 'demo-1');
+    expect(payload, isNot(contains('demoGroupId')));
     expect(
       (payload['shots'] as List).single,
       containsPair('prompt', 'Keep this prompt'),
@@ -82,5 +114,26 @@ void main() {
       (payload['shots'] as List).single,
       containsPair('productByModel', {'primary': 'product-1'}),
     );
+  });
+
+  test('create_payload_sends_demo_group_id_without_private_prompt', () {
+    final payload = ShootsApiCodec.createPayload(
+      const CreateShootRequest(
+        demoGroupId: 'demo-group-id',
+        selection: ShootSelection(
+          products: [
+            ShootCatalogItem(id: 'product-1', name: 'Bag', imageUrl: ''),
+          ],
+          models: [
+            ShootCatalogItem(id: 'model-1', name: 'Mila', imageUrl: ''),
+          ],
+          settings: ShootSettings(),
+        ),
+        shots: [],
+      ),
+    );
+
+    expect(payload['demoGroupId'], 'demo-group-id');
+    expect(payload.toString(), isNot(contains('stylePrompt')));
   });
 }

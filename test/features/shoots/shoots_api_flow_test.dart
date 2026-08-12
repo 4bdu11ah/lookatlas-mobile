@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
-import 'package:look_atlas/core/error/failure.dart';
-import 'package:look_atlas/core/result/result.dart';
 import 'package:look_atlas/core/router/app_routes.dart';
 import 'package:look_atlas/core/theme/app_theme.dart';
 import 'package:look_atlas/features/auth/di/auth_providers.dart';
@@ -44,87 +42,15 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  testWidgets('admin_demo_creates_one_job_per_director_with_shared_group', (
-    tester,
-  ) async {
-    tester.view
-      ..physicalSize = const Size(390, 844)
-      ..devicePixelRatio = 1;
-    addTearDown(tester.view.resetPhysicalSize);
-    addTearDown(tester.view.resetDevicePixelRatio);
-    final repository = FakeShootsRepository(
-      createResults: const [
-        Result.err(NetworkFailure('First director failed.')),
-        Result.ok('job-created'),
-      ],
+  testWidgets('create_shoot_exposes_customer_flow_only', (tester) async {
+    await pumpScreen(
+      tester,
+      const CreateShootScreen(),
+      FakeShootsRepository(),
     );
-    final router = GoRouter(
-      initialLocation: AppRoutes.createShoot,
-      routes: [
-        GoRoute(
-          path: AppRoutes.createShoot,
-          builder: (_, _) => const CreateShootScreen(),
-        ),
-        GoRoute(
-          path: AppRoutes.shootDetailPath,
-          builder: (_, state) => ShootDetailScreen(
-            jobId: state.pathParameters['jobId']!,
-          ),
-        ),
-      ],
-    );
-    addTearDown(router.dispose);
-    await tester.pumpWidget(
-      ProviderScope(
-        overrides: [
-          authRepositoryProvider.overrideWithValue(
-            FakeAuthRepository(
-              user: const AppUser(
-                id: 'admin-1',
-                email: 'admin@example.com',
-                role: 'admin',
-              ),
-            ),
-          ),
-          isPremiumProvider.overrideWithValue(true),
-          shootsRepositoryProvider.overrideWithValue(repository),
-        ],
-        child: MaterialApp.router(
-          theme: AppTheme.light(),
-          routerConfig: router,
-        ),
-      ),
-    );
-    await tester.pumpAndSettle();
 
-    await tester.tap(find.byKey(const ValueKey('demo-shoot-toggle')));
-    await tester.pumpAndSettle();
-    await tester.ensureVisible(find.text('Next'));
-    await tester.tap(find.text('Next'));
-    await tester.pumpAndSettle();
-    await tester.ensureVisible(find.text('Next'));
-    await tester.tap(find.text('Next'));
-    await tester.pumpAndSettle();
-    final isabellaCard = find.byKey(
-      const ValueKey('selection-Isabella Romano'),
-    );
-    await tester.ensureVisible(isabellaCard);
-    await tester.tap(isabellaCard);
-    await tester.pumpAndSettle();
-    await tester.ensureVisible(find.text('Next'));
-    await tester.tap(find.text('Next'));
-    await tester.pumpAndSettle();
-    await tester.ensureVisible(find.text('Generate 2 Directors'));
-    await tester.tap(find.text('Generate 2 Directors'));
-    await tester.pumpAndSettle();
-
-    expect(repository.planShotsCalls, 2);
-    expect(repository.createShootCalls, 2);
-    final groupIds = repository.createRequests
-        .map((request) => request.demoGroupId)
-        .toSet();
-    expect(groupIds, hasLength(1));
-    expect(groupIds.single, isNotEmpty);
+    expect(find.text('New Shoot'), findsOneWidget);
+    expect(find.byKey(const ValueKey('demo-shoot-toggle')), findsNothing);
   });
 
   Future<GoRouter> pumpRouter(

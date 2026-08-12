@@ -21,10 +21,10 @@ class _UseCaseGrid extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     const useCases = [
-      ('E-commerce PDP', Icons.inventory_2_outlined),
+      ('Product Detail Page', Icons.inventory_2_outlined),
       ('Social Media', Icons.alternate_email),
-      ('Lookbook', Icons.view_list_outlined),
-      ('Campaign', Icons.diamond_outlined),
+      ('Lookbook / Catalog', Icons.view_list_outlined),
+      ('Campaign / Hero', Icons.diamond_outlined),
       ('Marketplace', Icons.grid_view_outlined),
     ];
     return GridView.builder(
@@ -50,19 +50,25 @@ class _UseCaseGrid extends StatelessWidget {
               decoration: BoxDecoration(
                 border: Border.all(
                   color: isSelected ? AppColors.black : AppColors.neutral200,
-                  width: 2,
+                  width: isSelected ? 2 : 1,
                 ),
               ),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(useCase.$2, size: 20),
+                  Icon(
+                    useCase.$2,
+                    size: 20,
+                    color: isSelected ? AppColors.black : AppColors.neutral900,
+                  ),
                   const SizedBox(height: 6),
                   Text(
                     useCase.$1,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 12,
-                      fontWeight: AppTypography.bold,
+                      color: isSelected
+                          ? AppColors.black
+                          : AppColors.neutral900,
                     ),
                   ),
                 ],
@@ -219,21 +225,21 @@ class _DirectorCard extends StatelessWidget {
                       const SizedBox(height: 3),
                       Text(
                         director.subtitle,
-                        maxLines: 1,
+                        maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
                           color: AppColors.whiteAlpha80,
-                          fontSize: 12,
+                          fontSize: 11,
                         ),
                       ),
                       const SizedBox(height: 3),
                       Text(
                         'Like ${_directorBrands[director.id] ?? director.subtitle}',
-                        maxLines: 1,
+                        maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
-                          color: AppColors.whiteAlpha60,
-                          fontSize: 11,
+                          color: AppColors.whiteAlpha70,
+                          fontSize: 10,
                         ),
                       ),
                     ],
@@ -273,11 +279,13 @@ class _ProductPagination extends StatelessWidget {
     required this.pageIndex,
     required this.pageCount,
     required this.onPageChanged,
+    this.keyPrefix = 'product',
   });
 
   final int pageIndex;
   final int pageCount;
   final ValueChanged<int> onPageChanged;
+  final String keyPrefix;
 
   @override
   Widget build(BuildContext context) {
@@ -285,12 +293,12 @@ class _ProductPagination extends StatelessWidget {
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         IconButton(
-          key: const ValueKey('create-product-previous-page'),
+          key: ValueKey('create-$keyPrefix-previous-page'),
           onPressed: pageIndex > 0 ? () => onPageChanged(pageIndex - 1) : null,
           icon: const Icon(Icons.chevron_left),
-          constraints: const BoxConstraints.tightFor(width: 44, height: 44),
+          constraints: const BoxConstraints.tightFor(width: 30, height: 30),
           style: IconButton.styleFrom(
-            fixedSize: const Size.square(44),
+            fixedSize: const Size.square(30),
             padding: EdgeInsets.zero,
             tapTargetSize: MaterialTapTargetSize.shrinkWrap,
             shape: const RoundedRectangleBorder(),
@@ -303,33 +311,35 @@ class _ProductPagination extends StatelessWidget {
           (index) => Padding(
             padding: const EdgeInsets.symmetric(horizontal: 3),
             child: SizedBox(
-              width: 44,
-              child: index == pageIndex
-                  ? PrimaryButton(
-                      key: ValueKey('create-product-page-${index + 1}'),
-                      label: '${index + 1}',
-                      height: 44,
-                      onPressed: () => onPageChanged(index),
-                    )
-                  : AppOutlinedButton(
-                      key: ValueKey('create-product-page-${index + 1}'),
-                      label: '${index + 1}',
-                      height: 44,
-                      onPressed: () => onPageChanged(index),
-                    ),
+              width: 30,
+              child: AppOutlinedButton(
+                key: ValueKey('create-$keyPrefix-page-${index + 1}'),
+                label: '${index + 1}',
+                height: 30,
+                borderColor: index == pageIndex
+                    ? AppColors.black
+                    : AppColors.neutral200,
+                backgroundColor: index == pageIndex
+                    ? AppColors.black
+                    : AppColors.white,
+                foregroundColor: index == pageIndex
+                    ? AppColors.white
+                    : AppColors.black,
+                onPressed: () => onPageChanged(index),
+              ),
             ),
           ),
         ),
         const SizedBox(width: 4),
         IconButton(
-          key: const ValueKey('create-product-next-page'),
+          key: ValueKey('create-$keyPrefix-next-page'),
           onPressed: pageIndex < pageCount - 1
               ? () => onPageChanged(pageIndex + 1)
               : null,
           icon: const Icon(Icons.chevron_right),
-          constraints: const BoxConstraints.tightFor(width: 44, height: 44),
+          constraints: const BoxConstraints.tightFor(width: 30, height: 30),
           style: IconButton.styleFrom(
-            fixedSize: const Size.square(44),
+            fixedSize: const Size.square(30),
             padding: EdgeInsets.zero,
             tapTargetSize: MaterialTapTargetSize.shrinkWrap,
             shape: const RoundedRectangleBorder(),
@@ -347,6 +357,8 @@ class _SelectionGrid extends StatelessWidget {
     required this.selectedIndices,
     required this.onSelect,
     this.selectedLabels = const {},
+    this.disabledIndices = const {},
+    this.selectedLabelOnLeft = false,
     this.square = false,
   });
 
@@ -354,6 +366,8 @@ class _SelectionGrid extends StatelessWidget {
   final Set<int> selectedIndices;
   final ValueChanged<int> onSelect;
   final Map<int, String> selectedLabels;
+  final Set<int> disabledIndices;
+  final bool selectedLabelOnLeft;
   final bool square;
 
   @override
@@ -370,13 +384,23 @@ class _SelectionGrid extends StatelessWidget {
       ),
       itemBuilder: (context, index) {
         final item = items[index];
-        return _SelectionCard(
-          title: item.$2,
-          subtitle: item.$3,
-          asset: item.$4,
-          selected: selectedIndices.contains(item.$1),
-          selectedLabel: selectedLabels[item.$1],
-          onTap: () => onSelect(item.$1),
+        final isDisabled = disabledIndices.contains(item.$1);
+        return Opacity(
+          key: ValueKey('selection-opacity-${item.$2}'),
+          opacity: isDisabled ? 0.35 : 1,
+          child: IgnorePointer(
+            key: ValueKey('selection-disabled-${item.$2}'),
+            ignoring: isDisabled,
+            child: _SelectionCard(
+              title: item.$2,
+              subtitle: item.$3,
+              asset: item.$4,
+              selected: selectedIndices.contains(item.$1),
+              selectedLabel: selectedLabels[item.$1],
+              selectedLabelOnLeft: selectedLabelOnLeft,
+              onTap: () => onSelect(item.$1),
+            ),
+          ),
         );
       },
     );
@@ -390,6 +414,7 @@ class _SelectionCard extends StatelessWidget {
     required this.asset,
     required this.selected,
     required this.selectedLabel,
+    required this.selectedLabelOnLeft,
     required this.onTap,
   });
 
@@ -398,6 +423,7 @@ class _SelectionCard extends StatelessWidget {
   final String asset;
   final bool selected;
   final String? selectedLabel;
+  final bool selectedLabelOnLeft;
   final VoidCallback onTap;
 
   @override
@@ -434,7 +460,8 @@ class _SelectionCard extends StatelessWidget {
             if (selected)
               Positioned(
                 top: 8,
-                right: 8,
+                left: selectedLabelOnLeft ? 8 : null,
+                right: selectedLabelOnLeft ? null : 8,
                 child: _Badge(
                   selectedLabel ?? 'Primary',
                   kind: _BadgeKind.dark,
@@ -481,38 +508,51 @@ class _SelectedRoster extends StatelessWidget {
   const _SelectedRoster({
     required this.count,
     required this.items,
+    required this.onClear,
+    required this.onRemove,
   });
 
   final String count;
   final List<ShootCatalogItem> items;
+  final VoidCallback onClear;
+  final ValueChanged<String> onRemove;
 
   @override
   Widget build(BuildContext context) {
     return Container(
+      key: const ValueKey('create-model-selection-panel'),
       padding: const EdgeInsets.all(10),
-      color: AppColors.neutral50,
+      decoration: BoxDecoration(
+        color: AppColors.neutral50,
+        border: Border.all(color: AppColors.neutral200),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _Caption(count),
-          const SizedBox(height: 8),
-          ListView.separated(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            itemCount: items.length,
-            separatorBuilder: (_, _) => const SizedBox(height: 8),
-            itemBuilder: (context, index) => Row(
-              children: [
-                _AssetBox(items[index].imageUrl, width: 42, height: 42),
-                const SizedBox(width: 9),
-                Expanded(child: _CardTitle(items[index].name)),
-                _Badge(
-                  index == 0 ? 'Primary' : 'Secondary $index',
-                  kind: _BadgeKind.dark,
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(child: _Caption(count, fontSize: 12)),
+              if (items.length > 1) ...[
+                const SizedBox(width: 8),
+                GestureDetector(
+                  onTap: onClear,
+                  child: const Text(
+                    'Clear all',
+                    style: TextStyle(fontSize: 12),
+                  ),
                 ),
               ],
-            ),
+            ],
           ),
+          const SizedBox(height: 8),
+          for (final (index, items) in items.indexed)
+            _selectedProductRow(
+              product: items,
+              role: index == 0 ? 'Primary' : 'Secondary $index',
+              onRemove: () => onRemove(_modelKey(items)),
+              margin: const EdgeInsets.only(bottom: 7),
+            ),
         ],
       ),
     );

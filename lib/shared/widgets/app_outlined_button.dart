@@ -43,7 +43,11 @@ class AppOutlinedButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final effectiveForeground = foregroundColor ?? scheme.onSurface;
-    final labelStyle = textStyle ?? Theme.of(context).textTheme.labelLarge;
+    final labelStyle =
+        textStyle ??
+        Theme.of(
+          context,
+        ).textTheme.labelLarge?.copyWith(color: effectiveForeground);
     return SizedBox(
       width: fitToContent ? null : double.infinity,
       height: height,

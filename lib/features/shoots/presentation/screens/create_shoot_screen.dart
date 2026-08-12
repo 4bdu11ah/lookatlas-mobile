@@ -19,7 +19,7 @@ class CreateShootScreen extends ConsumerWidget {
             key: const ValueKey('create-shoot-top-alignment'),
             alignment: Alignment.topCenter,
             child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 28),
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 30),
               child: _CreatePage(
                 onComplete: (jobId) => context.go(AppRoutes.shootDetail(jobId)),
                 onOpenModal: (kind) => _openDashboardModal(context, ref, kind),
@@ -56,6 +56,9 @@ class _CreatePage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(_createShootControllerProvider);
     final controller = ref.read(_createShootControllerProvider.notifier);
+    final isAdmin =
+        ref.watch(authStateProvider).asData?.value?.role.toLowerCase() ==
+        'admin';
     if (state.failure != null && state.catalog == null) {
       return _Card(
         child: _Column(
@@ -76,9 +79,7 @@ class _CreatePage extends ConsumerWidget {
     final canContinue = switch (state.step) {
       _CreateStep.product => state.selectedProducts.isNotEmpty,
       _CreateStep.model => state.selectedModels.isNotEmpty,
-      _CreateStep.director =>
-        state.directors.isNotEmpty &&
-            (!state.isDemo || state.selectedDirectorIds.isNotEmpty),
+      _CreateStep.director => state.canContinueFromDirector,
       _CreateStep.planning => state.chosenShots.isNotEmpty,
       _ => true,
     };
@@ -86,15 +87,15 @@ class _CreatePage extends ConsumerWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _CreateShootHeader(
-          isAdmin: state.isAdmin,
-          isDemo: state.isDemo,
-          onDemoChanged: (value) => controller.setDemo(isDemo: value),
+          isAdmin: isAdmin,
+          demoMode: state.demoMode,
+          onDemoChanged: (enabled) => controller.setDemoMode(enabled: enabled),
         ),
         const SizedBox(height: 10),
         _Stepper(step: state.step, steps: steps),
         const SizedBox(height: 10),
         Container(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.all(15),
           decoration: BoxDecoration(
             color: AppColors.white,
             border: Border.all(color: AppColors.neutral200),
@@ -124,28 +125,41 @@ class _CreatePage extends ConsumerWidget {
             Expanded(
               child: PrimaryButton(
                 label: state.step == _CreateStep.confirm
-                    ? state.isDemo
-                          ? 'Generate ${state.selectedDirectorIds.length} Directors'
+                    ? state.demoMode
+                          ? 'Generate Demo'
                           : 'Generate ${state.chosenShots.length} Shots'
                     : 'Next',
                 icon: state.step == _CreateStep.confirm
                     ? Icons.auto_awesome
                     : Icons.arrow_forward,
                 iconAlignment: IconAlignment.end,
-                foregroundColor: state.step == _CreateStep.confirm
-                    ? AppColors.white
-                    : AppColors.black,
+                foregroundColor:
+                    // state.step == _CreateStep.confirm
+                    // ?
+                    AppColors.white,
+                // : AppColors.black,
                 isLoading: state.isSubmitting,
                 onPressed: state.step == _CreateStep.confirm
-                    ? state.canGenerate
+                    ? (state.demoMode
+                              ? state.canGenerateDemo
+                              : state.canGenerate)
                           ? () async {
-                              await _submitCreateShoot(
-                                context,
-                                ref,
-                                onComplete,
-                                onToast,
-                                onOpenModal,
-                              );
+                              if (state.demoMode) {
+                                await _submitDemoShoot(
+                                  context,
+                                  ref,
+                                  onComplete,
+                                  onToast,
+                                );
+                              } else {
+                                await _submitCreateShoot(
+                                  context,
+                                  ref,
+                                  onComplete,
+                                  onToast,
+                                  onOpenModal,
+                                );
+                              }
                             }
                           : null
                     : canContinue
@@ -158,6 +172,25 @@ class _CreatePage extends ConsumerWidget {
       ],
     );
   }
+}
+
+Future<void> _submitDemoShoot(
+  BuildContext context,
+  WidgetRef ref,
+  ValueChanged<String> onComplete,
+  ValueChanged<String> onToast,
+) async {
+  final controller = ref.read(_createShootControllerProvider.notifier);
+  final result = await controller.createDemoShoot();
+  if (!context.mounted) return;
+  result.fold(
+    (jobId) {
+      onToast('Demo shoots created. Generation started.');
+      controller.reset();
+      onComplete(jobId);
+    },
+    (failure) => AppSnackBar.showError(context, failure.message),
+  );
 }
 
 Future<void> _submitCreateShoot(
@@ -263,6 +296,8 @@ class _CreateStepBody extends StatelessWidget {
         selectedKeys: state.selectedModelKeys.toSet(),
         selectedModels: state.selectedModels,
         onSelect: controller.toggleModel,
+        onRemove: controller.removeModel,
+        onClear: controller.clearModels,
         onSourceChanged: (useLibrary) =>
             controller.setModelSource(useLibraryModels: useLibrary),
         onAdd: () => onOpenModal(_ModalKind.model),
@@ -271,15 +306,19 @@ class _CreateStepBody extends StatelessWidget {
         directors: state.directors,
         settings: state.settings,
         selected: state.selectedDirector,
-        onSelect: controller.selectDirector,
+        catalog: state.catalog,
+        demoMode: state.demoMode,
+        demoDirectors: state.demoDirectors,
+        onSelect: state.demoMode
+            ? controller.toggleDemoDirector
+            : controller.selectDirector,
+        onDemoDirectorChanged: controller.updateDemoDirector,
         onSettingsChanged: controller.updateSettings,
+        onUpgrade: () => onOpenModal(_ModalKind.contextPaywall),
         onPortfolio: (index) {
-          controller.selectDirector(index);
+          controller.previewDirectorAt(index);
           onOpenModal(_ModalKind.directorPortfolio);
         },
-        isDemo: state.isDemo,
-        selectedDirectorIds: state.selectedDirectorIds.toSet(),
-        onDemoSelect: controller.toggleDemoDirector,
       ),
       _CreateStep.planning => _PlanningStep(
         isPlanned: state.isPlanned,
@@ -295,10 +334,13 @@ class _CreateStepBody extends StatelessWidget {
         onToggle: controller.toggleShot,
         onCustom: () => onOpenModal(_ModalKind.customShot),
       ),
-      _CreateStep.confirm => _ReviewStep(
-        state: state,
-        onLaneChanged: controller.setLane,
-      ),
+      _CreateStep.confirm =>
+        state.demoMode
+            ? _DemoReviewStep(state: state)
+            : _ReviewStep(
+                state: state,
+                onLaneChanged: controller.setLane,
+              ),
     };
   }
 }
@@ -319,6 +361,7 @@ class _Stepper extends StatelessWidget {
       _CreateStep.planning: 'Shot Planning',
       _CreateStep.confirm: 'Generate',
     };
+    final demoMode = !steps.contains(_CreateStep.planning);
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -326,7 +369,9 @@ class _Stepper extends StatelessWidget {
         for (var index = 0; index < steps.length; index++) ...[
           _StepChip(
             index: index + 1,
-            label: labels[steps[index]]!,
+            label: demoMode && steps[index] == _CreateStep.director
+                ? 'Directors'
+                : labels[steps[index]]!,
             active: index == current,
             done: index < current,
           ),

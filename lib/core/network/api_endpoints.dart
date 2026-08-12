@@ -45,6 +45,16 @@ abstract final class ApiEndpoints {
   static const String dashboardStats = '/dashboard/stats';
   static const String dashboardRecentJobs = '/dashboard/recent-jobs';
 
+  // --- Studio School ------------------------------------------------------
+  static const String welcomeState = '/welcome/state';
+  static const String welcomeClaimLessons = '/welcome/claim-lessons';
+
+  static String welcomeLessonStart(String lessonId) =>
+      '/welcome/lessons/$lessonId/start';
+
+  static String welcomeLessonComplete(String lessonId) =>
+      '/welcome/lessons/$lessonId/complete';
+
   // --- Shoots -------------------------------------------------------------
   static const String jobs = '/jobs';
   static const String planShots = '/jobs/v2/plan-shots';

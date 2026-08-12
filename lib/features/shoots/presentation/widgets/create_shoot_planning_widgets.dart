@@ -108,18 +108,16 @@ class _ReviewStep extends StatelessWidget {
     return _Column(
       gap: 12,
       children: [
-        _CreateSectionHeader(
-          title: state.isDemo ? 'Review Demo Shoot' : 'Review & Generate',
-          subtitle: state.isDemo
-              ? 'One job per director in a single client demo'
-              : 'Confirm your shoot settings',
+        const _CreateSectionHeader(
+          title: 'Review & Generate',
+          subtitle: 'Confirm your shoot settings',
         ),
         _ReviewGrid(state: state),
         const _Alert(
           kind: _AlertKind.info,
           text: 'Each selected shot is generated in every requested variation.',
         ),
-        if (state.canUseUnlimited && !state.isDemo) ...[
+        if (state.canUseUnlimited) ...[
           const _FieldLabel('Generation speed'),
           _SegmentedChoices(
             choices: const ['Instant · Credits', 'Unlimited · Included'],
@@ -209,10 +207,6 @@ class _ReviewGrid extends StatelessWidget {
               '${item.$2.name} · ${item.$1 == 0 ? 'Primary' : 'Secondary ${item.$1}'}',
         )
         .join('\n');
-    final demoDirectors = [
-      for (final id in state.selectedDirectorIds)
-        '${state.directors.firstWhere((item) => item.id == id).name} · ${state.demoConfigs[id]?.numberOfShots ?? 5} × ${state.demoConfigs[id]?.variations ?? 2}',
-    ].join('\n');
     final items = [
       (
         'Products (${state.selectedProducts.length})',
@@ -225,12 +219,8 @@ class _ReviewGrid extends StatelessWidget {
         selection?.model.imageUrl ?? '',
       ),
       (
-        state.isDemo
-            ? 'Directors (${state.selectedDirectorIds.length})'
-            : 'Shots × Variations',
-        state.isDemo
-            ? demoDirectors
-            : '${state.chosenShots.length} shots × ${state.settings.variations}',
+        'Shots × Variations',
+        '${state.chosenShots.length} shots × ${state.settings.variations}',
         '',
       ),
       (
@@ -303,10 +293,8 @@ class _CreditSummary extends StatelessWidget {
                   unlimited ? 'Included with Unlimited' : 'Credits Required',
                 ),
                 _Caption(
-                  state.isDemo
-                      ? '${state.demoTotalImages} images × 2 credits'
-                      : '${state.chosenShots.length} shots × '
-                            '${state.settings.variations} variations × $multiplier',
+                  '${state.chosenShots.length} shots × '
+                  '${state.settings.variations} variations × $multiplier',
                 ),
               ],
             ),

@@ -322,7 +322,8 @@ abstract final class ShootsApiCodec {
       ..._selectionPayload(selection),
       'useCase': settings.useCase,
       'directorId': settings.directorId,
-      'directorFeedback': settings.directorFeedback,
+      if (settings.directorFeedback.trim().isNotEmpty)
+        'directorFeedback': settings.directorFeedback.trim(),
       'background': settings.background,
       'numberOfShots': settings.numberOfShots,
       'aspectRatio': settings.aspectRatio,
@@ -362,6 +363,7 @@ abstract final class ShootsApiCodec {
     final settings = request.selection.settings;
     return {
       ..._selectionPayload(request.selection),
+      'demoGroupId': ?request.demoGroupId,
       'variations': settings.variations,
       'shots': [for (final shot in request.shots) shot.toJson()],
       'settings': {
@@ -377,7 +379,6 @@ abstract final class ShootsApiCodec {
             settings.backgroundNotes.trim().isNotEmpty)
           'backgroundNotes': settings.backgroundNotes.trim(),
       },
-      if (request.demoGroupId != null) 'demoGroupId': request.demoGroupId,
     };
   }
 

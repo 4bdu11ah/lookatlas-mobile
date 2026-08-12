@@ -150,14 +150,14 @@ class _AppTextFieldState extends State<AppTextField> {
       textInputAction:
           widget.textInputAction ??
           (isMultiline ? TextInputAction.newline : TextInputAction.done),
-      style: const TextStyle(
-        fontSize: 16,
-        height: 1,
-        fontWeight: FontWeight.w500,
+      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+        color: Theme.of(context).colorScheme.onSurface,
       ),
       decoration: InputDecoration(
         hintText: widget.hintText,
-        hintStyle: const TextStyle(fontSize: 14),
+        hintStyle: Theme.of(context).textTheme.bodySmall?.copyWith(
+          color: Theme.of(context).colorScheme.onSurfaceVariant,
+        ),
         isDense: true,
         contentPadding: const EdgeInsets.symmetric(
           horizontal: 14,

@@ -17,6 +17,7 @@ import 'package:look_atlas/features/subscription/presentation/subscription_contr
 import 'package:look_atlas/shared/widgets/app_dialog.dart';
 import 'package:look_atlas/shared/widgets/app_text_field.dart';
 import 'package:look_atlas/shared/widgets/custom_app_bar.dart';
+import 'package:look_atlas/shared/widgets/primary_button.dart';
 import 'package:look_atlas/shared/widgets/shimmer_box.dart';
 
 import '../../helpers/fake_repositories.dart';
@@ -32,6 +33,7 @@ void main() {
     WidgetTester tester,
     Widget screen, {
     bool isPremium = true,
+    String role = 'user',
     FakeShootsRepository? shootsRepository,
   }) async {
     tester.view
@@ -44,7 +46,11 @@ void main() {
         overrides: [
           authRepositoryProvider.overrideWithValue(
             FakeAuthRepository(
-              user: const AppUser(id: 'user-1', email: 'creator@example.com'),
+              user: AppUser(
+                id: 'user-1',
+                email: 'creator@example.com',
+                role: role,
+              ),
             ),
           ),
           isPremiumProvider.overrideWithValue(isPremium),
@@ -61,6 +67,7 @@ void main() {
   Future<GoRouter> pumpShootRouter(
     WidgetTester tester, {
     bool isPremium = true,
+    String role = 'user',
     FakeShootsRepository? shootsRepository,
   }) async {
     tester.view
@@ -97,7 +104,11 @@ void main() {
         overrides: [
           authRepositoryProvider.overrideWithValue(
             FakeAuthRepository(
-              user: const AppUser(id: 'user-1', email: 'creator@example.com'),
+              user: AppUser(
+                id: 'user-1',
+                email: 'creator@example.com',
+                role: role,
+              ),
             ),
           ),
           isPremiumProvider.overrideWithValue(isPremium),
@@ -475,18 +486,32 @@ void main() {
       await tester.tap(find.text('Next'));
       await tester.pumpAndSettle();
     }
+    await tester.tap(
+      find.byKey(const ValueKey('selection-Isabella Romano')),
+    );
+    await tester.pumpAndSettle();
     final portfolioButton = find.byKey(
       const ValueKey('director-portfolio-Alex Chen'),
     );
     await tester.ensureVisible(portfolioButton);
     await tester.tap(portfolioButton);
     await tester.pumpAndSettle();
-    expect(find.text('THE STORY'), findsOneWidget);
+    expect(find.text('Portfolio'), findsOneWidget);
+    expect(find.text('The Story'), findsOneWidget);
+    expect(find.text('Style Characteristics'), findsOneWidget);
+    expect(find.text('Best For'), findsOneWidget);
+    expect(find.text('Signature Approach'), findsOneWidget);
+    expect(find.text('Similar Brand Aesthetics'), findsOneWidget);
+    expect(find.text('Use Director'), findsOneWidget);
 
     await tester.tap(find.byKey(const ValueKey('portfolio-image-0')));
     await tester.pumpAndSettle();
-    expect(find.text('1 of 4'), findsOneWidget);
-    expect(find.text('Clean Professional'), findsWidgets);
+    expect(find.text('1 / 4'), findsOneWidget);
+    expect(find.bySemanticsLabel('Close image preview'), findsWidgets);
+
+    await tester.tap(find.byIcon(Icons.chevron_left));
+    await tester.pumpAndSettle();
+    expect(find.text('4 / 4'), findsOneWidget);
   });
 
   testWidgets('create_shoot_director_step_matches_updated_spec', (
@@ -505,19 +530,23 @@ void main() {
       find.text("Select what you're creating and who should direct the shoot"),
       findsOneWidget,
     );
-    expect(find.text('E-commerce PDP'), findsOneWidget);
+    expect(find.text('Product Detail Page'), findsOneWidget);
     expect(find.text('Social Media'), findsOneWidget);
-    expect(find.text('Lookbook'), findsOneWidget);
-    expect(find.text('Campaign'), findsOneWidget);
+    expect(find.text('Lookbook / Catalog'), findsOneWidget);
+    expect(find.text('Campaign / Hero'), findsOneWidget);
     expect(find.text('Marketplace'), findsOneWidget);
     expect(find.text('Like Uniqlo, Everlane'), findsOneWidget);
     expect(find.text('Brief Alex Chen (optional)'), findsOneWidget);
     expect(
-      find.text("Anything specific you'd like the director to consider?"),
+      find.textContaining('Tell Alex Chen any specific direction'),
       findsOneWidget,
     );
-    expect(find.text('Resolution'), findsNothing);
-    expect(find.text('Additional Settings'), findsNothing);
+    expect(find.text('Unlimited photos'), findsWidgets);
+    expect(find.text('Resolution'), findsOneWidget);
+    expect(find.text('Additional Settings'), findsOneWidget);
+    expect(find.text('Number of Shots'), findsOneWidget);
+    expect(find.text('Variations per Shot'), findsOneWidget);
+    expect(find.text('Background Preference'), findsOneWidget);
 
     final grid = tester.widget<GridView>(
       find.byKey(const ValueKey('create-director-grid')),
@@ -537,6 +566,96 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Brief Isabella Romano (optional)'), findsOneWidget);
+
+    final beatrice = find.byKey(
+      const ValueKey('selection-Beatrice Hartley'),
+    );
+    await tester.ensureVisible(beatrice);
+    await tester.tap(beatrice);
+    await tester.pumpAndSettle();
+
+    expect(
+      find.text('Styling for Beatrice Hartley (optional)'),
+      findsOneWidget,
+    );
+    expect(find.text('Clothing style'), findsOneWidget);
+    expect(find.text('Dress length'), findsOneWidget);
+    expect(find.text('Socks or tights'), findsOneWidget);
+    expect(find.text('Hairstyle'), findsOneWidget);
+    expect(find.text('Other notes (accessories, etc.)'), findsOneWidget);
+  });
+
+  testWidgets('create_shoot_admin_demo_uses_multi_director_budgets', (
+    tester,
+  ) async {
+    await pumpScreen(
+      tester,
+      const CreateShootScreen(),
+      role: 'admin',
+    );
+
+    for (var index = 0; index < 2; index++) {
+      await tester.ensureVisible(find.text('Next'));
+      await tester.tap(find.text('Next'));
+      await tester.pumpAndSettle();
+    }
+
+    await tester.tap(find.byKey(const ValueKey('create-demo-toggle')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('New Demo Shoot'), findsOneWidget);
+    expect(find.text('Select directors (one or more)'), findsOneWidget);
+    expect(find.text('Brief the directors (optional)'), findsNothing);
+    expect(find.text('Unlimited photos'), findsNothing);
+
+    await tester.tap(find.byKey(const ValueKey('selection-Alex Chen')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Brief the directors (optional)'), findsOneWidget);
+    expect(find.text('Shots: 5'), findsOneWidget);
+    expect(find.text('Variations / shot'), findsOneWidget);
+    expect(find.text('10 images from this director'), findsOneWidget);
+    expect(find.text('Styling for Beatrice Hartley (optional)'), findsNothing);
+  });
+
+  testWidgets('create_shoot_admin_demo_fans_out_with_one_group_id', (
+    tester,
+  ) async {
+    final repository = FakeShootsRepository();
+    final router = await pumpShootRouter(
+      tester,
+      role: 'admin',
+      shootsRepository: repository,
+    );
+    router.go(AppRoutes.createShoot);
+    await tester.pumpAndSettle();
+
+    for (var index = 0; index < 2; index++) {
+      await tester.ensureVisible(find.text('Next'));
+      await tester.tap(find.text('Next'));
+      await tester.pumpAndSettle();
+    }
+    await tester.tap(find.byKey(const ValueKey('create-demo-toggle')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('selection-Alex Chen')));
+    await tester.tap(find.byKey(const ValueKey('selection-Isabella Romano')));
+    await tester.pumpAndSettle();
+
+    await tester.ensureVisible(find.text('Next'));
+    await tester.tap(find.text('Next'));
+    await tester.pumpAndSettle();
+    expect(find.text('Generate Demo'), findsWidgets);
+
+    await tester.tap(find.widgetWithText(PrimaryButton, 'Generate Demo'));
+    await tester.pumpAndSettle();
+
+    expect(repository.planShotsCalls, 2);
+    expect(repository.createShootCalls, 2);
+    expect(
+      repository.createRequests.map((request) => request.demoGroupId).toSet(),
+      hasLength(1),
+    );
+    expect(repository.createRequests.first.demoGroupId, isNotEmpty);
   });
 
   testWidgets('completed_shoot_opens_preview_and_video_three_step_flow', (

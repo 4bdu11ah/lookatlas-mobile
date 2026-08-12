@@ -1,7 +1,9 @@
 part of '../../../dashboard/presentation/screens/dashboard_screen.dart';
 
 class GuidesScreen extends ConsumerWidget {
-  const GuidesScreen({super.key});
+  const GuidesScreen({this.initialTab, super.key});
+
+  final String? initialTab;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -9,6 +11,7 @@ class GuidesScreen extends ConsumerWidget {
       backgroundColor: AppColors.neutral50,
       title: 'Guides',
       child: _GuidesPage(
+        initialTab: initialTab,
         onNavigate: (page) => _navigateDashboard(context, ref, page),
       ),
     );
@@ -16,9 +19,10 @@ class GuidesScreen extends ConsumerWidget {
 }
 
 class _GuidesPage extends ConsumerStatefulWidget {
-  const _GuidesPage({required this.onNavigate});
+  const _GuidesPage({required this.onNavigate, this.initialTab});
 
   final ValueChanged<_DashboardPage> onNavigate;
+  final String? initialTab;
 
   @override
   ConsumerState<_GuidesPage> createState() => _GuidesPageState();
@@ -26,6 +30,21 @@ class _GuidesPage extends ConsumerStatefulWidget {
 
 class _GuidesPageState extends ConsumerState<_GuidesPage> {
   final ScrollController _scrollController = ScrollController();
+
+  @override
+  void initState() {
+    super.initState();
+    final initialTab = _guideTabFromId(widget.initialTab);
+    if (initialTab != null) {
+      unawaited(
+        Future<void>.microtask(() {
+          if (mounted) {
+            ref.read(_guidesControllerProvider.notifier).selectTab(initialTab);
+          }
+        }),
+      );
+    }
+  }
 
   @override
   void dispose() {

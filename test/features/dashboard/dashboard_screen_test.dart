@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:look_atlas/core/providers/core_providers.dart';
 import 'package:look_atlas/core/result/result.dart';
 import 'package:look_atlas/core/theme/app_theme.dart';
 import 'package:look_atlas/features/auth/di/auth_providers.dart';
@@ -11,9 +12,12 @@ import 'package:look_atlas/features/dashboard/di/dashboard_providers.dart';
 import 'package:look_atlas/features/dashboard/domain/entities/dashboard_data.dart';
 import 'package:look_atlas/features/dashboard/domain/repositories/dashboard_repository.dart';
 import 'package:look_atlas/features/dashboard/presentation/screens/dashboard_screen.dart';
+import 'package:look_atlas/features/studio_school/di/studio_school_providers.dart';
 import 'package:look_atlas/features/subscription/di/subscription_providers.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../helpers/fake_repositories.dart';
+import '../../helpers/fake_welcome_repository.dart';
 
 class _ConcurrentDashboardRepository implements DashboardRepository {
   final stats = Completer<Result<DashboardStats>>();
@@ -47,10 +51,17 @@ void main() {
     WidgetTester tester, {
     AppUser? user,
     DashboardRepository dashboardRepository = const FakeDashboardRepository(),
+    FakeWelcomeRepository? welcomeRepository,
   }) async {
+    SharedPreferences.setMockInitialValues({});
+    final preferences = await SharedPreferences.getInstance();
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
+          sharedPreferencesProvider.overrideWithValue(preferences),
+          welcomeRepositoryProvider.overrideWithValue(
+            welcomeRepository ?? FakeWelcomeRepository(),
+          ),
           authRepositoryProvider.overrideWithValue(
             FakeAuthRepository(
               user:
@@ -238,9 +249,15 @@ void main() {
     final auth = FakeAuthRepository(
       user: const AppUser(id: 'user-1', email: 'jane@example.com'),
     );
+    SharedPreferences.setMockInitialValues({});
+    final preferences = await SharedPreferences.getInstance();
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
+          sharedPreferencesProvider.overrideWithValue(preferences),
+          welcomeRepositoryProvider.overrideWithValue(
+            FakeWelcomeRepository(),
+          ),
           authRepositoryProvider.overrideWithValue(auth),
           // Sign-out detaches the identity from subscriptions; the real
           // repository needs platform channels.
@@ -286,18 +303,42 @@ void main() {
     final support = find.byKey(
       const ValueKey('dashboard-drawer-support'),
     );
-    final guides = find.byKey(const ValueKey('dashboard-drawer-guides'));
+    final school = find.byKey(const ValueKey('dashboard-drawer-school'));
     final settings = find.byKey(
       const ValueKey('dashboard-drawer-settings'),
     );
-    expect(guides, findsOneWidget);
+    expect(school, findsOneWidget);
     expect(
       tester.getTopLeft(support).dy,
-      lessThan(tester.getTopLeft(guides).dy),
+      lessThan(tester.getTopLeft(school).dy),
     );
     expect(
-      tester.getTopLeft(guides).dy,
+      tester.getTopLeft(school).dy,
       lessThan(tester.getTopLeft(settings).dy),
+    );
+  });
+
+  testWidgets('shows and locally dismisses the Studio School helper', (
+    tester,
+  ) async {
+    await pumpDashboard(
+      tester,
+      welcomeRepository: FakeWelcomeRepository(
+        state: fakeEligibleWelcomeState(),
+      ),
+    );
+
+    expect(
+      find.text('New to Look Atlas? Start at Studio School.'),
+      findsOneWidget,
+    );
+
+    await tester.tap(find.byTooltip('Dismiss Studio School suggestion'));
+    await tester.pump();
+
+    expect(
+      find.text('New to Look Atlas? Start at Studio School.'),
+      findsNothing,
     );
   });
 }

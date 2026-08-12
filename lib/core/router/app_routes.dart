@@ -25,6 +25,7 @@ abstract final class AppRoutes {
   static const dashboardBilling = '/billing';
   static const dashboardAccount = '/account';
   static const dashboardSupport = '/support';
+  static const studioSchool = '/school';
   static const dashboardGuides = '/guides';
   static const chat = '/chat';
   static const paywall = '/paywall';

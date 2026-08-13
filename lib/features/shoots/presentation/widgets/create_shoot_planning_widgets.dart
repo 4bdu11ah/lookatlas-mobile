@@ -39,7 +39,7 @@ class _PlanningStep extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (!isPlanned) {
+    if (!isPlanned || isPlanning) {
       return _Column(
         gap: 14,
         children: [
@@ -137,9 +137,24 @@ class _ReviewStep extends StatelessWidget {
           subtitle: 'Confirm your shoot settings',
         ),
         _ReviewGrid(state: state),
-        const _Alert(
+        _Alert(
           kind: _AlertKind.info,
-          text: 'Each selected shot is generated in every requested variation.',
+          richText: TextSpan(
+            children: [
+              const TextSpan(
+                text: 'Why variations? ',
+                style: TextStyle(fontWeight: AppTypography.medium),
+              ),
+              TextSpan(
+                text:
+                    'Each shot will be generated '
+                    '${state.settings.variations} times, giving you multiple '
+                    'options to choose from. This helps ensure you get the '
+                    'perfect shot even when AI produces occasional unexpected '
+                    'results.',
+              ),
+            ],
+          ),
         ),
         if (state.canUseUnlimited) ...[
           const _FieldLabel('Generation speed'),
@@ -221,72 +236,154 @@ class _ReviewGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final selection = state.selection;
-    final productNames = state.selectedProducts
-        .map((item) => item.name)
-        .join(' + ');
-    final modelNames = state.selectedModels.indexed
-        .map(
-          (item) =>
-              '${item.$2.name} · ${item.$1 == 0 ? 'Primary' : 'Secondary ${item.$1}'}',
-        )
-        .join('\n');
-    final items = [
-      (
-        'Products (${state.selectedProducts.length})',
-        productNames.isEmpty ? 'Not selected' : productNames,
-        selection?.product.imageUrl ?? '',
+    final productContext = state.productMode == ProductMode.pairing
+        ? 'worn together'
+        : 'colour / style variants';
+    return Column(
+      key: const ValueKey('review-layout'),
+      children: [
+        _ReviewSelectionSection(
+          key: const ValueKey('review-products'),
+          title:
+              'Products (${state.selectedProducts.length}) · $productContext',
+          items: state.selectedProducts,
+          roleBuilder: (index) =>
+              index == 0 ? 'Primary' : 'Product ${index + 1}',
+        ),
+        const SizedBox(height: 8),
+        _ReviewSelectionSection(
+          key: const ValueKey('review-models'),
+          title: 'Models (${state.selectedModels.length})',
+          items: state.selectedModels,
+          roleBuilder: (index) => index == 0 ? 'Primary' : 'Secondary $index',
+        ),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            Expanded(
+              child: _ReviewMetricCard(
+                key: const ValueKey('review-shots'),
+                title: 'Shots × Variations',
+                value:
+                    '${state.chosenShots.length} shots × '
+                    '${state.settings.variations} variations',
+                subtitle: '${state.totalImages} total images',
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: _ReviewMetricCard(
+                key: const ValueKey('review-settings'),
+                title: 'Settings',
+                value:
+                    '${_planningUseCaseLabel(state.settings.useCase)} · '
+                    '${state.settings.aspectRatio} · '
+                    '${state.settings.imageSize}',
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class _ReviewSelectionSection extends StatelessWidget {
+  const _ReviewSelectionSection({
+    required this.title,
+    required this.items,
+    required this.roleBuilder,
+    super.key,
+  });
+
+  final String title;
+  final List<ShootCatalogItem> items;
+  final String Function(int index) roleBuilder;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        border: Border.all(color: AppColors.neutral200),
+        color: AppColors.neutral100,
       ),
-      (
-        'Models (${state.selectedModels.length})',
-        modelNames.isEmpty ? 'Not selected' : modelNames,
-        selection?.model.imageUrl ?? '',
-      ),
-      (
-        'Shots × Variations',
-        '${state.chosenShots.length} shots × ${state.settings.variations}',
-        '',
-      ),
-      (
-        'Settings',
-        '${state.settings.useCase.toUpperCase()} · ${state.settings.aspectRatio} · ${state.settings.imageSize}',
-        '',
-      ),
-    ];
-    return GridView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      itemCount: items.length,
-      gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-        maxCrossAxisExtent: 260,
-        crossAxisSpacing: 8,
-        mainAxisSpacing: 8,
-        childAspectRatio: 1.15,
-      ),
-      itemBuilder: (context, index) {
-        final item = items[index];
-        return Container(
-          padding: const EdgeInsets.all(12),
-          color: AppColors.neutral100,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _Caption(item.$1),
-              const SizedBox(height: 7),
-              if (item.$3.isNotEmpty)
-                Row(
-                  children: [
-                    _AssetBox(item.$3, width: 42, height: 42),
-                    const SizedBox(width: 8),
-                    Expanded(child: _CardTitle(item.$2)),
-                  ],
-                )
-              else
-                _CardTitle(item.$2),
-            ],
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _Caption(title),
+          const SizedBox(height: 10),
+          ListView.separated(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: items.length,
+            separatorBuilder: (_, _) => const SizedBox(height: 10),
+            itemBuilder: (context, index) {
+              final item = items[index];
+              return Row(
+                children: [
+                  _AssetBox(item.imageUrl, width: 48, height: 48),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _CardTitle(
+                          item.name,
+                          fontSize: 14,
+                        ),
+                        const SizedBox(height: 2),
+                        _Caption(
+                          roleBuilder(index),
+                          fontSize: 11,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              );
+            },
           ),
-        );
-      },
+        ],
+      ),
+    );
+  }
+}
+
+class _ReviewMetricCard extends StatelessWidget {
+  const _ReviewMetricCard({
+    required this.title,
+    required this.value,
+    this.subtitle,
+    super.key,
+  });
+
+  final String title;
+  final String value;
+  final String? subtitle;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      constraints: const BoxConstraints(minHeight: 120),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        border: Border.all(color: AppColors.neutral200),
+        color: AppColors.neutral100,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _Caption(title),
+          const SizedBox(height: 8),
+          _CardTitle(value),
+          if (subtitle != null) ...[
+            const SizedBox(height: 4),
+            _Caption(subtitle!),
+          ],
+        ],
+      ),
     );
   }
 }

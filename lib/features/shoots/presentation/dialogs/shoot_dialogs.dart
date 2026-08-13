@@ -43,7 +43,7 @@ class _ShootDialog extends StatelessWidget {
       _ModalKind.portfolioViewer => const _PortfolioViewer(),
       _ModalKind.customShot => _CustomShotDialog(onToast: onToast),
       _ModalKind.imagePreview => const _ImagePreviewDialog(),
-      _ModalKind.editAi => _AiEditDialog(onToast: onToast),
+      _ModalKind.editAi => const _AiEditDialog(),
       _ModalKind.variation => _VariationDialog(onToast: onToast),
       _ModalKind.versions => _VersionHistoryDialog(onToast: onToast),
       _ModalKind.videoOptions => _VideoOptionsDialog(

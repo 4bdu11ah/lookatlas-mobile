@@ -113,6 +113,12 @@ Future<void> _openDashboardModal(
   _ModalKind kind,
 ) {
   ref.read(_dashboardShellControllerProvider.notifier).closeUserMenu();
+  if (kind == _ModalKind.editAi) {
+    return _showAiEditDialog(
+      context,
+      onToast: (text) => _toastDashboard(context, text),
+    );
+  }
   if (kind == _ModalKind.directorPortfolio) {
     final createState = ref.read(_createShootControllerProvider);
     final shootDirector = _selectedShootDirector(ref);

@@ -270,6 +270,10 @@ class AssistantController extends Notifier<AssistantState> {
     final messages = {...state.messagesByConversationId}
       ..remove(conversationId);
     final wasActive = state.activeConversationId == conversationId;
+    if (wasActive) {
+      _messageLoadId++;
+      _repository.cancelPendingLoads();
+    }
     state = state.copyWith(
       conversations: [
         for (final item in state.conversations)
@@ -278,6 +282,10 @@ class AssistantController extends Notifier<AssistantState> {
       messagesByConversationId: messages,
       activeConversationId: wasActive ? null : state.activeConversationId,
       view: wasActive ? AssistantView.chat : state.view,
+      messagesLoading: !wasActive && state.messagesLoading,
+      pendingUserMessage: wasActive ? null : state.pendingUserMessage,
+      sending: !wasActive && state.sending,
+      longConversationNudge: !wasActive && state.longConversationNudge,
       deleteCandidateId: null,
       error: null,
     );

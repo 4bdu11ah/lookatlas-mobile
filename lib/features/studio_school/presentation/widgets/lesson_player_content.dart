@@ -4,6 +4,8 @@ import 'package:look_atlas/core/theme/app_colors.dart';
 import 'package:look_atlas/core/theme/app_typography.dart';
 import 'package:look_atlas/features/studio_school/domain/lesson_definition.dart';
 import 'package:look_atlas/features/studio_school/presentation/widgets/credit_calculator.dart';
+import 'package:look_atlas/shared/widgets/app_outlined_button.dart';
+import 'package:look_atlas/shared/widgets/primary_button.dart';
 
 class LessonPlayerCardBody extends StatelessWidget {
   const LessonPlayerCardBody({
@@ -28,19 +30,14 @@ class LessonPlayerCardBody extends StatelessWidget {
           children: [
             Text(
               card.title,
-              style: const TextStyle(
-                fontSize: 24,
-                height: 1.08,
-                letterSpacing: -0.8,
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(
                 fontWeight: AppTypography.bold,
               ),
             ),
-            const SizedBox(height: 15),
+            const SizedBox(height: 10),
             Text(
               card.body,
-              style: const TextStyle(
-                fontSize: 15,
-                height: 1.65,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                 color: AppColors.neutral500,
               ),
             ),
@@ -104,68 +101,50 @@ class LessonPlayerFooter extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(16, 10, 16, 15),
-      decoration: const BoxDecoration(
-        border: Border(top: BorderSide(color: AppColors.neutral200)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          if (error case final message?) ...[
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    message,
-                    style: const TextStyle(
-                      fontSize: 11,
-                      color: AppColors.dangerDark,
-                    ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (error case final message?) ...[
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  message,
+                  style: const TextStyle(
+                    fontSize: 11,
+                    color: AppColors.dangerDark,
                   ),
                 ),
-                if (message.contains('could not start'))
-                  TextButton(
-                    onPressed: onRetryStart,
-                    child: const Text('Retry'),
-                  ),
-              ],
-            ),
-            const SizedBox(height: 6),
-          ],
-          ValueListenableBuilder<Duration>(
-            valueListenable: countdown,
-            builder: (_, remaining, _) => _FooterActions(
-              showPrevious: showPrevious,
-              isFinal: isFinal,
-              doneEnabled:
-                  !saving &&
-                  completionAllowed &&
-                  (!timerRequired || remaining == Duration.zero),
-              completionAllowed: completionAllowed,
-              saving: saving,
-              remaining: remaining,
-              onPrevious: onPrevious,
-              onNext: onNext,
-              onDone: onDone,
-            ),
+              ),
+              if (message.contains('could not start'))
+                TextButton(
+                  onPressed: onRetryStart,
+                  child: const Text('Retry'),
+                ),
+            ],
           ),
+          const SizedBox(height: 6),
         ],
-      ),
+        ValueListenableBuilder<Duration>(
+          valueListenable: countdown,
+          builder: (_, remaining, _) => _FooterActions(
+            showPrevious: showPrevious,
+            isFinal: isFinal,
+            doneEnabled:
+                !saving &&
+                completionAllowed &&
+                (!timerRequired || remaining == Duration.zero),
+            completionAllowed: completionAllowed,
+            saving: saving,
+            remaining: remaining,
+            onPrevious: onPrevious,
+            onNext: onNext,
+            onDone: onDone,
+          ),
+        ),
+      ],
     );
   }
-
-  static final ButtonStyle _buttonStyle = OutlinedButton.styleFrom(
-    minimumSize: const Size(48, 44),
-    shape: const RoundedRectangleBorder(),
-  );
-
-  static final ButtonStyle _filledStyle = FilledButton.styleFrom(
-    minimumSize: const Size(88, 44),
-    backgroundColor: AppColors.black,
-    foregroundColor: AppColors.white,
-    shape: const RoundedRectangleBorder(),
-  );
 }
 
 class _FooterActions extends StatelessWidget {
@@ -197,22 +176,29 @@ class _FooterActions extends StatelessWidget {
         ? 0
         : (remaining.inMilliseconds / 1000).ceil();
     return Row(
-      mainAxisAlignment: MainAxisAlignment.end,
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         if (showPrevious)
-          OutlinedButton(
+          AppOutlinedButton(
+            label: 'Previous',
+            icon: Icons.arrow_back,
+            iconSize: 18,
+            height: 35,
+            fitToContent: true,
             onPressed: onPrevious,
-            style: LessonPlayerFooter._buttonStyle,
-            child: const Icon(Icons.arrow_back, size: 18),
-          ),
+          )
+        else
+          const SizedBox.shrink(),
         if (showPrevious) const SizedBox(width: 8),
         if (!isFinal)
-          FilledButton.icon(
-            onPressed: onNext,
-            style: LessonPlayerFooter._filledStyle,
+          PrimaryButton(
+            label: 'Next',
+            icon: Icons.arrow_forward,
             iconAlignment: IconAlignment.end,
-            icon: const Icon(Icons.arrow_forward, size: 18),
-            label: const Text('Next'),
+            iconSize: 18,
+            height: 35,
+            fitToContent: true,
+            onPressed: onNext,
           )
         else
           Semantics(
@@ -222,19 +208,13 @@ class _FooterActions extends StatelessWidget {
                 ? 'Done available in $seconds seconds'
                 : 'Reconnect to complete lesson',
             button: true,
-            child: FilledButton(
+            child: PrimaryButton(
               key: const ValueKey('studio-school-done'),
+              label: seconds > 0 ? 'Done ($seconds)' : 'Done',
+              isLoading: saving,
+              fitToContent: true,
+              height: 35,
               onPressed: doneEnabled ? onDone : null,
-              style: LessonPlayerFooter._filledStyle,
-              child: saving
-                  ? const SizedBox.square(
-                      dimension: 16,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: AppColors.white,
-                      ),
-                    )
-                  : Text(seconds > 0 ? 'Done ($seconds)' : 'Done'),
             ),
           ),
       ],

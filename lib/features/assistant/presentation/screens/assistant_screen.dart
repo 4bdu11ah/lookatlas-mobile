@@ -10,6 +10,7 @@ import 'package:look_atlas/features/assistant/presentation/controllers/assistant
 import 'package:look_atlas/features/assistant/presentation/widgets/assistant_composer.dart';
 import 'package:look_atlas/features/assistant/presentation/widgets/assistant_history.dart';
 import 'package:look_atlas/features/assistant/presentation/widgets/assistant_message_widgets.dart';
+import 'package:look_atlas/shared/widgets/app_dialog.dart';
 import 'package:look_atlas/shared/widgets/app_feature_scaffold.dart';
 
 class AssistantScreen extends ConsumerStatefulWidget {
@@ -82,7 +83,7 @@ class _AssistantScreenState extends ConsumerState<AssistantScreen> {
                   onTap: controller.showHistory,
                 ),
                 _AppBarAction(
-                  icon: Icons.edit_outlined,
+                  icon: Icons.chat_outlined,
                   label: 'New chat',
                   onTap: controller.newChat,
                 ),
@@ -145,25 +146,27 @@ class _AssistantScreenState extends ConsumerState<AssistantScreen> {
   Future<void> _requestDelete(String conversationId) async {
     final controller = ref.read(assistantControllerProvider.notifier)
       ..requestDelete(conversationId);
-    final confirmed = await showDialog<bool>(
+    final confirmed = await showAppDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        shape: const RoundedRectangleBorder(),
-        title: const Text('Delete this chat?'),
-        content: const Text(
+      title: 'Delete this chat?',
+      subtitle: 'This action cannot be undone.',
+      icon: Icons.delete_outline,
+      showCloseButton: false,
+      builder: (_) => const Padding(
+        padding: EdgeInsets.all(20),
+        child: Text(
           'This removes the conversation from your history. '
           'This cannot be undone.',
         ),
-        actions: [
-          OutlinedButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Delete'),
-          ),
-        ],
+      ),
+      footer: Builder(
+        builder: (dialogContext) => AppDialogActionFooter(
+          primaryLabel: 'Delete',
+          primaryIcon: Icons.delete_outline,
+          danger: true,
+          onCancel: () => Navigator.pop(dialogContext, false),
+          onPrimary: () => Navigator.pop(dialogContext, true),
+        ),
       ),
     );
     if (!mounted) return;

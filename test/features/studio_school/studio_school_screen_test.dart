@@ -6,10 +6,14 @@ import 'package:look_atlas/core/theme/app_theme.dart';
 import 'package:look_atlas/features/auth/di/auth_providers.dart';
 import 'package:look_atlas/features/auth/domain/entities/app_user.dart';
 import 'package:look_atlas/features/studio_school/di/studio_school_providers.dart';
+import 'package:look_atlas/features/studio_school/domain/studio_school_catalog.dart';
 import 'package:look_atlas/features/studio_school/domain/welcome_lesson.dart';
 import 'package:look_atlas/features/studio_school/presentation/studio_school_screen.dart';
 import 'package:look_atlas/services/analytics/analytics_service.dart';
 import 'package:look_atlas/services/service_providers.dart';
+import 'package:look_atlas/shared/widgets/app_dialog.dart';
+import 'package:look_atlas/shared/widgets/app_outlined_button.dart';
+import 'package:look_atlas/shared/widgets/primary_button.dart';
 
 import '../../helpers/fake_repositories.dart';
 import '../../helpers/fake_welcome_repository.dart';
@@ -93,6 +97,8 @@ void main() {
     await tester.pump();
 
     expect(find.text('Quick math'), findsOneWidget);
+    expect(find.byType(AppOutlinedButton), findsOneWidget);
+    expect(find.byType(PrimaryButton), findsOneWidget);
     expect(
       find.textContaining('Starter example, standard: 15 credits'),
       findsOneWidget,
@@ -111,6 +117,36 @@ void main() {
 
     expect(repository.completeCalls, 1);
     expect(find.text('Lesson done.'), findsNothing);
+  });
+
+  testWidgets('lessonPlayer_allCatalogLessons_useAppDialog', (tester) async {
+    await pumpSchool(tester, repository: FakeWelcomeRepository());
+
+    for (final lesson in studioSchoolLessons) {
+      await tester.scrollUntilVisible(
+        find.text(lesson.title),
+        300,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.tap(find.text(lesson.title).first);
+      await tester.pumpAndSettle();
+
+      final dialog = tester.widget<AppDialog>(find.byType(AppDialog));
+      expect(dialog.config.title, lesson.title);
+      expect(dialog.config.subtitle, lesson.tagline);
+      expect(dialog.config.icon, lesson.icon);
+      expect(dialog.footer, isNotNull);
+      expect(
+        find.descendant(
+          of: find.byType(AppDialog),
+          matching: find.byType(PrimaryButton),
+        ),
+        findsOneWidget,
+      );
+
+      await tester.tap(find.byTooltip('Close'));
+      await tester.pumpAndSettle();
+    }
   });
 
   testWidgets('reward_allLessonsComplete_claimsServerReward', (tester) async {
@@ -148,7 +184,7 @@ void main() {
     await tester.pump();
 
     expect(find.text('Reconnect to save lesson progress.'), findsOneWidget);
-    final done = tester.widget<FilledButton>(
+    final done = tester.widget<PrimaryButton>(
       find.byKey(const ValueKey('studio-school-done')),
     );
     expect(done.onPressed, isNull);

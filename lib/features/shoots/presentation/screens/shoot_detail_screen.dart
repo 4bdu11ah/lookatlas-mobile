@@ -87,6 +87,7 @@ class _ShootDetailContent extends ConsumerWidget {
     }
     final isProcessing = job.isActive;
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _PageHeader(
           title: shoot.name,
@@ -135,7 +136,6 @@ class _ShootDetailContent extends ConsumerWidget {
             estimatedCompletion: state.progressStatus?.estimatedCompletion,
           ),
         if (!isProcessing) ...[
-          const SizedBox(height: 10),
           _ExportActions(
             approvedCount: state.images.where((image) => image.approved).length,
             onExport: () => _handleAction(
@@ -145,6 +145,7 @@ class _ShootDetailContent extends ConsumerWidget {
             ),
           ),
         ],
+        const SizedBox(height: 10),
         _ShootSummary(shoot: shoot, modelName: job.modelName),
         const SizedBox(height: 10),
         _VideoCard(

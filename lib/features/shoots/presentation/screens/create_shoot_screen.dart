@@ -143,13 +143,16 @@ class _CreatePage extends ConsumerWidget {
                 ),
                 label: index == 0 ? 'Cancel' : 'Back',
                 icon: index == 0 ? Icons.close : Icons.arrow_back,
-                onPressed: index == 0
+                onPressed: state.isPlanning
+                    ? null
+                    : index == 0
                     ? () => _closeCreateShoot(context, ref)
                     : () => controller.setStep(steps[index - 1]),
               ),
             ),
             const SizedBox(width: 12),
             Expanded(
+              flex: state.step == _CreateStep.confirm ? 2 : 1,
               child: PrimaryButton(
                 label: state.step == _CreateStep.confirm
                     ? state.demoMode
@@ -159,14 +162,18 @@ class _CreatePage extends ConsumerWidget {
                 icon: state.step == _CreateStep.confirm
                     ? Icons.auto_awesome
                     : Icons.arrow_forward,
-                iconAlignment: IconAlignment.end,
+                iconAlignment: state.step == _CreateStep.confirm
+                    ? IconAlignment.start
+                    : IconAlignment.end,
                 foregroundColor:
                     // state.step == _CreateStep.confirm
                     // ?
                     AppColors.white,
                 // : AppColors.black,
                 isLoading: state.isSubmitting,
-                onPressed: state.step == _CreateStep.confirm
+                onPressed: state.isPlanning
+                    ? null
+                    : state.step == _CreateStep.confirm
                     ? (state.demoMode
                               ? state.canGenerateDemo
                               : state.canGenerate)

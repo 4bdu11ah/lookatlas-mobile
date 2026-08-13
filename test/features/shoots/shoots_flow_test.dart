@@ -15,6 +15,7 @@ import 'package:look_atlas/features/shoots/di/shoots_providers.dart';
 import 'package:look_atlas/features/shoots/domain/entities/shoot_create.dart';
 import 'package:look_atlas/features/subscription/presentation/subscription_controller.dart';
 import 'package:look_atlas/shared/widgets/app_dialog.dart';
+import 'package:look_atlas/shared/widgets/app_outlined_button.dart';
 import 'package:look_atlas/shared/widgets/app_text_field.dart';
 import 'package:look_atlas/shared/widgets/bar_spinner.dart';
 import 'package:look_atlas/shared/widgets/custom_app_bar.dart';
@@ -639,6 +640,132 @@ void main() {
     expect(find.text('Cafe Arrival'), findsOneWidget);
   });
 
+  testWidgets('create_shoot_planning_disables_back_and_next_navigation', (
+    tester,
+  ) async {
+    final repository = _DelayedPlanShotsRepository();
+    await pumpScreen(
+      tester,
+      const CreateShootScreen(),
+      shootsRepository: repository,
+    );
+
+    for (var index = 0; index < 3; index++) {
+      await selectCurrentCreateStepAndContinue(tester);
+    }
+    await tester.tap(find.byKey(const ValueKey('plan-shoot-button')));
+    await tester.pump();
+
+    final backButton = tester.widget<AppOutlinedButton>(
+      find.byKey(const ValueKey('create-shoot-back')),
+    );
+    final nextButton = tester.widget<PrimaryButton>(
+      find.widgetWithText(PrimaryButton, 'Next'),
+    );
+    expect(backButton.onPressed, isNull);
+    expect(nextButton.onPressed, isNull);
+
+    await repository.completePlan();
+    await tester.pumpAndSettle();
+  });
+
+  testWidgets('create_shoot_replanning_shows_loader_and_locks_navigation', (
+    tester,
+  ) async {
+    final repository = _DelayedReplanShotsRepository();
+    await pumpScreen(
+      tester,
+      const CreateShootScreen(),
+      shootsRepository: repository,
+    );
+
+    for (var index = 0; index < 3; index++) {
+      await selectCurrentCreateStepAndContinue(tester);
+    }
+    await tester.tap(find.byKey(const ValueKey('plan-shoot-button')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Re-Plan Shots'));
+    await tester.pump();
+
+    final planButton = tester.widget<PrimaryButton>(
+      find.byKey(const ValueKey('plan-shoot-button')),
+    );
+    final backButton = tester.widget<AppOutlinedButton>(
+      find.byKey(const ValueKey('create-shoot-back')),
+    );
+    final nextButton = tester.widget<PrimaryButton>(
+      find.widgetWithText(PrimaryButton, 'Next'),
+    );
+    expect(planButton.isLoading, isTrue);
+    expect(find.byType(ButtonLoader), findsOneWidget);
+    expect(find.text('Planning Shots...'), findsOneWidget);
+    expect(backButton.onPressed, isNull);
+    expect(nextButton.onPressed, isNull);
+
+    await repository.completeReplan();
+    await tester.pumpAndSettle();
+    expect(find.text('Re-Plan Shots'), findsOneWidget);
+  });
+
+  testWidgets('create_shoot_review_uses_list_layout_and_full_generate_action', (
+    tester,
+  ) async {
+    await pumpScreen(tester, const CreateShootScreen());
+
+    await tester.tap(
+      find.byKey(const ValueKey('selection-Tan Leather Bag')),
+    );
+    await tester.tap(find.byKey(const ValueKey('selection-Silver Necklace')));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('Next'));
+    await tester.tap(find.text('Next'));
+    await tester.pumpAndSettle();
+    for (var index = 0; index < 2; index++) {
+      await selectCurrentCreateStepAndContinue(tester);
+    }
+    await tester.tap(find.byKey(const ValueKey('plan-shoot-button')));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('Next'));
+    await tester.tap(find.text('Next'));
+    await tester.pumpAndSettle();
+
+    final reviewLayout = find.byKey(const ValueKey('review-layout'));
+    final products = find.byKey(const ValueKey('review-products'));
+    final models = find.byKey(const ValueKey('review-models'));
+    final shots = find.byKey(const ValueKey('review-shots'));
+    final settings = find.byKey(const ValueKey('review-settings'));
+    expect(
+      find.descendant(of: reviewLayout, matching: find.byType(GridView)),
+      findsNothing,
+    );
+    expect(tester.getSize(products).width, tester.getSize(models).width);
+    expect(
+      tester.getTopLeft(models).dy,
+      greaterThan(tester.getBottomLeft(products).dy),
+    );
+    expect(tester.getTopLeft(shots).dy, tester.getTopLeft(settings).dy);
+    expect(
+      tester.getSize(shots).width,
+      lessThan(tester.getSize(products).width),
+    );
+    expect(find.text('Tan Leather Bag'), findsWidgets);
+    expect(find.text('Silver Necklace'), findsWidgets);
+    expect(find.text('Mila'), findsWidgets);
+
+    final generateFinder = find.byWidgetPredicate(
+      (widget) =>
+          widget is PrimaryButton &&
+          (widget.label?.startsWith('Generate ') ?? false),
+    );
+    final generateButton = tester.widget<PrimaryButton>(generateFinder);
+    final generateFlex = tester.widget<Expanded>(
+      find.ancestor(of: generateFinder, matching: find.byType(Expanded)).first,
+    );
+    expect(generateButton.label, endsWith(' Shots'));
+    expect(generateButton.iconAlignment, IconAlignment.start);
+    expect(generateFlex.flex, 2);
+  });
+
   testWidgets('create_shoot_opens_director_portfolio_and_viewer', (
     tester,
   ) async {
@@ -999,5 +1126,25 @@ class _DelayedPlanShotsRepository extends FakeShootsRepository {
 
   Future<void> completePlan() async {
     _planCompleter.complete(await super.planShots(_selection));
+  }
+}
+
+class _DelayedReplanShotsRepository extends FakeShootsRepository {
+  final _replanCompleter = Completer<Result<List<PlannedShootShot>>>();
+  late ShootSelection _selection;
+  var _planCount = 0;
+
+  @override
+  Future<Result<List<PlannedShootShot>>> planShots(
+    ShootSelection selection,
+  ) {
+    _planCount++;
+    if (_planCount == 1) return super.planShots(selection);
+    _selection = selection;
+    return _replanCompleter.future;
+  }
+
+  Future<void> completeReplan() async {
+    _replanCompleter.complete(await super.planShots(_selection));
   }
 }

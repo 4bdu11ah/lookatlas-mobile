@@ -13,16 +13,16 @@ const studioSchoolLessons = <LessonDefinition>[
       LessonCardDefinition(
         title: 'Credits are your shoot fuel',
         body:
-            'On Pro and Business, photos are unlimited and cost no credits. '
-            'Credits pay for video and AI models, and your plan refills them '
-            'every month. On Starter, photos use credits too.',
+            'On Business, photos are unlimited and cost no credits there — '
+            'credits pay for video and AI models. On Starter and Pro, photos '
+            'use credits, and your plan refills them every month.',
       ),
       LessonCardDefinition(
         title: 'Quick math',
         body:
-            'Shots times variations is your image count. On Pro and Business '
-            'that count is free. On Starter a standard photo is 1 credit and '
-            'a 2K photo is 2.',
+            'Shots times variations is your image count. On Business that '
+            'count is free. On Starter and Pro a standard photo is 1 credit '
+            'and a 2K photo is 2.',
         hasCalculator: true,
       ),
       LessonCardDefinition(

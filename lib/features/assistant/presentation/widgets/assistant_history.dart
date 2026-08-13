@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:look_atlas/features/assistant/domain/entities/assistant_models.dart';
@@ -111,12 +113,9 @@ class _ConversationRow extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 2),
-                    Text(
-                      _relativeTime(conversation.lastMessageAt),
-                      style: const TextStyle(
-                        color: Color(0x660A0A0A),
-                        fontSize: 11.5,
-                      ),
+                    _RelativeTimeText(
+                      time:
+                          conversation.lastMessageAt ?? conversation.createdAt,
                     ),
                   ],
                 ),
@@ -137,14 +136,80 @@ class _ConversationRow extends StatelessWidget {
       ),
     );
   }
+}
 
-  static String _relativeTime(DateTime? time) {
-    if (time == null) return '';
-    final difference = DateTime.now().toUtc().difference(time.toUtc());
-    if (difference.inMinutes < 1) return 'now';
-    if (difference.inHours < 1) return '${difference.inMinutes}m ago';
-    if (difference.inDays < 1) return '${difference.inHours}h ago';
-    if (difference.inDays < 7) return '${difference.inDays}d ago';
-    return DateFormat.yMMMd().format(time.toLocal());
+class _RelativeTimeText extends StatefulWidget {
+  const _RelativeTimeText({required this.time});
+
+  final DateTime? time;
+
+  @override
+  State<_RelativeTimeText> createState() => _RelativeTimeTextState();
+}
+
+class _RelativeTimeTextState extends State<_RelativeTimeText> {
+  Timer? _refreshTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    _scheduleRefresh();
   }
+
+  @override
+  void didUpdateWidget(covariant _RelativeTimeText oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.time == widget.time) return;
+    _scheduleRefresh();
+  }
+
+  @override
+  void dispose() {
+    _refreshTimer?.cancel();
+    super.dispose();
+  }
+
+  void _scheduleRefresh() {
+    _refreshTimer?.cancel();
+    final time = widget.time;
+    if (time == null) return;
+    final delay = _nextRefreshDelay(time, DateTime.now());
+    if (delay == null) return;
+    _refreshTimer = Timer(delay, () {
+      if (!mounted) return;
+      setState(() {});
+      _scheduleRefresh();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      _relativeTime(widget.time, DateTime.now()),
+      style: const TextStyle(color: Color(0x660A0A0A), fontSize: 11.5),
+    );
+  }
+}
+
+String _relativeTime(DateTime? time, DateTime now) {
+  if (time == null) return '';
+  final difference = now.toUtc().difference(time.toUtc());
+  if (difference.inMinutes < 1) return 'now';
+  if (difference.inHours < 1) return '${difference.inMinutes}m';
+  if (difference.inDays < 1) return '${difference.inHours}h';
+  if (difference.inDays < 7) return '${difference.inDays}d';
+  return DateFormat.yMMMd().format(time.toLocal());
+}
+
+Duration? _nextRefreshDelay(DateTime time, DateTime now) {
+  final difference = now.toUtc().difference(time.toUtc());
+  if (difference.inDays >= 7) return null;
+  final interval = difference.inHours >= 24
+      ? const Duration(days: 1)
+      : difference.inMinutes >= 60
+      ? const Duration(hours: 1)
+      : const Duration(minutes: 1);
+  final elapsed = difference.isNegative ? Duration.zero : difference;
+  final remainder = elapsed.inMilliseconds % interval.inMilliseconds;
+  return Duration(milliseconds: interval.inMilliseconds - remainder + 50);
 }

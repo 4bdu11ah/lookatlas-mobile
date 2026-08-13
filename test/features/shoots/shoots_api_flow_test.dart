@@ -1,7 +1,10 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
+import 'package:look_atlas/core/result/result.dart';
 import 'package:look_atlas/core/router/app_routes.dart';
 import 'package:look_atlas/core/theme/app_theme.dart';
 import 'package:look_atlas/features/auth/di/auth_providers.dart';
@@ -9,7 +12,11 @@ import 'package:look_atlas/features/auth/domain/entities/app_user.dart';
 import 'package:look_atlas/features/dashboard/presentation/screens/dashboard_screen.dart';
 import 'package:look_atlas/features/shoots/di/shoots_providers.dart';
 import 'package:look_atlas/features/subscription/presentation/subscription_controller.dart';
+import 'package:look_atlas/shared/widgets/app_dialog.dart';
+import 'package:look_atlas/shared/widgets/app_image.dart';
+import 'package:look_atlas/shared/widgets/app_outlined_button.dart';
 import 'package:look_atlas/shared/widgets/app_text_field.dart';
+import 'package:look_atlas/shared/widgets/primary_button.dart';
 
 import '../../helpers/fake_repositories.dart';
 import '../../helpers/fake_shoots_repository.dart';
@@ -18,10 +25,11 @@ void main() {
   Future<void> pumpScreen(
     WidgetTester tester,
     Widget screen,
-    FakeShootsRepository repository,
-  ) async {
+    FakeShootsRepository repository, {
+    Size physicalSize = const Size(390, 844),
+  }) async {
     tester.view
-      ..physicalSize = const Size(390, 844)
+      ..physicalSize = physicalSize
       ..devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
@@ -177,54 +185,116 @@ void main() {
     await tester.pump();
   });
 
-  testWidgets('image_ai_edit_submits_prompt_to_selected_image_api', (
+  testWidgets('image_ai_edit_uses_app_dialog_footer_and_loading', (
     tester,
   ) async {
-    final repository = FakeShootsRepository();
+    final repository = _DelayedEditRepository();
     await pumpScreen(
       tester,
       const ShootDetailScreen(jobId: 'job-bag'),
       repository,
+      physicalSize: const Size(1200, 1000),
     );
 
     await tester.ensureVisible(find.byIcon(Icons.auto_fix_high).first);
     await tester.tap(find.byIcon(Icons.auto_fix_high).first);
     await tester.pumpAndSettle();
+
+    final dialog = tester.widget<AppDialog>(find.byType(AppDialog));
+    expect(dialog.config.title, 'Edit with AI');
+    expect(dialog.footer, isNotNull);
+    final dialogImage = find.descendant(
+      of: find.byType(AppDialog),
+      matching: find.byType(AppImage),
+    );
+    expect(dialogImage, findsOneWidget);
+    expect(
+      tester.getTopLeft(find.text('Edit with AI')).dy,
+      lessThan(tester.getTopLeft(dialogImage).dy),
+    );
+    expect(
+      tester
+          .widget<PrimaryButton>(
+            find.byKey(const ValueKey('ai-edit-submit')),
+          )
+          .onPressed,
+      isNull,
+    );
     await tester.enterText(
       find.widgetWithText(AppTextField, 'Edit prompt'),
       'Remove the left shadow',
     );
-    await tester.tap(find.text('Apply Edit'));
-    await tester.pumpAndSettle();
+    await tester.pump();
+    expect(find.text('4 / 500 words'), findsOneWidget);
+    final submitFinder = find.byKey(const ValueKey('ai-edit-submit'));
+    tester.widget<PrimaryButton>(submitFinder).onPressed!();
+    await tester.pump();
 
     expect(repository.lastEditPrompt, 'Remove the left shadow');
+    expect(tester.widget<PrimaryButton>(submitFinder).isLoading, isTrue);
+    expect(
+      tester
+          .widget<AppOutlinedButton>(
+            find.widgetWithText(AppOutlinedButton, 'Cancel'),
+          )
+          .onPressed,
+      isNull,
+    );
+
+    repository.completeEdit();
+    await tester.pumpAndSettle();
+    expect(find.byType(AppDialog), findsNothing);
   });
 
-  testWidgets('image quality report sends a valid reason and comment', (
+  testWidgets('image_quality_report_uses_app_footer_and_riverpod_loading', (
     tester,
   ) async {
-    final repository = FakeShootsRepository();
+    final repository = _DelayedReportRepository();
     await pumpScreen(
       tester,
       const ShootDetailScreen(jobId: 'job-bag'),
       repository,
+      physicalSize: const Size(1200, 1000),
     );
 
     await tester.ensureVisible(find.byIcon(Icons.flag_outlined).last);
     await tester.tap(find.byIcon(Icons.flag_outlined).last);
     await tester.pumpAndSettle();
+
+    final dialog = tester.widget<AppDialog>(find.byType(AppDialog));
+    expect(dialog.footer, isNotNull);
+    expect(find.byType(AppDialogActionFooter), findsOneWidget);
+    expect(find.byKey(const ValueKey('report-reason-product')), findsOneWidget);
+    expect(find.byKey(const ValueKey('report-reason-model')), findsOneWidget);
     await tester.enterText(
       find.widgetWithText(AppTextField, 'What is wrong?'),
       'The product shape is broken around the shoulder.',
     );
-    await tester.tap(find.text('Report product deformation'));
-    await tester.pumpAndSettle();
+    await tester.pump();
+    final submitFinder = find.byKey(const ValueKey('report-image-submit'));
+    await tester.ensureVisible(submitFinder);
+    tester.widget<PrimaryButton>(submitFinder).onPressed!();
+    await tester.pump();
 
     expect(repository.lastReportReason, 'product_deformed');
+
+    final submitButton = tester.widget<PrimaryButton>(
+      find.byKey(const ValueKey('report-image-submit')),
+    );
+    final cancelButton = tester.widget<AppOutlinedButton>(
+      find.widgetWithText(AppOutlinedButton, 'Cancel'),
+    );
+    expect(submitButton.isLoading, isTrue);
+    expect(cancelButton.onPressed, isNull);
+
     expect(
       repository.lastReportComment,
       'The product shape is broken around the shoulder.',
     );
+
+    repository.completeReport();
+    await tester.pumpAndSettle();
+    expect(find.byType(AppDialog), findsNothing);
   });
 
   testWidgets('add_variation_submits_real_shot_index', (tester) async {
@@ -323,4 +393,38 @@ void main() {
       AppRoutes.shootDetail('job-created'),
     );
   });
+}
+
+class _DelayedReportRepository extends FakeShootsRepository {
+  final _reportCompleter = Completer<Result<void>>();
+
+  @override
+  Future<Result<void>> reportImage(
+    String jobId,
+    String imageId, {
+    required String reason,
+    required String comment,
+  }) {
+    lastReportReason = reason;
+    lastReportComment = comment;
+    return _reportCompleter.future;
+  }
+
+  void completeReport() => _reportCompleter.complete(const Result.ok(null));
+}
+
+class _DelayedEditRepository extends FakeShootsRepository {
+  final _editCompleter = Completer<Result<void>>();
+
+  @override
+  Future<Result<void>> editImage(
+    String jobId,
+    String imageId,
+    String prompt,
+  ) {
+    lastEditPrompt = prompt;
+    return _editCompleter.future;
+  }
+
+  void completeEdit() => _editCompleter.complete(const Result.ok(null));
 }

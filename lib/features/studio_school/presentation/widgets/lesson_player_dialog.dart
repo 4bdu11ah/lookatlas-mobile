@@ -3,13 +3,12 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:look_atlas/core/theme/app_colors.dart';
-import 'package:look_atlas/core/theme/app_typography.dart';
 import 'package:look_atlas/features/studio_school/domain/lesson_definition.dart';
 import 'package:look_atlas/features/studio_school/domain/welcome_lesson.dart';
 import 'package:look_atlas/features/studio_school/presentation/studio_school_controller.dart';
 import 'package:look_atlas/features/studio_school/presentation/studio_school_state.dart';
 import 'package:look_atlas/features/studio_school/presentation/widgets/lesson_player_content.dart';
-import 'package:look_atlas/features/studio_school/presentation/widgets/school_components.dart';
+import 'package:look_atlas/shared/widgets/app_dialog.dart';
 
 Future<String?> showStudioLessonPlayer(
   BuildContext context, {
@@ -18,17 +17,11 @@ Future<String?> showStudioLessonPlayer(
   required bool online,
 }) => showDialog<String>(
   context: context,
-  barrierColor: AppColors.blackAlpha70,
-  builder: (_) => Dialog(
-    insetPadding: const EdgeInsets.all(16),
-    shape: const RoundedRectangleBorder(
-      side: BorderSide(color: AppColors.neutral200, width: 2),
-    ),
-    child: StudioLessonPlayer(
-      lesson: lesson,
-      welcome: welcome,
-      online: online,
-    ),
+  barrierColor: AppDialogConfig.standard.barrierColor,
+  builder: (_) => StudioLessonPlayer(
+    lesson: lesson,
+    welcome: welcome,
+    online: online,
   ),
 );
 
@@ -191,30 +184,16 @@ class _StudioLessonPlayerState extends ConsumerState<StudioLessonPlayer>
 
   @override
   Widget build(BuildContext context) {
-    return ConstrainedBox(
-      constraints: BoxConstraints(
-        maxHeight: MediaQuery.sizeOf(context).height * 0.9,
+    return AppDialog(
+      config: AppDialogConfig.standard.copyWith(
+        maxWidth: 560,
+        title: widget.lesson.title,
+        subtitle: widget.lesson.tagline,
+        icon: widget.lesson.icon,
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          _PlayerHeader(
-            lesson: widget.lesson,
-            cardIndex: _cardIndex,
-            onClose: () => Navigator.pop(context),
-          ),
-          _Segments(count: widget.lesson.cards.length, active: _cardIndex),
-          Flexible(
-            child: _completed
-                ? const LessonSuccess()
-                : LessonPlayerCardBody(
-                    card: widget.lesson.cards[_cardIndex],
-                    tryLink: _isFinal ? widget.lesson.tryLink : null,
-                    onTry: (location) => Navigator.pop(context, location),
-                  ),
-          ),
-          if (!_completed)
-            LessonPlayerFooter(
+      footer: _completed
+          ? null
+          : LessonPlayerFooter(
               showPrevious: _cardIndex > 0,
               isFinal: _isFinal,
               countdown: _countdown,
@@ -227,65 +206,21 @@ class _StudioLessonPlayerState extends ConsumerState<StudioLessonPlayer>
               onDone: _done,
               onRetryStart: _start,
             ),
-        ],
-      ),
-    );
-  }
-}
-
-class _PlayerHeader extends StatelessWidget {
-  const _PlayerHeader({
-    required this.lesson,
-    required this.cardIndex,
-    required this.onClose,
-  });
-
-  final LessonDefinition lesson;
-  final int cardIndex;
-  final VoidCallback onClose;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 13, 8, 13),
-      child: Row(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          SchoolSquareIcon(icon: lesson.icon, size: 36),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  lesson.title,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontSize: 13,
-                    fontWeight: AppTypography.bold,
-                  ),
-                ),
-                Text(
-                  lesson.tagline.toUpperCase(),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontSize: 8,
-                    letterSpacing: 0.6,
-                    color: AppColors.neutral500,
-                  ),
-                ),
-              ],
-            ),
+          _LessonProgress(
+            count: widget.lesson.cards.length,
+            active: _cardIndex,
           ),
-          Text(
-            '${cardIndex + 1} / ${lesson.cards.length}',
-            style: const TextStyle(fontSize: 11, color: AppColors.neutral500),
-          ),
-          IconButton(
-            tooltip: 'Close lesson',
-            onPressed: onClose,
-            icon: const Icon(Icons.close),
+          Flexible(
+            child: _completed
+                ? const LessonSuccess()
+                : LessonPlayerCardBody(
+                    card: widget.lesson.cards[_cardIndex],
+                    tryLink: _isFinal ? widget.lesson.tryLink : null,
+                    onTry: (location) => Navigator.pop(context, location),
+                  ),
           ),
         ],
       ),
@@ -293,8 +228,8 @@ class _PlayerHeader extends StatelessWidget {
   }
 }
 
-class _Segments extends StatelessWidget {
-  const _Segments({required this.count, required this.active});
+class _LessonProgress extends StatelessWidget {
+  const _LessonProgress({required this.count, required this.active});
 
   final int count;
   final int active;
@@ -302,18 +237,31 @@ class _Segments extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Row(
-        children: List.generate(
-          count,
-          (index) => Expanded(
-            child: Container(
-              height: 2,
-              margin: EdgeInsets.only(right: index == count - 1 ? 0 : 4),
-              color: index <= active ? AppColors.black : AppColors.neutral200,
+      padding: const EdgeInsets.fromLTRB(20, 14, 20, 0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            '${active + 1} / $count',
+            textAlign: TextAlign.right,
+            style: const TextStyle(fontSize: 11, color: AppColors.neutral500),
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: List.generate(
+              count,
+              (index) => Expanded(
+                child: Container(
+                  height: 2,
+                  margin: EdgeInsets.only(right: index == count - 1 ? 0 : 4),
+                  color: index <= active
+                      ? AppColors.black
+                      : AppColors.neutral200,
+                ),
+              ),
             ),
           ),
-        ),
+        ],
       ),
     );
   }

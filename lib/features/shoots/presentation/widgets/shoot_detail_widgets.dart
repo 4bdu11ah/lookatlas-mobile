@@ -361,6 +361,7 @@ class _ShotGroup extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.all(14),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
@@ -383,30 +384,42 @@ class _ShotGroup extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 12),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               AppOutlinedButton(
                 label: 'Add Variation',
                 icon: Icons.add,
                 fitToContent: true,
-                height: 36,
+                height: 30,
                 onPressed: onVariation,
+                iconSize: 16,
+                textStyle: Theme.of(context).textTheme.labelLarge?.copyWith(
+                  fontSize: 11,
+                  fontWeight: AppTypography.bold,
+                ),
               ),
               AppOutlinedButton(
                 label: 'Approve all',
                 fitToContent: true,
-                height: 36,
+                height: 30,
                 onPressed: () =>
                     images.where((image) => !image.approved).forEach(onApprove),
+                textStyle: Theme.of(context).textTheme.labelLarge?.copyWith(
+                  fontSize: 11,
+                  fontWeight: AppTypography.bold,
+                ),
               ),
               AppOutlinedButton(
                 label: 'Clear',
                 fitToContent: true,
-                height: 36,
+                height: 30,
                 onPressed: () =>
                     images.where((image) => image.approved).forEach(onApprove),
+                textStyle: Theme.of(context).textTheme.labelLarge?.copyWith(
+                  fontSize: 11,
+                  fontWeight: AppTypography.bold,
+                ),
               ),
             ],
           ),

@@ -165,6 +165,48 @@ void main() {
     expect(state.error, AssistantController.deleteFailureMessage);
   });
 
+  test(
+    'confirmDelete_activeChat_invalidatesPendingLoadAndStartsNewChat',
+    () async {
+      const conversation = AssistantConversation(
+        id: 'chat-1',
+        title: 'Credits',
+        messageCount: 2,
+      );
+      final messages = Completer<Result<AssistantThread>>();
+      final repository = _FakeAssistantRepository(
+        conversations: const [conversation],
+        onMessages: () => messages.future,
+      );
+      final container = _container(repository);
+      addTearDown(container.dispose);
+      final controller = container.read(assistantControllerProvider.notifier);
+      await controller.loadConversations();
+      final selection = controller.selectConversation('chat-1');
+      controller
+        ..showHistory()
+        ..requestDelete('chat-1');
+
+      expect(await controller.confirmDelete(), isTrue);
+      messages.complete(
+        const Result.ok(
+          AssistantThread(
+            conversation: conversation,
+            messages: [_sendResponseUserMessage, _sendResponseReply],
+          ),
+        ),
+      );
+      await selection;
+
+      final state = container.read(assistantControllerProvider);
+      expect(state.view, AssistantView.chat);
+      expect(state.activeConversationId, isNull);
+      expect(state.messages, isEmpty);
+      expect(state.messagesByConversationId, isNot(contains('chat-1')));
+      expect(state.messagesLoading, isFalse);
+    },
+  );
+
   test('send_longConversationNudge_setsNonblockingBannerState', () async {
     final repository = _FakeAssistantRepository(
       onSend: () async => const Result.ok(

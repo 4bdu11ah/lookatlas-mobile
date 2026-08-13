@@ -28,7 +28,10 @@ class _DialogUpload extends StatelessWidget {
               children: [
                 Icon(Icons.upload_outlined, size: 24),
                 SizedBox(height: 6),
-                _CardTitle('Click to upload'),
+                _CardTitle(
+                  'Click to upload',
+                  color: AppColors.black,
+                ),
                 _Caption('PNG, JPG up to 10MB'),
               ],
             ),

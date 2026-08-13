@@ -57,6 +57,7 @@ class ApiService {
     Map<String, dynamic>? queryParameters,
     JsonDecoder<T>? decoder,
     CancelToken? cancelToken,
+    Options? options,
   }) {
     return _send(
       () => _dio.post<dynamic>(
@@ -64,6 +65,7 @@ class ApiService {
         data: data,
         queryParameters: queryParameters,
         cancelToken: cancelToken,
+        options: options,
       ),
       decoder,
     );

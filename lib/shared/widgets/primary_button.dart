@@ -49,6 +49,10 @@ class PrimaryButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final labelStyle = textStyle ?? Theme.of(context).textTheme.labelLarge;
+    final backgroundColor =
+        this.backgroundColor ?? Theme.of(context).colorScheme.primary;
+    final foregroundColor =
+        this.foregroundColor ?? Theme.of(context).colorScheme.onPrimary;
     return SizedBox(
       width: fitToContent ? null : double.infinity,
       height: height,

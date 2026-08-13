@@ -42,6 +42,20 @@ void main() {
     await tester.pumpAndSettle();
   }
 
+  Future<void> selectCreateChoiceAndContinue(
+    WidgetTester tester,
+    String choice,
+  ) async {
+    final selection = find.byKey(ValueKey('selection-$choice'));
+    expect(selection, findsOneWidget, reason: choice);
+    await tester.ensureVisible(selection);
+    await tester.tap(selection);
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('Next'));
+    await tester.tap(find.text('Next'));
+    await tester.pumpAndSettle();
+  }
+
   testWidgets('create_shoot_exposes_customer_flow_only', (tester) async {
     await pumpScreen(
       tester,
@@ -288,12 +302,10 @@ void main() {
     final repository = FakeShootsRepository();
     final router = await pumpRouter(tester, repository);
 
-    await tester.tap(find.byKey(const ValueKey('new-shoot-button')));
+    router.go(AppRoutes.createShoot);
     await tester.pumpAndSettle();
-    for (var index = 0; index < 3; index++) {
-      await tester.ensureVisible(find.text('Next'));
-      await tester.tap(find.text('Next'));
-      await tester.pumpAndSettle();
+    for (final choice in ['Tan Leather Bag', 'Mila', 'Alex Chen']) {
+      await selectCreateChoiceAndContinue(tester, choice);
     }
     await tester.tap(find.byKey(const ValueKey('plan-shoot-button')));
     await tester.pumpAndSettle();

@@ -340,6 +340,7 @@ class ShootsRemoteDataSourceImpl implements ShootsRemoteDataSource {
   ) => _api.post<List<PlannedShootShot>>(
     ApiEndpoints.planShots,
     data: ShootsApiCodec.planPayload(selection),
+    options: Options(receiveTimeout: const Duration(minutes: 2)),
     decoder: ShootsApiCodec.decodePlannedShots,
   );
 

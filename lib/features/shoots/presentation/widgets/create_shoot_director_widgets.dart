@@ -29,7 +29,7 @@ class _DirectorStep extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final director = directors.isEmpty
+    final director = directors.isEmpty || selected < 0
         ? null
         : directors[selected.clamp(0, directors.length - 1)];
     return _Column(
@@ -80,7 +80,7 @@ class _DirectorStep extends StatelessWidget {
                     ))
                       index,
                 }
-              : {selected},
+              : {if (selected >= 0) selected},
           onSelect: onSelect,
           onPreview: onPortfolio,
         ),
@@ -199,7 +199,7 @@ class _DemoDirectorBudget extends StatelessWidget {
               ),
             ),
             const _Caption('Variations / shot', fontSize: 10),
-            _DirectorChoiceWrap(
+            _DirectorChoiceList(
               values: const ['1', '2', '3', '4', '5'],
               selected: '${config.variations}',
               onSelect: (value) => onChanged(
@@ -509,7 +509,11 @@ class _DirectorAdditionalSettings extends StatelessWidget {
       children: [
         const _FieldLabel('Additional Settings'),
         if (!demoMode) ...[
-          const _Caption('Number of Shots', fontSize: 11),
+          const _Caption(
+            'Number of Shots',
+            fontSize: 12,
+            color: AppColors.black,
+          ),
           Row(
             children: [
               Expanded(
@@ -531,15 +535,23 @@ class _DirectorAdditionalSettings extends StatelessWidget {
             ],
           ),
         ],
-        const _Caption('Aspect Ratio', fontSize: 11),
-        _DirectorChoiceWrap(
+        const _Caption(
+          'Aspect Ratio',
+          fontSize: 12,
+          color: AppColors.black,
+        ),
+        _DirectorChoiceList(
           values: ratios,
           selected: settings.aspectRatio,
           onSelect: (value) => onChanged(settings.copyWith(aspectRatio: value)),
         ),
         if (!demoMode) ...[
-          const _Caption('Variations per Shot', fontSize: 11),
-          _DirectorChoiceWrap(
+          const _Caption(
+            'Variations per Shot',
+            fontSize: 12,
+            color: AppColors.black,
+          ),
+          _DirectorChoiceList(
             values: const ['1', '2', '3', '4', '5'],
             selected: '${settings.variations}',
             onSelect: (value) =>
@@ -550,11 +562,15 @@ class _DirectorAdditionalSettings extends StatelessWidget {
             'AI generation can occasionally produce unexpected results. '
             'Multiple variations give you options to choose from. '
             'We recommend 3 or more.',
-            fontSize: 10,
+            fontSize: 11,
           ),
         ],
-        const _Caption('Background Preference', fontSize: 11),
-        _DirectorChoiceWrap(
+        const _Caption(
+          'Background Preference',
+          fontSize: 12,
+          color: AppColors.black,
+        ),
+        _DirectorChoiceList(
           values: [for (final background in backgrounds) background.$2],
           selected: backgrounds
               .firstWhere(

@@ -3,18 +3,23 @@ part of '../screens/dashboard_screen.dart';
 enum _AlertKind { info, warn, error }
 
 class _Alert extends StatelessWidget {
-  const _Alert({required this.kind, required this.text});
+  const _Alert({required this.kind, this.text, this.richText})
+    : assert(
+        (text == null) != (richText == null),
+        'Provide either text or richText.',
+      );
 
   final _AlertKind kind;
-  final String text;
+  final String? text;
+  final InlineSpan? richText;
 
   @override
   Widget build(BuildContext context) {
     final colors = switch (kind) {
       _AlertKind.info => (
-        AppColors.infoLight,
-        AppColors.infoBorder,
-        AppColors.infoDark,
+        AppColors.neutral100,
+        AppColors.neutral200,
+        AppColors.neutral500,
         Icons.info_outline,
       ),
       _AlertKind.warn => (
@@ -42,8 +47,8 @@ class _Alert extends StatelessWidget {
           Icon(colors.$4, size: 18, color: colors.$3),
           const SizedBox(width: 10),
           Expanded(
-            child: Text(
-              text,
+            child: Text.rich(
+              richText ?? TextSpan(text: text),
               style: TextStyle(fontSize: 13, height: 1.4, color: colors.$3),
             ),
           ),

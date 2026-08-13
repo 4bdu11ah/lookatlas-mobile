@@ -243,21 +243,22 @@ class _PromptField extends StatelessWidget {
       children: [
         const _WorkshopFieldLabel(title: 'Prompt', isRequired: true),
         const SizedBox(height: 8),
-        TextField(
-          key: const Key('workshop-prompt-field'),
+        AppTextField(
+          fieldKey: const Key('workshop-prompt-field'),
           controller: controller,
           onChanged: onChanged,
           minLines: 5,
           maxLines: 5,
           maxLength: WorkshopState.maxPromptLength,
           maxLengthEnforcement: MaxLengthEnforcement.none,
-          style: const TextStyle(fontSize: 16, height: 20 / 16),
-          decoration: const InputDecoration(
-            hintText:
-                "Describe the edit. e.g. 'place the watch from image 2 on the model's wrist, keep the studio lighting'.",
-            hintStyle: TextStyle(fontSize: 14, height: 20 / 14),
-            contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            counterText: '',
+          showCounter: false,
+          textStyle: const TextStyle(fontSize: 16, height: 20 / 16),
+          hintText:
+              "Describe the edit. e.g. 'place the watch from image 2 on the model's wrist, keep the studio lighting'.",
+          hintStyle: const TextStyle(fontSize: 14, height: 20 / 14),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 12,
           ),
         ),
         const SizedBox(height: 4),

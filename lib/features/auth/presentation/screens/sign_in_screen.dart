@@ -8,10 +8,9 @@ import 'package:look_atlas/features/auth/domain/validators/auth_validators.dart'
 import 'package:look_atlas/features/auth/presentation/auth_controller.dart';
 import 'package:look_atlas/features/auth/presentation/password_visibility_controller.dart';
 import 'package:look_atlas/features/auth/presentation/widgets/auth_layout.dart';
-import 'package:look_atlas/features/auth/presentation/widgets/auth_password_field.dart';
-import 'package:look_atlas/features/auth/presentation/widgets/labeled_text_field.dart';
 import 'package:look_atlas/features/auth/presentation/widgets/social_sign_in_buttons.dart';
 import 'package:look_atlas/shared/widgets/app_snack_bar.dart';
+import 'package:look_atlas/shared/widgets/app_text_field.dart';
 
 /// Login screen — mirrors `login.html` (brand, email + password, forgot
 /// password link, sign in CTA, create-account footer). The captcha shown in
@@ -59,6 +58,7 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
     final isLoading = ref.watch(
       authControllerProvider.select((s) => s.isLoading),
     );
+    final isPasswordVisible = ref.watch(signInPasswordVisibilityProvider);
 
     return AuthScaffold(
       title: 'Welcome back',
@@ -68,8 +68,8 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            LabeledTextField(
-              label: 'Email address',
+            AppTextField(
+              labelText: 'Email address',
               controller: _emailController,
               hintText: 'you@company.com',
               keyboardType: TextInputType.emailAddress,
@@ -78,11 +78,24 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
               validator: AuthValidators.validateEmail,
             ),
             const SizedBox(height: 20),
-            AuthPasswordField(
+            AppTextField(
+              labelText: 'Password',
               controller: _passwordController,
               hintText: 'Enter your password',
               autofillHints: const [AutofillHints.password],
-              visibilityProvider: signInPasswordVisibilityProvider,
+              obscureText: !isPasswordVisible,
+              trailing: IconButton(
+                tooltip: isPasswordVisible ? 'Hide password' : 'Show password',
+                onPressed: ref
+                    .read(signInPasswordVisibilityProvider.notifier)
+                    .toggle,
+                icon: Icon(
+                  isPasswordVisible
+                      ? Icons.visibility_off_outlined
+                      : Icons.visibility_outlined,
+                ),
+              ),
+              textInputAction: TextInputAction.done,
               onFieldSubmitted: (_) => _submit(),
               validator: AuthValidators.validatePassword,
             ),

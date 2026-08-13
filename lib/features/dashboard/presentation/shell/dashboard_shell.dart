@@ -7,7 +7,7 @@ class DashboardScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(_dashboardShellControllerProvider);
     final controller = ref.read(_dashboardShellControllerProvider.notifier);
-    final screen = _DashboardPageView(
+    final screen = _DashboardOverviewScreen(
       onNavigate: (page) => _navigateDashboard(context, ref, page),
     );
     final user = ref.watch(authStateProvider).value;
@@ -243,6 +243,7 @@ class _DashboardDrawer extends StatelessWidget {
     _DashboardPage.billing,
     _DashboardPage.support,
     _DashboardPage.school,
+    _DashboardPage.assistant,
     _DashboardPage.settings,
   ];
 

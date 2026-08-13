@@ -303,17 +303,25 @@ void main() {
     final support = find.byKey(
       const ValueKey('dashboard-drawer-support'),
     );
+    final assistant = find.byKey(
+      const ValueKey('dashboard-drawer-assistant'),
+    );
     final school = find.byKey(const ValueKey('dashboard-drawer-school'));
     final settings = find.byKey(
       const ValueKey('dashboard-drawer-settings'),
     );
     expect(school, findsOneWidget);
+    expect(assistant, findsOneWidget);
     expect(
       tester.getTopLeft(support).dy,
       lessThan(tester.getTopLeft(school).dy),
     );
     expect(
       tester.getTopLeft(school).dy,
+      lessThan(tester.getTopLeft(assistant).dy),
+    );
+    expect(
+      tester.getTopLeft(assistant).dy,
       lessThan(tester.getTopLeft(settings).dy),
     );
   });

@@ -29,6 +29,33 @@ void main() {
     expect(contentType, startsWith(Headers.multipartFormDataContentType));
   });
 
+  test('post_forwards_request_receive_timeout', () async {
+    Duration? receiveTimeout;
+    final dio = DioClient.create(baseUrl: 'https://example.com')
+      ..interceptors.add(
+        InterceptorsWrapper(
+          onRequest: (options, handler) {
+            receiveTimeout = options.receiveTimeout;
+            handler.resolve(
+              Response<dynamic>(
+                requestOptions: options,
+                statusCode: 201,
+                data: const <String, dynamic>{},
+              ),
+            );
+          },
+        ),
+      );
+    final service = ApiService(baseUrl: 'https://example.com', dio: dio);
+
+    await service.post<void>(
+      '/jobs/v2/plan-shots',
+      options: Options(receiveTimeout: const Duration(minutes: 2)),
+    );
+
+    expect(receiveTimeout, const Duration(minutes: 2));
+  });
+
   test('map_dio_error_preserves_structured_server_fields', () {
     final options = RequestOptions(path: '/jobs/v2/create');
     final failure = mapDioError(

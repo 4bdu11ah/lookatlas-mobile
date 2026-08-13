@@ -7,10 +7,9 @@ import 'package:look_atlas/features/auth/domain/validators/auth_validators.dart'
 import 'package:look_atlas/features/auth/presentation/auth_controller.dart';
 import 'package:look_atlas/features/auth/presentation/password_visibility_controller.dart';
 import 'package:look_atlas/features/auth/presentation/widgets/auth_layout.dart';
-import 'package:look_atlas/features/auth/presentation/widgets/auth_password_field.dart';
-import 'package:look_atlas/features/auth/presentation/widgets/labeled_text_field.dart';
 import 'package:look_atlas/features/auth/presentation/widgets/social_sign_in_buttons.dart';
 import 'package:look_atlas/shared/widgets/app_snack_bar.dart';
+import 'package:look_atlas/shared/widgets/app_text_field.dart';
 
 /// Create-account screen — mirrors `signup.html` (email, password with helper,
 /// create CTA, terms line, sign-in footer). The captcha shown in the mockup is
@@ -65,6 +64,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
       authControllerProvider.select((s) => s.isLoading),
     );
     final scheme = Theme.of(context).colorScheme;
+    final isPasswordVisible = ref.watch(signUpPasswordVisibilityProvider);
 
     return AuthScaffold(
       title: 'Create your account',
@@ -74,8 +74,8 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            LabeledTextField(
-              label: 'Company name',
+            AppTextField(
+              labelText: 'Company name',
               controller: _companyNameController,
               hintText: 'Your company',
               autofillHints: const [AutofillHints.organizationName],
@@ -83,8 +83,8 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
               validator: AuthValidators.validateCompanyName,
             ),
             const SizedBox(height: 20),
-            LabeledTextField(
-              label: 'Email address',
+            AppTextField(
+              labelText: 'Email address',
               controller: _emailController,
               hintText: 'you@company.com',
               keyboardType: TextInputType.emailAddress,
@@ -93,14 +93,27 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
               validator: AuthValidators.validateEmail,
             ),
             const SizedBox(height: 20),
-            AuthPasswordField(
+            AppTextField(
+              labelText: 'Password',
               controller: _passwordController,
               hintText: 'Create a strong password',
               helperText:
                   'Must be at least '
                   '${AuthValidators.minPasswordLength} characters long',
               autofillHints: const [AutofillHints.newPassword],
-              visibilityProvider: signUpPasswordVisibilityProvider,
+              obscureText: !isPasswordVisible,
+              trailing: IconButton(
+                tooltip: isPasswordVisible ? 'Hide password' : 'Show password',
+                onPressed: ref
+                    .read(signUpPasswordVisibilityProvider.notifier)
+                    .toggle,
+                icon: Icon(
+                  isPasswordVisible
+                      ? Icons.visibility_off_outlined
+                      : Icons.visibility_outlined,
+                ),
+              ),
+              textInputAction: TextInputAction.done,
               onFieldSubmitted: (_) => _submit(),
               validator: AuthValidators.validatePassword,
             ),

@@ -7,12 +7,12 @@ class _CreateShootState {
     this.productMode = ProductMode.pairing,
     this.selectedProductIds = const [],
     this.selectedModelKeys = const [],
-    this.selectedDirector = 0,
+    this.selectedDirector = -1,
     this.previewDirector = 0,
     this.demoMode = false,
     this.demoDirectors = const [],
     this.useLibraryModels = false,
-    this.settings = const ShootSettings(),
+    this.settings = const ShootSettings(directorId: ''),
     this.plannedShots = const [],
     this.selectedShots = const {},
     this.isLoading = true,
@@ -66,10 +66,13 @@ class _CreateShootState {
   bool get isPlanned => plannedShots.isNotEmpty;
 
   ShootSelection? get selection {
-    if (selectedProducts.isEmpty || selectedModels.isEmpty) return null;
-    final directorId = directors.isEmpty
-        ? settings.directorId
-        : directors[selectedDirector.clamp(0, directors.length - 1)].id;
+    if (selectedProducts.isEmpty ||
+        selectedModels.isEmpty ||
+        selectedDirector < 0 ||
+        selectedDirector >= directors.length) {
+      return null;
+    }
+    final directorId = directors[selectedDirector].id;
     return ShootSelection(
       products: selectedProducts,
       models: selectedModels,
@@ -101,6 +104,7 @@ class _CreateShootState {
               (config) => config.numberOfShots > 0 && config.variations > 0,
             )
       : directors.isNotEmpty &&
+            selectedDirector >= 0 &&
             settings.useCase.isNotEmpty &&
             settings.directorId.isNotEmpty;
 
@@ -223,8 +227,6 @@ class _CreateShootController extends Notifier<_CreateShootState>
               ),
               preferredProductId,
             ]
-          : state.selectedProductIds.isEmpty && catalog.products.isNotEmpty
-          ? [catalog.products.first.id]
           : state.selectedProductIds,
       selectedModelKeys: preferredModel != null
           ? [
@@ -232,13 +234,6 @@ class _CreateShootController extends Notifier<_CreateShootState>
                 (key) => key != _modelKey(preferredModel),
               ),
               _modelKey(preferredModel),
-            ]
-          : state.selectedModelKeys.isEmpty
-          ? [
-              if (catalog.userModels.isNotEmpty)
-                _modelKey(catalog.userModels.first)
-              else if (catalog.libraryModels.isNotEmpty)
-                _modelKey(catalog.libraryModels.first),
             ]
           : state.selectedModelKeys,
       useLibraryModels:
@@ -393,9 +388,9 @@ class _CreateShootController extends Notifier<_CreateShootState>
     required String focusArea,
   }) async {
     final trimmedIdea = shotIdea.trim();
-    if (trimmedIdea.length < 10) {
+    if (trimmedIdea.length <= 10) {
       return const ValidationFailure(
-        'Shot idea must be at least 10 characters.',
+        'Shot idea must be more than 10 characters.',
       );
     }
     if (state.plannedShots.length >= 10) {

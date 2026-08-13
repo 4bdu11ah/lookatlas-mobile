@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:look_atlas/core/network/api_endpoints.dart';
 import 'package:look_atlas/core/network/api_service.dart';
@@ -189,6 +190,7 @@ void main() {
       () => api.post<List<PlannedShootShot>>(
         ApiEndpoints.planShots,
         data: any(named: 'data'),
+        options: any(named: 'options'),
         decoder: any(named: 'decoder'),
       ),
     ).thenAnswer((invocation) async {
@@ -233,30 +235,32 @@ void main() {
 
     final result = await dataSource.planShots(selection);
 
-    final body =
-        verify(
-              () => api.post<List<PlannedShootShot>>(
-                ApiEndpoints.planShots,
-                data: captureAny(named: 'data'),
-                decoder: any(named: 'decoder'),
-              ),
-            ).captured.single
-            as Map<String, dynamic>;
-    expect(body['productId'], 'product-1');
-    expect(body['modelId'], 'model-1');
-    expect(body['modelSource'], 'user');
-    expect(body['productMode'], 'pairing');
-    expect(body['products'], [
+    final body = verify(
+      () => api.post<List<PlannedShootShot>>(
+        ApiEndpoints.planShots,
+        data: captureAny(named: 'data'),
+        options: captureAny(named: 'options'),
+        decoder: any(named: 'decoder'),
+      ),
+    ).captured;
+    final payload = body.first as Map<String, dynamic>;
+    final options = body.last as Options;
+    expect(payload['productId'], 'product-1');
+    expect(payload['modelId'], 'model-1');
+    expect(payload['modelSource'], 'user');
+    expect(payload['productMode'], 'pairing');
+    expect(payload['products'], [
       {'productId': 'product-1'},
       {'productId': 'product-2'},
     ]);
-    expect(body['models'], [
+    expect(payload['models'], [
       {'modelId': 'model-1', 'source': 'user', 'role': 'primary'},
       {'modelId': 'model-2', 'source': 'lookatlas', 'role': 'secondary-1'},
     ]);
-    expect(body['directorId'], 'clean-pro');
-    expect(body['directorFeedback'], 'Natural light');
-    expect(body['numberOfShots'], 6);
+    expect(payload['directorId'], 'clean-pro');
+    expect(payload['directorFeedback'], 'Natural light');
+    expect(payload['numberOfShots'], 6);
+    expect(options.receiveTimeout, const Duration(minutes: 2));
     expect(result.valueOrNull!.single.title, 'Hero');
   });
 

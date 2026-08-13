@@ -6,8 +6,8 @@ import 'package:look_atlas/core/router/app_routes.dart';
 import 'package:look_atlas/features/auth/domain/validators/auth_validators.dart';
 import 'package:look_atlas/features/auth/presentation/auth_controller.dart';
 import 'package:look_atlas/features/auth/presentation/widgets/auth_layout.dart';
-import 'package:look_atlas/features/auth/presentation/widgets/labeled_text_field.dart';
 import 'package:look_atlas/shared/widgets/app_snack_bar.dart';
+import 'package:look_atlas/shared/widgets/app_text_field.dart';
 
 /// Forgot-password screen: collects the account email and submits a reset
 /// request through [AuthController.resetPassword], with the same loading and
@@ -74,8 +74,8 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            LabeledTextField(
-              label: 'Email address',
+            AppTextField(
+              labelText: 'Email address',
               controller: _emailController,
               hintText: 'you@company.com',
               keyboardType: TextInputType.emailAddress,

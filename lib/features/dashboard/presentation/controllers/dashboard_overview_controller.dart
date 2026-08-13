@@ -1,4 +1,4 @@
-part of '../../screens/dashboard_screen.dart';
+part of '../screens/dashboard_screen.dart';
 
 class _DashboardOverviewState {
   const _DashboardOverviewState({

@@ -1,10 +1,27 @@
 part of '../../../dashboard/presentation/screens/dashboard_screen.dart';
 
-class CreateShootScreen extends ConsumerWidget {
+class CreateShootScreen extends ConsumerStatefulWidget {
   const CreateShootScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<CreateShootScreen> createState() => _CreateShootScreenState();
+}
+
+class _CreateShootScreenState extends ConsumerState<CreateShootScreen> {
+  final ScrollController _scrollController = ScrollController();
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    ref.listen(
+      _createShootControllerProvider.select((state) => state.step),
+      _scrollToTop,
+    );
     return Scaffold(
       backgroundColor: AppColors.neutral50,
       appBar: CustomAppBar(
@@ -19,6 +36,7 @@ class CreateShootScreen extends ConsumerWidget {
             key: const ValueKey('create-shoot-top-alignment'),
             alignment: Alignment.topCenter,
             child: SingleChildScrollView(
+              controller: _scrollController,
               padding: const EdgeInsets.fromLTRB(20, 16, 20, 30),
               child: _CreatePage(
                 onComplete: (jobId) => context.go(AppRoutes.shootDetail(jobId)),
@@ -30,6 +48,15 @@ class CreateShootScreen extends ConsumerWidget {
         ),
       ),
     );
+  }
+
+  void _scrollToTop(_CreateStep? previous, _CreateStep next) {
+    if (previous == null || previous == next) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && _scrollController.hasClients) {
+        _scrollController.jumpTo(0);
+      }
+    });
   }
 }
 
@@ -321,6 +348,12 @@ class _CreateStepBody extends StatelessWidget {
         },
       ),
       _CreateStep.planning => _PlanningStep(
+        details: (
+          directorName: state.directors[state.selectedDirector].name,
+          directorStyle: state.directors[state.selectedDirector].subtitle,
+          useCase: _planningUseCaseLabel(state.settings.useCase),
+          shotCount: state.settings.numberOfShots,
+        ),
         isPlanned: state.isPlanned,
         isPlanning: state.isPlanning,
         shots: state.plannedShots,

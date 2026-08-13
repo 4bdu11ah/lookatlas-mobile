@@ -1,7 +1,7 @@
-part of '../../screens/dashboard_screen.dart';
+part of 'dashboard_screen.dart';
 
-class _DashboardPageView extends ConsumerWidget {
-  const _DashboardPageView({
+class _DashboardOverviewScreen extends ConsumerWidget {
+  const _DashboardOverviewScreen({
     required this.onNavigate,
   });
 

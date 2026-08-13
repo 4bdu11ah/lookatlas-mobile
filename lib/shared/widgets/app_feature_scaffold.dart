@@ -14,6 +14,7 @@ class AppFeatureScaffold extends StatelessWidget {
     this.maxContentWidth,
     this.useResponsiveContent = true,
     this.onBack,
+    this.actions = const [],
     this.floatingActionButton,
     super.key,
   });
@@ -25,6 +26,7 @@ class AppFeatureScaffold extends StatelessWidget {
   final double? maxContentWidth;
   final bool useResponsiveContent;
   final VoidCallback? onBack;
+  final List<Widget> actions;
   final Widget? floatingActionButton;
 
   @override
@@ -38,6 +40,7 @@ class AppFeatureScaffold extends StatelessWidget {
         title: title,
         showBackButton: true,
         onBack: onBack ?? () => _goBack(context),
+        actions: actions,
       ),
       floatingActionButton: floatingActionButton,
       body: SafeArea(

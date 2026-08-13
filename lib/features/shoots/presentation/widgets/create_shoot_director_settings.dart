@@ -1,7 +1,7 @@
 part of '../../../dashboard/presentation/screens/dashboard_screen.dart';
 
-class _DirectorChoiceWrap extends StatelessWidget {
-  const _DirectorChoiceWrap({
+class _DirectorChoiceList extends StatelessWidget {
+  const _DirectorChoiceList({
     required this.values,
     required this.selected,
     required this.onSelect,
@@ -13,21 +13,26 @@ class _DirectorChoiceWrap extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Wrap(
-      spacing: 6,
-      runSpacing: 6,
-      children: [
-        for (final value in values)
-          InkWell(
+    return SizedBox(
+      height: 44,
+      child: ListView.separated(
+        key: const ValueKey('director-choice-list'),
+        scrollDirection: Axis.horizontal,
+        itemCount: values.length,
+        separatorBuilder: (_, _) => const SizedBox(width: 6),
+        itemBuilder: (context, index) {
+          final value = values[index];
+          return InkWell(
             onTap: () => onSelect(value),
             child: Container(
-              constraints: const BoxConstraints(minHeight: 44, minWidth: 44),
+              constraints: const BoxConstraints(minWidth: 44),
               alignment: Alignment.center,
               padding: const EdgeInsets.symmetric(horizontal: 9),
               color: value == selected ? AppColors.black : AppColors.neutral100,
               child: Text(
                 value,
-                style: TextStyle(
+                maxLines: 1,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
                   color: value == selected
                       ? AppColors.white
                       : AppColors.neutral500,
@@ -35,8 +40,9 @@ class _DirectorChoiceWrap extends StatelessWidget {
                 ),
               ),
             ),
-          ),
-      ],
+          );
+        },
+      ),
     );
   }
 }

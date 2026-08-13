@@ -43,8 +43,12 @@ void main() {
     );
     await tester.pumpAndSettle();
 
+    await tester.tap(find.byKey(const ValueKey('selection-Bag')));
+    await tester.pumpAndSettle();
     await tester.ensureVisible(find.text('Next'));
     await tester.tap(find.text('Next'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('selection-Aisha')));
     await tester.pumpAndSettle();
   }
 

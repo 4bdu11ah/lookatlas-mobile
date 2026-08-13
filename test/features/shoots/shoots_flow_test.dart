@@ -16,6 +16,7 @@ import 'package:look_atlas/features/shoots/domain/entities/shoot_create.dart';
 import 'package:look_atlas/features/subscription/presentation/subscription_controller.dart';
 import 'package:look_atlas/shared/widgets/app_dialog.dart';
 import 'package:look_atlas/shared/widgets/app_text_field.dart';
+import 'package:look_atlas/shared/widgets/bar_spinner.dart';
 import 'package:look_atlas/shared/widgets/custom_app_bar.dart';
 import 'package:look_atlas/shared/widgets/primary_button.dart';
 import 'package:look_atlas/shared/widgets/shimmer_box.dart';
@@ -61,6 +62,26 @@ void main() {
         child: MaterialApp(theme: AppTheme.light(), home: screen),
       ),
     );
+    await tester.pumpAndSettle();
+  }
+
+  Future<void> selectCurrentCreateStepAndContinue(
+    WidgetTester tester,
+  ) async {
+    final selection = switch (true) {
+      _ when find.text('Select Product').evaluate().isNotEmpty => find.byKey(
+        const ValueKey('selection-Tan Leather Bag'),
+      ),
+      _ when find.text('Select Model').evaluate().isNotEmpty => find.byKey(
+        const ValueKey('selection-Mila'),
+      ),
+      _ => find.byKey(const ValueKey('selection-Alex Chen')),
+    };
+    await tester.ensureVisible(selection);
+    await tester.tap(selection);
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('Next'));
+    await tester.tap(find.text('Next'));
     await tester.pumpAndSettle();
   }
 
@@ -220,14 +241,93 @@ void main() {
     expect(alignment.alignment, Alignment.topCenter);
   });
 
+  testWidgets('create_shoot_requires_product_model_and_director_selection', (
+    tester,
+  ) async {
+    await pumpScreen(tester, const CreateShootScreen());
+
+    PrimaryButton nextButton() => tester.widget<PrimaryButton>(
+      find.widgetWithText(PrimaryButton, 'Next'),
+    );
+
+    expect(
+      find.byKey(const ValueKey('create-product-selection-panel')),
+      findsNothing,
+    );
+    expect(nextButton().onPressed, isNull);
+
+    await tester.tap(
+      find.byKey(const ValueKey('selection-Tan Leather Bag')),
+    );
+    await tester.pumpAndSettle();
+    expect(nextButton().onPressed, isNotNull);
+    await tester.ensureVisible(find.text('Next'));
+    await tester.tap(find.text('Next'));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey('create-model-selection-panel')),
+      findsNothing,
+    );
+    expect(nextButton().onPressed, isNull);
+
+    await tester.tap(find.byKey(const ValueKey('selection-Mila')));
+    await tester.pumpAndSettle();
+    expect(nextButton().onPressed, isNotNull);
+    await tester.ensureVisible(find.text('Next'));
+    await tester.tap(find.text('Next'));
+    await tester.pumpAndSettle();
+
+    final directorGrid = find.byKey(const ValueKey('create-director-grid'));
+    expect(
+      find.descendant(of: directorGrid, matching: find.byIcon(Icons.check)),
+      findsNothing,
+    );
+    expect(find.text('Brief Alex Chen (optional)'), findsNothing);
+    expect(nextButton().onPressed, isNull);
+
+    await tester.tap(find.byKey(const ValueKey('selection-Alex Chen')));
+    await tester.pumpAndSettle();
+    expect(nextButton().onPressed, isNotNull);
+  });
+
+  testWidgets('create_shoot_third_step_scrolls_to_top', (tester) async {
+    await pumpScreen(tester, const CreateShootScreen());
+    tester.view.physicalSize = const Size(390, 500);
+    await tester.pumpAndSettle();
+
+    await selectCurrentCreateStepAndContinue(tester);
+
+    final scrollable = find
+        .descendant(
+          of: find.byType(SingleChildScrollView),
+          matching: find.byType(Scrollable),
+        )
+        .first;
+    await tester.ensureVisible(find.byKey(const ValueKey('selection-Mila')));
+    await tester.tap(find.byKey(const ValueKey('selection-Mila')));
+    await tester.pumpAndSettle();
+    await tester.drag(scrollable, const Offset(0, -300));
+    await tester.pumpAndSettle();
+    expect(
+      tester.state<ScrollableState>(scrollable).position.pixels,
+      greaterThan(0),
+    );
+
+    await tester.ensureVisible(find.text('Next'));
+    await tester.tap(find.text('Next'));
+    await tester.pumpAndSettle();
+
+    expect(tester.state<ScrollableState>(scrollable).position.pixels, 0);
+    expect(find.text('Choose Your Creative Director'), findsOneWidget);
+  });
+
   testWidgets('create_shoot_later_steps_show_back_instead_of_cancel', (
     tester,
   ) async {
     await pumpScreen(tester, const CreateShootScreen());
 
-    await tester.ensureVisible(find.text('Next'));
-    await tester.tap(find.text('Next'));
-    await tester.pumpAndSettle();
+    await selectCurrentCreateStepAndContinue(tester);
 
     expect(find.byKey(const ValueKey('create-shoot-back')), findsOneWidget);
     expect(find.byKey(const ValueKey('create-shoot-cancel')), findsNothing);
@@ -385,9 +485,7 @@ void main() {
     await tester.tap(find.byIcon(Icons.close).last);
     await tester.pumpAndSettle();
 
-    await tester.ensureVisible(find.text('Next'));
-    await tester.tap(find.text('Next'));
-    await tester.pumpAndSettle();
+    await selectCurrentCreateStepAndContinue(tester);
     expect(find.text('Select Model'), findsOneWidget);
     expect(stepDecoration(1).color, AppColors.neutralLight);
     expect(stepDecoration(2).color, AppColors.black);
@@ -402,6 +500,11 @@ void main() {
     'create_shoot_product_selection_matches_single_and_multi_states',
     (tester) async {
       await pumpScreen(tester, const CreateShootScreen());
+
+      await tester.tap(
+        find.byKey(const ValueKey('selection-Tan Leather Bag')),
+      );
+      await tester.pumpAndSettle();
 
       expect(find.text('Add Product'), findsOneWidget);
       expect(find.text('1/3 products'), findsOneWidget);
@@ -456,11 +559,16 @@ void main() {
   ) async {
     await pumpScreen(tester, const CreateShootScreen());
 
-    for (var index = 0; index < 3; index++) {
-      await tester.ensureVisible(find.text('Next'));
-      await tester.tap(find.text('Next'));
-      await tester.pumpAndSettle();
+    for (var index = 0; index < 2; index++) {
+      await selectCurrentCreateStepAndContinue(tester);
     }
+    await tester.tap(
+      find.byKey(const ValueKey('selection-Isabella Romano')),
+    );
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('Next'));
+    await tester.tap(find.text('Next'));
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('plan-shoot-button')));
     await tester.pumpAndSettle();
 
@@ -474,6 +582,61 @@ void main() {
     expect(find.text('Create Custom Shot'), findsOneWidget);
     expect(find.text("What's your shot idea? *"), findsOneWidget);
     expect(find.text('Pose Direction (optional)'), findsOneWidget);
+    expect(
+      find.text(
+        'Your custom shot will match the current shoot settings '
+        '(location: Let AI Decide, director: Isabella Romano)',
+        findRichText: true,
+      ),
+      findsOneWidget,
+    );
+
+    await tester.enterText(
+      find.byKey(const ValueKey('custom-shot-idea')),
+      '1234567890',
+    );
+    await tester.tap(find.text('Add Shot'));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.text('Shot idea must be more than 10 characters.'),
+      findsOneWidget,
+    );
+    expect(find.byType(SnackBar), findsNothing);
+    expect(find.text('Create Custom Shot'), findsOneWidget);
+
+    await tester.enterText(
+      find.byKey(const ValueKey('custom-shot-idea')),
+      '12345678901',
+    );
+    await tester.tap(find.text('Add Shot'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Create Custom Shot'), findsNothing);
+  });
+
+  testWidgets('create_shoot_planning_shows_custom_loader_and_status_text', (
+    tester,
+  ) async {
+    final repository = _DelayedPlanShotsRepository();
+    await pumpScreen(
+      tester,
+      const CreateShootScreen(),
+      shootsRepository: repository,
+    );
+
+    for (var index = 0; index < 3; index++) {
+      await selectCurrentCreateStepAndContinue(tester);
+    }
+    await tester.tap(find.byKey(const ValueKey('plan-shoot-button')));
+    await tester.pump();
+
+    expect(find.byType(ButtonLoader), findsOneWidget);
+    expect(find.text('Planning Shots...'), findsOneWidget);
+
+    await repository.completePlan();
+    await tester.pumpAndSettle();
+    expect(find.text('Cafe Arrival'), findsOneWidget);
   });
 
   testWidgets('create_shoot_opens_director_portfolio_and_viewer', (
@@ -482,9 +645,7 @@ void main() {
     await pumpScreen(tester, const CreateShootScreen());
 
     for (var index = 0; index < 2; index++) {
-      await tester.ensureVisible(find.text('Next'));
-      await tester.tap(find.text('Next'));
-      await tester.pumpAndSettle();
+      await selectCurrentCreateStepAndContinue(tester);
     }
     await tester.tap(
       find.byKey(const ValueKey('selection-Isabella Romano')),
@@ -520,9 +681,7 @@ void main() {
     await pumpScreen(tester, const CreateShootScreen());
 
     for (var index = 0; index < 2; index++) {
-      await tester.ensureVisible(find.text('Next'));
-      await tester.tap(find.text('Next'));
-      await tester.pumpAndSettle();
+      await selectCurrentCreateStepAndContinue(tester);
     }
 
     expect(find.text('Choose Your Creative Director'), findsOneWidget);
@@ -536,6 +695,11 @@ void main() {
     expect(find.text('Campaign / Hero'), findsOneWidget);
     expect(find.text('Marketplace'), findsOneWidget);
     expect(find.text('Like Uniqlo, Everlane'), findsOneWidget);
+    expect(find.text('Brief Alex Chen (optional)'), findsNothing);
+
+    await tester.tap(find.byKey(const ValueKey('selection-Alex Chen')));
+    await tester.pumpAndSettle();
+
     expect(find.text('Brief Alex Chen (optional)'), findsOneWidget);
     expect(
       find.textContaining('Tell Alex Chen any specific direction'),
@@ -547,6 +711,15 @@ void main() {
     expect(find.text('Number of Shots'), findsOneWidget);
     expect(find.text('Variations per Shot'), findsOneWidget);
     expect(find.text('Background Preference'), findsOneWidget);
+
+    final choiceLists = tester.widgetList<ListView>(
+      find.byKey(const ValueKey('director-choice-list')),
+    );
+    expect(choiceLists, isNotEmpty);
+    expect(
+      choiceLists.every((list) => list.scrollDirection == Axis.horizontal),
+      isTrue,
+    );
 
     final grid = tester.widget<GridView>(
       find.byKey(const ValueKey('create-director-grid')),
@@ -566,6 +739,25 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Brief Isabella Romano (optional)'), findsOneWidget);
+
+    await tester.ensureVisible(find.text('Next'));
+    await tester.tap(find.text('Next'));
+    await tester.pumpAndSettle();
+    expect(
+      find.text('Isabella Romano will plan your product detail page shoot'),
+      findsOneWidget,
+    );
+    expect(
+      find.text('Isabella Romano will plan 5 unique shots'),
+      findsOneWidget,
+    );
+    expect(
+      find.text('Style: Luxury Editorial • For: Product Detail Page'),
+      findsOneWidget,
+    );
+
+    await tester.tap(find.byKey(const ValueKey('create-shoot-back')));
+    await tester.pumpAndSettle();
 
     final beatrice = find.byKey(
       const ValueKey('selection-Beatrice Hartley'),
@@ -595,9 +787,7 @@ void main() {
     );
 
     for (var index = 0; index < 2; index++) {
-      await tester.ensureVisible(find.text('Next'));
-      await tester.tap(find.text('Next'));
-      await tester.pumpAndSettle();
+      await selectCurrentCreateStepAndContinue(tester);
     }
 
     await tester.tap(find.byKey(const ValueKey('create-demo-toggle')));
@@ -631,9 +821,7 @@ void main() {
     await tester.pumpAndSettle();
 
     for (var index = 0; index < 2; index++) {
-      await tester.ensureVisible(find.text('Next'));
-      await tester.tap(find.text('Next'));
-      await tester.pumpAndSettle();
+      await selectCurrentCreateStepAndContinue(tester);
     }
     await tester.tap(find.byKey(const ValueKey('create-demo-toggle')));
     await tester.pumpAndSettle();
@@ -795,4 +983,21 @@ class _DelayedCreateCatalogRepository extends FakeShootsRepository {
   void completeCatalog() => _catalogCompleter.complete(
     super.loadCreateCatalog(),
   );
+}
+
+class _DelayedPlanShotsRepository extends FakeShootsRepository {
+  final _planCompleter = Completer<Result<List<PlannedShootShot>>>();
+  late ShootSelection _selection;
+
+  @override
+  Future<Result<List<PlannedShootShot>>> planShots(
+    ShootSelection selection,
+  ) {
+    _selection = selection;
+    return _planCompleter.future;
+  }
+
+  Future<void> completePlan() async {
+    _planCompleter.complete(await super.planShots(_selection));
+  }
 }

@@ -48,6 +48,11 @@ class StudioSchoolDrawer extends StatelessWidget {
       route: AppRoutes.studioSchool,
     ),
     (
+      label: 'Assistant',
+      icon: Icons.auto_awesome_outlined,
+      route: AppRoutes.assistant,
+    ),
+    (
       label: 'Settings',
       icon: Icons.settings_outlined,
       route: AppRoutes.dashboardAccount,

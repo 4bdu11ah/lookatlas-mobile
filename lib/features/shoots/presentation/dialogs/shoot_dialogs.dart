@@ -184,6 +184,7 @@ class _CustomShotDialog extends ConsumerStatefulWidget {
 }
 
 class _CustomShotDialogState extends ConsumerState<_CustomShotDialog> {
+  final _ideaFieldKey = GlobalKey<FormFieldState<String>>();
   final _ideaController = TextEditingController();
   final _poseController = TextEditingController();
   final _focusController = TextEditingController();
@@ -200,9 +201,18 @@ class _CustomShotDialogState extends ConsumerState<_CustomShotDialog> {
   Widget build(BuildContext context) {
     final controller = ref.read(_createShootControllerProvider.notifier);
     final isSubmitting = ref.watch(_customShotSubmittingProvider);
+    final shootContext = ref.watch(
+      _createShootControllerProvider.select((state) {
+        final director = state.directors[state.selectedDirector];
+        return (
+          background: _customShotBackgroundLabel(state.settings.background),
+          directorName: director.name,
+        );
+      }),
+    );
     return _ModalFrame(
       title: 'Create Custom Shot',
-      subtitle: 'Describe your vision, we will format it',
+      subtitle: "Describe your vision, we'll format it",
       leading: Icons.edit_outlined,
       actions: [
         AppOutlinedButton(
@@ -215,10 +225,7 @@ class _CustomShotDialogState extends ConsumerState<_CustomShotDialog> {
           isLoading: isSubmitting,
           onPressed: () async {
             final idea = _ideaController.text.trim();
-            if (idea.isEmpty) {
-              AppSnackBar.showError(context, 'Describe your shot idea.');
-              return;
-            }
+            if (!(_ideaFieldKey.currentState?.validate() ?? false)) return;
             ref.read(_customShotSubmittingProvider.notifier)._set(value: true);
             final failure = await controller.addCustomShot(
               shotIdea: idea,
@@ -239,27 +246,61 @@ class _CustomShotDialogState extends ConsumerState<_CustomShotDialog> {
       children: [
         AppTextField(
           controller: _ideaController,
+          fieldKey: _ideaFieldKey,
+          key: const ValueKey('custom-shot-idea'),
           labelText: "What's your shot idea? *",
-          hintText: 'Close-up focusing on the stitching detail...',
+          hintText:
+              'Close-up focusing on the stitching detail while model hold the bag casually at her side',
           minLines: 4,
           maxLines: 4,
+          validator: (value) => (value?.trim().length ?? 0) <= 10
+              ? 'Shot idea must be more than 10 characters.'
+              : null,
         ),
         const _Caption('Be descriptive, this is the main input.'),
         AppTextField(
           controller: _poseController,
           labelText: 'Pose Direction (optional)',
-          hintText: 'Walking confidently',
+          hintText:
+              "E.g., 'Walking confidently', 'Leaning against wall', 'Sitting cross-legged'",
         ),
         AppTextField(
           controller: _focusController,
           labelText: 'Focus Area (optional)',
-          hintText: 'Product detail',
+          hintText:
+              "E.g., 'Product detail', 'Full body', 'Waist up', 'Feet/shoes'",
         ),
-        const _Alert(
+        _Alert(
           kind: _AlertKind.info,
-          text: 'Matches background: Let AI Decide · director: Alex Chen',
+          richText: TextSpan(
+            children: [
+              const TextSpan(
+                text:
+                    'Your custom shot will match the current shoot settings '
+                    '(location: ',
+              ),
+              TextSpan(
+                text: shootContext.background,
+                style: const TextStyle(color: AppColors.black),
+              ),
+              const TextSpan(text: ', director: '),
+              TextSpan(
+                text: shootContext.directorName,
+                style: const TextStyle(color: AppColors.black),
+              ),
+              const TextSpan(text: ')'),
+            ],
+          ),
         ),
       ],
     );
   }
 }
+
+String _customShotBackgroundLabel(String background) => switch (background) {
+  'studio' => 'Studio',
+  'studio_dark' => 'Studio Dark',
+  'street' => 'Street',
+  'home' => 'Home',
+  _ => 'Let AI Decide',
+};

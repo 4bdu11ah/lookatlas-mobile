@@ -9,6 +9,7 @@ enum _DashboardPage {
   billing('Billing', Icons.credit_card_outlined),
   settings('Settings', Icons.settings_outlined),
   support('Support', Icons.help_outline),
+  assistant('Assistant', Icons.auto_awesome_outlined),
   school('Studio School', Icons.school_outlined),
   guides('Guides', Icons.menu_book_outlined);
 
@@ -27,6 +28,7 @@ enum _DashboardPage {
       _DashboardPage.billing => AppRoutes.dashboardBilling,
       _DashboardPage.settings => AppRoutes.dashboardAccount,
       _DashboardPage.support => AppRoutes.dashboardSupport,
+      _DashboardPage.assistant => AppRoutes.assistant,
       _DashboardPage.school => AppRoutes.studioSchool,
       _DashboardPage.guides => AppRoutes.dashboardGuides,
     };

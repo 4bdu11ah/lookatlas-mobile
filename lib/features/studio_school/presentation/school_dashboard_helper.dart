@@ -12,6 +12,7 @@ import 'package:look_atlas/features/studio_school/presentation/studio_school_con
 import 'package:look_atlas/features/studio_school/presentation/studio_school_state.dart';
 import 'package:look_atlas/features/studio_school/presentation/widgets/school_components.dart';
 import 'package:look_atlas/services/service_providers.dart';
+import 'package:look_atlas/shared/widgets/app_outlined_button.dart';
 
 class SchoolHelperDismissalController extends Notifier<bool> {
   String? _userId;
@@ -113,25 +114,21 @@ class SchoolDashboardHelper extends ConsumerWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
+              AppOutlinedButton(
+                label: 'Open Studio School',
+                fitToContent: true,
+                height: 40,
+                onPressed: () => context.push(
+                  '${AppRoutes.studioSchool}?source=dashboard',
+                ),
+              ),
+              const SizedBox(width: 7),
               IconButton(
                 tooltip: 'Dismiss Studio School suggestion',
                 onPressed: () => unawaited(
                   ref.read(schoolHelperDismissalProvider.notifier).dismiss(),
                 ),
                 icon: const Icon(Icons.close, size: 18),
-              ),
-              const SizedBox(width: 7),
-              OutlinedButton(
-                onPressed: () => context.push(
-                  '${AppRoutes.studioSchool}?source=dashboard',
-                ),
-                style: OutlinedButton.styleFrom(
-                  minimumSize: const Size(0, 44),
-                  foregroundColor: AppColors.black,
-                  side: const BorderSide(color: AppColors.black, width: 2),
-                  shape: const RoundedRectangleBorder(),
-                ),
-                child: const Text('Open Studio School'),
               ),
             ],
           ),

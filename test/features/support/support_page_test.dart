@@ -61,10 +61,16 @@ void main() {
     await tester.ensureVisible(find.text('Send us a Message'));
     await tester.pumpAndSettle();
     final nameField = tester.widget<TextField>(
-      find.byKey(const ValueKey('support-name-field')),
+      find.descendant(
+        of: find.byKey(const ValueKey('support-name-field')),
+        matching: find.byType(TextField),
+      ),
     );
     final emailField = tester.widget<TextField>(
-      find.byKey(const ValueKey('support-email-field')),
+      find.descendant(
+        of: find.byKey(const ValueKey('support-email-field')),
+        matching: find.byType(TextField),
+      ),
     );
     expect(nameField.controller?.text, 'Dev Preview Co');
     expect(emailField.controller?.text, 'dev@lookatlas.com');

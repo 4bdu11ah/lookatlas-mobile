@@ -86,20 +86,18 @@ class _SupportFormCardState extends ConsumerState<_SupportFormCard> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 const _SupportErrorBanner(),
-                _SupportField(
+                AppTextField(
                   fieldKey: const ValueKey('support-name-field'),
-                  label: 'Full Name',
-                  required: true,
+                  labelText: 'Full Name *',
                   controller: _fullNameController,
                   hintText: 'Enter your full name',
                   textInputAction: TextInputAction.next,
                   onChanged: controller.setFullName,
                 ),
                 const SizedBox(height: 24),
-                _SupportField(
+                AppTextField(
                   fieldKey: const ValueKey('support-email-field'),
-                  label: 'Email Address',
-                  required: true,
+                  labelText: 'Email Address *',
                   controller: _emailController,
                   hintText: 'you@company.com',
                   keyboardType: TextInputType.emailAddress,
@@ -107,10 +105,9 @@ class _SupportFormCardState extends ConsumerState<_SupportFormCard> {
                   onChanged: controller.setEmail,
                 ),
                 const SizedBox(height: 24),
-                _SupportField(
+                AppTextField(
                   fieldKey: const ValueKey('support-subject-field'),
-                  label: 'Subject',
-                  required: true,
+                  labelText: 'Subject *',
                   controller: _subjectController,
                   hintText: 'How can we help?',
                   textInputAction: TextInputAction.next,
@@ -163,48 +160,6 @@ class _SupportErrorBanner extends ConsumerWidget {
   }
 }
 
-class _SupportField extends StatelessWidget {
-  const _SupportField({
-    required this.label,
-    required this.controller,
-    required this.hintText,
-    required this.onChanged,
-    this.fieldKey,
-    this.required = false,
-    this.keyboardType,
-    this.textInputAction,
-  });
-
-  final Key? fieldKey;
-  final String label;
-  final bool required;
-  final TextEditingController controller;
-  final String hintText;
-  final ValueChanged<String> onChanged;
-  final TextInputType? keyboardType;
-  final TextInputAction? textInputAction;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        _SupportFieldLabel(label: label, required: required),
-        const SizedBox(height: 8),
-        TextField(
-          key: fieldKey,
-          controller: controller,
-          onChanged: onChanged,
-          keyboardType: keyboardType,
-          textInputAction: textInputAction,
-          style: const TextStyle(fontSize: 16, height: 1.5),
-          decoration: _supportInputDecoration(hintText),
-        ),
-      ],
-    );
-  }
-}
-
 class _SupportPriorityField extends ConsumerWidget {
   const _SupportPriorityField();
 
@@ -249,21 +204,24 @@ class _SupportMessageField extends ConsumerWidget {
           child: Stack(
             children: [
               Positioned.fill(
-                child: TextField(
-                  key: const ValueKey('support-message-field'),
+                child: AppTextField(
+                  fieldKey: const ValueKey('support-message-field'),
                   controller: controller,
                   onChanged: ref
                       .read(_supportControllerProvider.notifier)
                       .setMessage,
                   expands: true,
+                  minLines: null,
                   maxLines: null,
-                  textAlignVertical: TextAlignVertical.top,
                   keyboardType: TextInputType.multiline,
-                  style: const TextStyle(fontSize: 16, height: 1.5),
-                  decoration: _supportInputDecoration(
-                    'Please provide detailed information about your issue or question...',
-                    bottomPadding: 36,
+                  textStyle: const TextStyle(fontSize: 16, height: 1.5),
+                  hintText:
+                      'Please provide detailed information about your issue or question...',
+                  hintStyle: const TextStyle(
+                    fontSize: 16,
+                    color: AppColors.neutral500,
                   ),
+                  contentPadding: const EdgeInsets.fromLTRB(16, 12, 16, 36),
                 ),
               ),
               Positioned(
@@ -433,31 +391,4 @@ class _SupportSubmitButton extends StatelessWidget {
       ),
     );
   }
-}
-
-InputDecoration _supportInputDecoration(
-  String hintText, {
-  double bottomPadding = 12,
-}) {
-  const border = OutlineInputBorder(
-    borderRadius: BorderRadius.zero,
-    borderSide: BorderSide(color: AppColors.neutral200),
-  );
-  return InputDecoration(
-    hintText: hintText,
-    hintStyle: const TextStyle(
-      fontSize: 16,
-      color: AppColors.neutral500,
-    ),
-    filled: true,
-    fillColor: AppColors.white,
-    isDense: true,
-    contentPadding: EdgeInsets.fromLTRB(16, 12, 16, bottomPadding),
-    border: border,
-    enabledBorder: border,
-    focusedBorder: const OutlineInputBorder(
-      borderRadius: BorderRadius.zero,
-      borderSide: BorderSide(color: AppColors.black, width: 2),
-    ),
-  );
 }

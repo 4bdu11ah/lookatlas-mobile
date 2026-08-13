@@ -1,7 +1,24 @@
 part of '../../../dashboard/presentation/screens/dashboard_screen.dart';
 
+typedef _PlanningDetails = ({
+  String directorName,
+  String directorStyle,
+  String useCase,
+  int shotCount,
+});
+
+String _planningUseCaseLabel(String useCase) => switch (useCase) {
+  'pdp' => 'Product Detail Page',
+  'social' => 'Social Media',
+  'lookbook' => 'Lookbook / Catalog',
+  'campaign' => 'Campaign / Hero',
+  'marketplace' => 'Marketplace',
+  _ => useCase,
+};
+
 class _PlanningStep extends StatelessWidget {
   const _PlanningStep({
+    required this.details,
     required this.isPlanned,
     required this.isPlanning,
     required this.shots,
@@ -11,6 +28,7 @@ class _PlanningStep extends StatelessWidget {
     required this.onCustom,
   });
 
+  final _PlanningDetails details;
   final bool isPlanned;
   final bool isPlanning;
   final List<PlannedShootShot> shots;
@@ -25,9 +43,11 @@ class _PlanningStep extends StatelessWidget {
       return _Column(
         gap: 14,
         children: [
-          const _CreateSectionHeader(
+          _CreateSectionHeader(
             title: 'Shot Planning',
-            subtitle: 'Your selected director will plan this shoot',
+            subtitle:
+                '${details.directorName} will plan your '
+                '${details.useCase.toLowerCase()} shoot',
           ),
           Container(
             padding: const EdgeInsets.symmetric(vertical: 46, horizontal: 20),
@@ -36,10 +56,13 @@ class _PlanningStep extends StatelessWidget {
               children: [
                 const Icon(Icons.auto_awesome, size: 28),
                 const SizedBox(height: 14),
-                const _SectionTitle('Plan unique shots with AI'),
+                _SectionTitle(
+                  '${details.directorName} will plan '
+                  '${details.shotCount} unique shots',
+                ),
                 const SizedBox(height: 6),
-                const _Caption(
-                  'Uses your product, model, director, and current settings.',
+                _Caption(
+                  'Style: ${details.directorStyle} • For: ${details.useCase}',
                 ),
                 const SizedBox(height: 16),
                 PrimaryButton(
@@ -48,6 +71,7 @@ class _PlanningStep extends StatelessWidget {
                   icon: Icons.auto_awesome,
                   fitToContent: true,
                   isLoading: isPlanning,
+                  loadingChild: const ButtonLoader(text: 'Planning Shots...'),
                   onPressed: onPlan,
                 ),
               ],

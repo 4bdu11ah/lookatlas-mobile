@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:look_atlas/core/theme/app_theme.dart';
 import 'package:look_atlas/shared/widgets/app_text_field.dart';
@@ -213,5 +214,88 @@ void main() {
     );
 
     expect(tester.getSize(find.byType(TextField)).height, 40);
+  });
+
+  testWidgets('AppTextField displays validator errors inline', (tester) async {
+    final fieldKey = GlobalKey<FormFieldState<String>>();
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.light(),
+        home: Scaffold(
+          body: AppTextField(
+            fieldKey: fieldKey,
+            validator: (value) => (value?.trim().length ?? 0) <= 10
+                ? 'Enter more than 10 characters.'
+                : null,
+          ),
+        ),
+      ),
+    );
+
+    fieldKey.currentState!.validate();
+    await tester.pump();
+
+    expect(find.text('Enter more than 10 characters.'), findsOneWidget);
+  });
+
+  testWidgets('AppTextField supports password and form behavior', (
+    tester,
+  ) async {
+    String? submitted;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.light(),
+        home: Scaffold(
+          body: AppTextField(
+            obscureText: true,
+            autofillHints: const [AutofillHints.password],
+            helperText: 'Use at least 8 characters',
+            onFieldSubmitted: (value) => submitted = value,
+          ),
+        ),
+      ),
+    );
+
+    final textField = tester.widget<TextField>(find.byType(TextField));
+    expect(textField.obscureText, isTrue);
+    expect(textField.autofillHints, const [AutofillHints.password]);
+    expect(find.text('Use at least 8 characters'), findsOneWidget);
+
+    await tester.enterText(find.byType(TextField), 'secure-password');
+    await tester.testTextInput.receiveAction(TextInputAction.done);
+    expect(submitted, 'secure-password');
+  });
+
+  testWidgets('AppTextField supports expanding input without enforcing limit', (
+    tester,
+  ) async {
+    final controller = TextEditingController();
+    addTearDown(controller.dispose);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.light(),
+        home: Scaffold(
+          body: SizedBox(
+            height: 180,
+            child: AppTextField(
+              controller: controller,
+              expands: true,
+              minLines: null,
+              maxLines: null,
+              maxLength: 5,
+              maxLengthEnforcement: MaxLengthEnforcement.none,
+              showCounter: false,
+            ),
+          ),
+        ),
+      ),
+    );
+
+    await tester.enterText(find.byType(TextField), '1234567');
+
+    expect(controller.text, '1234567');
   });
 }

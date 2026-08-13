@@ -5,6 +5,8 @@ import 'package:look_atlas/core/logging/app_logger.dart';
 import 'package:look_atlas/core/router/analytics_route_observer.dart';
 import 'package:look_atlas/core/router/app_routes.dart';
 import 'package:look_atlas/core/router/app_transition_page.dart';
+import 'package:look_atlas/features/assistant/presentation/assistant_transition_page.dart';
+import 'package:look_atlas/features/assistant/presentation/screens/assistant_screen.dart';
 import 'package:look_atlas/features/auth/di/auth_providers.dart';
 import 'package:look_atlas/features/auth/presentation/auth_controller.dart';
 import 'package:look_atlas/features/auth/presentation/screens/reset_password_screen.dart';
@@ -270,6 +272,14 @@ final routerProvider = Provider<GoRouter>((ref) {
         pageBuilder: (_, state) => buildAppTransitionPage(
           state: state,
           child: GuidesScreen(initialTab: state.uri.queryParameters['tab']),
+        ),
+      ),
+      GoRoute(
+        path: AppRoutes.assistant,
+        name: 'assistant',
+        pageBuilder: (_, state) => buildAssistantTransitionPage(
+          state: state,
+          child: const AssistantScreen(),
         ),
       ),
       GoRoute(

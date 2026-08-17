@@ -10,8 +10,28 @@ class _DashboardOverviewScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(_dashboardOverviewControllerProvider);
+    final welcomeState = ref.watch(studioSchoolControllerProvider);
+    final welcome = switch (welcomeState) {
+      SchoolReady(:final welcome) ||
+      SchoolOfflineCached(:final welcome) => welcome.dashboard,
+      _ => null,
+    };
+    final shouldOpenIntro = switch (state) {
+      AsyncData(:final value)
+          when value.subscription.accessTier == 'subscriber' &&
+              welcome != null =>
+        ref
+            .read(dashboardWelcomeControllerProvider.notifier)
+            .shouldOpenIntro(welcome),
+      _ => false,
+    };
+    if (shouldOpenIntro) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (context.mounted) context.go(AppRoutes.welcome);
+      });
+    }
     return _Column(
-      gap: 12,
+      gap: 32,
       children: [
         const _PageHeader(
           title: 'Dashboard',
@@ -54,7 +74,7 @@ class _DashboardOverviewContent extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return _Column(
-      gap: 12,
+      gap: 32,
       children: [
         if (state.subscription.needsPaymentUpdate)
           const _Alert(
@@ -72,8 +92,11 @@ class _DashboardOverviewContent extends StatelessWidget {
             kind: _AlertKind.info,
             text: 'Your limited-time Pro offer is available in Billing.',
           ),
-        const SchoolDashboardHelper(),
-        _StatsList(stats: state.stats),
+        _DashboardGuidanceAndStats(
+          subscription: state.subscription,
+          focusJob: state.recentJobs.firstOrNull,
+          stats: state.stats,
+        ),
         _RecentShoots(
           shoots: state.shoots,
           onNavigate: onNavigate,
@@ -83,6 +106,36 @@ class _DashboardOverviewContent extends StatelessWidget {
       ],
     );
   }
+}
+
+class _DashboardGuidanceAndStats extends ConsumerWidget {
+  const _DashboardGuidanceAndStats({
+    required this.subscription,
+    required this.focusJob,
+    required this.stats,
+  });
+
+  final DashboardSubscription subscription;
+  final DashboardRecentJob? focusJob;
+  final DashboardStats stats;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) => _Column(
+    gap: 32,
+    children: [
+      if (DashboardWelcomeBlock.isVisible(
+        ref,
+        subscription: subscription,
+        focusJob: focusJob,
+      ))
+        DashboardWelcomeBlock(
+          subscription: subscription,
+          focusJob: focusJob,
+        ),
+      if (SchoolDashboardHelper.isVisible(ref)) const SchoolDashboardHelper(),
+      _StatsList(stats: stats),
+    ],
+  );
 }
 
 class _StatsList extends StatelessWidget {
@@ -133,27 +186,29 @@ class _StatCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return _Card(
-      padding: const EdgeInsets.all(24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: [
-          _SquareIcon(icon),
-          const SizedBox(height: 16),
-          _Eyebrow(label, maxLines: 2),
-          const SizedBox(height: 4),
-          Text(
-            value,
-            style: const TextStyle(
-              fontSize: 32,
-              height: 1.1,
-              fontWeight: AppTypography.bold,
-              letterSpacing: -0.64,
-              color: AppColors.black,
+    return LayoutBuilder(
+      builder: (context, constraints) => _Card(
+        padding: EdgeInsets.all(constraints.maxWidth < 140 ? 16 : 24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.spaceAround,
+          children: [
+            _SquareIcon(icon),
+            const SizedBox(height: 16),
+            _Eyebrow(label, maxLines: 2),
+            const SizedBox(height: 4),
+            Text(
+              value,
+              style: const TextStyle(
+                fontSize: 32,
+                height: 1.1,
+                fontWeight: AppTypography.bold,
+                letterSpacing: -0.64,
+                color: AppColors.black,
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -183,7 +238,7 @@ class _RecentShoots extends StatelessWidget {
                 const Expanded(child: _SectionTitle('Recent Shoots')),
                 const SizedBox(width: 12),
                 AppOutlinedButton(
-                  label: 'View all shoots',
+                  label: 'View all',
                   icon: Icons.arrow_forward,
                   iconAlignment: IconAlignment.end,
                   fitToContent: true,

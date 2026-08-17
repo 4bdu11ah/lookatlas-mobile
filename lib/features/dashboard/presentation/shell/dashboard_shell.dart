@@ -19,6 +19,12 @@ class DashboardScreen extends ConsumerWidget {
     final initial = initialSource != null && initialSource.isNotEmpty
         ? initialSource[0].toUpperCase()
         : 'A';
+    final welcomeState = ref.watch(studioSchoolControllerProvider);
+    final showCompleteProfile = switch (welcomeState) {
+      SchoolReady(:final welcome) || SchoolOfflineCached(:final welcome) =>
+        welcome.eligible && (welcome.dashboard?.profileIncomplete ?? false),
+      _ => false,
+    };
     return Scaffold(
       backgroundColor: AppColors.neutral100,
       drawer: _DashboardDrawer(
@@ -36,28 +42,30 @@ class DashboardScreen extends ConsumerWidget {
                     initial: initial,
                     userMenuOpen: state.userMenuOpen,
                     onToggleUserMenu: controller.toggleUserMenu,
+                    showCompleteProfile: showCompleteProfile,
                   ),
                   Expanded(
                     child: RefreshIndicator(
-                      onRefresh: () => ref
-                          .read(
-                            _dashboardOverviewControllerProvider.notifier,
-                          )
-                          .refresh(),
+                      onRefresh: () => Future.wait([
+                        ref
+                            .read(
+                              _dashboardOverviewControllerProvider.notifier,
+                            )
+                            .refresh(),
+                        ref
+                            .read(studioSchoolControllerProvider.notifier)
+                            .refresh(),
+                      ]),
                       child: SingleChildScrollView(
                         physics: const AlwaysScrollableScrollPhysics(),
-                        padding: const EdgeInsets.fromLTRB(
-                          20,
-                          10,
-                          20,
-                          10,
-                        ),
+                        padding: const EdgeInsets.fromLTRB(16, 16, 16, 40),
                         child: screen,
                       ),
                     ),
                   ),
                 ],
               ),
+              const _WelcomeFocusRefresh(),
               if (state.userMenuOpen)
                 Positioned.fill(
                   child: GestureDetector(
@@ -89,6 +97,39 @@ class DashboardScreen extends ConsumerWidget {
       ),
     );
   }
+}
+
+class _WelcomeFocusRefresh extends ConsumerStatefulWidget {
+  const _WelcomeFocusRefresh();
+
+  @override
+  ConsumerState<_WelcomeFocusRefresh> createState() =>
+      _WelcomeFocusRefreshState();
+}
+
+class _WelcomeFocusRefreshState extends ConsumerState<_WelcomeFocusRefresh>
+    with WidgetsBindingObserver {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      unawaited(ref.read(studioSchoolControllerProvider.notifier).refresh());
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => const SizedBox.shrink();
 }
 
 void _navigateDashboard(
@@ -184,11 +225,13 @@ class _Header extends StatelessWidget {
     required this.initial,
     required this.userMenuOpen,
     required this.onToggleUserMenu,
+    required this.showCompleteProfile,
   });
 
   final String initial;
   final bool userMenuOpen;
   final VoidCallback onToggleUserMenu;
+  final bool showCompleteProfile;
 
   @override
   Widget build(BuildContext context) {
@@ -208,6 +251,12 @@ class _Header extends StatelessWidget {
             onTap: () => Scaffold.of(context).openDrawer(),
           ),
           const Spacer(),
+          if (showCompleteProfile) ...[
+            _CompactProfileButton(
+              onPressed: () => unawaited(context.push<void>(AppRoutes.welcome)),
+            ),
+            const SizedBox(width: 4),
+          ],
           InkWell(
             onTap: onToggleUserMenu,
             child: Padding(
@@ -232,6 +281,43 @@ class _Header extends StatelessWidget {
       ),
     );
   }
+}
+
+class _CompactProfileButton extends StatelessWidget {
+  const _CompactProfileButton({required this.onPressed});
+
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) => SizedBox(
+    width: 132,
+    height: 40,
+    child: OutlinedButton(
+      style: OutlinedButton.styleFrom(
+        padding: const EdgeInsets.symmetric(horizontal: 7),
+        side: const BorderSide(color: AppColors.neutral200),
+      ),
+      onPressed: onPressed,
+      child: const Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.auto_awesome_outlined, size: 15),
+          SizedBox(width: 4),
+          Flexible(
+            child: Text(
+              'Complete profile',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: AppTypography.bold,
+              ),
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
 }
 
 class _DashboardDrawer extends StatelessWidget {

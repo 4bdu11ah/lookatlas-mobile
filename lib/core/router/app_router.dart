@@ -24,6 +24,7 @@ import 'package:look_atlas/features/settings/presentation/screens/settings_scree
 import 'package:look_atlas/features/splash/presentation/screens/splash_screen.dart';
 import 'package:look_atlas/features/studio_school/presentation/studio_school_screen.dart';
 import 'package:look_atlas/features/subscription/presentation/screens/paywall_screen.dart';
+import 'package:look_atlas/features/welcome_profile/presentation/welcome_profile_screen.dart';
 import 'package:look_atlas/features/workshop/presentation/screens/workshop_screen.dart';
 import 'package:look_atlas/services/service_providers.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
@@ -98,6 +99,14 @@ final routerProvider = Provider<GoRouter>((ref) {
         pageBuilder: (_, state) => buildAppTransitionPage(
           state: state,
           child: const OnboardingWizardScreen(),
+        ),
+      ),
+      GoRoute(
+        path: AppRoutes.welcome,
+        name: 'welcome_profile',
+        pageBuilder: (_, state) => buildAppTransitionPage(
+          state: state,
+          child: const WelcomeProfileScreen(),
         ),
       ),
       GoRoute(
@@ -213,7 +222,10 @@ final routerProvider = Provider<GoRouter>((ref) {
         name: 'shoot_detail',
         pageBuilder: (_, state) => buildAppTransitionPage(
           state: state,
-          child: ShootDetailScreen(jobId: state.pathParameters['jobId']!),
+          child: ShootDetailScreen(
+            jobId: state.pathParameters['jobId']!,
+            fromDashboard: state.uri.queryParameters['from'] == 'dashboard',
+          ),
         ),
       ),
       GoRoute(
@@ -287,6 +299,14 @@ final routerProvider = Provider<GoRouter>((ref) {
         name: 'paywall',
         pageBuilder: (_, state) =>
             buildAppTransitionPage(state: state, child: const PaywallScreen()),
+      ),
+      GoRoute(
+        path: AppRoutes.selectPlan,
+        name: 'select_plan',
+        pageBuilder: (_, state) => buildAppTransitionPage(
+          state: state,
+          child: const PaywallScreen(),
+        ),
       ),
       GoRoute(
         path: AppRoutes.settings,

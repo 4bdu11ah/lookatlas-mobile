@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:look_atlas/core/error/failure.dart';
+import 'package:look_atlas/core/logging/app_logger.dart';
 import 'package:look_atlas/core/result/result.dart';
 import 'package:look_atlas/features/auth/di/auth_providers.dart';
 import 'package:look_atlas/features/auth/domain/entities/app_user.dart';
@@ -63,6 +64,7 @@ class AuthController extends Notifier<AsyncValue<void>> {
   Future<bool> signInWithGoogle() => _run(
     () => ref.read(signInWithGoogleUseCaseProvider)(),
     onOk: _syncIdentity,
+    diagnosticLabel: 'google_sign_in',
   );
 
   /// Starts a password reset for [email]. Returns whether it succeeded.
@@ -105,12 +107,18 @@ class AuthController extends Notifier<AsyncValue<void>> {
   Future<bool> _run<T>(
     Future<Result<T>> Function() action, {
     void Function(T value)? onOk,
+    String diagnosticLabel = 'auth_action',
   }) async {
     state = const AsyncLoading();
     late final Result<T> result;
     try {
       result = await action();
     } on Object catch (error, stackTrace) {
+      AppLogger.error(
+        '$diagnosticLabel threw before returning a Result. '
+        'exception=${_safeDiagnostic(error)}',
+        stackTrace: stackTrace,
+      );
       state = AsyncError(error, stackTrace);
       return false;
     }
@@ -160,6 +168,19 @@ class AuthController extends Notifier<AsyncValue<void>> {
         unawaited(CrashReporter.recordError(error, stack));
       }),
     );
+  }
+
+  String _safeDiagnostic(Object error) {
+    var text = error.toString();
+    text = text.replaceAll(
+      RegExp(r'[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}', caseSensitive: false),
+      '[email-redacted]',
+    );
+    text = text.replaceAll(
+      RegExp(r'eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+'),
+      '[token-redacted]',
+    );
+    return text.length <= 500 ? text : '${text.substring(0, 500)}…';
   }
 }
 

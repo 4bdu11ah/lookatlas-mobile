@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:look_atlas/core/error/failure.dart';
 import 'package:look_atlas/core/result/result.dart';
 import 'package:look_atlas/core/storage/key_value_store.dart';
+import 'package:look_atlas/features/dashboard/domain/entities/dashboard_welcome.dart';
 import 'package:look_atlas/features/studio_school/data/studio_school_api.dart';
 import 'package:look_atlas/features/studio_school/data/welcome_repository_impl.dart';
 import 'package:look_atlas/features/studio_school/domain/welcome_lesson.dart';
@@ -15,6 +16,7 @@ class _FakeStudioSchoolApi implements StudioSchoolApi {
   Result<WelcomeState> stateResult = Ok(fakeEligibleWelcomeState());
   Completer<Result<WelcomeState>>? pending;
   int stateCalls = 0;
+  Map<String, Object>? savedProfile;
 
   @override
   Future<Result<WelcomeState>> getState() {
@@ -26,6 +28,23 @@ class _FakeStudioSchoolApi implements StudioSchoolApi {
   Future<Result<LessonClaimResult>> claimLessons() async => const Ok(
     LessonClaimResult(granted: 20, alreadyClaimed: false),
   );
+
+  @override
+  Future<Result<DashboardChecklistClaim>> claimChecklist() async => const Ok(
+    DashboardChecklistClaim(granted: 20, alreadyClaimed: false),
+  );
+
+  @override
+  Future<Result<void>> saveProfile(Map<String, Object> profile) async {
+    savedProfile = profile;
+    return const Ok(null);
+  }
+
+  @override
+  Future<Result<void>> recordEvent(
+    String event,
+    Map<String, Object>? properties,
+  ) async => const Ok(null);
 
   @override
   Future<Result<DateTime>> completeLesson(WelcomeLessonId lessonId) async =>
@@ -79,5 +98,18 @@ void main() {
 
     expect(result.valueOrNull?.isCached, isTrue);
     expect(result.valueOrNull?.eligible, isTrue);
+  });
+
+  test('saveProfile_success_invalidatesWelcomeCache', () async {
+    await repository.getState('user-1');
+
+    final result = await repository.saveProfile('user-1', {
+      'brandUrl': 'example.com',
+    });
+    await repository.getState('user-1');
+
+    expect(result.isOk, isTrue);
+    expect(api.savedProfile, {'brandUrl': 'example.com'});
+    expect(api.stateCalls, 2);
   });
 }

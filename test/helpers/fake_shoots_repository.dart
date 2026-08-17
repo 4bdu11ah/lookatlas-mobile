@@ -9,11 +9,20 @@ class FakeShootsRepository implements ShootsRepository {
   FakeShootsRepository({
     ShootCreateCatalog catalog = _catalog,
     List<Result<String>> createResults = const [],
+    this.onGetJob,
+    this.onSetImageApproval,
   }) : _createCatalog = catalog,
        createResults = [...createResults];
 
   final ShootCreateCatalog _createCatalog;
   final List<Result<String>> createResults;
+  final Future<Result<ShootJob>> Function(String jobId)? onGetJob;
+  final Future<Result<void>> Function(
+    String jobId,
+    String imageId, {
+    required bool approved,
+  })?
+  onSetImageApproval;
 
   final List<ShootJob> jobs = [
     _job(
@@ -56,6 +65,7 @@ class FakeShootsRepository implements ShootsRepository {
   String? lastJobId;
   String? lastApprovedImageId;
   bool? lastApprovedValue;
+  final List<(String, String, bool)> approvalCalls = [];
   String? lastEditPrompt;
   String? lastReportReason;
   String? lastReportComment;
@@ -93,6 +103,7 @@ class FakeShootsRepository implements ShootsRepository {
   Future<Result<ShootJob>> getJob(String jobId) async {
     getJobCalls++;
     lastJobId = jobId;
+    if (onGetJob case final callback?) return callback(jobId);
     return Result.ok(jobs.firstWhere((job) => job.id == jobId));
   }
 
@@ -119,6 +130,10 @@ class FakeShootsRepository implements ShootsRepository {
   }) async {
     lastApprovedImageId = imageId;
     lastApprovedValue = approved;
+    approvalCalls.add((jobId, imageId, approved));
+    if (onSetImageApproval case final callback?) {
+      return callback(jobId, imageId, approved: approved);
+    }
     return const Result.ok(null);
   }
 

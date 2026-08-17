@@ -62,6 +62,7 @@ flutter:
     - assets/directors/street-energy/
     - assets/images/
     - assets/images/calibration/outlines/
+    - assets/images/guides/
     - assets/images/onboarding/
     - assets/images/onboarding/angles/
 

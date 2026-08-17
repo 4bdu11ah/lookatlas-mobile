@@ -26,12 +26,16 @@ abstract final class AppRoutes {
   static const dashboardAccount = '/account';
   static const dashboardSupport = '/support';
   static const studioSchool = '/school';
+  static const welcome = '/welcome';
   static const dashboardGuides = '/guides';
   static const assistant = '/assistant';
   static const chat = '/chat';
   static const paywall = '/paywall';
+  static const selectPlan = '/select-plan';
   static const settings = '/settings';
 
-  static String shootDetail(String jobId) =>
-      '/shoots/${Uri.encodeComponent(jobId)}';
+  static String shootDetail(String jobId, {bool fromDashboard = false}) {
+    final path = '/shoots/${Uri.encodeComponent(jobId)}';
+    return fromDashboard ? '$path?from=dashboard' : path;
+  }
 }

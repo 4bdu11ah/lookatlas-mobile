@@ -4,6 +4,7 @@ import 'package:crypto/crypto.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:look_atlas/core/config/app_config.dart';
 import 'package:look_atlas/core/error/failure.dart';
+import 'package:look_atlas/core/logging/app_logger.dart';
 import 'package:look_atlas/core/result/result.dart';
 import 'package:look_atlas/features/auth/data/models/social_credential.dart';
 import 'package:look_atlas/features/auth/domain/entities/social_provider.dart';
@@ -106,10 +107,12 @@ class SocialAuthDataSourceImpl implements SocialAuthDataSource {
     if (!AppConfig.hasSupabaseAuth) {
       return _unconfiguredFailure();
     }
+    var stage = 'supabase_initialization';
     try {
       final supabase = await _supabaseClient();
       final signIn = GoogleSignIn.instance;
       if (!_googleInitialized) {
+        stage = 'google_sdk_initialization';
         await signIn.initialize(
           clientId: AppConfig.googleIosClientId.isEmpty
               ? null
@@ -119,21 +122,31 @@ class SocialAuthDataSourceImpl implements SocialAuthDataSource {
         _googleInitialized = true;
       }
       if (!signIn.supportsAuthenticate()) {
+        AppLogger.error(
+          'Google sign-in failed at platform_support. '
+          'supportsAuthenticate=false',
+        );
         return const Result.err(
           AuthFailure('Google sign-in is not available on this platform.'),
         );
       }
+      stage = 'account_authentication';
       final account = await signIn.authenticate();
       final idToken = account.authentication.idToken;
       if (idToken == null) {
+        AppLogger.error(
+          'Google sign-in failed at id_token. idTokenPresent=false',
+        );
         return const Result.err(
           AuthFailure('Google did not return an ID token.'),
         );
       }
+      stage = 'scope_authorization';
       final authorization = await account.authorizationClient
           .authorizationForScopes(const <String>[
             'https://www.googleapis.com/auth/userinfo.email',
           ]);
+      stage = 'supabase_token_exchange';
       final response = await supabase.auth.signInWithIdToken(
         provider: OAuthProvider.google,
         idToken: idToken,
@@ -151,14 +164,30 @@ class SocialAuthDataSourceImpl implements SocialAuthDataSource {
           ),
         );
       }
+      AppLogger.error(
+        'Google sign-in failed at $stage. '
+        'sdkCode=${error.code.name}; '
+        'description=${_safeDiagnostic(error.description)}',
+        stackTrace: stackTrace,
+      );
       return Result.err(
         AuthFailure(_googleFailedMessage, cause: error, stackTrace: stackTrace),
       );
     } on AuthException catch (error, stackTrace) {
+      AppLogger.error(
+        'Google sign-in failed at $stage. '
+        'supabase=${_safeDiagnostic(error.message)}',
+        stackTrace: stackTrace,
+      );
       return Result.err(
         AuthFailure(error.message, cause: error, stackTrace: stackTrace),
       );
     } on Exception catch (error, stackTrace) {
+      AppLogger.error(
+        'Google sign-in failed at $stage. '
+        'exception=${_safeDiagnostic(error)}',
+        stackTrace: stackTrace,
+      );
       return Result.err(
         AuthFailure(_googleFailedMessage, cause: error, stackTrace: stackTrace),
       );
@@ -273,4 +302,18 @@ class SocialAuthDataSourceImpl implements SocialAuthDataSource {
   Result<SocialCredential> _googleUnconfiguredFailure() => const Result.err(
     AuthFailure('Google sign-in is not configured yet.'),
   );
+
+  String _safeDiagnostic(Object? value) {
+    if (value == null) return 'none';
+    var text = value.toString();
+    text = text.replaceAll(
+      RegExp(r'[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}', caseSensitive: false),
+      '[email-redacted]',
+    );
+    text = text.replaceAll(
+      RegExp(r'eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+'),
+      '[token-redacted]',
+    );
+    return text.length <= 500 ? text : '${text.substring(0, 500)}…';
+  }
 }

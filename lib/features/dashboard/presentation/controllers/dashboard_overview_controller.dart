@@ -5,11 +5,13 @@ class _DashboardOverviewState {
     required this.stats,
     required this.shoots,
     required this.subscription,
+    required this.recentJobs,
   });
 
   final DashboardStats stats;
   final List<_Shoot> shoots;
   final DashboardSubscription subscription;
+  final List<DashboardRecentJob> recentJobs;
 }
 
 class _DashboardOverviewController
@@ -43,6 +45,7 @@ class _DashboardOverviewController
       stats: stats.valueOrNull!,
       shoots: recentJobs.valueOrNull!.map(_toShoot).toList(growable: false),
       subscription: subscription.valueOrNull!,
+      recentJobs: recentJobs.valueOrNull!,
     );
   }
 

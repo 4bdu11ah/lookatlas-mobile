@@ -47,12 +47,14 @@ class DashboardSubscription {
     required this.cancelAtPeriodEnd,
     required this.accessTier,
     required this.proUpsellActive,
+    this.proUpsellExpiresAt,
   });
 
   final String status;
   final bool cancelAtPeriodEnd;
   final String accessTier;
   final bool proUpsellActive;
+  final DateTime? proUpsellExpiresAt;
 
   bool get needsPaymentUpdate => status == 'past_due' || status == 'unpaid';
 }

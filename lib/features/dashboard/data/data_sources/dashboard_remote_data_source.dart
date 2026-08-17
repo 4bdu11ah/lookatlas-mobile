@@ -56,6 +56,9 @@ class DashboardRemoteDataSourceImpl implements DashboardRemoteDataSource {
             proUpsellActive:
                 offer is Map<String, dynamic> &&
                 (offer['active'] as bool? ?? false),
+            proUpsellExpiresAt: offer is Map<String, dynamic>
+                ? _date(offer['expiresAt'])
+                : null,
           );
         },
       );

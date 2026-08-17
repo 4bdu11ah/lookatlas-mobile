@@ -55,16 +55,18 @@ schoolHelperDismissalProvider =
 class SchoolDashboardHelper extends ConsumerWidget {
   const SchoolDashboardHelper({super.key});
 
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  static bool isVisible(WidgetRef ref) {
     final dismissed = ref.watch(schoolHelperDismissalProvider);
     final school = ref.watch(studioSchoolControllerProvider);
-    final visible =
-        school is SchoolReady &&
+    return school is SchoolReady &&
         school.welcome.eligible &&
         school.welcome.lessonsRewardClaimedAt == null &&
         !dismissed;
-    if (!visible) return const SizedBox.shrink();
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    if (!isVisible(ref)) return const SizedBox.shrink();
 
     return Container(
       key: const ValueKey('studio-school-dashboard-helper'),
@@ -111,26 +113,30 @@ class SchoolDashboardHelper extends ConsumerWidget {
             ],
           ),
           const SizedBox(height: 13),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [
-              AppOutlinedButton(
-                label: 'Open Studio School',
-                fitToContent: true,
-                height: 40,
-                onPressed: () => context.push(
-                  '${AppRoutes.studioSchool}?source=dashboard',
+          Padding(
+            padding: const EdgeInsets.only(left: 58),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                Expanded(
+                  child: AppOutlinedButton(
+                    label: 'Open Studio School',
+                    height: 40,
+                    onPressed: () => context.push(
+                      '${AppRoutes.studioSchool}?source=dashboard',
+                    ),
+                  ),
                 ),
-              ),
-              const SizedBox(width: 7),
-              IconButton(
-                tooltip: 'Dismiss Studio School suggestion',
-                onPressed: () => unawaited(
-                  ref.read(schoolHelperDismissalProvider.notifier).dismiss(),
+                const SizedBox(width: 7),
+                IconButton(
+                  tooltip: 'Dismiss Studio School suggestion',
+                  onPressed: () => unawaited(
+                    ref.read(schoolHelperDismissalProvider.notifier).dismiss(),
+                  ),
+                  icon: const Icon(Icons.close, size: 18),
                 ),
-                icon: const Icon(Icons.close, size: 18),
-              ),
-            ],
+              ],
+            ),
           ),
         ],
       ),

@@ -11,6 +11,7 @@ import 'package:look_atlas/features/auth/presentation/screens/reset_password_scr
 import 'package:look_atlas/features/auth/presentation/screens/sign_in_screen.dart';
 import 'package:look_atlas/features/billing/di/billing_api_providers.dart';
 import 'package:look_atlas/features/dashboard/di/dashboard_providers.dart';
+import 'package:look_atlas/features/dashboard/domain/entities/dashboard_welcome.dart';
 import 'package:look_atlas/features/dashboard/presentation/screens/dashboard_screen.dart';
 import 'package:look_atlas/features/onboarding/di/onboarding_providers.dart';
 import 'package:look_atlas/features/onboarding/presentation/screens/onboarding_wizard_screen.dart';
@@ -20,6 +21,7 @@ import 'package:look_atlas/features/studio_school/di/studio_school_providers.dar
 import 'package:look_atlas/features/studio_school/presentation/studio_school_screen.dart';
 import 'package:look_atlas/features/subscription/di/subscription_providers.dart';
 import 'package:look_atlas/features/subscription/presentation/screens/paywall_screen.dart';
+import 'package:look_atlas/features/welcome_profile/presentation/welcome_profile_screen.dart';
 import 'package:look_atlas/features/workshop/di/workshop_providers.dart';
 import 'package:look_atlas/features/workshop/presentation/screens/workshop_screen.dart';
 import 'package:look_atlas/shared/widgets/custom_app_bar.dart';
@@ -33,7 +35,13 @@ void main() {
   const user = AppUser(id: 'user-1', email: 'jane@example.com');
 
   /// Builds the real app router against a fake auth session and pumps it.
-  Future<GoRouter> pumpRouter(WidgetTester tester, {AppUser? user}) async {
+  Future<GoRouter> pumpRouter(
+    WidgetTester tester, {
+    AppUser? user,
+    FakeWelcomeRepository? welcomeRepository,
+    FakeShootsRepository? shootsRepository,
+    bool settle = true,
+  }) async {
     SharedPreferences.setMockInitialValues({});
     final preferences = await SharedPreferences.getInstance();
     final container = ProviderContainer(
@@ -48,8 +56,12 @@ void main() {
         dashboardRepositoryProvider.overrideWithValue(
           const FakeDashboardRepository(),
         ),
-        welcomeRepositoryProvider.overrideWithValue(FakeWelcomeRepository()),
-        shootsRepositoryProvider.overrideWithValue(FakeShootsRepository()),
+        welcomeRepositoryProvider.overrideWithValue(
+          welcomeRepository ?? FakeWelcomeRepository(),
+        ),
+        shootsRepositoryProvider.overrideWithValue(
+          shootsRepository ?? FakeShootsRepository(),
+        ),
         productsRepositoryProvider.overrideWithValue(
           const FakeProductsRepository(),
         ),
@@ -73,7 +85,12 @@ void main() {
         child: MaterialApp.router(routerConfig: router),
       ),
     );
-    await tester.pumpAndSettle();
+    if (settle) {
+      await tester.pumpAndSettle();
+    } else {
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+    }
     return router;
   }
 
@@ -164,6 +181,20 @@ void main() {
       expect(find.byType(PaywallScreen), findsOneWidget);
     });
 
+    testWidgets('welcome route opens the standalone profile flow', (
+      tester,
+    ) async {
+      final router = await pumpRouter(tester, user: user);
+
+      router.go(AppRoutes.welcome);
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+
+      expect(currentUri(router).path, AppRoutes.welcome);
+      expect(find.byType(WelcomeProfileScreen), findsOneWidget);
+      expect(find.byType(DashboardScreen), findsNothing);
+    });
+
     testWidgets('school deep link restores after sign-in', (tester) async {
       final router = await pumpRouter(tester, user: user);
 
@@ -243,6 +274,76 @@ void main() {
       expect(find.byType(CreateShootScreen), findsOneWidget);
       expect(find.byType(CustomAppBar), findsOneWidget);
       expect(find.text('Create Shoot'), findsWidgets);
+    });
+
+    testWidgets('campaignActions_openFocusedShootBackAndWorkshopRoutes', (
+      tester,
+    ) async {
+      final welcomeRepository = FakeWelcomeRepository(
+        state: fakeEligibleWelcomeState(
+          dashboard: fakeDashboardWelcomeState(
+            completed: 6,
+            rewardClaimedAt: DateTime(2026, 8, 17),
+            campaign: const DashboardWelcomeCampaign(
+              jobId: 'job-bag',
+              keptImages: 1,
+              images: [],
+            ),
+          ),
+        ),
+      );
+      final router = await pumpRouter(
+        tester,
+        user: user,
+        welcomeRepository: welcomeRepository,
+        settle: false,
+      );
+
+      router.go(AppRoutes.home);
+      final openShoot = find.text('Open shoot (1 kept)');
+      for (
+        var attempt = 0;
+        attempt < 20 && openShoot.evaluate().isEmpty;
+        attempt++
+      ) {
+        await tester.pump(const Duration(milliseconds: 100));
+      }
+      expect(openShoot, findsOneWidget);
+      await tester.ensureVisible(openShoot);
+      await tester.pump(const Duration(milliseconds: 300));
+      tester
+          .widget<FilledButton>(
+            find.ancestor(of: openShoot, matching: find.byType(FilledButton)),
+          )
+          .onPressed!();
+      expect(currentUri(router).path, '/shoots/job-bag');
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+
+      expect(currentUri(router).path, '/shoots/job-bag');
+      expect(currentUri(router).queryParameters['from'], 'dashboard');
+      expect(find.text('Back to Dashboard'), findsOneWidget);
+
+      await tester.tap(find.text('Back to Dashboard'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+      expect(currentUri(router).path, AppRoutes.home);
+      expect(
+        find.byKey(const ValueKey('dashboard-campaign-hero')),
+        findsOneWidget,
+      );
+
+      final workshop = find.text('Fix a small flaw');
+      await tester.ensureVisible(workshop);
+      await tester.pump(const Duration(milliseconds: 300));
+      tester
+          .widget<OutlinedButton>(
+            find.ancestor(of: workshop, matching: find.byType(OutlinedButton)),
+          )
+          .onPressed!();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+      expect(currentUri(router).path, AppRoutes.workshop);
     });
 
     testWidgets('workshop route renders as a standalone feature', (

@@ -58,6 +58,9 @@ abstract final class ApiEndpoints {
   // --- Studio School ------------------------------------------------------
   static const String welcomeState = '/welcome/state';
   static const String welcomeClaimLessons = '/welcome/claim-lessons';
+  static const String welcomeClaimChecklist = '/welcome/claim-checklist';
+  static const String welcomeEvent = '/welcome/event';
+  static const String welcomeProfile = '/welcome/profile';
 
   static String welcomeLessonStart(String lessonId) =>
       '/welcome/lessons/$lessonId/start';

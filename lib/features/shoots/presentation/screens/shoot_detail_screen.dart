@@ -1,9 +1,14 @@
 part of '../../../dashboard/presentation/screens/dashboard_screen.dart';
 
 class ShootDetailScreen extends ConsumerStatefulWidget {
-  const ShootDetailScreen({required this.jobId, super.key});
+  const ShootDetailScreen({
+    required this.jobId,
+    this.fromDashboard = false,
+    super.key,
+  });
 
   final String jobId;
+  final bool fromDashboard;
 
   @override
   ConsumerState<ShootDetailScreen> createState() => _ShootDetailScreenState();
@@ -36,9 +41,12 @@ class _ShootDetailScreenState extends ConsumerState<ShootDetailScreen> {
   Widget build(BuildContext context) => AppFeatureScaffold(
     backgroundColor: AppColors.neutral50,
     title: 'Shoot Detail',
+    onBack: widget.fromDashboard ? () => _backToDashboard(context) : null,
     child: SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 28),
       child: _ShootDetailContent(
+        fromDashboard: widget.fromDashboard,
+        onBackToDashboard: () => _backToDashboard(context),
         onOpenModal: (kind) => _openDashboardModal(context, ref, kind),
         onToast: (text) => AppSnackBar.show(context, text),
       ),
@@ -47,8 +55,15 @@ class _ShootDetailScreenState extends ConsumerState<ShootDetailScreen> {
 }
 
 class _ShootDetailContent extends ConsumerWidget {
-  const _ShootDetailContent({required this.onOpenModal, required this.onToast});
+  const _ShootDetailContent({
+    required this.fromDashboard,
+    required this.onBackToDashboard,
+    required this.onOpenModal,
+    required this.onToast,
+  });
 
+  final bool fromDashboard;
+  final VoidCallback onBackToDashboard;
   final ValueChanged<_ModalKind> onOpenModal;
   final ValueChanged<String> onToast;
 
@@ -89,6 +104,14 @@ class _ShootDetailContent extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        if (fromDashboard) ...[
+          AppOutlinedButton(
+            label: 'Back to Dashboard',
+            icon: Icons.arrow_back,
+            onPressed: onBackToDashboard,
+          ),
+          const SizedBox(height: 12),
+        ],
         _PageHeader(
           title: shoot.name,
           body: 'Generated images for ${job.modelName ?? 'your model'}',
@@ -218,6 +241,14 @@ class _ShootDetailContent extends ConsumerWidget {
       ],
     );
   }
+}
+
+void _backToDashboard(BuildContext context) {
+  if (context.canPop()) {
+    context.pop();
+    return;
+  }
+  context.go(AppRoutes.home);
 }
 
 List<ShootShot> _displayShots(ShootJob job) {

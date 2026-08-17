@@ -34,4 +34,18 @@ void main() {
       throwsArgumentError,
     );
   });
+
+  test('open_calendly_accepts_only_secure_calendly_host', () async {
+    const service = ExternalUrlService(channel: channel);
+
+    await service.openCalendly(
+      Uri.parse('https://calendly.com/lookatlas/customer-onboarding'),
+    );
+
+    expect(calls.single.method, 'open');
+    expect(
+      () => service.openCalendly(Uri.parse('https://calendly.example.com')),
+      throwsArgumentError,
+    );
+  });
 }

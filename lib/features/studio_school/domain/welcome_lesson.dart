@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:look_atlas/features/dashboard/domain/entities/dashboard_welcome.dart';
 
 enum WelcomeLessonId {
   credits('credits'),
@@ -42,18 +43,21 @@ class WelcomeState {
     required this.lessons,
     this.lessonsRewardClaimedAt,
     this.isCached = false,
+    this.dashboard,
   });
 
   const WelcomeState.readOnly()
     : eligible = false,
       lessons = const {},
       lessonsRewardClaimedAt = null,
-      isCached = false;
+      isCached = false,
+      dashboard = null;
 
   final bool eligible;
   final Map<WelcomeLessonId, WelcomeLessonProgress> lessons;
   final DateTime? lessonsRewardClaimedAt;
   final bool isCached;
+  final DashboardWelcomeState? dashboard;
 
   int get completedCount =>
       lessons.values.where((lesson) => lesson.isCompleted).length;
@@ -72,6 +76,7 @@ class WelcomeState {
     lessons: lessons,
     lessonsRewardClaimedAt: lessonsRewardClaimedAt,
     isCached: isCached ?? this.isCached,
+    dashboard: dashboard,
   );
 }
 

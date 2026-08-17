@@ -3,6 +3,7 @@ import 'dart:convert';
 
 import 'package:look_atlas/core/result/result.dart';
 import 'package:look_atlas/core/storage/key_value_store.dart';
+import 'package:look_atlas/features/dashboard/domain/entities/dashboard_welcome.dart';
 import 'package:look_atlas/features/studio_school/data/studio_school_api.dart';
 import 'package:look_atlas/features/studio_school/data/welcome_dto.dart';
 import 'package:look_atlas/features/studio_school/domain/welcome_lesson.dart';
@@ -73,6 +74,34 @@ class WelcomeRepositoryImpl implements WelcomeRepository {
   @override
   Future<Result<LessonClaimResult>> claimLessons(String userId) async {
     final result = await _remote.claimLessons();
+    if (result.isOk) await clearCache(userId);
+    return result;
+  }
+
+  @override
+  Future<Result<DashboardChecklistClaim>> claimChecklist(String userId) async {
+    final result = await _remote.claimChecklist();
+    if (result.isOk) await clearCache(userId);
+    return result;
+  }
+
+  @override
+  Future<Result<void>> saveProfile(
+    String userId,
+    Map<String, Object> profile,
+  ) async {
+    final result = await _remote.saveProfile(profile);
+    if (result.isOk) await clearCache(userId);
+    return result;
+  }
+
+  @override
+  Future<Result<void>> recordEvent(
+    String userId,
+    String event, {
+    Map<String, Object>? properties,
+  }) async {
+    final result = await _remote.recordEvent(event, properties);
     if (result.isOk) await clearCache(userId);
     return result;
   }

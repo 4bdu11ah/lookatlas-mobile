@@ -18,4 +18,11 @@ class ExternalUrlService {
     }
     await _channel.invokeMethod<void>('open', {'url': url.toString()});
   }
+
+  Future<void> openCalendly(Uri url) async {
+    if (url.scheme != 'https' || url.host != 'calendly.com') {
+      throw ArgumentError.value(url, 'url', 'Untrusted Calendly URL.');
+    }
+    await _channel.invokeMethod<void>('open', {'url': url.toString()});
+  }
 }

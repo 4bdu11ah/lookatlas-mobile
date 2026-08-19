@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:look_atlas/core/error/failure.dart';
@@ -77,35 +78,38 @@ class _ActivatePaywallScreenState extends ConsumerState<ActivatePaywallScreen> {
       SubscriptionPurchasing(:final productId) => productId,
       _ => null,
     };
-    return Scaffold(
-      backgroundColor: AppColors.black,
-      body: AnimatedSwitcher(
-        duration: const Duration(milliseconds: 500),
-        child: _analyzing
-            ? _AnalyzingLoader(savedCount: savedCount, urls: savedUrls)
-            : _Paywall(
-                urls: savedUrls,
-                revenueCatSection: revenueCatProducts.when(
-                  loading: () => RevenueCatProductsSection(
-                    isLoading: true,
-                    purchasingProductId: purchasingProductId,
-                    onPurchase: _purchaseRevenueCatProduct,
-                  ),
-                  error: (error, _) => RevenueCatProductsSection(
-                    errorMessage: error is Failure
-                        ? error.message
-                        : 'Plans are unavailable right now.',
-                    purchasingProductId: purchasingProductId,
-                    onPurchase: _purchaseRevenueCatProduct,
-                    onRetry: () => ref.invalidate(revenueCatProductsProvider),
-                  ),
-                  data: (products) => RevenueCatProductsSection(
-                    products: products,
-                    purchasingProductId: purchasingProductId,
-                    onPurchase: _purchaseRevenueCatProduct,
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: SystemUiOverlayStyle.light,
+      child: Scaffold(
+        backgroundColor: AppColors.black,
+        body: AnimatedSwitcher(
+          duration: const Duration(milliseconds: 500),
+          child: _analyzing
+              ? _AnalyzingLoader(savedCount: savedCount, urls: savedUrls)
+              : _Paywall(
+                  urls: savedUrls,
+                  revenueCatSection: revenueCatProducts.when(
+                    loading: () => RevenueCatProductsSection(
+                      isLoading: true,
+                      purchasingProductId: purchasingProductId,
+                      onPurchase: _purchaseRevenueCatProduct,
+                    ),
+                    error: (error, _) => RevenueCatProductsSection(
+                      errorMessage: error is Failure
+                          ? error.message
+                          : 'Plans are unavailable right now.',
+                      purchasingProductId: purchasingProductId,
+                      onPurchase: _purchaseRevenueCatProduct,
+                      onRetry: () => ref.invalidate(revenueCatProductsProvider),
+                    ),
+                    data: (products) => RevenueCatProductsSection(
+                      products: products,
+                      purchasingProductId: purchasingProductId,
+                      onPurchase: _purchaseRevenueCatProduct,
+                    ),
                   ),
                 ),
-              ),
+        ),
       ),
     );
   }

@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
@@ -702,6 +703,14 @@ void main() {
     await tester.pump(const Duration(milliseconds: 400));
     expect(find.byType(ActivatePaywallScreen), findsOneWidget);
     expect(find.text('PLEASE HOLD'), findsOneWidget);
+    expect(
+      tester
+          .widget<AnnotatedRegion<SystemUiOverlayStyle>>(
+            find.byType(AnnotatedRegion<SystemUiOverlayStyle>),
+          )
+          .value,
+      SystemUiOverlayStyle.light,
+    );
     expect(authRepository.restoreCalls, 1);
 
     // Loader runs 4.5s, then the paywall fades in.

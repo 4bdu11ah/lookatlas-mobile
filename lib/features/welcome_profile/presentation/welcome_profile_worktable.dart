@@ -22,8 +22,14 @@ class _ProfileWorktable extends StatelessWidget {
 }
 
 class _DirectorPrints extends StatefulWidget {
-  const _DirectorPrints({required this.step});
+  const _DirectorPrints({
+    required this.step,
+    required this.animateEntrance,
+    required this.onEntranceComplete,
+  });
   final int step;
+  final bool animateEntrance;
+  final VoidCallback onEntranceComplete;
 
   static const _sets = [
     ['minimalist/1.jpg', 'luxury-editorial/3.jpg', 'lifestyle-natural/2.jpg'],
@@ -50,17 +56,31 @@ class _DirectorPrintsState extends State<_DirectorPrints>
     _controller = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 800),
-    );
+      value: widget.animateEntrance ? 0 : 1,
+    )..addStatusListener(_handleAnimationStatus);
+  }
+
+  void _handleAnimationStatus(AnimationStatus status) {
+    if (status != AnimationStatus.completed) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) widget.onEntranceComplete();
+    });
   }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    if (MediaQuery.disableAnimationsOf(context)) {
+    if (!widget.animateEntrance || MediaQuery.disableAnimationsOf(context)) {
       _controller.value = 1;
     } else if (_controller.isDismissed) {
       unawaited(_controller.forward());
     }
+  }
+
+  @override
+  void didUpdateWidget(covariant _DirectorPrints oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!widget.animateEntrance) _controller.value = 1;
   }
 
   @override
@@ -76,13 +96,14 @@ class _DirectorPrintsState extends State<_DirectorPrints>
     final entranceDistance = MediaQuery.sizeOf(context).width + 88;
     return ExcludeSemantics(
       child: SizedBox(
-        height: 160,
+        height: 180,
         child: Center(
           child: SizedBox(
             width: 250,
             height: 132,
             child: Stack(
               alignment: Alignment.topCenter,
+              clipBehavior: Clip.none,
               children: [
                 for (var index = 0; index < 3; index++)
                   Positioned(

@@ -33,7 +33,6 @@ void main() {
 
   testWidgets('SignInScreen shows the Google button, and the Apple button '
       'only on Apple platforms', (tester) async {
-    // flutter_test pins defaultTargetPlatform to android: no Apple button.
     await pumpSignInScreen(tester);
 
     expect(find.text('or continue with'), findsOneWidget);
@@ -41,13 +40,11 @@ void main() {
     expect(find.text('Continue with Apple'), findsNothing);
 
     debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
-    await tester.pumpWidget(Container()); // force a fresh build
+    await tester.pumpWidget(Container());
     await pumpSignInScreen(tester);
 
     expect(find.text('Continue with Apple'), findsOneWidget);
     expect(find.text('Continue with Google'), findsOneWidget);
-    // Must be reset before the test body ends, or the binding's foundation
-    // invariant check fails the test.
     debugDefaultTargetPlatformOverride = null;
   });
 

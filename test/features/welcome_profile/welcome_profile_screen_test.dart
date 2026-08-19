@@ -150,6 +150,81 @@ void main() {
     }
   });
 
+  testWidgets('directorPrints_allowTheirShadowsToExtendBelowThePhotoStack', (
+    tester,
+  ) async {
+    await pumpFlow(tester, reduceMotion: true);
+
+    final photoStack = find.descendant(
+      of: find.byKey(const ValueKey('director-print-0')),
+      matching: find.byType(Stack),
+    );
+
+    expect(tester.widget<Stack>(photoStack).clipBehavior, Clip.none);
+  });
+
+  testWidgets('directorPrints_doNotReplayWhenKeyboardCloses', (tester) async {
+    await pumpFlow(tester);
+    await tester.pump(const Duration(milliseconds: 800));
+
+    tester.view.viewInsets = const FakeViewPadding(bottom: 300);
+    await tester.pump();
+    tester.view.viewInsets = FakeViewPadding.zero;
+    await tester.pump();
+
+    final translation = tester
+        .widget<Transform>(
+          find
+              .descendant(
+                of: find.byKey(const ValueKey('director-print-0')),
+                matching: find.byType(Transform),
+              )
+              .first,
+        )
+        .transform
+        .storage[12];
+    expect(translation, closeTo(0, .01));
+  });
+
+  testWidgets('directorPrints_doNotReplayWhenProfileStepChanges', (
+    tester,
+  ) async {
+    await pumpFlow(tester);
+    await tester.pump(const Duration(milliseconds: 800));
+
+    await tester.enterText(find.byType(TextField).first, 'example.com');
+    await tester.tap(find.text('Continue'));
+    await tester.pump();
+
+    final translation = tester
+        .widget<Transform>(
+          find
+              .descendant(
+                of: find.byKey(const ValueKey('director-print-0')),
+                matching: find.byType(Transform),
+              )
+              .first,
+        )
+        .transform
+        .storage[12];
+    expect(translation, closeTo(0, .01));
+  });
+
+  testWidgets('profileSteps_reserveSpaceBelowScrollableContent', (
+    tester,
+  ) async {
+    await pumpFlow(tester);
+
+    final scrollView = tester.widget<SingleChildScrollView>(
+      find.byType(SingleChildScrollView),
+    );
+
+    final padding = scrollView.padding!.resolve(TextDirection.ltr);
+    expect(padding.left, 24);
+    expect(padding.right, 24);
+    expect(padding.bottom, 54);
+  });
+
   testWidgets('brandField_doesNotAutofocusOnScreenOpen', (tester) async {
     await pumpFlow(tester);
 

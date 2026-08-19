@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
@@ -176,6 +177,7 @@ void main() {
     OnboardingRepository? onboardingRepository,
     ImagePicker? imagePicker,
     OnboardingStatus? onboardingStatus,
+    Future<OnboardingStatus>? onboardingStatusFuture,
     SubscriptionRepository? subscriptionRepository,
   }) async {
     SharedPreferences.setMockInitialValues(const {});
@@ -214,9 +216,17 @@ void main() {
           (ref) async => const <OnboardingUserModel>[],
         ),
         onboardingStatusProvider.overrideWith(
-          (ref) => onboardingStatus == null
-              ? Future.error(StateError('Status unavailable in widget test'))
-              : Future.value(onboardingStatus),
+          (ref) =>
+              onboardingStatusFuture ??
+              (onboardingStatus == null
+                  ? Future.value(
+                      const OnboardingStatus(
+                        freeShootUsed: false,
+                        onboardingImages: [],
+                        hasCalibration: false,
+                      ),
+                    )
+                  : Future.value(onboardingStatus)),
         ),
         onboardingProductsProvider.overrideWith((ref) async => const []),
         billingPlansProvider.overrideWith((ref) async => const []),
@@ -245,6 +255,43 @@ void main() {
     await tester.pumpWidget(const SizedBox());
     await tester.pump(const Duration(minutes: 2));
   }
+
+  testWidgets(
+    'waits for access status before rendering the onboarding wizard',
+    (
+      tester,
+    ) async {
+      final status = Completer<OnboardingStatus>();
+      final onboardingRepository = _MockOnboardingRepository();
+      when(
+        () => onboardingRepository.updateStatus(
+          OnboardingTrackingStatus.onboarding,
+        ),
+      ).thenAnswer((_) async => const Result.ok(null));
+      final router = await pumpApp(
+        tester,
+        onboardingRepository: onboardingRepository,
+        onboardingStatusFuture: status.future,
+      );
+
+      router.go(AppRoutes.onboarding);
+      await tester.pump();
+
+      expect(find.text('Get My Free Photos'), findsNothing);
+
+      status.complete(
+        const OnboardingStatus(
+          freeShootUsed: false,
+          onboardingImages: [],
+          hasCalibration: false,
+        ),
+      );
+      await tester.pump();
+      await tester.pump();
+
+      expect(find.text('Get My Free Photos'), findsOneWidget);
+    },
+  );
 
   testWidgets('wizard walks intro → product → model → director → review', (
     tester,

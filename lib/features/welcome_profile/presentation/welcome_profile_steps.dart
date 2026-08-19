@@ -6,7 +6,7 @@ class _ProfileProgress extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.fromLTRB(24, 26, 24, 0),
+    padding: const EdgeInsets.fromLTRB(24, 26, 24, 20),
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -68,33 +68,30 @@ class _BrandStep extends StatelessWidget {
     body: 'We tune your shoots to what you sell.',
     child: Column(
       children: [
-        _ProfileTextField(
-          semanticLabel: 'Store URL',
-          controller: brandController,
-          focusNode: urlFocus,
-          hintText: 'Store URL (yourstore.com)',
-          keyboardType: TextInputType.url,
-          hasError: showUrlError,
-          onChanged: (_) => onChanged(),
-        ),
-        if (showUrlError)
-          const Padding(
-            padding: EdgeInsets.only(top: 6),
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                'Enter a web address like yourstore.com',
-                style: TextStyle(color: AppColors.danger, fontSize: 13),
-              ),
-            ),
+        Semantics(
+          label: 'Store URL',
+          textField: true,
+          child: AppTextField(
+            controller: brandController,
+            focusNode: urlFocus,
+            hintText: 'Store URL (yourstore.com)',
+            keyboardType: TextInputType.url,
+            validator: (_) =>
+                showUrlError ? 'Enter a web address like yourstore.com' : null,
+            autovalidateMode: AutovalidateMode.always,
+            onChanged: (_) => onChanged(),
           ),
+        ),
         const SizedBox(height: 12),
-        _ProfileTextField(
-          semanticLabel: 'What do you sell?',
-          controller: verticalController,
-          hintText: 'What do you sell? Jewelry, dresses, bags...',
-          textInputAction: TextInputAction.done,
-          onChanged: (_) => onChanged(),
+        Semantics(
+          label: 'What do you sell?',
+          textField: true,
+          child: AppTextField(
+            controller: verticalController,
+            hintText: 'What do you sell? Jewelry, dresses, bags...',
+            textInputAction: TextInputAction.done,
+            onChanged: (_) => onChanged(),
+          ),
         ),
       ],
     ),
@@ -109,20 +106,20 @@ class _UsesStep extends StatelessWidget {
   static const List<(String, IconData, String, String)> _options = [
     (
       'product_pages',
-      Icons.inventory_2_outlined,
+      LucideIcons.store,
       'Product pages',
       'Clean shots for your store.',
     ),
-    ('ads', Icons.ads_click_outlined, 'Ads', 'Scroll-stopping creative.'),
+    ('ads', LucideIcons.megaphone, 'Ads', 'Scroll-stopping creative.'),
     (
       'social',
-      Icons.mobile_screen_share_outlined,
+      LucideIcons.sparkles,
       'Social',
       'Posts and stories.',
     ),
     (
       'lookbook',
-      Icons.auto_stories_outlined,
+      LucideIcons.images,
       'Lookbook',
       'A full campaign look.',
     ),
@@ -137,10 +134,10 @@ class _UsesStep extends StatelessWidget {
     child: Column(
       children: [
         for (final option in _options) ...[
-          _ChoiceCard(
+          ProfileUseCard(
             icon: option.$2,
             title: option.$3,
-            body: option.$4,
+            subtitle: option.$4,
             selected: selected.contains(option.$1),
             onPressed: () => onToggle(option.$1),
           ),
@@ -164,19 +161,19 @@ class _CadenceStep extends StatelessWidget {
     body: 'This shapes how we plan your shoots.',
     child: Column(
       children: [
-        _ChoiceCard(
-          icon: Icons.crop_square,
+        ProfileUseCard(
+          icon: LucideIcons.package,
           title: 'One collection for now',
-          body: 'A catalog to shoot, start to finish.',
+          subtitle: 'A catalog to shoot, start to finish.',
           selected: selected == 'one_collection',
           mutuallyExclusive: true,
           onPressed: () => onSelected('one_collection'),
         ),
         const SizedBox(height: 12),
-        _ChoiceCard(
-          icon: Icons.autorenew,
+        ProfileUseCard(
+          icon: LucideIcons.repeat,
           title: 'Ongoing drops',
-          body: 'New pieces landing all the time.',
+          subtitle: 'New pieces landing all the time.',
           selected: selected == 'ongoing_drops',
           mutuallyExclusive: true,
           onPressed: () => onSelected('ongoing_drops'),
@@ -235,11 +232,14 @@ class _ReferralStep extends StatelessWidget {
         ),
         if (selected == 'other') ...[
           const SizedBox(height: 18),
-          _ProfileTextField(
-            semanticLabel: 'Tell us where',
-            controller: otherController,
-            autofocus: true,
-            hintText: 'Tell us where',
+          Semantics(
+            label: 'Tell us where',
+            textField: true,
+            child: AppTextField(
+              controller: otherController,
+              autofocus: true,
+              hintText: 'Tell us where',
+            ),
           ),
         ],
       ],

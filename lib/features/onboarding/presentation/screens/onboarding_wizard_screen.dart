@@ -5,8 +5,6 @@ import 'package:look_atlas/core/router/app_routes.dart';
 import 'package:look_atlas/features/auth/di/auth_providers.dart';
 import 'package:look_atlas/features/onboarding/di/onboarding_providers.dart';
 import 'package:look_atlas/features/onboarding/domain/entities/onboarding_config.dart';
-import 'package:look_atlas/features/onboarding/domain/entities/onboarding_product.dart';
-import 'package:look_atlas/features/onboarding/domain/entities/onboarding_status.dart';
 import 'package:look_atlas/features/onboarding/domain/onboarding_models.dart';
 import 'package:look_atlas/features/onboarding/presentation/controllers/onboarding_submission_controller.dart';
 import 'package:look_atlas/features/onboarding/presentation/providers/generation_controller.dart';
@@ -19,6 +17,7 @@ import 'package:look_atlas/features/onboarding/presentation/widgets/steps/model_
 import 'package:look_atlas/features/onboarding/presentation/widgets/steps/product_step.dart';
 import 'package:look_atlas/features/onboarding/presentation/widgets/steps/review_step.dart';
 import 'package:look_atlas/shared/widgets/app_snack_bar.dart';
+import 'package:look_atlas/shared/widgets/look_atlas_loader.dart';
 
 /// The authenticated free-shoot wizard (screens 01–06 of the mockups).
 /// One route hosts all six steps; [wizardControllerProvider] owns which step
@@ -34,6 +33,9 @@ class OnboardingWizardScreen extends ConsumerStatefulWidget {
 
 class _OnboardingWizardScreenState
     extends ConsumerState<OnboardingWizardScreen> {
+  bool _isCheckingAccess = true;
+  bool _accessCheckFailed = false;
+
   @override
   void initState() {
     super.initState();
@@ -42,22 +44,16 @@ class _OnboardingWizardScreenState
 
   Future<void> _bootstrap() async {
     if (ref.read(authRepositoryProvider).currentUser == null) return;
+    setState(() {
+      _isCheckingAccess = true;
+      _accessCheckFailed = false;
+    });
     try {
-      final responses = await Future.wait([
-        ref.read(onboardingStatusProvider.future),
-        ref.read(onboardingProductsProvider.future),
-      ]);
-      final status = responses[0] as OnboardingStatus;
-      final products = responses[1] as List<OnboardingProduct>;
+      final status = await ref.read(onboardingStatusProvider.future);
       if (!mounted) return;
       if (status.hasActiveSubscription) {
         context.go(AppRoutes.home);
         return;
-      }
-      if (products.isNotEmpty) {
-        ref
-            .read(onboardingSubmissionControllerProvider.notifier)
-            .restoreProductId(products.first.id);
       }
       final jobStatus = status.onboardingJobStatus?.toLowerCase();
       if ({'generating', 'enqueued', 'processing'}.contains(jobStatus)) {
@@ -74,12 +70,31 @@ class _OnboardingWizardScreenState
         context.go(AppRoutes.onboardingActivate);
         return;
       }
-      await ref.read(updateOnboardingStatusUseCaseProvider)(
-        OnboardingTrackingStatus.onboarding,
-      );
+      setState(() => _isCheckingAccess = false);
+      try {
+        final products = await ref.read(onboardingProductsProvider.future);
+        if (products.isNotEmpty) {
+          ref
+              .read(onboardingSubmissionControllerProvider.notifier)
+              .restoreProductId(products.first.id);
+        }
+      } on Object {
+        // Restoring a saved product is optional. Access was already checked.
+      }
+      try {
+        await ref.read(updateOnboardingStatusUseCaseProvider)(
+          OnboardingTrackingStatus.onboarding,
+        );
+      } on Object {
+        // Funnel analytics must not block an already-authorized user.
+      }
     } on Object {
-      // Status bootstrap failure is recoverable. Wizard remains usable and
-      // the first mutating API call will surface a concrete server error.
+      if (mounted) {
+        setState(() {
+          _isCheckingAccess = false;
+          _accessCheckFailed = true;
+        });
+      }
     }
   }
 
@@ -128,6 +143,29 @@ class _OnboardingWizardScreenState
 
   @override
   Widget build(BuildContext context) {
+    if (_isCheckingAccess) {
+      return const Scaffold(body: Center(child: LookAtlasLoader()));
+    }
+    if (_accessCheckFailed) {
+      return Scaffold(
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text('Could not check your onboarding status.'),
+                const SizedBox(height: 12),
+                OutlinedButton(
+                  onPressed: _bootstrap,
+                  child: const Text('Retry'),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
     final state = ref.watch(wizardControllerProvider);
     final isSavingAsset = ref.watch(
       onboardingSubmissionControllerProvider.select(

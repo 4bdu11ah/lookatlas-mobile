@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:look_atlas/core/providers/core_providers.dart';
 import 'package:look_atlas/core/router/app_router.dart';
 import 'package:look_atlas/core/router/app_routes.dart';
@@ -477,7 +478,7 @@ void main() {
 
       router.go(AppRoutes.home);
       await tester.pumpAndSettle();
-      await tester.tap(find.byIcon(Icons.menu));
+      await tester.tap(find.byIcon(LucideIcons.menu));
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('dashboard-drawer-models')));
       await tester.pump();

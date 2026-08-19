@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 class AppTextField extends StatefulWidget {
   const AppTextField({
     this.controller,
+    this.focusNode,
     this.fieldKey,
     this.labelText,
     this.hintText,
@@ -16,6 +17,7 @@ class AppTextField extends StatefulWidget {
     this.autofillHints,
     this.keyboardType,
     this.textInputAction,
+    this.autofocus = false,
     this.obscureText = false,
     this.expands = false,
     this.textStyle,
@@ -57,6 +59,7 @@ class AppTextField extends StatefulWidget {
   static const double singleLineHeight = 55;
 
   final TextEditingController? controller;
+  final FocusNode? focusNode;
   final Key? fieldKey;
   final String? labelText;
   final String? hintText;
@@ -68,6 +71,7 @@ class AppTextField extends StatefulWidget {
   final Iterable<String>? autofillHints;
   final TextInputType? keyboardType;
   final TextInputAction? textInputAction;
+  final bool autofocus;
   final bool obscureText;
   final bool expands;
   final TextStyle? textStyle;
@@ -186,6 +190,8 @@ class _AppTextFieldState extends State<AppTextField> {
     return TextFormField(
       key: widget.fieldKey,
       controller: _controller,
+      focusNode: widget.focusNode,
+      autofocus: widget.autofocus,
       onChanged: widget.onChanged,
       onFieldSubmitted: widget.onFieldSubmitted,
       validator: widget.validator,

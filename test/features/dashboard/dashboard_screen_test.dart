@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:look_atlas/core/providers/core_providers.dart';
 import 'package:look_atlas/core/result/result.dart';
 import 'package:look_atlas/core/theme/app_theme.dart';
@@ -342,7 +343,7 @@ void main() {
   ) async {
     await pumpDashboard(tester);
 
-    await tester.tap(find.byIcon(Icons.menu));
+    await tester.tap(find.byIcon(LucideIcons.menu));
     await tester.pumpAndSettle();
 
     expect(find.text('Look Atlas'), findsWidgets);

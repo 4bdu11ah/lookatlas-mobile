@@ -8,6 +8,7 @@ import 'package:look_atlas/services/device/device_info_service.dart';
 import 'package:look_atlas/services/device/device_token_service.dart';
 import 'package:look_atlas/services/external_url_service.dart';
 import 'package:look_atlas/services/image_save_service.dart';
+import 'package:look_atlas/services/local_notification_service.dart';
 
 final analyticsServiceProvider = Provider<AnalyticsService>((ref) {
   final backend = BackendAnalyticsService(
@@ -36,4 +37,8 @@ final externalUrlServiceProvider = Provider<ExternalUrlService>(
 
 final imageSaveServiceProvider = Provider<ImageSaveService>(
   (ref) => const ImageSaveService(),
+);
+
+final localNotificationServiceProvider = Provider<LocalNotificationService>(
+  (ref) => FlutterLocalNotificationService(),
 );

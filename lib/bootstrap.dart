@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:look_atlas/app/app.dart';
 import 'package:look_atlas/core/config/app_config.dart';
 import 'package:look_atlas/core/providers/core_providers.dart';
+import 'package:look_atlas/core/router/app_router.dart';
 import 'package:look_atlas/features/auth/di/auth_providers.dart';
 import 'package:look_atlas/features/auth/domain/repositories/auth_repository.dart';
 import 'package:look_atlas/features/subscription/di/subscription_providers.dart';
@@ -92,6 +93,14 @@ Future<void> _warmDeferred(ProviderContainer container) async {
       await container
           .read(subscriptionRepositoryProvider)
           .configure(appUserId: userId);
+    }),
+    _guard('local notifications', () {
+      return container
+          .read(localNotificationServiceProvider)
+          .initialize(
+            onTap: (destination) =>
+                container.read(routerProvider).go(destination),
+          );
     }),
   ]);
 }

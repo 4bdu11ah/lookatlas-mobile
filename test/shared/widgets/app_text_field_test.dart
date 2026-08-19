@@ -159,6 +159,24 @@ void main() {
     expect(textField.keyboardType, TextInputType.number);
   });
 
+  testWidgets('AppTextField forwards focus settings', (tester) async {
+    final focusNode = FocusNode();
+    addTearDown(focusNode.dispose);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.light(),
+        home: Scaffold(
+          body: AppTextField(focusNode: focusNode, autofocus: true),
+        ),
+      ),
+    );
+
+    final textField = tester.widget<TextField>(find.byType(TextField));
+    expect(textField.focusNode, same(focusNode));
+    expect(textField.autofocus, isTrue);
+  });
+
   testWidgets('AppTextField supports leading and trailing widgets', (
     tester,
   ) async {

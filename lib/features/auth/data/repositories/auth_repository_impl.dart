@@ -187,10 +187,11 @@ class AuthRepositoryImpl implements AuthRepository {
     final result = await _remote.refresh(refreshToken);
     // A failure (including a rejected/expired refresh token) reports "no
     // token"; the caller reacts via handleSessionExpired.
-    final token = result.valueOrNull;
-    if (token == null) return null;
-    await _tokenCache.set(token);
-    return token;
+    final session = result.valueOrNull;
+    if (session == null) return null;
+    await _secureStorage.setRefreshToken(session.refreshToken);
+    await _tokenCache.set(session.accessToken);
+    return session.accessToken;
   }
 
   @override

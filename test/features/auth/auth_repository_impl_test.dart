@@ -322,12 +322,20 @@ void main() {
       when(() => storage.refreshToken).thenAnswer((_) async => 'refresh-1');
       when(
         () => remote.refresh('refresh-1'),
-      ).thenAnswer((_) async => const Result.ok('access-2'));
+      ).thenAnswer(
+        (_) async => const Result.ok(
+          AuthRefreshModel(
+            accessToken: 'access-2',
+            refreshToken: 'refresh-2',
+          ),
+        ),
+      );
 
       final token = await repository.refreshSession();
 
       expect(token, 'access-2');
       verify(() => tokenCache.set('access-2')).called(1);
+      verify(() => storage.setRefreshToken('refresh-2')).called(1);
     });
 
     test('returns null without a stored refresh token', () async {

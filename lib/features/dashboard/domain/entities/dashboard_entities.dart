@@ -1,17 +1,17 @@
 part of '../../presentation/screens/dashboard_screen.dart';
 
 enum _DashboardPage {
-  dashboard('Dashboard', Icons.dashboard_outlined),
-  workshop('Workshop', Icons.auto_fix_high_outlined),
-  jobs('Shoots', Icons.play_arrow_outlined),
-  products('Products', Icons.inventory_2_outlined),
-  models('House Models', Icons.groups_outlined),
-  billing('Billing', Icons.credit_card_outlined),
-  settings('Settings', Icons.settings_outlined),
-  support('Support', Icons.help_outline),
-  assistant('Assistant', Icons.auto_awesome_outlined),
-  school('Studio School', Icons.school_outlined),
-  guides('Guides', Icons.menu_book_outlined);
+  dashboard('Dashboard', LucideIcons.layoutDashboard),
+  workshop('Workshop', LucideIcons.wand2),
+  jobs('Shoots', LucideIcons.play),
+  products('Products', LucideIcons.package),
+  models('House Models', LucideIcons.users),
+  billing('Billing', LucideIcons.creditCard),
+  settings('Settings', LucideIcons.settings),
+  support('Support', LucideIcons.messageCircle),
+  assistant('Assistant', LucideIcons.wand2),
+  school('Studio School', LucideIcons.graduationCap),
+  guides('Guides', LucideIcons.bookOpen);
 
   const _DashboardPage(this.label, this.icon);
 

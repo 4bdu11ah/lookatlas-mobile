@@ -333,6 +333,21 @@ class _ShootDetailController extends Notifier<_ShootDetailState> {
     }
     if (!progress.isActive) {
       _statusTimer?.cancel();
+      if ((previous?.isActive ?? false) && progress.status == 'completed') {
+        unawaited(
+          ref
+              .read(localNotificationServiceProvider)
+              .showCompletion(
+                taskId: 'shoot-${state.jobId}',
+                title: 'Shoot completed',
+                body: 'Your shoot is ready to review.',
+                destination: AppRoutes.shootDetail(
+                  state.jobId,
+                  fromDashboard: true,
+                ),
+              ),
+        );
+      }
     }
   }
 
@@ -375,6 +390,19 @@ class _ShootDetailController extends Notifier<_ShootDetailState> {
       if (status == ShootImageEditState.completed) {
         timer.cancel();
         await load(state.jobId, silent: true);
+        unawaited(
+          ref
+              .read(localNotificationServiceProvider)
+              .showCompletion(
+                taskId: 'shoot-edit-${state.jobId}-$imageId',
+                title: 'Image edit completed',
+                body: 'Your AI image edit is ready to review.',
+                destination: AppRoutes.shootDetail(
+                  state.jobId,
+                  fromDashboard: true,
+                ),
+              ),
+        );
       } else if (status == ShootImageEditState.failed ||
           _editPollCount >= 100) {
         timer.cancel();

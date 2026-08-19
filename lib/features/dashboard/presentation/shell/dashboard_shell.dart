@@ -244,11 +244,14 @@ class _Header extends StatelessWidget {
       ),
       child: Row(
         children: [
-          _IconButton(
-            icon: Icons.menu,
-            label: 'Open navigation',
+          SizedBox.square(
             dimension: 40,
-            onTap: () => Scaffold.of(context).openDrawer(),
+            child: AppIconButton(
+              icon: LucideIcons.menu,
+              tooltip: 'Open navigation',
+              onPressed: () => Scaffold.of(context).openDrawer(),
+              color: AppColors.inkAlpha68,
+            ),
           ),
           const Spacer(),
           if (showCompleteProfile) ...[
@@ -301,7 +304,7 @@ class _CompactProfileButton extends StatelessWidget {
       child: const Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.auto_awesome_outlined, size: 15),
+          Icon(LucideIcons.sparkles, size: 16),
           SizedBox(width: 4),
           Flexible(
             child: Text(
@@ -374,10 +377,11 @@ class _DashboardDrawer extends StatelessWidget {
                       ),
                     ),
                   ),
-                  _IconButton(
-                    icon: Icons.close,
-                    label: 'Close navigation',
-                    onTap: () => Navigator.pop(context),
+                  AppIconButton(
+                    icon: LucideIcons.x,
+                    tooltip: 'Close navigation',
+                    onPressed: () => Navigator.pop(context),
+                    color: AppColors.inkAlpha68,
                   ),
                 ],
               ),
@@ -467,17 +471,17 @@ class _UserMenu extends StatelessWidget {
             ),
             const _Hairline(),
             _MenuRow(
-              icon: Icons.account_circle_outlined,
+              icon: LucideIcons.userCircle,
               label: 'Account Settings',
               onTap: onSettings,
             ),
             _MenuRow(
-              icon: Icons.credit_card_outlined,
+              icon: LucideIcons.creditCard,
               label: 'Billing & Credits',
               onTap: onBilling,
             ),
             _MenuRow(
-              icon: Icons.logout,
+              icon: LucideIcons.logOut,
               label: 'Log Out',
               onTap: () => unawaited(onLogOut()),
             ),

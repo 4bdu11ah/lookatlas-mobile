@@ -140,8 +140,8 @@ class _HouseModelController extends Notifier<_HouseModelScreenState> {
     required _ModelGender gender,
     required int age,
     required String description,
-  }) {
-    return _mutate(
+  }) async {
+    final result = await _mutate(
       () => _repository.generateModel(
         AiHouseModelDraft(
           gender: switch (gender) {
@@ -153,6 +153,19 @@ class _HouseModelController extends Notifier<_HouseModelScreenState> {
         ),
       ),
     );
+    if (result case Ok()) {
+      unawaited(
+        ref
+            .read(localNotificationServiceProvider)
+            .showCompletion(
+              taskId: 'house-model-${DateTime.now().microsecondsSinceEpoch}',
+              title: 'AI model completed',
+              body: 'Your AI model is ready to use in a shoot.',
+              destination: AppRoutes.dashboardModels,
+            ),
+      );
+    }
+    return result;
   }
 
   Future<Result<void>> _mutate(

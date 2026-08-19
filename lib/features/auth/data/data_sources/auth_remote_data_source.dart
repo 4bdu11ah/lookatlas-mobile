@@ -37,9 +37,9 @@ abstract interface class AuthRemoteDataSource {
   /// token server-side.
   Future<Result<void>> logout();
 
-  /// `POST /auth/refresh` — exchanges the refresh token for a new access
-  /// token. The backend does NOT rotate the refresh token.
-  Future<Result<String>> refresh(String refreshToken);
+  /// `POST /auth/refresh` — exchanges a single-use refresh token for a new
+  /// access/refresh pair.
+  Future<Result<AuthRefreshModel>> refresh(String refreshToken);
 
   /// `POST /auth/forgot-password` — always 200, regardless of whether the
   /// email exists (anti-enumeration).
@@ -159,18 +159,13 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   );
 
   @override
-  Future<Result<String>> refresh(String refreshToken) async {
-    final result = await _publicApi.post<String?>(
+  Future<Result<AuthRefreshModel>> refresh(String refreshToken) async {
+    final result = await _publicApi.post<AuthRefreshModel>(
       ApiEndpoints.authRefresh,
       data: {'refreshToken': refreshToken},
-      decoder: (data) => AuthSessionModel.extractAccessToken(_bodyAsMap(data)),
+      decoder: (data) => AuthRefreshModel.fromJson(_bodyAsMap(data)),
     );
-    return result.fold(
-      (token) => token == null || token.isEmpty
-          ? const Err(AuthFailure('Your session has expired.'))
-          : Ok(token),
-      Err.new,
-    );
+    return result;
   }
 
   @override

@@ -6,6 +6,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:look_atlas/core/error/failure.dart';
 import 'package:look_atlas/core/logging/app_logger.dart';
 import 'package:look_atlas/core/result/result.dart';
+import 'package:look_atlas/core/router/app_routes.dart';
 import 'package:look_atlas/features/workshop/di/workshop_providers.dart';
 import 'package:look_atlas/features/workshop/domain/entities/workshop_models.dart';
 import 'package:look_atlas/features/workshop/domain/repositories/workshop_repository.dart';
@@ -336,6 +337,7 @@ class WorkshopController extends Notifier<WorkshopState> {
   }
 
   void _applyGeneration(WorkshopGeneration generation) {
+    final wasActive = state.activeGeneration?.id == generation.id;
     final history = _replaceGeneration(state.history, generation);
     if (generation.isActive) {
       state = state.copyWith(
@@ -354,6 +356,18 @@ class WorkshopController extends Notifier<WorkshopState> {
       failure: null,
       validationMessage: workshopCompletedGenerationMessage(generation),
     );
+    if (wasActive && generation.hasImage) {
+      unawaited(
+        ref
+            .read(localNotificationServiceProvider)
+            .showCompletion(
+              taskId: 'workshop-${generation.id}',
+              title: 'Workshop edit completed',
+              body: 'Your AI edit is ready to view.',
+              destination: AppRoutes.workshop,
+            ),
+      );
+    }
     unawaited(_refreshHistory());
   }
 

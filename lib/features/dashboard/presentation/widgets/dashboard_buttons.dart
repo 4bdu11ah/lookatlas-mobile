@@ -5,13 +5,11 @@ class _IconButton extends StatelessWidget {
     required this.icon,
     required this.label,
     required this.onTap,
-    this.dimension = 44,
   });
 
   final IconData icon;
   final String label;
   final VoidCallback onTap;
-  final double dimension;
 
   @override
   Widget build(BuildContext context) {
@@ -21,7 +19,7 @@ class _IconButton extends StatelessWidget {
       child: InkWell(
         onTap: onTap,
         child: SizedBox.square(
-          dimension: dimension,
+          dimension: 44,
           child: Icon(icon, size: 20, color: AppColors.inkAlpha68),
         ),
       ),

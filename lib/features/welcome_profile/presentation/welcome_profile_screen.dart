@@ -3,6 +3,8 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
+
 import 'package:look_atlas/core/providers/core_providers.dart';
 import 'package:look_atlas/core/router/app_routes.dart';
 import 'package:look_atlas/core/theme/app_colors.dart';
@@ -14,14 +16,28 @@ import 'package:look_atlas/features/studio_school/presentation/studio_school_con
 import 'package:look_atlas/features/studio_school/presentation/studio_school_state.dart';
 import 'package:look_atlas/features/welcome_profile/domain/welcome_profile_draft.dart';
 import 'package:look_atlas/shared/widgets/app_snack_bar.dart';
+import 'package:look_atlas/shared/widgets/app_text_field.dart';
 import 'package:look_atlas/shared/widgets/look_atlas_loader.dart';
-import 'package:look_atlas/shared/widgets/primary_button.dart';
+import 'package:look_atlas/shared/widgets/loading_icon_button.dart';
+import 'package:look_atlas/shared/widgets/profile_use_card.dart';
 
 part 'welcome_profile_steps.dart';
 part 'welcome_profile_controls.dart';
 part 'welcome_profile_worktable.dart';
 
 enum _ProfileStep { brand, uses, cadence, referral }
+
+class _ProfilePrintsAnimated extends Notifier<bool> {
+  @override
+  bool build() => false;
+
+  void complete() => state = true;
+}
+
+final _profilePrintsAnimatedProvider =
+    NotifierProvider.autoDispose<_ProfilePrintsAnimated, bool>(
+      _ProfilePrintsAnimated.new,
+    );
 
 class WelcomeProfileScreen extends ConsumerStatefulWidget {
   const WelcomeProfileScreen({super.key});
@@ -79,6 +95,7 @@ class _WelcomeProfileScreenState extends ConsumerState<WelcomeProfileScreen> {
       return const Scaffold(body: Center(child: LookAtlasLoader()));
     }
     if (!_initialized) _initialize(welcome.dashboard?.profile);
+    final printsAnimated = ref.watch(_profilePrintsAnimatedProvider);
     final keyboardOpen = MediaQuery.viewInsetsOf(context).bottom > 0;
     return Scaffold(
       resizeToAvoidBottomInset: true,
@@ -86,7 +103,16 @@ class _WelcomeProfileScreenState extends ConsumerState<WelcomeProfileScreen> {
         child: SafeArea(
           child: Column(
             children: [
-              if (!keyboardOpen) _DirectorPrints(step: _step.index),
+              Offstage(
+                offstage: keyboardOpen,
+                child: _DirectorPrints(
+                  step: _step.index,
+                  animateEntrance: !printsAnimated,
+                  onEntranceComplete: () => ref
+                      .read(_profilePrintsAnimatedProvider.notifier)
+                      .complete(),
+                ),
+              ),
               Expanded(
                 child: Column(
                   children: [
@@ -95,9 +121,11 @@ class _WelcomeProfileScreenState extends ConsumerState<WelcomeProfileScreen> {
                       child: LayoutBuilder(
                         builder: (context, constraints) =>
                             SingleChildScrollView(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 24,
-                                vertical: 30,
+                              padding: const EdgeInsets.fromLTRB(
+                                24,
+                                0,
+                                24,
+                                54,
                               ),
                               child: ConstrainedBox(
                                 constraints: BoxConstraints(

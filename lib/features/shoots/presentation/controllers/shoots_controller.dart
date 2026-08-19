@@ -89,6 +89,10 @@ class _ShootsController extends Notifier<_ShootsScreenState> {
       return;
     }
     final page = result.valueOrNull!;
+    final completedJobIds = {
+      for (final shoot in state.shoots)
+        if (shoot.status == 'processing') shoot.id,
+    };
     final shoots = [
       for (final job in page.jobs) _Shoot.fromJob(job),
     ];
@@ -100,6 +104,20 @@ class _ShootsController extends Notifier<_ShootsScreenState> {
       isRefreshing: false,
       clearFailure: true,
     );
+    for (final job in page.jobs) {
+      if (completedJobIds.contains(job.id) && job.isCompleted) {
+        unawaited(
+          ref
+              .read(localNotificationServiceProvider)
+              .showCompletion(
+                taskId: 'shoot-${job.id}',
+                title: 'Shoot completed',
+                body: 'Your shoot is ready to review.',
+                destination: AppRoutes.shootDetail(job.id, fromDashboard: true),
+              ),
+        );
+      }
+    }
     _schedulePolling(page.jobs.any((job) => job.isActive));
   }
 

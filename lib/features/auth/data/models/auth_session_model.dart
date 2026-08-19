@@ -106,3 +106,34 @@ class AuthSessionModel {
     }
   }
 }
+
+/// The rotated token pair returned by `POST /auth/refresh`.
+///
+/// A refresh token is single-use, so callers must replace both stored values
+/// before replaying the failed request.
+class AuthRefreshModel {
+  const AuthRefreshModel({
+    required this.accessToken,
+    required this.refreshToken,
+    this.expiresIn,
+  });
+
+  factory AuthRefreshModel.fromJson(Map<String, dynamic> json) {
+    final accessToken = AuthSessionModel.extractAccessToken(json);
+    final refreshToken = json['refreshToken'] ?? json['refresh_token'];
+    if (accessToken == null ||
+        refreshToken is! String ||
+        refreshToken.isEmpty) {
+      throw const FormatException('Refresh response contains no token pair.');
+    }
+    return AuthRefreshModel(
+      accessToken: accessToken,
+      refreshToken: refreshToken,
+      expiresIn: ((json['expiresIn'] ?? json['expires_in']) as num?)?.toInt(),
+    );
+  }
+
+  final String accessToken;
+  final String refreshToken;
+  final int? expiresIn;
+}

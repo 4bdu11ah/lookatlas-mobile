@@ -7,6 +7,10 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:native_cutout/native_cutout.dart';
+import 'package:purchases_flutter/purchases_flutter.dart' as revenuecat;
+
 import 'package:look_atlas/core/error/failure.dart';
 import 'package:look_atlas/core/layout/app_responsive.dart';
 import 'package:look_atlas/core/result/result.dart';
@@ -43,6 +47,7 @@ import 'package:look_atlas/features/subscription/di/subscription_providers.dart'
 import 'package:look_atlas/features/subscription/domain/subscription_status.dart';
 import 'package:look_atlas/features/subscription/presentation/subscription_action.dart';
 import 'package:look_atlas/features/subscription/presentation/subscription_controller.dart';
+import 'package:look_atlas/services/service_providers.dart';
 import 'package:look_atlas/shared/image_picker/image_picker_providers.dart';
 import 'package:look_atlas/shared/image_picker/image_source_sheet.dart';
 import 'package:look_atlas/shared/widgets/app_bottom_sheet.dart';
@@ -52,6 +57,7 @@ import 'package:look_atlas/shared/widgets/app_dropdown.dart';
 import 'package:look_atlas/shared/widgets/app_feature_scaffold.dart';
 import 'package:look_atlas/shared/widgets/app_floating_action_button.dart';
 import 'package:look_atlas/shared/widgets/app_image.dart';
+import 'package:look_atlas/shared/widgets/app_icon_button.dart';
 import 'package:look_atlas/shared/widgets/app_outlined_button.dart';
 import 'package:look_atlas/shared/widgets/app_snack_bar.dart';
 import 'package:look_atlas/shared/widgets/app_text_field.dart';
@@ -59,8 +65,6 @@ import 'package:look_atlas/shared/widgets/bar_spinner.dart';
 import 'package:look_atlas/shared/widgets/custom_app_bar.dart';
 import 'package:look_atlas/shared/widgets/primary_button.dart';
 import 'package:look_atlas/shared/widgets/shimmer_box.dart';
-import 'package:native_cutout/native_cutout.dart';
-import 'package:purchases_flutter/purchases_flutter.dart' as revenuecat;
 
 part '../../domain/entities/dashboard_entities.dart';
 part '../../data/dashboard_mock_data.dart';

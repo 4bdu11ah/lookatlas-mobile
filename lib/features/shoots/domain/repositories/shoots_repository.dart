@@ -72,6 +72,12 @@ abstract interface class ShootsRepository {
 
   Future<Result<ShootCreateCatalog>> loadCreateCatalog();
 
+  Future<Result<ShootCreateProducts>> loadCreateProducts();
+
+  Future<Result<ShootCreateModels>> loadCreateModels();
+
+  Future<Result<ShootCreateDirectorSetup>> loadCreateDirectorSetup();
+
   Future<Result<List<PlannedShootShot>>> planShots(
     ShootSelection selection,
   );

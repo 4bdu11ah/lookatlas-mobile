@@ -150,6 +150,6 @@ class _ShootsController extends Notifier<_ShootsScreenState> {
 
 final NotifierProvider<_ShootsController, _ShootsScreenState>
 _shootsControllerProvider =
-    NotifierProvider.autoDispose<_ShootsController, _ShootsScreenState>(
+    NotifierProvider<_ShootsController, _ShootsScreenState>(
       _ShootsController.new,
     );

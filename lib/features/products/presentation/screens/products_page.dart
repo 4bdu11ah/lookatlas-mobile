@@ -41,107 +41,113 @@ class _ProductsPage extends ConsumerWidget {
         onRetry: controller.reload,
       );
     }
-    return CustomScrollView(
-      slivers: [
-        SliverPadding(
-          padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
-          sliver: SliverToBoxAdapter(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                const Text(
-                  'Manage your product catalog for AI-generated photoshoots',
-                  style: TextStyle(
-                    fontSize: 14,
-                    height: 1.35,
-                    color: AppColors.neutral500,
-                  ),
-                ),
-                const SizedBox(height: 14),
-                if (uncategorized.isNotEmpty && !state.categoryBannerDismissed)
-                  _ProductCategoryBanner(
-                    count: uncategorized.length,
-                    onSetCategories: () => _showProductFormDialog(
-                      context,
-                      ref,
-                      onToast,
-                      product: uncategorized.first,
-                    ),
-                    onDismiss: controller.dismissCategoryBanner,
-                  ),
-                _ProductFilterBar(
-                  query: state.searchQuery,
-                  categoryFilter: state.categoryFilter,
-                  statusFilter: state.statusFilter,
-                  sortOrder: state.sortOrder,
-                  totalCount: state.totalCount,
-                  calibratedCount: state.calibratedCount,
-                ),
-                if (state.isLoading) ...[
-                  const SizedBox(height: 8),
-                  const LinearProgressIndicator(
-                    minHeight: 2,
-                    color: AppColors.black,
-                    backgroundColor: AppColors.neutral200,
-                  ),
-                ],
-                const SizedBox(height: 14),
-                if (state.products.isEmpty)
-                  _ProductEmptyResults(query: state.searchQuery),
-              ],
-            ),
-          ),
-        ),
-        if (state.products.isNotEmpty)
+    return RefreshIndicator(
+      onRefresh: controller.reload,
+      child: CustomScrollView(
+        slivers: [
           SliverPadding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            sliver: SliverList.builder(
-              itemCount: state.products.length,
-              itemBuilder: (context, index) {
-                final product = state.products[index];
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 14),
-                  child: _ProductCard(
-                    key: ValueKey('product-card-${product.sku}'),
-                    product: product,
-                    onEdit: () => _showProductFormDialog(
-                      context,
-                      ref,
-                      onToast,
-                      product: product,
-                    ),
-                    onDelete: () => _showProductDeleteDialog(
-                      context,
-                      ref,
-                      product,
-                      onToast,
-                    ),
-                    onReplacePhoto: (photoIndex) => _openReplacePhotoScreen(
-                      context,
-                      ref,
-                      product,
-                      photoIndex,
-                      onToast,
-                    ),
-                    onCalibrate: () =>
-                        _openCalibration(context, ref, product, onToast),
-                  ),
-                );
-              },
-            ),
-          ),
-        if (state.currentPage < state.totalPages)
-          SliverPadding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
+            padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
             sliver: SliverToBoxAdapter(
-              child: AppOutlinedButton(
-                label: state.isLoadingMore ? 'Loading...' : 'Load more',
-                onPressed: state.isLoadingMore ? null : controller.loadNextPage,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const Text(
+                    'Manage your product catalog for AI-generated photoshoots',
+                    style: TextStyle(
+                      fontSize: 14,
+                      height: 1.35,
+                      color: AppColors.neutral500,
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  if (uncategorized.isNotEmpty &&
+                      !state.categoryBannerDismissed)
+                    _ProductCategoryBanner(
+                      count: uncategorized.length,
+                      onSetCategories: () => _showProductFormDialog(
+                        context,
+                        ref,
+                        onToast,
+                        product: uncategorized.first,
+                      ),
+                      onDismiss: controller.dismissCategoryBanner,
+                    ),
+                  _ProductFilterBar(
+                    query: state.searchQuery,
+                    categoryFilter: state.categoryFilter,
+                    statusFilter: state.statusFilter,
+                    sortOrder: state.sortOrder,
+                    totalCount: state.totalCount,
+                    calibratedCount: state.calibratedCount,
+                  ),
+                  if (state.isLoading) ...[
+                    const SizedBox(height: 8),
+                    const LinearProgressIndicator(
+                      minHeight: 2,
+                      color: AppColors.black,
+                      backgroundColor: AppColors.neutral200,
+                    ),
+                  ],
+                  const SizedBox(height: 14),
+                  if (state.products.isEmpty)
+                    _ProductEmptyResults(query: state.searchQuery),
+                ],
               ),
             ),
           ),
-        const SliverToBoxAdapter(child: SizedBox(height: 96)),
-      ],
+          if (state.products.isNotEmpty)
+            SliverPadding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              sliver: SliverList.builder(
+                itemCount: state.products.length,
+                itemBuilder: (context, index) {
+                  final product = state.products[index];
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 14),
+                    child: _ProductCard(
+                      key: ValueKey('product-card-${product.sku}'),
+                      product: product,
+                      onEdit: () => _showProductFormDialog(
+                        context,
+                        ref,
+                        onToast,
+                        product: product,
+                      ),
+                      onDelete: () => _showProductDeleteDialog(
+                        context,
+                        ref,
+                        product,
+                        onToast,
+                      ),
+                      onReplacePhoto: (photoIndex) => _openReplacePhotoScreen(
+                        context,
+                        ref,
+                        product,
+                        photoIndex,
+                        onToast,
+                      ),
+                      onCalibrate: () =>
+                          _openCalibration(context, ref, product, onToast),
+                    ),
+                  );
+                },
+              ),
+            ),
+          if (state.currentPage < state.totalPages)
+            SliverPadding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              sliver: SliverToBoxAdapter(
+                child: AppOutlinedButton(
+                  label: state.isLoadingMore ? 'Loading...' : 'Load more',
+                  onPressed: state.isLoadingMore
+                      ? null
+                      : controller.loadNextPage,
+                ),
+              ),
+            ),
+          const SliverToBoxAdapter(child: SizedBox(height: 96)),
+        ],
+      ),
     );
   }
 }

@@ -321,7 +321,7 @@ class _ProductsController extends Notifier<_ProductsScreenState> {
 
 final NotifierProvider<_ProductsController, _ProductsScreenState>
 _productsControllerProvider =
-    NotifierProvider.autoDispose<_ProductsController, _ProductsScreenState>(
+    NotifierProvider<_ProductsController, _ProductsScreenState>(
       _ProductsController.new,
     );
 

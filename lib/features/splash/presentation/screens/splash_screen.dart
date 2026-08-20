@@ -3,8 +3,11 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:look_atlas/core/result/result.dart';
 import 'package:look_atlas/core/router/app_routes.dart';
 import 'package:look_atlas/features/auth/di/auth_providers.dart';
+import 'package:look_atlas/features/onboarding/di/onboarding_providers.dart';
+import 'package:look_atlas/features/onboarding/presentation/providers/generation_controller.dart';
 import 'package:look_atlas/shared/widgets/look_atlas_loader.dart';
 
 /// Branded launch screen: dust particles assemble into the "Look Atlas"
@@ -33,6 +36,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
 
   late final AnimationController _controller;
   Timer? _fallback;
+  bool _isRouting = false;
 
   @override
   void initState() {
@@ -51,9 +55,43 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
 
   void _onStatusChanged(AnimationStatus status) {
     if (status == AnimationStatus.completed && mounted) {
-      final loggedIn = ref.read(authRepositoryProvider).currentUser != null;
-      context.go(loggedIn ? AppRoutes.home : AppRoutes.signIn);
+      unawaited(_routeFromAccessStatus());
     }
+  }
+
+  Future<void> _routeFromAccessStatus() async {
+    if (_isRouting) return;
+    _isRouting = true;
+    if (ref.read(authRepositoryProvider).currentUser == null) {
+      if (mounted) context.go(AppRoutes.signIn);
+      return;
+    }
+
+    final result = await ref.read(getOnboardingStatusUseCaseProvider)();
+    if (!mounted) return;
+    if (result case Err()) {
+      context.go(AppRoutes.onboarding);
+      return;
+    }
+
+    final status = result.valueOrNull!;
+    if (status.hasActiveSubscription) {
+      context.go(AppRoutes.home);
+      return;
+    }
+
+    final jobStatus = status.onboardingJobStatus?.toLowerCase();
+    if ({'generating', 'enqueued', 'processing', 'completed'}.contains(
+      jobStatus,
+    )) {
+      ref.read(generationControllerProvider.notifier).start();
+      context.go(AppRoutes.onboardingSwipe);
+      return;
+    }
+
+    context.go(
+      status.freeShootUsed ? AppRoutes.onboardingActivate : AppRoutes.onboarding,
+    );
   }
 
   @override

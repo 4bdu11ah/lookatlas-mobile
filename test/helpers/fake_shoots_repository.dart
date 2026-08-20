@@ -56,6 +56,9 @@ class FakeShootsRepository implements ShootsRepository {
   int getJobsCalls = 0;
   int getJobCalls = 0;
   int getJobStatusCalls = 0;
+  int loadCreateProductsCalls = 0;
+  int loadCreateModelsCalls = 0;
+  int loadCreateDirectorSetupCalls = 0;
   int planShotsCalls = 0;
   int createShootCalls = 0;
   final List<ShootSelection> plannedSelections = [];
@@ -224,6 +227,41 @@ class FakeShootsRepository implements ShootsRepository {
   @override
   Future<Result<ShootCreateCatalog>> loadCreateCatalog() async =>
       Result.ok(_createCatalog);
+
+  @override
+  Future<Result<ShootCreateProducts>> loadCreateProducts() async {
+    loadCreateProductsCalls++;
+    return Result.ok(ShootCreateProducts(_createCatalog.products));
+  }
+
+  @override
+  Future<Result<ShootCreateModels>> loadCreateModels() async {
+    loadCreateModelsCalls++;
+    return Result.ok(
+      ShootCreateModels(
+        userModels: _createCatalog.userModels,
+        libraryModels: _createCatalog.libraryModels,
+      ),
+    );
+  }
+
+  @override
+  Future<Result<ShootCreateDirectorSetup>> loadCreateDirectorSetup() async {
+    loadCreateDirectorSetupCalls++;
+    return Result.ok(
+      ShootCreateDirectorSetup(
+        looks: _createCatalog.looks,
+        lookFilters: _createCatalog.lookFilters,
+        presets: _createCatalog.presets,
+        availableCredits: _createCatalog.availableCredits,
+        supportedAspectRatios: _createCatalog.supportedAspectRatios,
+        defaultAspectRatio: _createCatalog.defaultAspectRatio,
+        relaxEnabled: _createCatalog.relaxEnabled,
+        plan: _createCatalog.plan,
+        isUnlimitedEligible: _createCatalog.isUnlimitedEligible,
+      ),
+    );
+  }
 
   @override
   Future<Result<List<PlannedShootShot>>> planShots(

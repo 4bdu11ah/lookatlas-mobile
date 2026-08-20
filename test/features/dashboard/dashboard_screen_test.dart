@@ -20,6 +20,7 @@ import 'package:look_atlas/features/shoots/di/shoots_providers.dart';
 import 'package:look_atlas/features/shoots/domain/repositories/shoots_repository.dart';
 import 'package:look_atlas/features/studio_school/di/studio_school_providers.dart';
 import 'package:look_atlas/features/subscription/di/subscription_providers.dart';
+import 'package:look_atlas/shared/widgets/bar_spinner.dart';
 import 'package:look_atlas/shared/widgets/shimmer_box.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -377,6 +378,43 @@ void main() {
       tester.getTopLeft(assistant).dy,
       lessThan(tester.getTopLeft(settings).dy),
     );
+  });
+
+  testWidgets('shows stats before slower dashboard sections complete', (
+    tester,
+  ) async {
+    final repository = _ConcurrentDashboardRepository();
+    await pumpDashboard(tester, dashboardRepository: repository);
+
+    repository.stats.complete(
+      const Result.ok(
+        DashboardStats(
+          credits: 80,
+          creditsTotal: 100,
+          creditsUsed: 20,
+          totalRenders: 35,
+          activeJobs: 2,
+          completedJobs: 5,
+        ),
+      ),
+    );
+    await tester.pump();
+
+    expect(find.text('80'), findsOneWidget);
+    expect(find.byType(BarSpinner), findsOneWidget);
+
+    repository.jobs.complete(const Result.ok([]));
+    repository.subscription.complete(
+      const Result.ok(
+        DashboardSubscription(
+          status: 'active',
+          cancelAtPeriodEnd: false,
+          accessTier: 'subscriber',
+          proUpsellActive: false,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
   });
 
   testWidgets('shows and locally dismisses the Studio School helper', (

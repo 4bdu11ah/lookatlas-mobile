@@ -208,6 +208,77 @@ class ShootCreateCatalog {
   final bool relaxEnabled;
   final String plan;
   final bool isUnlimitedEligible;
+
+  ShootCreateCatalog copyWith({
+    List<ShootCatalogItem>? products,
+    List<ShootCatalogItem>? userModels,
+    List<ShootCatalogItem>? libraryModels,
+    List<ShootLook>? looks,
+    Map<String, List<String>>? lookFilters,
+    List<ShootPreset>? presets,
+    int? availableCredits,
+    List<String>? supportedAspectRatios,
+    String? defaultAspectRatio,
+    bool? relaxEnabled,
+    String? plan,
+    bool? isUnlimitedEligible,
+  }) => ShootCreateCatalog(
+    products: products ?? this.products,
+    userModels: userModels ?? this.userModels,
+    libraryModels: libraryModels ?? this.libraryModels,
+    looks: looks ?? this.looks,
+    lookFilters: lookFilters ?? this.lookFilters,
+    presets: presets ?? this.presets,
+    availableCredits: availableCredits ?? this.availableCredits,
+    supportedAspectRatios: supportedAspectRatios ?? this.supportedAspectRatios,
+    defaultAspectRatio: defaultAspectRatio ?? this.defaultAspectRatio,
+    relaxEnabled: relaxEnabled ?? this.relaxEnabled,
+    plan: plan ?? this.plan,
+    isUnlimitedEligible: isUnlimitedEligible ?? this.isUnlimitedEligible,
+  );
+}
+
+@immutable
+class ShootCreateProducts {
+  const ShootCreateProducts(this.products);
+
+  final List<ShootCatalogItem> products;
+}
+
+@immutable
+class ShootCreateModels {
+  const ShootCreateModels({
+    required this.userModels,
+    required this.libraryModels,
+  });
+
+  final List<ShootCatalogItem> userModels;
+  final List<ShootCatalogItem> libraryModels;
+}
+
+@immutable
+class ShootCreateDirectorSetup {
+  const ShootCreateDirectorSetup({
+    required this.looks,
+    required this.lookFilters,
+    required this.presets,
+    required this.availableCredits,
+    required this.supportedAspectRatios,
+    required this.defaultAspectRatio,
+    required this.relaxEnabled,
+    required this.plan,
+    required this.isUnlimitedEligible,
+  });
+
+  final List<ShootLook> looks;
+  final Map<String, List<String>> lookFilters;
+  final List<ShootPreset> presets;
+  final int availableCredits;
+  final List<String> supportedAspectRatios;
+  final String defaultAspectRatio;
+  final bool relaxEnabled;
+  final String plan;
+  final bool isUnlimitedEligible;
 }
 
 @immutable

@@ -72,9 +72,11 @@ class _FakeProductsRepository implements ProductsRepository {
 
   int deleteCalls = 0;
   int updateCalls = 0;
+  int getProductsCalls = 0;
 
   @override
   Future<Result<ProductCatalogPage>> getProducts(ProductQuery query) async {
+    getProductsCalls++;
     final search = query.search.toLowerCase();
     final filtered = products.where((product) {
       final matchesSearch =
@@ -245,6 +247,54 @@ void main() {
     );
     await tester.pumpAndSettle();
   }
+
+  testWidgets('products_screen_reuses_loaded_catalog_when_reopened', (
+    tester,
+  ) async {
+    final container = ProviderContainer(
+      overrides: [
+        authRepositoryProvider.overrideWithValue(
+          FakeAuthRepository(
+            user: const AppUser(id: 'user-1', email: 'jane@example.com'),
+          ),
+        ),
+        productsRepositoryProvider.overrideWithValue(productsRepository),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: MaterialApp(
+          theme: AppTheme.light(),
+          home: const ProductsScreen(),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(productsRepository.getProductsCalls, 1);
+
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: const SizedBox.shrink(),
+      ),
+    );
+    await tester.pump();
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: MaterialApp(
+          theme: AppTheme.light(),
+          home: const ProductsScreen(),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(productsRepository.getProductsCalls, 1);
+  });
 
   Future<void> selectProductFilter(
     WidgetTester tester,

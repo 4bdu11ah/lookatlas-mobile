@@ -12,12 +12,41 @@ class ShootsRepositoryImpl implements ShootsRepository {
   final ShootsRemoteDataSource _remote;
 
   @override
-  Future<Result<ShootCreateCatalog>> loadCreateCatalog() async {
+  Future<Result<ShootCreateProducts>> loadCreateProducts() async {
     final calibratedProductIds = _remote.getCalibratedProductIds();
+    final productsResult = await _remote.getProducts();
+    final calibratedResult = await calibratedProductIds;
+    final productsFailure = productsResult.failureOrNull;
+    if (productsFailure != null) return Err(productsFailure);
+    final calibratedIds = calibratedResult.valueOrNull ?? const <String>{};
+    return Ok(
+      ShootCreateProducts([
+        for (final product in productsResult.valueOrNull!)
+          product.copyWith(isCalibrated: calibratedIds.contains(product.id)),
+      ]),
+    );
+  }
+
+  @override
+  Future<Result<ShootCreateModels>> loadCreateModels() async {
     final results = await (
-      _remote.getProducts(),
       _remote.getUserModels(),
       _remote.getLibraryModels(),
+    ).wait;
+    if (results.$1.isErr && results.$2.isErr) {
+      return Err(results.$1.failureOrNull!);
+    }
+    return Ok(
+      ShootCreateModels(
+        userModels: results.$1.valueOrNull ?? const [],
+        libraryModels: results.$2.valueOrNull ?? const [],
+      ),
+    );
+  }
+
+  @override
+  Future<Result<ShootCreateDirectorSetup>> loadCreateDirectorSetup() async {
+    final results = await (
       _remote.getAvailableCredits(),
       _remote.getLooks(),
       _remote.getLookFilters(),
@@ -25,27 +54,14 @@ class ShootsRepositoryImpl implements ShootsRepository {
       _remote.getAppConfig(),
       _remote.getSubscription(),
     ).wait;
-    final calibratedResult = await calibratedProductIds;
-    final productsFailure = results.$1.failureOrNull;
-    if (productsFailure != null) return Err(productsFailure);
-    if (results.$2.isErr && results.$3.isErr) {
-      return Err(results.$2.failureOrNull!);
-    }
-    final appConfig = results.$8.valueOrNull ?? const ShootAppConfig();
-    final subscription = results.$9.valueOrNull ?? const ShootSubscription();
-    final calibratedIds = calibratedResult.valueOrNull ?? const <String>{};
+    final appConfig = results.$5.valueOrNull ?? const ShootAppConfig();
+    final subscription = results.$6.valueOrNull ?? const ShootSubscription();
     return Ok(
-      ShootCreateCatalog(
-        products: [
-          for (final product in results.$1.valueOrNull!)
-            product.copyWith(isCalibrated: calibratedIds.contains(product.id)),
-        ],
-        userModels: results.$2.valueOrNull ?? const [],
-        libraryModels: results.$3.valueOrNull ?? const [],
-        availableCredits: results.$4.valueOrNull ?? 0,
-        looks: _mergeDirectors(results.$5.valueOrNull ?? const []),
-        lookFilters: results.$6.valueOrNull ?? const {},
-        presets: results.$7.valueOrNull ?? const [],
+      ShootCreateDirectorSetup(
+        availableCredits: results.$1.valueOrNull ?? 0,
+        looks: _mergeDirectors(results.$2.valueOrNull ?? const []),
+        lookFilters: results.$3.valueOrNull ?? const {},
+        presets: results.$4.valueOrNull ?? const [],
         supportedAspectRatios: appConfig.supportedAspectRatios,
         defaultAspectRatio: appConfig.defaultAspectRatio,
         relaxEnabled: appConfig.relaxEnabled,
@@ -53,6 +69,37 @@ class ShootsRepositoryImpl implements ShootsRepository {
         isUnlimitedEligible: subscription.isUnlimitedEligible(
           relaxEnabled: appConfig.relaxEnabled,
         ),
+      ),
+    );
+  }
+
+  @override
+  Future<Result<ShootCreateCatalog>> loadCreateCatalog() async {
+    final results = await (
+      loadCreateProducts(),
+      loadCreateModels(),
+      loadCreateDirectorSetup(),
+    ).wait;
+    if (results.$1 case Err(:final failure)) return Err(failure);
+    if (results.$2 case Err(:final failure)) return Err(failure);
+    if (results.$3 case Err(:final failure)) return Err(failure);
+    final products = results.$1.valueOrNull!;
+    final models = results.$2.valueOrNull!;
+    final directorSetup = results.$3.valueOrNull!;
+    return Ok(
+      ShootCreateCatalog(
+        products: products.products,
+        userModels: models.userModels,
+        libraryModels: models.libraryModels,
+        looks: directorSetup.looks,
+        lookFilters: directorSetup.lookFilters,
+        presets: directorSetup.presets,
+        availableCredits: directorSetup.availableCredits,
+        supportedAspectRatios: directorSetup.supportedAspectRatios,
+        defaultAspectRatio: directorSetup.defaultAspectRatio,
+        relaxEnabled: directorSetup.relaxEnabled,
+        plan: directorSetup.plan,
+        isUnlimitedEligible: directorSetup.isUnlimitedEligible,
       ),
     );
   }

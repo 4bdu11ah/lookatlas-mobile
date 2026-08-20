@@ -3,6 +3,7 @@ part of '../../../dashboard/presentation/screens/dashboard_screen.dart';
 class _DirectorStep extends StatelessWidget {
   const _DirectorStep({
     required this.directors,
+    required this.isLoading,
     required this.settings,
     required this.selected,
     required this.catalog,
@@ -16,6 +17,7 @@ class _DirectorStep extends StatelessWidget {
   });
 
   final List<ShootLook> directors;
+  final bool isLoading;
   final ShootSettings settings;
   final int selected;
   final ShootCreateCatalog? catalog;
@@ -70,20 +72,23 @@ class _DirectorStep extends StatelessWidget {
             'see their products in several styles.',
             fontSize: 11,
           ),
-        _DirectorGrid(
-          directors: directors,
-          selectedIndices: demoMode
-              ? {
-                  for (final (index, director) in directors.indexed)
-                    if (demoDirectors.any(
-                      (config) => config.directorId == director.id,
-                    ))
-                      index,
-                }
-              : {if (selected >= 0) selected},
-          onSelect: onSelect,
-          onPreview: onPortfolio,
-        ),
+        if (isLoading)
+          const Center(child: CircularProgressIndicator())
+        else
+          _DirectorGrid(
+            directors: directors,
+            selectedIndices: demoMode
+                ? {
+                    for (final (index, director) in directors.indexed)
+                      if (demoDirectors.any(
+                        (config) => config.directorId == director.id,
+                      ))
+                        index,
+                  }
+                : {if (selected >= 0) selected},
+            onSelect: onSelect,
+            onPreview: onPortfolio,
+          ),
         if (demoMode && demoDirectors.isNotEmpty)
           for (final config in demoDirectors)
             _DemoDirectorBudget(

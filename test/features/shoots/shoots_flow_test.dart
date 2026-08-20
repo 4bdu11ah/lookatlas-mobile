@@ -359,6 +359,40 @@ void main() {
     expect(grid, findsNothing);
   });
 
+  testWidgets('create_shoot_loads_each_catalog_segment_when_step_opens', (
+    tester,
+  ) async {
+    final repository = FakeShootsRepository();
+    await pumpScreen(
+      tester,
+      const CreateShootScreen(),
+      shootsRepository: repository,
+    );
+
+    expect(repository.loadCreateProductsCalls, 1);
+    expect(repository.loadCreateModelsCalls, 0);
+    expect(repository.loadCreateDirectorSetupCalls, 0);
+
+    await selectCurrentCreateStepAndContinue(tester);
+    expect(repository.loadCreateModelsCalls, 1);
+    expect(repository.loadCreateDirectorSetupCalls, 0);
+
+    await selectCurrentCreateStepAndContinue(tester);
+    expect(repository.loadCreateDirectorSetupCalls, 1);
+
+    final back = find.byKey(const ValueKey('create-shoot-back'));
+    await tester.ensureVisible(back);
+    await tester.tap(back);
+    await tester.pumpAndSettle();
+    final next = find.text('Next');
+    await tester.ensureVisible(next);
+    await tester.tap(next);
+    await tester.pumpAndSettle();
+
+    expect(repository.loadCreateModelsCalls, 1);
+    expect(repository.loadCreateDirectorSetupCalls, 1);
+  });
+
   testWidgets('shoots_search_and_status_filter_update_visible_cards', (
     tester,
   ) async {
@@ -1101,14 +1135,14 @@ void main() {
 }
 
 class _DelayedCreateCatalogRepository extends FakeShootsRepository {
-  final _catalogCompleter = Completer<Result<ShootCreateCatalog>>();
+  final _productsCompleter = Completer<Result<ShootCreateProducts>>();
 
   @override
-  Future<Result<ShootCreateCatalog>> loadCreateCatalog() =>
-      _catalogCompleter.future;
+  Future<Result<ShootCreateProducts>> loadCreateProducts() =>
+      _productsCompleter.future;
 
-  void completeCatalog() => _catalogCompleter.complete(
-    super.loadCreateCatalog(),
+  void completeCatalog() => _productsCompleter.complete(
+    super.loadCreateProducts(),
   );
 }
 

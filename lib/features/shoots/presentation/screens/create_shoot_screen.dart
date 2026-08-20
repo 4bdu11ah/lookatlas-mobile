@@ -86,7 +86,13 @@ class _CreatePage extends ConsumerWidget {
     final isAdmin =
         ref.watch(authStateProvider).asData?.value?.role.toLowerCase() ==
         'admin';
-    if (state.failure != null && state.catalog == null) {
+    final hasUnloadedStep = switch (state.step) {
+      _CreateStep.product => state.catalog == null,
+      _CreateStep.model => !state.hasLoadedModels,
+      _CreateStep.director => !state.hasLoadedDirectorSetup,
+      _ => false,
+    };
+    if (state.failure != null && hasUnloadedStep) {
       return _Card(
         child: _Column(
           gap: 12,
@@ -95,7 +101,7 @@ class _CreatePage extends ConsumerWidget {
             AppOutlinedButton(
               label: 'Try again',
               icon: Icons.refresh,
-              onPressed: () => unawaited(controller.load()),
+              onPressed: () => unawaited(controller.retry()),
             ),
           ],
         ),
@@ -220,6 +226,7 @@ Future<void> _submitDemoShoot(
   result.fold(
     (jobId) {
       onToast('Demo shoots created. Generation started.');
+      unawaited(ref.read(_shootsControllerProvider.notifier).load());
       controller.reset();
       onComplete(jobId);
     },
@@ -250,6 +257,7 @@ Future<void> _submitCreateShoot(
   result.fold(
     (jobId) {
       onToast('Shoot created. Generation started.');
+      unawaited(ref.read(_shootsControllerProvider.notifier).load());
       controller.reset();
       onComplete(jobId);
     },
@@ -324,6 +332,7 @@ class _CreateStepBody extends StatelessWidget {
       ),
       _CreateStep.model => _ModelStep(
         models: state.models,
+        isLoading: state.isLoadingModels,
         userModelCount: state.catalog?.userModels.length ?? 0,
         libraryModelCount: state.catalog?.libraryModels.length ?? 0,
         useLibraryModels: state.useLibraryModels,
@@ -338,6 +347,7 @@ class _CreateStepBody extends StatelessWidget {
       ),
       _CreateStep.director => _DirectorStep(
         directors: state.directors,
+        isLoading: state.isLoadingDirectorSetup,
         settings: state.settings,
         selected: state.selectedDirector,
         catalog: state.catalog,

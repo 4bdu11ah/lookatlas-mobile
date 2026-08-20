@@ -23,6 +23,7 @@ import 'package:look_atlas/features/billing/di/billing_api_providers.dart';
 import 'package:look_atlas/features/billing/domain/entities/billing_checkout.dart';
 import 'package:look_atlas/features/dashboard/di/dashboard_providers.dart';
 import 'package:look_atlas/features/dashboard/domain/entities/dashboard_data.dart';
+import 'package:look_atlas/features/dashboard/domain/repositories/dashboard_repository.dart';
 import 'package:look_atlas/features/dashboard/presentation/controllers/dashboard_welcome_controller.dart';
 import 'package:look_atlas/features/dashboard/presentation/widgets/dashboard_welcome_block.dart';
 import 'package:look_atlas/features/house_model/di/house_model_providers.dart';

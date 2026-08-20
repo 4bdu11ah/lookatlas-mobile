@@ -16,6 +16,10 @@ class _CreateShootState {
     this.plannedShots = const [],
     this.selectedShots = const {},
     this.isLoading = true,
+    this.isLoadingModels = false,
+    this.isLoadingDirectorSetup = false,
+    this.hasLoadedModels = false,
+    this.hasLoadedDirectorSetup = false,
     this.isPlanning = false,
     this.isSubmitting = false,
     this.failure,
@@ -35,6 +39,10 @@ class _CreateShootState {
   final List<PlannedShootShot> plannedShots;
   final Set<int> selectedShots;
   final bool isLoading;
+  final bool isLoadingModels;
+  final bool isLoadingDirectorSetup;
+  final bool hasLoadedModels;
+  final bool hasLoadedDirectorSetup;
   final bool isPlanning;
   final bool isSubmitting;
   final Failure? failure;
@@ -152,6 +160,10 @@ class _CreateShootState {
     List<PlannedShootShot>? plannedShots,
     Set<int>? selectedShots,
     bool? isLoading,
+    bool? isLoadingModels,
+    bool? isLoadingDirectorSetup,
+    bool? hasLoadedModels,
+    bool? hasLoadedDirectorSetup,
     bool? isPlanning,
     bool? isSubmitting,
     Failure? failure,
@@ -171,6 +183,12 @@ class _CreateShootState {
     plannedShots: plannedShots ?? this.plannedShots,
     selectedShots: selectedShots ?? this.selectedShots,
     isLoading: isLoading ?? this.isLoading,
+    isLoadingModels: isLoadingModels ?? this.isLoadingModels,
+    isLoadingDirectorSetup:
+        isLoadingDirectorSetup ?? this.isLoadingDirectorSetup,
+    hasLoadedModels: hasLoadedModels ?? this.hasLoadedModels,
+    hasLoadedDirectorSetup:
+        hasLoadedDirectorSetup ?? this.hasLoadedDirectorSetup,
     isPlanning: isPlanning ?? this.isPlanning,
     isSubmitting: isSubmitting ?? this.isSubmitting,
     failure: clearFailure ? null : failure ?? this.failure,
@@ -190,7 +208,7 @@ class _CreateShootController extends Notifier<_CreateShootState>
   @override
   _CreateShootState build() {
     ref.onDispose(() => _disposed = true);
-    unawaited(Future<void>.microtask(load));
+    unawaited(Future<void>.microtask(_loadProducts));
     return const _CreateShootState();
   }
 
@@ -198,15 +216,31 @@ class _CreateShootController extends Notifier<_CreateShootState>
     String? preferredProductId,
     String? preferredModelName,
   }) async {
+    if (preferredProductId != null || state.catalog == null) {
+      await _loadProducts(preferredProductId: preferredProductId);
+    }
+    if (preferredModelName != null) {
+      await _loadModels(preferredModelName: preferredModelName, force: true);
+    }
+  }
+
+  Future<void> retry() => switch (state.step) {
+    _CreateStep.product => _loadProducts(),
+    _CreateStep.model => _loadModels(),
+    _CreateStep.director => _loadDirectorSetup(),
+    _ => Future.value(),
+  };
+
+  Future<void> _loadProducts({String? preferredProductId}) async {
     state = state.copyWith(isLoading: true, clearFailure: true);
-    final result = await _repository.loadCreateCatalog();
+    final result = await _repository.loadCreateProducts();
     if (_disposed) return;
     if (result case Err(:final failure)) {
       state = state.copyWith(isLoading: false, failure: failure);
       return;
     }
-    final catalog = result.valueOrNull!;
-    final preferredModel = _findModel(catalog.userModels, preferredModelName);
+    final products = result.valueOrNull!.products;
+    final catalog = _catalog.copyWith(products: products);
     final currentSettings = state.catalog == null
         ? state.settings.copyWith(aspectRatio: catalog.defaultAspectRatio)
         : catalog.supportedAspectRatios.contains(state.settings.aspectRatio)
@@ -228,22 +262,113 @@ class _CreateShootController extends Notifier<_CreateShootState>
               preferredProductId,
             ]
           : state.selectedProductIds,
-      selectedModelKeys: preferredModel != null
-          ? [
-              ...state.selectedModelKeys.where(
-                (key) => key != _modelKey(preferredModel),
-              ),
-              _modelKey(preferredModel),
-            ]
-          : state.selectedModelKeys,
-      useLibraryModels:
-          catalog.userModels.isEmpty && catalog.libraryModels.isNotEmpty,
       isLoading: false,
       clearFailure: true,
     );
   }
 
-  void setStep(_CreateStep step) => state = state.copyWith(step: step);
+  ShootCreateCatalog get _catalog =>
+      state.catalog ??
+      const ShootCreateCatalog(
+        products: [],
+        userModels: [],
+        libraryModels: [],
+        looks: [],
+        lookFilters: {},
+        presets: [],
+        availableCredits: 0,
+      );
+
+  Future<void> _loadModels({
+    String? preferredModelName,
+    bool force = false,
+  }) async {
+    if (state.isLoadingModels || (state.hasLoadedModels && !force)) return;
+    state = state.copyWith(isLoadingModels: true, clearFailure: true);
+    final result = await _repository.loadCreateModels();
+    if (_disposed) return;
+    if (result case Err(:final failure)) {
+      state = state.copyWith(isLoadingModels: false, failure: failure);
+      return;
+    }
+    final models = result.valueOrNull!;
+    final catalog = _catalog.copyWith(
+      userModels: models.userModels,
+      libraryModels: models.libraryModels,
+    );
+    final preferredModel = _findModel(catalog.userModels, preferredModelName);
+    state = state.copyWith(
+      catalog: catalog,
+      selectedModelKeys: preferredModel == null
+          ? state.selectedModelKeys
+          : [
+              ...state.selectedModelKeys.where(
+                (key) => key != _modelKey(preferredModel),
+              ),
+              _modelKey(preferredModel),
+            ],
+      useLibraryModels:
+          catalog.userModels.isEmpty && catalog.libraryModels.isNotEmpty,
+      isLoadingModels: false,
+      hasLoadedModels: true,
+      clearFailure: true,
+    );
+  }
+
+  Future<void> _loadDirectorSetup() async {
+    if (state.isLoadingDirectorSetup || state.hasLoadedDirectorSetup) return;
+    state = state.copyWith(isLoadingDirectorSetup: true, clearFailure: true);
+    final result = await _repository.loadCreateDirectorSetup();
+    if (_disposed) return;
+    if (result case Err(:final failure)) {
+      state = state.copyWith(isLoadingDirectorSetup: false, failure: failure);
+      return;
+    }
+    final setup = result.valueOrNull!;
+    final catalog = _catalog.copyWith(
+      looks: setup.looks,
+      lookFilters: setup.lookFilters,
+      presets: setup.presets,
+      availableCredits: setup.availableCredits,
+      supportedAspectRatios: setup.supportedAspectRatios,
+      defaultAspectRatio: setup.defaultAspectRatio,
+      relaxEnabled: setup.relaxEnabled,
+      plan: setup.plan,
+      isUnlimitedEligible: setup.isUnlimitedEligible,
+    );
+    state = state.copyWith(
+      catalog: catalog,
+      settings: state.settings.copyWith(
+        aspectRatio:
+            catalog.supportedAspectRatios.contains(
+              state.settings.aspectRatio,
+            )
+            ? state.settings.aspectRatio
+            : catalog.defaultAspectRatio,
+        imageSize: catalog.isUnlimitedEligible && catalog.plan == 'pro'
+            ? '2K'
+            : state.settings.imageSize,
+        lane: catalog.isUnlimitedEligible ? ShootLane.relax : ShootLane.fast,
+      ),
+      isLoadingDirectorSetup: false,
+      hasLoadedDirectorSetup: true,
+      clearFailure: true,
+    );
+  }
+
+  void setStep(_CreateStep step) {
+    state = state.copyWith(step: step);
+    switch (step) {
+      case _CreateStep.model:
+        unawaited(_loadModels());
+      case _CreateStep.director:
+        unawaited(_loadDirectorSetup());
+      case _CreateStep.product:
+      case _CreateStep.planning:
+      case _CreateStep.confirm:
+        break;
+    }
+  }
 
   void setProductMode(ProductMode productMode) {
     final max = productMode == ProductMode.pairing ? 3 : 6;

@@ -464,6 +464,7 @@ Widget _selectedProductRow({
 class _ModelStep extends ConsumerStatefulWidget {
   const _ModelStep({
     required this.models,
+    required this.isLoading,
     required this.userModelCount,
     required this.libraryModelCount,
     required this.useLibraryModels,
@@ -477,6 +478,7 @@ class _ModelStep extends ConsumerStatefulWidget {
   });
 
   final List<ShootCatalogItem> models;
+  final bool isLoading;
   final int userModelCount;
   final int libraryModelCount;
   final bool useLibraryModels;
@@ -555,41 +557,46 @@ class _ModelStepState extends ConsumerState<_ModelStep> {
             onClear: widget.onClear,
             onRemove: widget.onRemove,
           ),
-        AppTextField(
-          fieldKey: const ValueKey('create-model-search'),
-          hintText: 'Search models by name...',
-          textInputAction: TextInputAction.search,
-          leading: const Icon(Icons.search, size: 20),
-          onChanged: (value) {
-            ref.read(_createModelQueryProvider.notifier)._set(value: value);
-            ref.read(_createModelPageProvider.notifier)._set(value: 0);
-          },
-        ),
-        _SelectionGrid(
-          items: visibleModels,
-          selectedIndices: selectedIndices,
-          disabledIndices: widget.selectedKeys.length < 3
-              ? const {}
-              : widget.models.indexed
-                    .where((item) => !selectedIndices.contains(item.$1))
-                    .map((item) => item.$1)
-                    .toSet(),
-          selectedLabels: {
-            for (final (index, model) in widget.models.indexed)
-              if (selectedPositions[_modelKey(model)] case final position?)
-                index: position == 0 ? 'Primary' : 'Secondary $position',
-          },
-          selectedLabelOnLeft: true,
-          onSelect: widget.onSelect,
-        ),
-        if (pageCount > 1)
-          _ProductPagination(
-            pageIndex: pageIndex,
-            pageCount: pageCount,
-            keyPrefix: 'model',
-            onPageChanged: (value) =>
-                ref.read(_createModelPageProvider.notifier)._set(value: value),
+        if (widget.isLoading)
+          const Center(child: CircularProgressIndicator())
+        else ...[
+          AppTextField(
+            fieldKey: const ValueKey('create-model-search'),
+            hintText: 'Search models by name...',
+            textInputAction: TextInputAction.search,
+            leading: const Icon(Icons.search, size: 20),
+            onChanged: (value) {
+              ref.read(_createModelQueryProvider.notifier)._set(value: value);
+              ref.read(_createModelPageProvider.notifier)._set(value: 0);
+            },
           ),
+          _SelectionGrid(
+            items: visibleModels,
+            selectedIndices: selectedIndices,
+            disabledIndices: widget.selectedKeys.length < 3
+                ? const {}
+                : widget.models.indexed
+                      .where((item) => !selectedIndices.contains(item.$1))
+                      .map((item) => item.$1)
+                      .toSet(),
+            selectedLabels: {
+              for (final (index, model) in widget.models.indexed)
+                if (selectedPositions[_modelKey(model)] case final position?)
+                  index: position == 0 ? 'Primary' : 'Secondary $position',
+            },
+            selectedLabelOnLeft: true,
+            onSelect: widget.onSelect,
+          ),
+          if (pageCount > 1)
+            _ProductPagination(
+              pageIndex: pageIndex,
+              pageCount: pageCount,
+              keyPrefix: 'model',
+              onPageChanged: (value) => ref
+                  .read(_createModelPageProvider.notifier)
+                  ._set(value: value),
+            ),
+        ],
       ],
     );
   }

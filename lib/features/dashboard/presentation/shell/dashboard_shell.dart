@@ -499,8 +499,8 @@ class _DashboardCredits extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(_dashboardOverviewControllerProvider);
     return switch (state) {
-      AsyncData(:final value) => Text(
-        '${value.stats.credits}',
+      AsyncData(:final value) when value.stats != null => Text(
+        '${value.stats!.credits}',
         style: const TextStyle(
           fontSize: 20,
           fontWeight: AppTypography.bold,

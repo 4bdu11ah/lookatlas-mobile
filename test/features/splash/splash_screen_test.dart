@@ -8,6 +8,9 @@ import 'package:look_atlas/features/auth/presentation/screens/sign_in_screen.dar
 import 'package:look_atlas/features/dashboard/di/dashboard_providers.dart';
 import 'package:look_atlas/features/dashboard/presentation/screens/dashboard_screen.dart';
 import 'package:look_atlas/features/onboarding/di/onboarding_providers.dart';
+import 'package:look_atlas/features/onboarding/domain/entities/onboarding_status.dart';
+import 'package:look_atlas/features/onboarding/presentation/screens/activate_paywall_screen.dart';
+import 'package:look_atlas/features/onboarding/presentation/screens/onboarding_wizard_screen.dart';
 import 'package:look_atlas/features/splash/presentation/screens/splash_screen.dart';
 import 'package:look_atlas/features/subscription/di/subscription_providers.dart';
 import 'package:look_atlas/shared/widgets/look_atlas_loader.dart';
@@ -18,6 +21,11 @@ void main() {
   Future<void> pumpApp(
     WidgetTester tester, {
     AppUser? user,
+    OnboardingStatus onboardingStatus = const OnboardingStatus(
+      freeShootUsed: false,
+      onboardingImages: [],
+      hasCalibration: false,
+    ),
   }) async {
     final container = ProviderContainer(
       overrides: [
@@ -31,8 +39,7 @@ void main() {
           const FakeDashboardRepository(),
         ),
         onboardingStatusProvider.overrideWith(
-          (ref) =>
-              Future.error(StateError('Status unavailable in splash test')),
+          (ref) async => onboardingStatus,
         ),
         onboardingProductsProvider.overrideWith((ref) async => const []),
       ],
@@ -62,7 +69,7 @@ void main() {
     expect(find.byType(SignInScreen), findsOneWidget);
   });
 
-  testWidgets('hands off to home when signed in', (tester) async {
+  testWidgets('sends a new signed-in user to onboarding', (tester) async {
     await pumpApp(
       tester,
       user: const AppUser(id: 'user-1', email: 'jane@example.com'),
@@ -70,6 +77,39 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byType(SplashScreen), findsNothing);
+    expect(find.byType(OnboardingWizardScreen), findsOneWidget);
+  });
+
+  testWidgets('sends a subscriber to dashboard', (tester) async {
+    await pumpApp(
+      tester,
+      user: const AppUser(id: 'user-1', email: 'jane@example.com'),
+      onboardingStatus: const OnboardingStatus(
+        freeShootUsed: true,
+        onboardingImages: [],
+        hasCalibration: false,
+        subscriptionStatus: 'active',
+      ),
+    );
+    await tester.pumpAndSettle();
+
     expect(find.byType(DashboardScreen), findsOneWidget);
+  });
+
+  testWidgets('sends a used free-shoot account to the plan screen', (
+    tester,
+  ) async {
+    await pumpApp(
+      tester,
+      user: const AppUser(id: 'user-1', email: 'jane@example.com'),
+      onboardingStatus: const OnboardingStatus(
+        freeShootUsed: true,
+        onboardingImages: [],
+        hasCalibration: false,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byType(ActivatePaywallScreen), findsOneWidget);
   });
 }

@@ -22,10 +22,14 @@ class ShootsScreen extends ConsumerWidget {
                 _ModalKind.contextPaywall,
               ),
       ),
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(16, 16, 16, 28),
-        child: _JobsPage(
-          onOpenModal: (kind) => _openDashboardModal(context, ref, kind),
+      child: RefreshIndicator(
+        onRefresh: () => ref.read(_shootsControllerProvider.notifier).load(),
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 28),
+          child: _JobsPage(
+            onOpenModal: (kind) => _openDashboardModal(context, ref, kind),
+          ),
         ),
       ),
     );

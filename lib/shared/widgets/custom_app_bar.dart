@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:look_atlas/core/theme/app_colors.dart';
 import 'package:look_atlas/core/theme/app_typography.dart';
 
@@ -39,7 +40,7 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
           ? _CustomAppBarIconButton(
               icon: Icons.arrow_back,
               label: 'Back',
-              onTap: onBack ?? () => Navigator.maybePop(context),
+              onTap: onBack ?? () => context.pop(),
             )
           : const SizedBox.shrink(),
       title: FittedBox(

@@ -86,82 +86,34 @@ class _WorkshopPaywallDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Dialog(
-      insetPadding: const EdgeInsets.all(16),
-      backgroundColor: AppColors.white,
-      shape: const RoundedRectangleBorder(),
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 430),
-        child: Stack(
-          children: [
-            Padding(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Padding(
-                    padding: EdgeInsets.only(right: 44),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'SUBSCRIBER FEATURE',
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: AppTypography.bold,
-                            letterSpacing: 0.88,
-                            color: AppColors.neutral500,
-                          ),
-                        ),
-                        SizedBox(height: 8),
-                        Text(
-                          'Edit any image in seconds.',
-                          style: TextStyle(
-                            fontSize: 22,
-                            height: 28 / 22,
-                            fontWeight: AppTypography.bold,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  const Text(
-                    'Workshop turns one image plus a prompt into a finished edit. Subscribers get 1-credit generations.',
-                    style: TextStyle(
-                      fontSize: 14,
-                      height: 21 / 14,
-                      color: AppColors.neutral500,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  const _WorkshopBulletList(
-                    items: [
-                      'Multi-reference compositing',
-                      'Auto aspect-ratio detection',
-                      '1 credit per generation',
-                    ],
-                  ),
-                  const SizedBox(height: 20),
-                  _WorkshopPrimaryButton(
-                    label: 'View plans',
-                    onTap: () => Navigator.pop(context, true),
-                  ),
-                ],
-              ),
+    return Padding(
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Workshop turns one image plus a prompt into a finished edit. Subscribers get 1-credit generations.',
+            style: TextStyle(
+              fontSize: 14,
+              height: 21 / 14,
+              color: AppColors.neutral500,
             ),
-            Positioned(
-              top: 12,
-              right: 12,
-              child: _WorkshopIconButton(
-                icon: Icons.close,
-                label: 'Close paywall',
-                onTap: () => Navigator.pop(context, false),
-              ),
-            ),
-          ],
-        ),
+          ),
+          const SizedBox(height: 12),
+          const _WorkshopBulletList(
+            items: [
+              'Multi-reference compositing',
+              'Auto aspect-ratio detection',
+              '1 credit per generation',
+            ],
+          ),
+          const SizedBox(height: 20),
+          _WorkshopPrimaryButton(
+            label: 'View plans',
+            onTap: () => Navigator.pop(context, true),
+          ),
+        ],
       ),
     );
   }

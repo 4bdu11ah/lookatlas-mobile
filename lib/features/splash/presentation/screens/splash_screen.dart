@@ -90,7 +90,9 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
     }
 
     context.go(
-      status.freeShootUsed ? AppRoutes.onboardingActivate : AppRoutes.onboarding,
+      status.freeShootUsed
+          ? AppRoutes.onboardingActivate
+          : AppRoutes.onboarding,
     );
   }
 

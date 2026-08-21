@@ -11,6 +11,7 @@ import 'package:look_atlas/features/subscription/presentation/subscription_actio
 import 'package:look_atlas/features/subscription/presentation/subscription_controller.dart';
 import 'package:look_atlas/shared/widgets/app_snack_bar.dart';
 import 'package:look_atlas/shared/widgets/bar_spinner.dart';
+import 'package:look_atlas/shared/widgets/custom_app_bar.dart';
 import 'package:look_atlas/shared/widgets/primary_button.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
 
@@ -79,7 +80,10 @@ class PaywallScreen extends ConsumerWidget {
         SubscriptionStatus.free;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Go Premium')),
+      appBar: const CustomAppBar(
+        title: 'Go Premium',
+        showBackButton: true,
+      ),
       body: SafeArea(
         child: status.isPremium
             ? _PremiumView(status: status)

@@ -1,9 +1,74 @@
 part of '../../../dashboard/presentation/screens/dashboard_screen.dart';
 
-class _AiModelSheet extends StatefulWidget {
+class _AiModelFormState {
+  const _AiModelFormState({
+    this.gender = _ModelGender.female,
+    this.submitted = false,
+    this.generating = false,
+    this.generated = false,
+    this.errorMessage,
+  });
+
+  final _ModelGender gender;
+  final bool submitted;
+  final bool generating;
+  final bool generated;
+  final String? errorMessage;
+
+  _AiModelFormState copyWith({
+    _ModelGender? gender,
+    bool? submitted,
+    bool? generating,
+    bool? generated,
+    String? errorMessage,
+    bool clearError = false,
+  }) {
+    return _AiModelFormState(
+      gender: gender ?? this.gender,
+      submitted: submitted ?? this.submitted,
+      generating: generating ?? this.generating,
+      generated: generated ?? this.generated,
+      errorMessage: clearError ? null : errorMessage ?? this.errorMessage,
+    );
+  }
+}
+
+class _AiModelFormNotifier extends Notifier<_AiModelFormState> {
+  @override
+  _AiModelFormState build() => const _AiModelFormState();
+
+  void setGender(_ModelGender value) =>
+      state = state.copyWith(gender: value, clearError: true);
+
+  void setSubmitted() => state = state.copyWith(submitted: true);
+
+  void setGenerating() =>
+      state = state.copyWith(generating: true, clearError: true);
+
+  void setError(String message) =>
+      state = state.copyWith(generating: false, errorMessage: message);
+
+  void clearError() => state = state.copyWith(clearError: true);
+
+  void setGenerated() => state = state.copyWith(
+    generating: false,
+    generated: true,
+    submitted: false,
+    clearError: true,
+  );
+
+  void reset() => state = const _AiModelFormState();
+}
+
+final _aiModelFormProvider =
+    NotifierProvider<_AiModelFormNotifier, _AiModelFormState>(
+      _AiModelFormNotifier.new,
+    );
+
+class _AiModelSheet extends ConsumerStatefulWidget {
   const _AiModelSheet({required this.onGenerated, this.dialog = false});
 
-  final Future<bool> Function(
+  final Future<String?> Function(
     _ModelGender gender,
     int age,
     String description,
@@ -12,16 +77,13 @@ class _AiModelSheet extends StatefulWidget {
   final bool dialog;
 
   @override
-  State<_AiModelSheet> createState() => _AiModelSheetState();
+  ConsumerState<_AiModelSheet> createState() => _AiModelSheetState();
 }
 
-class _AiModelSheetState extends State<_AiModelSheet> {
+class _AiModelSheetState extends ConsumerState<_AiModelSheet> {
   final _ageController = TextEditingController(text: '25');
   final _descriptionController = TextEditingController();
-  _ModelGender _gender = _ModelGender.female;
-  bool _submitted = false;
-  bool _generated = false;
-  bool _generating = false;
+  final GlobalKey _errorKey = GlobalKey();
 
   @override
   void dispose() {
@@ -35,31 +97,56 @@ class _AiModelSheetState extends State<_AiModelSheet> {
     bool ageValid,
     String description,
   ) async {
-    setState(() => _submitted = true);
+    final notifier = ref.read(_aiModelFormProvider.notifier)..setSubmitted();
     if (age == null || !ageValid || description.length < 10) return;
-    setState(() => _generating = true);
-    final generated = await widget.onGenerated(_gender, age, description);
+    notifier.setGenerating();
+    final gender = ref.read(_aiModelFormProvider).gender;
+    final errorMessage = await widget.onGenerated(gender, age, description);
     if (!mounted) return;
-    setState(() {
-      _generating = false;
-      if (!generated) return;
-      _generated = true;
-      _descriptionController.clear();
-      _submitted = false;
-    });
+    if (errorMessage != null) {
+      notifier.setError(errorMessage);
+      return;
+    }
+    notifier.setGenerated();
+    _descriptionController.clear();
+  }
+
+  void _scrollToError() {
+    final errorContext = _errorKey.currentContext;
+    if (errorContext == null) return;
+    unawaited(
+      Scrollable.ensureVisible(
+        errorContext,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOut,
+        alignmentPolicy: ScrollPositionAlignmentPolicy.keepVisibleAtEnd,
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
+    ref.listen<_AiModelFormState>(_aiModelFormProvider, (prev, next) {
+      if (prev?.errorMessage == null && next.errorMessage != null) {
+        WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToError());
+      }
+    });
+    final formState = ref.watch(_aiModelFormProvider);
     final age = int.tryParse(_ageController.text);
     final ageValid = age != null && age >= 18 && age <= 100;
     final description = _descriptionController.text.trim();
-    final form = _buildForm(ageValid, description.length >= 10);
+    final form = _buildForm(
+      formState,
+      ageValid,
+      description.length >= 10,
+    );
     final action = PrimaryButton(
       key: const ValueKey('generate-ai-model'),
-      label: _generated ? 'Generate another' : 'Generate model (20 credits)',
+      label: formState.generated
+          ? 'Generate another'
+          : 'Generate model (20 credits)',
       icon: Icons.auto_awesome,
-      isLoading: _generating,
+      isLoading: formState.generating,
       onPressed: () => unawaited(_generate(age, ageValid, description)),
     );
     return widget.dialog
@@ -67,7 +154,11 @@ class _AiModelSheetState extends State<_AiModelSheet> {
         : _buildBottomSheet(form, action);
   }
 
-  Widget _buildForm(bool ageValid, bool descriptionValid) {
+  Widget _buildForm(
+    _AiModelFormState formState,
+    bool ageValid,
+    bool descriptionValid,
+  ) {
     return SingleChildScrollView(
       padding: widget.dialog
           ? const EdgeInsets.fromLTRB(20, 18, 20, 20)
@@ -83,31 +174,35 @@ class _AiModelSheetState extends State<_AiModelSheet> {
             ),
           _SelectBlock<_ModelGender>(
             label: 'Gender',
-            value: _gender,
+            value: formState.gender,
             values: const [
               _ModelGender.female,
               _ModelGender.male,
               _ModelGender.nonBinary,
             ],
             labelFor: (value) => value.label,
-            onChanged: (value) => setState(() => _gender = value),
+            onChanged: ref.read(_aiModelFormProvider.notifier).setGender,
           ),
           _TextFieldBlock(
             label: 'Age',
             required: true,
             controller: _ageController,
             keyboardType: TextInputType.number,
-            invalid: _submitted && !ageValid,
+            invalid: formState.submitted && !ageValid,
             error: 'Age must be between 18 and 100.',
-            onChanged: (_) => setState(() {}),
+            onChanged: (_) =>
+                ref.read(_aiModelFormProvider.notifier).clearError(),
           ),
           _TextAreaBlock(
             controller: _descriptionController,
-            invalid: _submitted && !descriptionValid,
-            onChanged: (_) => setState(() {}),
+            invalid: formState.submitted && !descriptionValid,
+            onChanged: (_) =>
+                ref.read(_aiModelFormProvider.notifier).clearError(),
           ),
           const _BenefitCard(),
-          if (_generated) const _GenerationStatus(),
+          if (formState.errorMessage != null)
+            _AiModelErrorBox(key: _errorKey, message: formState.errorMessage!),
+          if (formState.generated) const _GenerationStatus(),
         ],
       ),
     );
@@ -155,6 +250,46 @@ class _AiModelSheetState extends State<_AiModelSheet> {
               ),
               action,
             ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _AiModelErrorBox extends StatelessWidget {
+  const _AiModelErrorBox({required this.message, super.key});
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(top: 16),
+      padding: const EdgeInsets.all(12),
+      decoration: const BoxDecoration(
+        color: AppColors.dangerLight,
+        border: Border(left: BorderSide(color: AppColors.danger, width: 4)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(
+            Icons.error_outline,
+            size: 18,
+            color: AppColors.dangerDark,
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              message,
+              style: const TextStyle(
+                fontSize: 14,
+                height: 20 / 14,
+                fontWeight: AppTypography.medium,
+                color: AppColors.dangerDark,
+              ),
+            ),
           ),
         ],
       ),

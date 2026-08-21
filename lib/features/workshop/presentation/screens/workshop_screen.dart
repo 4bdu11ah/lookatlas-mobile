@@ -89,6 +89,7 @@ class _WorkshopScreenState extends ConsumerState<WorkshopScreen> {
   }
 
   Future<void> _addReference() async {
+    FocusManager.instance.primaryFocus?.unfocus();
     final source = await showImageSourceSheet(
       context,
       title: 'Add a reference',
@@ -97,9 +98,11 @@ class _WorkshopScreenState extends ConsumerState<WorkshopScreen> {
     await ref
         .read(workshopControllerProvider.notifier)
         .addReferenceFrom(source);
+    if (mounted) FocusManager.instance.primaryFocus?.unfocus();
   }
 
   Future<void> _pickBaseImage() async {
+    FocusManager.instance.primaryFocus?.unfocus();
     final source = await showImageSourceSheet(
       context,
       title: 'Add a base image',
@@ -108,6 +111,7 @@ class _WorkshopScreenState extends ConsumerState<WorkshopScreen> {
     await ref
         .read(workshopControllerProvider.notifier)
         .pickBaseImageFrom(source);
+    if (mounted) FocusManager.instance.primaryFocus?.unfocus();
   }
 
   Future<void> _handleGenerate() async {
@@ -121,15 +125,17 @@ class _WorkshopScreenState extends ConsumerState<WorkshopScreen> {
   Future<void> _showGuide() => context.push<void>(AppRoutes.workshopGuide);
 
   Future<void> _showPaywall() async {
-    final upgrade = await showDialog<bool>(
+    final upgrade = await showAppDialog<bool>(
       context: context,
-      barrierColor: AppColors.blackAlpha60,
+      title: 'SUBSCRIBER FEATURE',
+      subtitle: 'Edit any image in seconds.',
       builder: (_) => const _WorkshopPaywallDialog(),
     );
     if ((upgrade ?? false) && mounted) context.go(AppRoutes.paywall);
   }
 
   Future<void> _openHistory(int index) async {
+    FocusManager.instance.primaryFocus?.unfocus();
     ref.read(workshopControllerProvider.notifier).selectHistory(index);
     final history = ref.read(workshopControllerProvider).history;
     if (index >= history.length) return;
@@ -151,6 +157,7 @@ class _WorkshopScreenState extends ConsumerState<WorkshopScreen> {
         },
       ),
     );
+    if (mounted) FocusManager.instance.primaryFocus?.unfocus();
   }
 
   Future<void> _download(WorkshopGeneration? generation) async {

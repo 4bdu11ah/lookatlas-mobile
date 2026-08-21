@@ -69,31 +69,44 @@ class _WorkshopEditor extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final error = state.validationMessage ?? state.failure?.message;
+    final busy = state.isGenerating;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _BaseImageField(
-          image: state.baseImage,
-          onPick: actions.pickBase,
-          onRemove: actions.removeBase,
-        ),
-        if (state.hasBaseImage) ...[
-          const SizedBox(height: 16),
-          _ModePicker(
-            selected: state.editMode,
-            onChanged: actions.changeMode,
+        IgnorePointer(
+          ignoring: busy,
+          child: AnimatedOpacity(
+            duration: const Duration(milliseconds: 200),
+            opacity: busy ? 0.5 : 1,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _BaseImageField(
+                  image: state.baseImage,
+                  onPick: actions.pickBase,
+                  onRemove: actions.removeBase,
+                ),
+                if (state.hasBaseImage) ...[
+                  const SizedBox(height: 16),
+                  _ModePicker(
+                    selected: state.editMode,
+                    onChanged: actions.changeMode,
+                  ),
+                ],
+                const SizedBox(height: 16),
+                _ReferenceField(
+                  references: state.references,
+                  onAdd: actions.addReference,
+                  onRemove: actions.removeReference,
+                ),
+                const SizedBox(height: 16),
+                _PromptField(
+                  controller: promptController,
+                  onChanged: actions.changePrompt,
+                ),
+              ],
+            ),
           ),
-        ],
-        const SizedBox(height: 16),
-        _ReferenceField(
-          references: state.references,
-          onAdd: actions.addReference,
-          onRemove: actions.removeReference,
-        ),
-        const SizedBox(height: 16),
-        _PromptField(
-          controller: promptController,
-          onChanged: actions.changePrompt,
         ),
         if (error != null) ...[
           const SizedBox(height: 16),

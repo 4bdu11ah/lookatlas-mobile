@@ -205,14 +205,11 @@ Future<void> _showAiSheet(
         final result = await ref
             .read(_houseModelControllerProvider.notifier)
             .addAiModel(gender: gender, age: age, description: description);
-        if (!context.mounted) return false;
+        if (!context.mounted) return null;
         final failure = result.failureOrNull;
-        if (failure != null) {
-          AppSnackBar.showError(context, failure.message);
-          return false;
-        }
+        if (failure != null) return failure.message;
         onToast('AI model is ready');
-        return true;
+        return null;
       },
     ),
   );

@@ -65,6 +65,28 @@ void main() {
     );
   });
 
+  testWidgets('SignInScreen requires Turnstile before submission', (
+    tester,
+  ) async {
+    await pumpSignInScreen(tester);
+
+    await tester.enterText(
+      find.byType(TextFormField).first,
+      'jane@example.com',
+    );
+    await tester.enterText(
+      find.byType(TextFormField).last,
+      'secret123',
+    );
+    await tester.tap(find.text('Sign in'));
+    await tester.pump();
+
+    expect(
+      find.text('Complete the security check before continuing.'),
+      findsOneWidget,
+    );
+  });
+
   testWidgets('SignInScreen toggles password visibility', (tester) async {
     await pumpSignInScreen(tester);
 

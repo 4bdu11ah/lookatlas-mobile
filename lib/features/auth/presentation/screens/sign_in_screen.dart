@@ -8,13 +8,13 @@ import 'package:look_atlas/features/auth/domain/validators/auth_validators.dart'
 import 'package:look_atlas/features/auth/presentation/auth_controller.dart';
 import 'package:look_atlas/features/auth/presentation/password_visibility_controller.dart';
 import 'package:look_atlas/features/auth/presentation/widgets/auth_layout.dart';
+import 'package:look_atlas/features/auth/presentation/widgets/auth_turnstile.dart';
 import 'package:look_atlas/features/auth/presentation/widgets/social_sign_in_buttons.dart';
 import 'package:look_atlas/shared/widgets/app_snack_bar.dart';
 import 'package:look_atlas/shared/widgets/app_text_field.dart';
 
 /// Login screen — mirrors `login.html` (brand, email + password, forgot
-/// password link, sign in CTA, create-account footer). The captcha shown in
-/// the mockup is intentionally omitted.
+/// password link, sign in CTA, create-account footer).
 class SignInScreen extends ConsumerStatefulWidget {
   const SignInScreen({super.key});
 
@@ -26,6 +26,7 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  String? _captchaToken;
 
   @override
   void dispose() {
@@ -36,9 +37,21 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
+    final captchaToken = _captchaToken;
+    if (captchaToken == null || captchaToken.isEmpty) {
+      AppSnackBar.showError(
+        context,
+        'Complete the security check before continuing.',
+      );
+      return;
+    }
     await ref
         .read(authControllerProvider.notifier)
-        .signIn(_emailController.text.trim(), _passwordController.text);
+        .signIn(
+          _emailController.text.trim(),
+          _passwordController.text,
+          captchaToken: captchaToken,
+        );
   }
 
   @override
@@ -108,6 +121,8 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
                 onPressed: () => context.push(AppRoutes.resetPassword),
               ),
             ),
+            const SizedBox(height: 20),
+            AuthTurnstile(onTokenChanged: (token) => _captchaToken = token),
             const SizedBox(height: 20),
             AuthSubmitButton(
               label: 'Sign in',

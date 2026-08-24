@@ -7,8 +7,8 @@ import 'package:look_atlas/features/auth/presentation/screens/sign_up_screen.dar
 import '../../../helpers/fake_repositories.dart';
 
 void main() {
-  testWidgets('SignUpScreen toggles password visibility', (tester) async {
-    await tester.pumpWidget(
+  Future<void> pumpSignUpScreen(WidgetTester tester) {
+    return tester.pumpWidget(
       ProviderScope(
         overrides: [
           authRepositoryProvider.overrideWithValue(FakeAuthRepository()),
@@ -16,6 +16,10 @@ void main() {
         child: const MaterialApp(home: SignUpScreen()),
       ),
     );
+  }
+
+  testWidgets('SignUpScreen toggles password visibility', (tester) async {
+    await pumpSignUpScreen(tester);
 
     final passwordField = find.byType(TextFormField).last;
     final obscuredPasswordInput = tester.widget<EditableText>(
@@ -32,5 +36,27 @@ void main() {
     );
     expect(visiblePasswordInput.obscureText, isFalse);
     expect(find.byIcon(Icons.visibility_off_outlined), findsOneWidget);
+  });
+
+  testWidgets('SignUpScreen requires Turnstile before submission', (
+    tester,
+  ) async {
+    await pumpSignUpScreen(tester);
+
+    await tester.enterText(find.byType(TextFormField).at(0), 'Acme Inc.');
+    await tester.enterText(
+      find.byType(TextFormField).at(1),
+      'jane@example.com',
+    );
+    await tester.enterText(find.byType(TextFormField).at(2), 'secret123');
+    final submitButton = find.text('Create account');
+    await tester.ensureVisible(submitButton);
+    await tester.tap(submitButton);
+    await tester.pump();
+
+    expect(
+      find.text('Complete the security check before continuing.'),
+      findsOneWidget,
+    );
   });
 }

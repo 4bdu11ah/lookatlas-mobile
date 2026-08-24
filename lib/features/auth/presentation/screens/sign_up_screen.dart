@@ -7,13 +7,13 @@ import 'package:look_atlas/features/auth/domain/validators/auth_validators.dart'
 import 'package:look_atlas/features/auth/presentation/auth_controller.dart';
 import 'package:look_atlas/features/auth/presentation/password_visibility_controller.dart';
 import 'package:look_atlas/features/auth/presentation/widgets/auth_layout.dart';
+import 'package:look_atlas/features/auth/presentation/widgets/auth_turnstile.dart';
 import 'package:look_atlas/features/auth/presentation/widgets/social_sign_in_buttons.dart';
 import 'package:look_atlas/shared/widgets/app_snack_bar.dart';
 import 'package:look_atlas/shared/widgets/app_text_field.dart';
 
 /// Create-account screen — mirrors `signup.html` (email, password with helper,
-/// create CTA, terms line, sign-in footer). The captcha shown in the mockup is
-/// intentionally omitted.
+/// create CTA, terms line, sign-in footer).
 class SignUpScreen extends ConsumerStatefulWidget {
   const SignUpScreen({super.key});
 
@@ -26,6 +26,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
   final _companyNameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  String? _captchaToken;
 
   @override
   void dispose() {
@@ -37,12 +38,21 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
+    final captchaToken = _captchaToken;
+    if (captchaToken == null || captchaToken.isEmpty) {
+      AppSnackBar.showError(
+        context,
+        'Complete the security check before continuing.',
+      );
+      return;
+    }
     await ref
         .read(authControllerProvider.notifier)
         .signUp(
           email: _emailController.text.trim(),
           password: _passwordController.text,
           companyName: _companyNameController.text.trim(),
+          captchaToken: captchaToken,
         );
   }
 
@@ -117,6 +127,8 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
               onFieldSubmitted: (_) => _submit(),
               validator: AuthValidators.validatePassword,
             ),
+            const SizedBox(height: 20),
+            AuthTurnstile(onTokenChanged: (token) => _captchaToken = token),
             const SizedBox(height: 20),
             AuthSubmitButton(
               label: 'Create account',

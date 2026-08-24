@@ -68,12 +68,17 @@ void main() {
         () => authRepository.signInWithEmail(
           email: any(named: 'email'),
           password: any(named: 'password'),
+          captchaToken: any(named: 'captchaToken'),
         ),
       ).thenAnswer((_) async => const Result.ok(user));
 
       final succeeded = await container
           .read(authControllerProvider.notifier)
-          .signIn('jane@example.com', 'secret123');
+          .signIn(
+            'jane@example.com',
+            'secret123',
+            captchaToken: 'turnstile-token',
+          );
 
       expect(succeeded, isTrue);
       expect(states, const [
@@ -88,12 +93,17 @@ void main() {
         () => authRepository.signInWithEmail(
           email: any(named: 'email'),
           password: any(named: 'password'),
+          captchaToken: any(named: 'captchaToken'),
         ),
       ).thenAnswer((_) async => const Result.ok(user));
 
       await container
           .read(authControllerProvider.notifier)
-          .signIn('jane@example.com', 'secret123');
+          .signIn(
+            'jane@example.com',
+            'secret123',
+            captchaToken: 'turnstile-token',
+          );
       await flushSideEffects();
 
       verify(() => subscriptions.logIn('user-1')).called(1);
@@ -110,12 +120,17 @@ void main() {
         () => authRepository.signInWithEmail(
           email: any(named: 'email'),
           password: any(named: 'password'),
+          captchaToken: any(named: 'captchaToken'),
         ),
       ).thenAnswer((_) async => const Result.err(failure));
 
       final succeeded = await container
           .read(authControllerProvider.notifier)
-          .signIn('jane@example.com', 'wrong-password');
+          .signIn(
+            'jane@example.com',
+            'wrong-password',
+            captchaToken: 'turnstile-token',
+          );
       await flushSideEffects();
 
       expect(succeeded, isFalse);
@@ -129,6 +144,37 @@ void main() {
         () => analytics.identify(any(), traits: any(named: 'traits')),
       );
     });
+
+    test('rejects an empty Turnstile token before calling the API', () async {
+      final succeeded = await container
+          .read(authControllerProvider.notifier)
+          .signIn(
+            'jane@example.com',
+            'secret123',
+            captchaToken: '',
+          );
+
+      expect(succeeded, isFalse);
+      expect(
+        states.last,
+        isA<AsyncError<void>>().having(
+          (state) => state.error,
+          'error',
+          isA<AuthFailure>().having(
+            (failure) => failure.message,
+            'message',
+            'Complete the security check before continuing.',
+          ),
+        ),
+      );
+      verifyNever(
+        () => authRepository.signInWithEmail(
+          email: any(named: 'email'),
+          password: any(named: 'password'),
+          captchaToken: any(named: 'captchaToken'),
+        ),
+      );
+    });
   });
 
   group('signUp', () {
@@ -138,6 +184,7 @@ void main() {
           email: any(named: 'email'),
           password: any(named: 'password'),
           companyName: any(named: 'companyName'),
+          captchaToken: any(named: 'captchaToken'),
         ),
       ).thenAnswer((_) async => const Result.ok(user));
 
@@ -147,6 +194,7 @@ void main() {
             email: 'jane@example.com',
             password: 'secret123',
             companyName: 'Acme Inc.',
+            captchaToken: 'turnstile-token',
           );
       await flushSideEffects();
 

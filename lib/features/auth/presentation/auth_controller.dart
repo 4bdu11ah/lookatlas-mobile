@@ -23,8 +23,13 @@ class AuthController extends Notifier<AsyncValue<void>> {
 
   /// Signs in with email + password. Returns whether it succeeded; failures
   /// are also exposed through the provider's [AsyncError] state.
-  /// A Turnstile token is generated immediately before the API request.
-  Future<bool> signIn(String email, String password) => _runWithCaptcha(
+  /// [captchaToken] must come from the rendered Turnstile challenge.
+  Future<bool> signIn(
+    String email,
+    String password, {
+    required String captchaToken,
+  }) => _runWithCaptcha(
+    captchaToken,
     (captchaToken) => ref.read(signInUseCaseProvider)(
       email: email,
       password: password,
@@ -40,8 +45,10 @@ class AuthController extends Notifier<AsyncValue<void>> {
     required String email,
     required String password,
     required String companyName,
+    required String captchaToken,
     RegisterAttribution? attribution,
   }) => _runWithCaptcha(
+    captchaToken,
     (captchaToken) => ref.read(signUpUseCaseProvider)(
       email: email,
       password: password,
@@ -72,21 +79,18 @@ class AuthController extends Notifier<AsyncValue<void>> {
       _run(() => ref.read(resetPasswordUseCaseProvider)(email: email));
 
   Future<bool> _runWithCaptcha<T>(
-    Future<Result<T>> Function(String? captchaToken) action, {
+    String captchaToken,
+    Future<Result<T>> Function(String captchaToken) action, {
     void Function(T value)? onOk,
   }) async {
-    state = const AsyncLoading();
-    final captcha = await ref.read(turnstileServiceProvider).getToken();
-    return captcha.fold(
-      (captchaToken) => _run(
-        () => action(captchaToken),
-        onOk: onOk,
-      ),
-      (failure) {
-        state = AsyncError(failure, StackTrace.current);
-        return false;
-      },
-    );
+    if (captchaToken.isEmpty) {
+      state = AsyncError(
+        const AuthFailure('Complete the security check before continuing.'),
+        StackTrace.current,
+      );
+      return false;
+    }
+    return _run(() => action(captchaToken), onOk: onOk);
   }
 
   /// Ends the session. Returns whether it succeeded; runs through the same

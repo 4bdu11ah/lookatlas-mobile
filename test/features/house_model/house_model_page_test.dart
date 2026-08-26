@@ -27,6 +27,27 @@ class _FakeImagePicker extends ImagePicker {
 
   final int imageCount;
   int? lastLimit;
+  int singleImagePickCount = 0;
+
+  @override
+  Future<XFile?> pickImage({
+    required ImageSource source,
+    double? maxWidth,
+    double? maxHeight,
+    int? imageQuality,
+    CameraDevice preferredCameraDevice = CameraDevice.rear,
+    bool requestFullMetadata = true,
+  }) async {
+    singleImagePickCount++;
+    return XFile.fromData(
+      Uint8List.fromList(
+        base64Decode(
+          'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=',
+        ),
+      ),
+      name: 'model.jpg',
+    );
+  }
 
   @override
   Future<List<XFile>> pickMultiImage({
@@ -57,12 +78,14 @@ class _FakeHouseModelsRepository implements HouseModelsRepository {
     this.loadFailure,
     this.refreshFailure,
     this.initialLoad,
+    this.generationCompletion,
   }) : _userModels = [...userModels];
 
   final List<HouseModelProfile> _userModels;
   final Failure? loadFailure;
   final Failure? refreshFailure;
   final Future<Result<HouseModelCatalog>>? initialLoad;
+  final Future<Result<void>>? generationCompletion;
   int _loadCount = 0;
   HouseModelDraft? lastCreatedDraft;
 
@@ -144,7 +167,21 @@ class _FakeHouseModelsRepository implements HouseModelsRepository {
   }
 
   @override
-  Future<Result<void>> generateModel(AiHouseModelDraft draft) async {
+  Future<Result<HouseModelGeneration>> startModelGeneration(
+    AiHouseModelDraft draft,
+  ) async => const Result.ok(
+    HouseModelGeneration(
+      id: 'ai-generation-1',
+      status: HouseModelGenerationStatus.processing,
+    ),
+  );
+
+  @override
+  Future<Result<void>> waitForModelGeneration(
+    HouseModelGeneration generation,
+  ) async {
+    final result = await generationCompletion ?? const Result.ok(null);
+    if (result.isErr) return result;
     _userModels.add(
       const HouseModelProfile(
         id: 'ai-1',
@@ -155,7 +192,13 @@ class _FakeHouseModelsRepository implements HouseModelsRepository {
         photos: ['assets/images/onboarding/step-model.jpg'],
       ),
     );
-    return const Result.ok(null);
+    return result;
+  }
+
+  @override
+  Future<Result<void>> generateModel(AiHouseModelDraft draft) async {
+    final generation = await startModelGeneration(draft);
+    return waitForModelGeneration(generation.valueOrNull!);
   }
 }
 
@@ -217,6 +260,45 @@ const _existingUserModel = HouseModelProfile(
   source: HouseModelSource.user,
   heightCm: 174,
   photos: ['assets/images/onboarding/step-model.jpg'],
+);
+
+const _multiPhotoUserModel = HouseModelProfile(
+  id: 'user-2',
+  name: 'Morgan',
+  gender: 'female',
+  source: HouseModelSource.user,
+  heightCm: 174,
+  photos: [
+    'assets/images/onboarding/step-model.jpg',
+    'assets/images/onboarding/showcase-tshirt-after.jpg',
+  ],
+);
+
+const _threePhotoUserModel = HouseModelProfile(
+  id: 'user-3',
+  name: 'Alex',
+  gender: 'male',
+  source: HouseModelSource.user,
+  heightCm: 180,
+  photos: [
+    'assets/images/onboarding/step-model.jpg',
+    'assets/images/onboarding/showcase-tshirt-after.jpg',
+    'assets/images/onboarding/showcase-sunglasses-after.jpg',
+  ],
+);
+
+const _fourPhotoUserModel = HouseModelProfile(
+  id: 'user-4',
+  name: 'Jordan',
+  gender: 'female',
+  source: HouseModelSource.user,
+  heightCm: 170,
+  photos: [
+    'assets/images/onboarding/step-model.jpg',
+    'assets/images/onboarding/showcase-tshirt-after.jpg',
+    'assets/images/onboarding/showcase-sunglasses-after.jpg',
+    'assets/images/onboarding/showcase-dress-after.jpg',
+  ],
 );
 
 void main() {
@@ -496,7 +578,7 @@ void main() {
     expect(repository.lastCreatedDraft, isNull);
   });
 
-  testWidgets('add model accepts at most five selected photos', (tester) async {
+  testWidgets('add model accepts at most four selected photos', (tester) async {
     final imagePicker = _FakeImagePicker(imageCount: 7);
     final repository = _FakeHouseModelsRepository();
     await pumpModels(
@@ -517,12 +599,40 @@ void main() {
     await tester.tap(find.text('Choose from gallery'));
     await tester.pumpAndSettle();
 
-    expect(imagePicker.lastLimit, 5);
-    expect(find.text('(5/5)'), findsOneWidget);
+    expect(imagePicker.lastLimit, 4);
+    expect(find.text('(4/4)'), findsOneWidget);
     await tester.ensureVisible(find.byKey(const ValueKey('submit-model-form')));
     await tester.tap(find.byKey(const ValueKey('submit-model-form')));
     await tester.pumpAndSettle();
-    expect(repository.lastCreatedDraft?.photos, hasLength(5));
+    expect(repository.lastCreatedDraft?.photos, hasLength(4));
+  });
+
+  testWidgets('reopening add model clears successfully uploaded photos', (
+    tester,
+  ) async {
+    await pumpModels(tester, repository: _FakeHouseModelsRepository());
+
+    await tester.tap(find.byKey(const ValueKey('add-model-fab')));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField).at(0), 'Taylor Stone');
+    await tester.enterText(find.byType(TextField).at(1), '174');
+    await tester.ensureVisible(
+      find.byKey(const ValueKey('model-photo-upload')),
+    );
+    await tester.tap(find.byKey(const ValueKey('model-photo-upload')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Choose from gallery'));
+    await tester.pumpAndSettle();
+    expect(find.text('(1/4)'), findsOneWidget);
+
+    await tester.ensureVisible(find.byKey(const ValueKey('submit-model-form')));
+    await tester.tap(find.byKey(const ValueKey('submit-model-form')));
+    await tester.pumpAndSettle();
+    expect(find.byType(AppDialog), findsNothing);
+
+    await tester.tap(find.byKey(const ValueKey('add-model-fab')));
+    await tester.pumpAndSettle();
+    expect(find.text('(0/4)'), findsOneWidget);
   });
 
   testWidgets('successful create closes form when catalog refresh fails', (
@@ -555,8 +665,16 @@ void main() {
     expect(find.textContaining('Refresh unavailable.'), findsOneWidget);
   });
 
-  testWidgets('house model page creates an AI model', (tester) async {
-    await pumpModels(tester);
+  testWidgets('house model page tracks AI generation and refreshes models', (
+    tester,
+  ) async {
+    final generationCompletion = Completer<Result<void>>();
+    await pumpModels(
+      tester,
+      repository: _FakeHouseModelsRepository(
+        generationCompletion: generationCompletion.future,
+      ),
+    );
 
     await tester.tap(find.text('Create with AI'));
     await tester.pumpAndSettle();
@@ -567,11 +685,26 @@ void main() {
     await tester.pump();
     await tester.ensureVisible(find.byKey(const ValueKey('generate-ai-model')));
     await tester.tap(find.byKey(const ValueKey('generate-ai-model')));
+    for (var frame = 0; frame < 5; frame++) {
+      await tester.pump();
+    }
+    await tester.pump(const Duration(milliseconds: 300));
+
+    expect(
+      find.byKey(const ValueKey('ai-model-generation-progress')),
+      findsOneWidget,
+    );
+    expect(find.byType(Dialog), findsNothing);
+
+    generationCompletion.complete(const Result.ok(null));
     await tester.pumpAndSettle();
 
-    expect(find.text('Model generated'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('ai-model-generation-progress')),
+      findsNothing,
+    );
     expect(find.text('Silver Hair'), findsOneWidget);
-    expect(find.text('AI model is ready'), findsOneWidget);
+    expect(find.text('AI model generation started'), findsOneWidget);
   });
 
   testWidgets('house model page edits a user model through the API layer', (
@@ -602,6 +735,34 @@ void main() {
     expect(find.text('Model updated'), findsOneWidget);
   });
 
+  testWidgets('gallery uses one-image picker when one model photo remains', (
+    tester,
+  ) async {
+    final imagePicker = _FakeImagePicker();
+    await pumpModels(
+      tester,
+      repository: _FakeHouseModelsRepository(
+        userModels: const [_threePhotoUserModel],
+      ),
+      imagePicker: imagePicker,
+    );
+
+    await tester.ensureVisible(find.byTooltip('Edit model'));
+    await tester.tap(find.byTooltip('Edit model'));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(
+      find.byKey(const ValueKey('model-photo-upload')),
+    );
+    await tester.tap(find.byKey(const ValueKey('model-photo-upload')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Choose from gallery'));
+    await tester.pumpAndSettle();
+
+    expect(imagePicker.singleImagePickCount, 1);
+    expect(imagePicker.lastLimit, isNull);
+    expect(find.byKey(const ValueKey('model-photo-upload')), findsNothing);
+  });
+
   testWidgets('user model card shows profile details and header actions', (
     tester,
   ) async {
@@ -621,23 +782,52 @@ void main() {
     expect(find.text('YOUR MODEL'), findsNothing);
   });
 
+  testWidgets('user model card swipes through multiple photos', (tester) async {
+    await pumpModels(
+      tester,
+      repository: _FakeHouseModelsRepository(
+        userModels: const [_multiPhotoUserModel],
+      ),
+    );
+
+    final pager = find.byKey(
+      const ValueKey('user-model-user-2-photo-pager'),
+    );
+    await tester.ensureVisible(pager);
+    expect(
+      find.byKey(const ValueKey('user-model-user-2-photo-0')),
+      findsOneWidget,
+    );
+    expect(find.text('1 / 2'), findsOneWidget);
+
+    await tester.drag(pager, const Offset(-220, 0));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey('user-model-user-2-photo-1')),
+      findsOneWidget,
+    );
+    expect(find.text('2 / 2'), findsOneWidget);
+  });
+
   testWidgets('editing a current model photo confirms before deleting it', (
     tester,
   ) async {
     final repository = _FakeHouseModelsRepository(
-      userModels: const [_existingUserModel],
+      userModels: const [_fourPhotoUserModel],
     );
     await pumpModels(tester, repository: repository);
 
     await tester.ensureVisible(find.byTooltip('Edit model'));
     await tester.tap(find.byTooltip('Edit model'));
     await tester.pumpAndSettle();
-    await tester.ensureVisible(find.byTooltip('Delete photo'));
+    expect(find.byKey(const ValueKey('model-photo-upload')), findsNothing);
+    await tester.ensureVisible(find.byTooltip('Delete photo').first);
     await tester.tap(find.byKey(const ValueKey('existing-model-photo-0')));
     await tester.pumpAndSettle();
     expect(find.text('Delete Photo'), findsNothing);
 
-    await tester.tap(find.byTooltip('Delete photo'));
+    await tester.tap(find.byTooltip('Delete photo').first);
     await tester.pumpAndSettle();
 
     expect(find.byType(AppDialog), findsNWidgets(2));
@@ -645,8 +835,9 @@ void main() {
     await tester.tap(find.text('Delete Photo').last);
     await tester.pumpAndSettle();
 
-    expect(repository._userModels.single.photos, isEmpty);
-    expect(find.text('(0 existing)'), findsOneWidget);
+    expect(repository._userModels.single.photos, hasLength(3));
+    expect(find.text('(3 existing)'), findsOneWidget);
+    expect(find.byKey(const ValueKey('model-photo-upload')), findsOneWidget);
   });
 
   testWidgets('house model page deletes a user model after confirmation', (

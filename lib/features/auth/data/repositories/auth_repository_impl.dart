@@ -164,6 +164,49 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
+  Future<Result<String>> reauthenticateForAccountDeletion({
+    required String provider,
+    required String material,
+  }) async {
+    var reauthenticationMaterial = material;
+    if (provider == 'google') {
+      final socialResult = await _socialAuth.signInWithGoogle();
+      final credential = socialResult.valueOrNull;
+      if (credential == null) return Result.err(socialResult.failureOrNull!);
+      reauthenticationMaterial = credential.accessToken;
+    }
+    return _remote.deletionReauth(
+      provider: provider,
+      proof: reauthenticationMaterial,
+    );
+  }
+
+  @override
+  Future<Result<void>> deleteAccount({
+    required String email,
+    required String confirmation,
+    required String reason,
+    required String reauthenticationProof,
+    required String idempotencyKey,
+  }) async {
+    if (_currentUser == null || _currentUser!.email != email) {
+      return const Result.err(AuthFailure('Please sign in again to continue.'));
+    }
+    if (confirmation != 'DELETE') {
+      return const Result.err(AuthFailure('Type DELETE to continue.'));
+    }
+    final result = await _remote.deleteAccount(
+      email: email,
+      confirmation: confirmation,
+      reason: reason,
+      reauthenticationProof: reauthenticationProof,
+      idempotencyKey: idempotencyKey,
+    );
+    if (result.isOk) await _clearSession();
+    return result;
+  }
+
+  @override
   Future<String?> refreshSession() async {
     final supabaseToken = await _secureStorage.supabaseRefreshToken;
     if (supabaseToken != null && supabaseToken.isNotEmpty) {

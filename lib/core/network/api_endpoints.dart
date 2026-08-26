@@ -13,6 +13,8 @@ abstract final class ApiEndpoints {
   static const String authRefresh = '/auth/refresh';
   static const String authForgotPassword = '/auth/forgot-password';
   static const String authVerify = '/auth/verify';
+  static const String accountDeletionReauth = '/settings/account/delete/reauth';
+  static const String accountDelete = '/settings/account/delete';
 
   /// Sets a new password with a recovery token from the reset email. Unused
   /// by the app today: the email's link targets the web app.

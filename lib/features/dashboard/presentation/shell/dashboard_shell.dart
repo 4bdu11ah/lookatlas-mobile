@@ -1,10 +1,64 @@
 part of '../screens/dashboard_screen.dart';
 
-class DashboardScreen extends ConsumerWidget {
+class DashboardScreen extends ConsumerStatefulWidget {
   const DashboardScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<DashboardScreen> createState() => _DashboardScreenState();
+}
+
+class _DashboardScreenState extends ConsumerState<DashboardScreen>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _drawerController = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 320),
+    reverseDuration: const Duration(milliseconds: 240),
+  );
+
+  @override
+  void dispose() {
+    _drawerController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _openDrawer() {
+    ref.read(_dashboardShellControllerProvider.notifier).closeUserMenu();
+    if (MediaQuery.disableAnimationsOf(context)) {
+      _drawerController.value = 1;
+      return Future.value();
+    }
+    return _drawerController.animateTo(1, curve: Curves.easeOutCubic);
+  }
+
+  Future<void> _closeDrawer() {
+    if (MediaQuery.disableAnimationsOf(context)) {
+      _drawerController.value = 0;
+      return Future.value();
+    }
+    return _drawerController.animateBack(0, curve: Curves.easeOutCubic);
+  }
+
+  void _dragDrawer(double delta, double travel) {
+    _drawerController.value = (_drawerController.value + delta / travel).clamp(
+      0,
+      1,
+    );
+  }
+
+  void _finishDrawerDrag(double velocity) {
+    final shouldOpen =
+        velocity > 350 || (velocity >= -350 && _drawerController.value >= 0.5);
+    unawaited(shouldOpen ? _openDrawer() : _closeDrawer());
+  }
+
+  Future<void> _selectDrawerPage(_DashboardPage page) async {
+    await _closeDrawer();
+    if (!mounted) return;
+    unawaited(GoRouter.of(context).push<void>(page.routePath));
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final state = ref.watch(_dashboardShellControllerProvider);
     final controller = ref.read(_dashboardShellControllerProvider.notifier);
     final screen = _DashboardOverviewScreen(
@@ -25,75 +79,95 @@ class DashboardScreen extends ConsumerWidget {
         welcome.eligible && (welcome.dashboard?.profileIncomplete ?? false),
       _ => false,
     };
-    return Scaffold(
-      backgroundColor: AppColors.neutral100,
-      drawer: _DashboardDrawer(
-        selected: _DashboardPage.dashboard,
-        onSelect: (_) => controller.closeUserMenu(),
-      ),
-      body: SafeArea(
-        bottom: false,
-        child: ResponsiveContent(
-          child: Stack(
-            children: [
-              Column(
-                children: [
-                  _Header(
-                    initial: initial,
-                    userMenuOpen: state.userMenuOpen,
-                    onToggleUserMenu: controller.toggleUserMenu,
-                    showCompleteProfile: showCompleteProfile,
-                  ),
-                  Expanded(
-                    child: RefreshIndicator(
-                      onRefresh: () => Future.wait([
-                        ref
-                            .read(
-                              _dashboardOverviewControllerProvider.notifier,
-                            )
-                            .refresh(),
-                        ref
-                            .read(studioSchoolControllerProvider.notifier)
-                            .refresh(),
-                      ]),
-                      child: SingleChildScrollView(
-                        physics: const AlwaysScrollableScrollPhysics(),
-                        padding: const EdgeInsets.fromLTRB(16, 16, 16, 40),
-                        child: screen,
-                      ),
+    final content = SafeArea(
+      bottom: false,
+      child: ResponsiveContent(
+        child: Stack(
+          children: [
+            Column(
+              children: [
+                _Header(
+                  initial: initial,
+                  userMenuOpen: state.userMenuOpen,
+                  onOpenNavigation: () => unawaited(_openDrawer()),
+                  onToggleUserMenu: controller.toggleUserMenu,
+                  showCompleteProfile: showCompleteProfile,
+                ),
+                Expanded(
+                  child: RefreshIndicator(
+                    onRefresh: () => Future.wait([
+                      ref
+                          .read(
+                            _dashboardOverviewControllerProvider.notifier,
+                          )
+                          .refresh(),
+                      ref
+                          .read(studioSchoolControllerProvider.notifier)
+                          .refresh(),
+                    ]),
+                    child: SingleChildScrollView(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      padding: const EdgeInsets.fromLTRB(16, 16, 16, 40),
+                      child: screen,
                     ),
                   ),
-                ],
+                ),
+              ],
+            ),
+            const _WelcomeFocusRefresh(),
+            if (state.userMenuOpen)
+              Positioned.fill(
+                child: GestureDetector(
+                  behavior: HitTestBehavior.translucent,
+                  onTap: controller.closeUserMenu,
+                ),
               ),
-              const _WelcomeFocusRefresh(),
-              if (state.userMenuOpen)
-                Positioned.fill(
-                  child: GestureDetector(
-                    behavior: HitTestBehavior.translucent,
-                    onTap: controller.closeUserMenu,
+            if (state.userMenuOpen)
+              Positioned(
+                top: 72,
+                right: 16,
+                child: _UserMenu(
+                  onSettings: () => _navigateDashboard(
+                    context,
+                    ref,
+                    _DashboardPage.settings,
                   ),
-                ),
-              if (state.userMenuOpen)
-                Positioned(
-                  top: 72,
-                  right: 16,
-                  child: _UserMenu(
-                    onSettings: () => _navigateDashboard(
-                      context,
-                      ref,
-                      _DashboardPage.settings,
-                    ),
-                    onBilling: () => _navigateDashboard(
-                      context,
-                      ref,
-                      _DashboardPage.billing,
-                    ),
-                    onLogOut: () => _logOut(context, ref),
+                  onBilling: () => _navigateDashboard(
+                    context,
+                    ref,
+                    _DashboardPage.billing,
                   ),
+                  onLogOut: () => _logOut(context, ref),
                 ),
-            ],
-          ),
+              ),
+          ],
         ),
+      ),
+    );
+    final scaffold = Scaffold(
+      backgroundColor: AppColors.neutral50,
+      body: _DashboardDrawerTransition(
+        animation: _drawerController,
+        drawer: _DashboardDrawer(
+          selected: _DashboardPage.dashboard,
+          onClose: () => unawaited(_closeDrawer()),
+          onSelect: (page) => unawaited(_selectDrawerPage(page)),
+        ),
+        onClose: () => unawaited(_closeDrawer()),
+        onDragUpdate: _dragDrawer,
+        onDragEnd: _finishDrawerDrag,
+        child: content,
+      ),
+    );
+    return AnimatedBuilder(
+      animation: _drawerController,
+      child: scaffold,
+      builder: (context, child) => PopScope(
+        canPop: _drawerController.isDismissed,
+        onPopInvokedWithResult: (didPop, _) {
+          if (!didPop) unawaited(_closeDrawer());
+        },
+        child: child!,
       ),
     );
   }
@@ -224,12 +298,14 @@ class _Header extends StatelessWidget {
   const _Header({
     required this.initial,
     required this.userMenuOpen,
+    required this.onOpenNavigation,
     required this.onToggleUserMenu,
     required this.showCompleteProfile,
   });
 
   final String initial;
   final bool userMenuOpen;
+  final VoidCallback onOpenNavigation;
   final VoidCallback onToggleUserMenu;
   final bool showCompleteProfile;
 
@@ -249,7 +325,7 @@ class _Header extends StatelessWidget {
             child: AppIconButton(
               icon: LucideIcons.menu,
               tooltip: 'Open navigation',
-              onPressed: () => Scaffold.of(context).openDrawer(),
+              onPressed: onOpenNavigation,
               color: AppColors.inkAlpha68,
             ),
           ),
@@ -324,9 +400,14 @@ class _CompactProfileButton extends StatelessWidget {
 }
 
 class _DashboardDrawer extends StatelessWidget {
-  const _DashboardDrawer({required this.selected, required this.onSelect});
+  const _DashboardDrawer({
+    required this.selected,
+    required this.onClose,
+    required this.onSelect,
+  });
 
   final _DashboardPage selected;
+  final VoidCallback onClose;
   final ValueChanged<_DashboardPage> onSelect;
 
   static const List<_DashboardPage> _items = [
@@ -347,7 +428,7 @@ class _DashboardDrawer extends StatelessWidget {
     return Drawer(
       width: 256,
       shape: const RoundedRectangleBorder(),
-      backgroundColor: AppColors.white,
+      backgroundColor: AppColors.neutral50,
       child: SafeArea(
         child: Column(
           children: [
@@ -380,7 +461,7 @@ class _DashboardDrawer extends StatelessWidget {
                   AppIconButton(
                     icon: LucideIcons.x,
                     tooltip: 'Close navigation',
-                    onPressed: () => Navigator.pop(context),
+                    onPressed: onClose,
                     color: AppColors.inkAlpha68,
                   ),
                 ],
@@ -399,12 +480,7 @@ class _DashboardDrawer extends StatelessWidget {
                     icon: item.icon,
                     label: item.label,
                     active: active,
-                    onTap: () {
-                      final router = GoRouter.of(context);
-                      Scaffold.of(context).closeDrawer();
-                      onSelect(item);
-                      unawaited(router.push<void>(item.routePath));
-                    },
+                    onTap: () => onSelect(item),
                   );
                 },
               ),

@@ -9,6 +9,7 @@ class _HouseModelScreenState {
     this.expanded = false,
     this.isLoading = true,
     this.isMutating = false,
+    this.isGeneratingAiModel = false,
     this.failure,
   });
 
@@ -19,6 +20,7 @@ class _HouseModelScreenState {
   final bool expanded;
   final bool isLoading;
   final bool isMutating;
+  final bool isGeneratingAiModel;
   final Failure? failure;
 
   List<_HouseModel> get filteredLibraryModels => libraryModels
@@ -46,6 +48,7 @@ class _HouseModelScreenState {
     bool? expanded,
     bool? isLoading,
     bool? isMutating,
+    bool? isGeneratingAiModel,
     Failure? failure,
     bool clearFailure = false,
   }) {
@@ -59,6 +62,7 @@ class _HouseModelScreenState {
       expanded: expanded ?? this.expanded,
       isLoading: isLoading ?? this.isLoading,
       isMutating: isMutating ?? this.isMutating,
+      isGeneratingAiModel: isGeneratingAiModel ?? this.isGeneratingAiModel,
       failure: clearFailure ? null : failure ?? this.failure,
     );
   }
@@ -141,31 +145,64 @@ class _HouseModelController extends Notifier<_HouseModelScreenState> {
     required int age,
     required String description,
   }) async {
-    final result = await _mutate(
-      () => _repository.generateModel(
-        AiHouseModelDraft(
-          gender: switch (gender) {
-            _ModelGender.nonBinary => 'non_binary',
-            _ => gender.name,
-          },
-          age: age,
-          description: description,
-        ),
+    if (state.isMutating || state.isGeneratingAiModel) {
+      return const Err(ValidationFailure('Another model action is running.'));
+    }
+    state = state.copyWith(isMutating: true, clearFailure: true);
+    final started = await _repository.startModelGeneration(
+      AiHouseModelDraft(
+        gender: switch (gender) {
+          _ModelGender.nonBinary => 'non_binary',
+          _ => gender.name,
+        },
+        age: age,
+        description: description,
       ),
     );
-    if (result case Ok()) {
-      unawaited(
-        ref
-            .read(localNotificationServiceProvider)
-            .showCompletion(
-              taskId: 'house-model-${DateTime.now().microsecondsSinceEpoch}',
-              title: 'AI model completed',
-              body: 'Your AI model is ready to use in a shoot.',
-              destination: AppRoutes.dashboardModels,
-            ),
-      );
+    final generation = started.valueOrNull;
+    if (generation == null) {
+      final failure = started.failureOrNull!;
+      state = state.copyWith(isMutating: false, failure: failure);
+      return Err(failure);
     }
-    return result;
+    state = state.copyWith(isMutating: false, isGeneratingAiModel: true);
+    unawaited(_finishAiGeneration(generation));
+    return const Ok(null);
+  }
+
+  Future<void> _finishAiGeneration(HouseModelGeneration generation) async {
+    final result = await _repository.waitForModelGeneration(generation);
+    if (result case Err(:final failure)) {
+      state = state.copyWith(isGeneratingAiModel: false, failure: failure);
+      return;
+    }
+    final refreshed = await _repository.loadCatalog();
+    if (refreshed case Err(:final failure)) {
+      state = state.copyWith(isGeneratingAiModel: false, failure: failure);
+      return;
+    }
+    final catalog = refreshed.valueOrNull!;
+    state = state.copyWith(
+      libraryModels: [
+        for (final model in catalog.libraryModels)
+          _HouseModel.fromProfile(model),
+      ],
+      userModels: [
+        for (final model in catalog.userModels) _HouseModel.fromProfile(model),
+      ],
+      isGeneratingAiModel: false,
+      clearFailure: true,
+    );
+    unawaited(
+      ref
+          .read(localNotificationServiceProvider)
+          .showCompletion(
+            taskId: 'house-model-${DateTime.now().microsecondsSinceEpoch}',
+            title: 'AI model completed',
+            body: 'Your AI model is ready to use in a shoot.',
+            destination: AppRoutes.dashboardModels,
+          ),
+    );
   }
 
   Future<Result<void>> _mutate(

@@ -245,78 +245,80 @@ class _PhotoUploadBlock extends StatelessWidget {
               photos: existingPhotos,
               onRemove: onRemoveExisting,
             ),
-          if (editing) ...[
-            const SizedBox(height: 20),
-            Row(
-              children: [
-                const Text(
-                  'Add New Photos',
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: AppTypography.bold,
-                    color: AppColors.black,
+          if (count < HouseModelDraft.maxPhotoCount) ...[
+            if (editing) ...[
+              const SizedBox(height: 20),
+              Row(
+                children: [
+                  const Text(
+                    'Add New Photos',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: AppTypography.bold,
+                      color: AppColors.black,
+                    ),
                   ),
-                ),
-                const SizedBox(width: 10),
-                Text(
-                  '($count/${HouseModelDraft.maxPhotoCount})',
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: AppColors.neutral500,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-          ],
-          InkWell(
-            key: const ValueKey('model-photo-upload'),
-            onTap: onAdd,
-            child: AppDottedBorder(
-              color: AppColors.neutral200,
-              strokeWidth: 2,
-              dotWidth: 8,
-              gap: 6,
-              child: Container(
-                height: 132,
-                width: double.infinity,
-                alignment: Alignment.center,
-                color: AppColors.white,
-                padding: const EdgeInsets.all(8),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Icon(
-                      Icons.file_upload_outlined,
-                      size: 34,
+                  const SizedBox(width: 10),
+                  Text(
+                    '($count/${HouseModelDraft.maxPhotoCount})',
+                    style: const TextStyle(
+                      fontSize: 12,
                       color: AppColors.neutral500,
                     ),
-                    const SizedBox(height: 8),
-                    Text(
-                      editing
-                          ? 'Click to add more photos'
-                          : 'Click to upload photos',
-                      style: const TextStyle(
-                        fontSize: 13,
-                        fontWeight: AppTypography.bold,
-                        color: AppColors.black,
-                      ),
-                    ),
-                    const SizedBox(height: 3),
-                    const Text(
-                      'PNG, JPG up to 10MB each',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 11,
-                        height: 1.35,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+            ],
+            InkWell(
+              key: const ValueKey('model-photo-upload'),
+              onTap: onAdd,
+              child: AppDottedBorder(
+                color: AppColors.neutral200,
+                strokeWidth: 2,
+                dotWidth: 8,
+                gap: 6,
+                child: Container(
+                  height: 132,
+                  width: double.infinity,
+                  alignment: Alignment.center,
+                  color: AppColors.white,
+                  padding: const EdgeInsets.all(8),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(
+                        Icons.file_upload_outlined,
+                        size: 34,
                         color: AppColors.neutral500,
                       ),
-                    ),
-                  ],
+                      const SizedBox(height: 8),
+                      Text(
+                        editing
+                            ? 'Click to add more photos'
+                            : 'Click to upload photos',
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: AppTypography.bold,
+                          color: AppColors.black,
+                        ),
+                      ),
+                      const SizedBox(height: 3),
+                      const Text(
+                        'PNG, JPG up to 10MB each',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 11,
+                          height: 1.35,
+                          color: AppColors.neutral500,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
-          ),
+          ],
           if (newPhotos.isNotEmpty) ...[
             const SizedBox(height: 10),
             SizedBox(

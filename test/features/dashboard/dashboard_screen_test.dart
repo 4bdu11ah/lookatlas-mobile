@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:look_atlas/core/providers/core_providers.dart';
 import 'package:look_atlas/core/result/result.dart';
 import 'package:look_atlas/core/theme/app_theme.dart';
@@ -22,6 +21,7 @@ import 'package:look_atlas/features/studio_school/di/studio_school_providers.dar
 import 'package:look_atlas/features/subscription/di/subscription_providers.dart';
 import 'package:look_atlas/shared/widgets/bar_spinner.dart';
 import 'package:look_atlas/shared/widgets/shimmer_box.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../helpers/fake_repositories.dart';
@@ -378,6 +378,49 @@ void main() {
       tester.getTopLeft(assistant).dy,
       lessThan(tester.getTopLeft(settings).dy),
     );
+    expect(
+      find.byKey(const ValueKey('dashboard-drawer-surface')),
+      findsOneWidget,
+    );
+    expect(
+      tester
+          .widget<Transform>(
+            find.byKey(const ValueKey('dashboard-drawer-content')),
+          )
+          .transform
+          .getTranslation()
+          .x,
+      greaterThan(0),
+    );
+
+    await tester.tap(
+      find.byKey(const ValueKey('dashboard-drawer-scrim')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byType(Drawer), findsNothing);
+  });
+
+  testWidgets('drawer supports edge swipe opening and closing', (tester) async {
+    await pumpDashboard(tester);
+
+    final openingGesture = await tester.startGesture(const Offset(2, 320));
+    await openingGesture.moveBy(const Offset(75, 0));
+    await tester.pump();
+    await openingGesture.moveBy(const Offset(75, 0));
+    await tester.pump();
+    await openingGesture.up();
+    await tester.pumpAndSettle();
+
+    expect(find.byType(Drawer), findsOneWidget);
+
+    await tester.drag(
+      find.byKey(const ValueKey('dashboard-drawer-scrim')),
+      const Offset(-230, 0),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byType(Drawer), findsNothing);
   });
 
   testWidgets('shows stats before slower dashboard sections complete', (

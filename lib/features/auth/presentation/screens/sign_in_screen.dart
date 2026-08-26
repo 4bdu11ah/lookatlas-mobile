@@ -27,6 +27,7 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   String? _captchaToken;
+  int _captchaGeneration = 0;
 
   @override
   void dispose() {
@@ -45,13 +46,25 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
       );
       return;
     }
-    await ref
-        .read(authControllerProvider.notifier)
-        .signIn(
-          _emailController.text.trim(),
-          _passwordController.text,
-          captchaToken: captchaToken,
-        );
+    try {
+      await ref
+          .read(authControllerProvider.notifier)
+          .signIn(
+            _emailController.text.trim(),
+            _passwordController.text,
+            captchaToken: captchaToken,
+          );
+    } finally {
+      _resetCaptcha();
+    }
+  }
+
+  void _resetCaptcha() {
+    if (!mounted) return;
+    setState(() {
+      _captchaToken = null;
+      _captchaGeneration++;
+    });
   }
 
   @override
@@ -122,7 +135,11 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
               ),
             ),
             const SizedBox(height: 20),
-            AuthTurnstile(onTokenChanged: (token) => _captchaToken = token),
+            AuthTurnstile(
+              key: ValueKey(_captchaGeneration),
+              action: AuthTurnstileAction.login,
+              onTokenChanged: (token) => _captchaToken = token,
+            ),
             const SizedBox(height: 20),
             AuthSubmitButton(
               label: 'Sign in',

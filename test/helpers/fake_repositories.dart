@@ -345,6 +345,24 @@ class FakeAuthRepository implements AuthRepository {
   }
 
   @override
+  Future<Result<String>> reauthenticateForAccountDeletion({
+    required String provider,
+    required String material,
+  }) async => const Result.ok('fake-deletion-proof');
+
+  @override
+  Future<Result<void>> deleteAccount({
+    required String email,
+    required String confirmation,
+    required String reason,
+    required String reauthenticationProof,
+    required String idempotencyKey,
+  }) async {
+    currentUser = null;
+    return const Result.ok(null);
+  }
+
+  @override
   Future<String?> refreshSession() async => 'fake-refreshed-token';
 
   @override

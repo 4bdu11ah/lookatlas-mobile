@@ -2,17 +2,26 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:look_atlas/core/error/failure.dart';
+import 'package:look_atlas/core/result/result.dart';
 import 'package:look_atlas/features/auth/di/auth_providers.dart';
+import 'package:look_atlas/features/auth/domain/entities/app_user.dart';
 import 'package:look_atlas/features/auth/presentation/screens/sign_in_screen.dart';
+import 'package:look_atlas/features/auth/presentation/widgets/auth_turnstile.dart';
 
 import '../../../helpers/fake_repositories.dart';
 
 void main() {
-  Future<void> pumpSignInScreen(WidgetTester tester) {
+  Future<void> pumpSignInScreen(
+    WidgetTester tester, {
+    FakeAuthRepository? repository,
+  }) {
     return tester.pumpWidget(
       ProviderScope(
         overrides: [
-          authRepositoryProvider.overrideWithValue(FakeAuthRepository()),
+          authRepositoryProvider.overrideWithValue(
+            repository ?? FakeAuthRepository(),
+          ),
         ],
         child: const MaterialApp(home: SignInScreen()),
       ),
@@ -87,6 +96,48 @@ void main() {
     );
   });
 
+  testWidgets('SignInScreen uses login Turnstile action', (tester) async {
+    await pumpSignInScreen(tester);
+
+    final turnstile = tester.widget<AuthTurnstile>(
+      find.byType(AuthTurnstile),
+    );
+
+    expect(turnstile.action, AuthTurnstileAction.login);
+  });
+
+  testWidgets('SignInScreen resets spent Turnstile token', (
+    tester,
+  ) async {
+    final repository = _RejectingAuthRepository();
+    await pumpSignInScreen(tester, repository: repository);
+
+    final firstTurnstile = tester.widget<AuthTurnstile>(
+      find.byType(AuthTurnstile),
+    );
+    firstTurnstile.onTokenChanged('fresh-login-token');
+    await tester.enterText(
+      find.byType(TextFormField).first,
+      'jane@example.com',
+    );
+    await tester.enterText(find.byType(TextFormField).last, 'secret123');
+
+    await tester.tap(find.text('Sign in'));
+    await tester.pumpAndSettle();
+
+    final refreshedTurnstile = tester.widget<AuthTurnstile>(
+      find.byType(AuthTurnstile),
+    );
+    expect(refreshedTurnstile.key, isNot(firstTurnstile.key));
+    expect(repository.signInCalls, 1);
+    expect(repository.lastCaptchaToken, 'fresh-login-token');
+
+    await tester.tap(find.text('Sign in'));
+    await tester.pump();
+
+    expect(repository.signInCalls, 1);
+  });
+
   testWidgets('SignInScreen toggles password visibility', (tester) async {
     await pumpSignInScreen(tester);
 
@@ -106,4 +157,20 @@ void main() {
     expect(visiblePasswordInput.obscureText, isFalse);
     expect(find.byIcon(Icons.visibility_off_outlined), findsOneWidget);
   });
+}
+
+class _RejectingAuthRepository extends FakeAuthRepository {
+  int signInCalls = 0;
+  String? lastCaptchaToken;
+
+  @override
+  Future<Result<AppUser>> signInWithEmail({
+    required String email,
+    required String password,
+    String? captchaToken,
+  }) async {
+    signInCalls++;
+    lastCaptchaToken = captchaToken;
+    return const Result.err(AuthFailure('Invalid credentials.'));
+  }
 }

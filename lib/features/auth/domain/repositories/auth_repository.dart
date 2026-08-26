@@ -49,6 +49,22 @@ abstract interface class AuthRepository {
 
   Future<Result<void>> signOut();
 
+  /// Creates a short-lived deletion proof after a fresh identity check.
+  /// The password, provider token, and proof are kept only in memory.
+  Future<Result<String>> reauthenticateForAccountDeletion({
+    required String provider,
+    required String material,
+  });
+
+  /// Requests permanent deletion with the short-lived re-authentication proof.
+  Future<Result<void>> deleteAccount({
+    required String email,
+    required String confirmation,
+    required String reason,
+    required String reauthenticationProof,
+    required String idempotencyKey,
+  });
+
   /// Exchanges the stored backend or Supabase refresh token for a new access
   /// token and persists rotated tokens. Returns the new access token, or null
   /// when the session cannot be refreshed. Wired into the network layer's 401

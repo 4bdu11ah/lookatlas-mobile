@@ -12,5 +12,11 @@ abstract interface class HouseModelsRepository {
 
   Future<Result<void>> deletePhoto(String modelId, int photoIndex);
 
+  Future<Result<HouseModelGeneration>> startModelGeneration(
+    AiHouseModelDraft draft,
+  );
+
+  Future<Result<void>> waitForModelGeneration(HouseModelGeneration generation);
+
   Future<Result<void>> generateModel(AiHouseModelDraft draft);
 }

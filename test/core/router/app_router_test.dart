@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
-import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:look_atlas/core/providers/core_providers.dart';
 import 'package:look_atlas/core/router/app_router.dart';
 import 'package:look_atlas/core/router/app_routes.dart';
@@ -26,6 +25,7 @@ import 'package:look_atlas/features/welcome_profile/presentation/welcome_profile
 import 'package:look_atlas/features/workshop/di/workshop_providers.dart';
 import 'package:look_atlas/features/workshop/presentation/screens/workshop_screen.dart';
 import 'package:look_atlas/shared/widgets/custom_app_bar.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../helpers/fake_repositories.dart';
@@ -474,13 +474,17 @@ void main() {
     testWidgets('drawer pushes the selected feature over the dashboard', (
       tester,
     ) async {
-      final router = await pumpRouter(tester, user: user);
+      final router = await pumpRouter(tester, user: user, settle: false);
 
       router.go(AppRoutes.home);
-      await tester.pumpAndSettle();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
       await tester.tap(find.byIcon(LucideIcons.menu));
-      await tester.pumpAndSettle();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 350));
       await tester.tap(find.byKey(const ValueKey('dashboard-drawer-models')));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 300));
 
@@ -489,7 +493,8 @@ void main() {
       expect(find.text('House Models'), findsOneWidget);
 
       router.pop();
-      await tester.pumpAndSettle();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
 
       expect(find.byType(DashboardScreen), findsOneWidget);
       expect(find.text('Dashboard'), findsOneWidget);

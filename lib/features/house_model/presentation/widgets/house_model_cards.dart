@@ -90,14 +90,37 @@ class _LibraryModelCardState extends State<_LibraryModelCard> {
   }
 }
 
-class _UserModelCard extends ConsumerWidget {
-  const _UserModelCard({required this.model, required this.onToast});
+class _UserModelCard extends ConsumerStatefulWidget {
+  const _UserModelCard({
+    required this.model,
+    required this.onToast,
+    super.key,
+  });
 
   final _HouseModel model;
   final ValueChanged<String> onToast;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_UserModelCard> createState() => _UserModelCardState();
+}
+
+class _UserModelCardState extends ConsumerState<_UserModelCard> {
+  var _selectedPhoto = 0;
+
+  List<String> get _photos => widget.model.photoUrls.isEmpty
+      ? [widget.model.asset]
+      : widget.model.photoUrls;
+
+  @override
+  void didUpdateWidget(covariant _UserModelCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (_selectedPhoto >= _photos.length) _selectedPhoto = 0;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final model = widget.model;
+    final photos = _photos;
     return _ModelCardFrame(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -126,7 +149,7 @@ class _UserModelCard extends ConsumerWidget {
                         onTap: () => _showModelFormDialog(
                           context,
                           ref,
-                          onToast,
+                          widget.onToast,
                           model,
                         ),
                         child: const SizedBox.square(
@@ -144,7 +167,12 @@ class _UserModelCard extends ConsumerWidget {
                       message: 'Delete model',
                       child: InkWell(
                         onTap: () => unawaited(
-                          _showDeleteSheet(context, ref, model, onToast),
+                          _showDeleteSheet(
+                            context,
+                            ref,
+                            model,
+                            widget.onToast,
+                          ),
                         ),
                         child: const SizedBox.square(
                           dimension: 32,
@@ -203,10 +231,7 @@ class _UserModelCard extends ConsumerWidget {
             aspectRatio: 9 / 16,
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: ColoredBox(
-                color: const Color(0xFFEEEAE2),
-                child: _AssetImage(model.asset),
-              ),
+              child: _buildPhotoPager(model, photos),
             ),
           ),
           Container(
@@ -235,6 +260,41 @@ class _UserModelCard extends ConsumerWidget {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildPhotoPager(_HouseModel model, List<String> photos) {
+    if (photos.length == 1) {
+      return ColoredBox(
+        color: const Color(0xFFEEEAE2),
+        child: _AssetImage(photos.single),
+      );
+    }
+    return Stack(
+      children: [
+        PageView.builder(
+          key: ValueKey('user-model-${model.id}-photo-pager'),
+          itemCount: photos.length,
+          onPageChanged: (index) => setState(() => _selectedPhoto = index),
+          itemBuilder: (context, index) => ColoredBox(
+            key: ValueKey('user-model-${model.id}-photo-$index'),
+            color: const Color(0xFFEEEAE2),
+            child: _AssetImage(photos[index]),
+          ),
+        ),
+        Positioned(
+          right: 8,
+          bottom: 8,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
+            color: AppColors.blackAlpha60,
+            child: Text(
+              '${_selectedPhoto + 1} / ${photos.length}',
+              style: const TextStyle(fontSize: 11, color: AppColors.white),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

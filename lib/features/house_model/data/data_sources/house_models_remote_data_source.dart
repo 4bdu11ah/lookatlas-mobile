@@ -70,7 +70,7 @@ class HouseModelsRemoteDataSourceImpl implements HouseModelsRemoteDataSource {
     data: {
       'name': draft.name,
       'gender': draft.gender,
-      'height': draft.heightCm,
+      'height': '${draft.heightCm}cm',
       'heightEstimated': draft.heightEstimated,
     },
     decoder: (_) {},

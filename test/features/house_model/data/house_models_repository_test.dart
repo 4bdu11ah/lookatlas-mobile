@@ -184,10 +184,10 @@ void main() {
     verifyNever(() => remote.createModel(any()));
   });
 
-  test('create_model_rejects_more_than_five_photos', () async {
+  test('create_model_rejects_more_than_four_photos', () async {
     final repository = HouseModelsRepositoryImpl(remote);
 
-    final result = await repository.createModel(_draft(photoCount: 6));
+    final result = await repository.createModel(_draft(photoCount: 5));
 
     expect(result.failureOrNull, isA<ValidationFailure>());
     verifyNever(() => remote.createModel(any()));

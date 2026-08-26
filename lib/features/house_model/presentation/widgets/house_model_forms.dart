@@ -65,6 +65,8 @@ class _ModelFormNotifier extends Notifier<_ModelFormData> {
   @override
   _ModelFormData build() => const _ModelFormData();
 
+  void reset() => state = const _ModelFormData();
+
   void initialize(_HouseModel? model) {
     if (model == null) return;
     state = state.copyWith(
@@ -135,6 +137,8 @@ Future<void> _showModelFormDialog(
   ValueChanged<String> onToast, [
   _HouseModel? model,
 ]) {
+  ref.read(_modelFormProvider.notifier).reset();
+
   Future<void> submit(
     BuildContext formContext,
     _ModelFormInput input,
@@ -149,6 +153,7 @@ Future<void> _showModelFormDialog(
       AppSnackBar.showError(formContext, failure.message);
       return;
     }
+    ref.read(_modelFormProvider.notifier).reset();
     onToast(model == null ? 'Model added to Your Models' : 'Model updated');
     Navigator.pop(formContext);
   }
@@ -199,7 +204,7 @@ Future<void> _showAiSheet(
 ) {
   return showAppDialog<void>(
     context: context,
-    builder: (context) => _AiModelSheet(
+    builder: (_) => _AiModelSheet(
       dialog: true,
       onGenerated: (gender, age, description) async {
         final result = await ref
@@ -208,7 +213,10 @@ Future<void> _showAiSheet(
         if (!context.mounted) return null;
         final failure = result.failureOrNull;
         if (failure != null) return failure.message;
-        onToast('AI model is ready');
+        if (context.mounted) {
+          Navigator.of(context, rootNavigator: true).pop();
+        }
+        onToast('AI model generation started');
         return null;
       },
     ),
@@ -475,7 +483,7 @@ class _ModelFormDialogState extends ConsumerState<_ModelFormDialog> {
     final formState = ref.read(_modelFormProvider);
     final remaining = HouseModelDraft.maxPhotoCount - formState.photoCount;
     if (remaining <= 0) {
-      AppSnackBar.show(context, 'You can upload up to 5 photos.');
+      AppSnackBar.show(context, 'You can upload up to 4 photos.');
       return;
     }
     final source = await showImageSourceSheet(
@@ -485,7 +493,7 @@ class _ModelFormDialogState extends ConsumerState<_ModelFormDialog> {
     if (source == null || !mounted) return;
     try {
       final picker = ref.read(imagePickerProvider);
-      final files = source == ImageSource.camera
+      final files = source == ImageSource.camera || remaining == 1
           ? [
               ?await picker.pickImage(
                 source: source,
@@ -577,7 +585,7 @@ class _ModelFormDialogState extends ConsumerState<_ModelFormDialog> {
             icon: Icons.info_outline,
             title: 'Pro Tip',
             body:
-                'Upload 3-5 photos showing different angles and poses for best AI results.',
+                'Upload 3-4 photos showing different angles and poses for best AI results.',
           ),
         ],
       ),

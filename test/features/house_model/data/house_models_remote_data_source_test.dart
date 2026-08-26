@@ -174,7 +174,7 @@ void main() {
     expect(body, {
       'name': 'Taylor',
       'gender': 'female',
-      'height': 174,
+      'height': '174cm',
       'heightEstimated': false,
     });
   });

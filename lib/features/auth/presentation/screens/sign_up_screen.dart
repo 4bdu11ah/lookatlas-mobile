@@ -27,6 +27,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   String? _captchaToken;
+  int _captchaGeneration = 0;
 
   @override
   void dispose() {
@@ -46,14 +47,26 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
       );
       return;
     }
-    await ref
-        .read(authControllerProvider.notifier)
-        .signUp(
-          email: _emailController.text.trim(),
-          password: _passwordController.text,
-          companyName: _companyNameController.text.trim(),
-          captchaToken: captchaToken,
-        );
+    try {
+      await ref
+          .read(authControllerProvider.notifier)
+          .signUp(
+            email: _emailController.text.trim(),
+            password: _passwordController.text,
+            companyName: _companyNameController.text.trim(),
+            captchaToken: captchaToken,
+          );
+    } finally {
+      _resetCaptcha();
+    }
+  }
+
+  void _resetCaptcha() {
+    if (!mounted) return;
+    setState(() {
+      _captchaToken = null;
+      _captchaGeneration++;
+    });
   }
 
   @override
@@ -128,7 +141,11 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
               validator: AuthValidators.validatePassword,
             ),
             const SizedBox(height: 20),
-            AuthTurnstile(onTokenChanged: (token) => _captchaToken = token),
+            AuthTurnstile(
+              key: ValueKey(_captchaGeneration),
+              action: AuthTurnstileAction.signup,
+              onTokenChanged: (token) => _captchaToken = token,
+            ),
             const SizedBox(height: 20),
             AuthSubmitButton(
               label: 'Create account',

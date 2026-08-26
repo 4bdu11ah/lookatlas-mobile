@@ -44,6 +44,20 @@ abstract interface class AuthRemoteDataSource {
   /// `POST /auth/forgot-password` — always 200, regardless of whether the
   /// email exists (anti-enumeration).
   Future<Result<void>> forgotPassword(String email);
+
+  /// Exchanges freshly verified credentials for a short-lived deletion proof.
+  Future<Result<String>> deletionReauth({
+    required String provider,
+    required String proof,
+  });
+
+  Future<Result<void>> deleteAccount({
+    required String email,
+    required String confirmation,
+    required String reason,
+    required String reauthenticationProof,
+    required String idempotencyKey,
+  });
 }
 
 class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
@@ -182,6 +196,41 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       ),
     );
   }
+
+  @override
+  Future<Result<String>> deletionReauth({
+    required String provider,
+    required String proof,
+  }) => _api.post<String>(
+    ApiEndpoints.accountDeletionReauth,
+    data: {'provider': provider, 'proof': proof},
+    decoder: (data) {
+      final value = _bodyAsMap(data)['proof'];
+      if (value is! String || value.isEmpty) {
+        throw const FormatException('Re-authentication proof is missing.');
+      }
+      return value;
+    },
+  );
+
+  @override
+  Future<Result<void>> deleteAccount({
+    required String email,
+    required String confirmation,
+    required String reason,
+    required String reauthenticationProof,
+    required String idempotencyKey,
+  }) => _api.post<void>(
+    ApiEndpoints.accountDelete,
+    options: Options(headers: {'Idempotency-Key': idempotencyKey}),
+    data: {
+      'email': email,
+      'confirmation': confirmation,
+      'reason': reason,
+      'reauthentication': {'proof': reauthenticationProof},
+    },
+    decoder: (_) {},
+  );
 
   static Map<String, dynamic> _bodyAsMap(dynamic data) =>
       data is Map<String, dynamic> ? data : const {};

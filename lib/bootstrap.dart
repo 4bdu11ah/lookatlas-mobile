@@ -21,10 +21,9 @@ Future<void> bootstrap() async {
   // Refuse to ship a raw Anthropic key inside a prod binary — anyone can
   // extract and abuse it. See the AI section of `AppConfig` for the intended
   // setup: point AI_BASE_URL at a backend proxy that injects the key.
-  if (kReleaseMode && AppConfig.isProd && AppConfig.hasAiKey) {
+  if (kReleaseMode && AppConfig.isProd) {
     throw StateError(
-      'AI_API_KEY must not ship in prod builds — point AI_BASE_URL at a '
-      'backend proxy instead.',
+      'AI_BASE_URL must point to a backend proxy in prod builds.',
     );
   }
 

@@ -16,6 +16,7 @@ class AppTextField extends StatefulWidget {
     this.autovalidateMode,
     this.autofillHints,
     this.keyboardType,
+    this.textCapitalization,
     this.textInputAction,
     this.autofocus = false,
     this.obscureText = false,
@@ -70,6 +71,7 @@ class AppTextField extends StatefulWidget {
   final AutovalidateMode? autovalidateMode;
   final Iterable<String>? autofillHints;
   final TextInputType? keyboardType;
+  final TextCapitalization? textCapitalization;
   final TextInputAction? textInputAction;
   final bool autofocus;
   final bool obscureText;
@@ -209,6 +211,12 @@ class _AppTextFieldState extends State<AppTextField> {
       keyboardType:
           widget.keyboardType ??
           (isMultiline ? TextInputType.multiline : TextInputType.text),
+      textCapitalization:
+          widget.textCapitalization ??
+          (widget.keyboardType == TextInputType.emailAddress ||
+                  widget.obscureText
+              ? TextCapitalization.none
+              : TextCapitalization.sentences),
       textInputAction:
           widget.textInputAction ??
           (isMultiline ? TextInputAction.newline : TextInputAction.done),

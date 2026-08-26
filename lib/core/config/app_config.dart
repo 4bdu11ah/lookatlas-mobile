@@ -153,21 +153,4 @@ abstract final class AppConfig {
   static bool get isAppleSignInSupported =>
       defaultTargetPlatform == TargetPlatform.iOS ||
       defaultTargetPlatform == TargetPlatform.macOS;
-
-  // --- AI (Anthropic Claude) ---
-  //
-  // SECURITY: shipping an API key inside a mobile binary is unsafe for
-  // production. Point `AI_BASE_URL` at your own backend proxy that injects the
-  // key server-side and leave `AI_API_KEY` empty in release builds. The direct
-  // key path exists only for local development.
-  static const String aiBaseUrl = String.fromEnvironment(
-    'AI_BASE_URL',
-    defaultValue: 'https://api.anthropic.com',
-  );
-  static const String aiApiKey = String.fromEnvironment('AI_API_KEY');
-  static const String aiModel = String.fromEnvironment(
-    'AI_MODEL',
-    defaultValue: 'claude-sonnet-4-6',
-  );
-  static bool get hasAiKey => aiApiKey.isNotEmpty;
 }

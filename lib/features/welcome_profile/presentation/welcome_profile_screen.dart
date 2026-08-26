@@ -3,8 +3,6 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:lucide_icons_flutter/lucide_icons.dart';
-
 import 'package:look_atlas/core/providers/core_providers.dart';
 import 'package:look_atlas/core/router/app_routes.dart';
 import 'package:look_atlas/core/theme/app_colors.dart';
@@ -17,12 +15,13 @@ import 'package:look_atlas/features/studio_school/presentation/studio_school_sta
 import 'package:look_atlas/features/welcome_profile/domain/welcome_profile_draft.dart';
 import 'package:look_atlas/shared/widgets/app_snack_bar.dart';
 import 'package:look_atlas/shared/widgets/app_text_field.dart';
-import 'package:look_atlas/shared/widgets/look_atlas_loader.dart';
 import 'package:look_atlas/shared/widgets/loading_icon_button.dart';
+import 'package:look_atlas/shared/widgets/look_atlas_loader.dart';
 import 'package:look_atlas/shared/widgets/profile_use_card.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
-part 'welcome_profile_steps.dart';
 part 'welcome_profile_controls.dart';
+part 'welcome_profile_steps.dart';
 part 'welcome_profile_worktable.dart';
 
 enum _ProfileStep { brand, uses, cadence, referral }
@@ -34,7 +33,8 @@ class _ProfilePrintsAnimated extends Notifier<bool> {
   void complete() => state = true;
 }
 
-final _profilePrintsAnimatedProvider =
+final NotifierProvider<_ProfilePrintsAnimated, bool>
+_profilePrintsAnimatedProvider =
     NotifierProvider.autoDispose<_ProfilePrintsAnimated, bool>(
       _ProfilePrintsAnimated.new,
     );

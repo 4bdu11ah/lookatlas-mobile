@@ -105,6 +105,55 @@ class _SettingsAccountCard extends StatelessWidget {
             padding: EdgeInsets.all(padding),
             child: _SettingsAccountBody(compact: compact),
           ),
+          const Divider(height: 1, color: AppColors.neutral200),
+          const _SecurityAndDataCard(),
+        ],
+      ),
+    );
+  }
+}
+
+class _SecurityAndDataCard extends StatelessWidget {
+  const _SecurityAndDataCard();
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Security & data',
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
+          const SizedBox(height: 12),
+          ListTile(
+            contentPadding: EdgeInsets.zero,
+            leading: const Icon(Icons.file_download_outlined),
+            title: const Text('Export your data'),
+            subtitle: const Text('Request a copy of your account information.'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () {},
+          ),
+          const Divider(color: AppColors.neutral200),
+          ListTile(
+            contentPadding: EdgeInsets.zero,
+            leading: const Icon(Icons.delete_outline, color: AppColors.danger),
+            title: const Text(
+              'Delete account',
+              style: TextStyle(color: AppColors.danger),
+            ),
+            subtitle: const Text(
+              'Permanently remove your account and its data.',
+            ),
+            trailing: const Icon(Icons.chevron_right, color: AppColors.danger),
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (_) => const AccountDeletionPage(),
+              ),
+            ),
+          ),
         ],
       ),
     );

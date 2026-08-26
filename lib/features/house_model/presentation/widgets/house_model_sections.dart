@@ -78,7 +78,12 @@ class _UserModelsSection extends ConsumerWidget {
     final isLoading = ref.watch(
       _houseModelControllerProvider.select((state) => state.isLoading),
     );
-    final showLoading = isLoading && models.isEmpty;
+    final isGeneratingAiModel = ref.watch(
+      _houseModelControllerProvider.select(
+        (state) => state.isGeneratingAiModel,
+      ),
+    );
+    final showLoading = (isLoading || isGeneratingAiModel) && models.isEmpty;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -89,11 +94,16 @@ class _UserModelsSection extends ConsumerWidget {
           subtitle: "Models you've created or uploaded",
         ),
         const SizedBox(height: 16),
+        if (isGeneratingAiModel) const _AiModelGenerationProgress(),
         if (showLoading)
           const _HouseModelUserLoadingList()
         else
           for (final model in models) ...[
-            _UserModelCard(model: model, onToast: onToast),
+            _UserModelCard(
+              key: ValueKey('user-model-${model.id}'),
+              model: model,
+              onToast: onToast,
+            ),
             const SizedBox(height: 12),
           ],
         if (!showLoading && models.isEmpty)
@@ -102,6 +112,36 @@ class _UserModelsSection extends ConsumerWidget {
             onAi: () => _showAiSheet(context, ref, onToast),
           ),
       ],
+    );
+  }
+}
+
+class _AiModelGenerationProgress extends StatelessWidget {
+  const _AiModelGenerationProgress();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      key: const ValueKey('ai-model-generation-progress'),
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      color: AppColors.white,
+      child: const Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            'Creating your AI model',
+            style: TextStyle(fontWeight: AppTypography.semiBold),
+          ),
+          SizedBox(height: 6),
+          Text(
+            'Generating your four poses. This can take a few minutes.',
+            style: TextStyle(fontSize: 12, color: AppColors.neutral500),
+          ),
+          SizedBox(height: 12),
+          LinearProgressIndicator(),
+        ],
+      ),
     );
   }
 }

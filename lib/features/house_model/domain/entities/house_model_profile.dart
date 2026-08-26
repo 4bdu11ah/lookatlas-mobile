@@ -55,7 +55,7 @@ class HouseModelDraft {
   static const int minHeightCm = 100;
   static const int maxHeightCm = 250;
   static const int minPhotoCount = 1;
-  static const int maxPhotoCount = 5;
+  static const int maxPhotoCount = 4;
 
   final String name;
   final String gender;

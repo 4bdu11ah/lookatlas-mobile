@@ -81,44 +81,57 @@ class HouseModelsRepositoryImpl implements HouseModelsRepository {
       return const ValidationFailure('Add at least one clear model photo.');
     }
     if (draft.photos.length > HouseModelDraft.maxPhotoCount) {
-      return const ValidationFailure('You can upload up to 5 photos.');
+      return const ValidationFailure('You can upload up to 4 photos.');
     }
     return null;
   }
 
   @override
-  Future<Result<void>> generateModel(AiHouseModelDraft draft) async {
-    var result = await _remote.generateModel(draft);
-    var generationId = result.valueOrNull?.id;
-    if (generationId == null) {
-      return Err(result.failureOrNull!);
-    }
+  Future<Result<HouseModelGeneration>> startModelGeneration(
+    AiHouseModelDraft draft,
+  ) => _remote.generateModel(draft);
+
+  @override
+  Future<Result<void>> waitForModelGeneration(
+    HouseModelGeneration generation,
+  ) async {
+    var result = Result.ok(generation);
+    var generationId = generation.id;
     for (var attempt = 0; attempt < maxPollAttempts; attempt++) {
-      final generation = result.valueOrNull;
-      if (generation != null) {
-        generationId = generation.id;
-        if (generation.status == HouseModelGenerationStatus.completed) {
+      final currentGeneration = result.valueOrNull;
+      if (currentGeneration != null) {
+        generationId = currentGeneration.id;
+        if (currentGeneration.status == HouseModelGenerationStatus.completed) {
           return const Ok(null);
         }
-        if (generation.status == HouseModelGenerationStatus.failed) {
+        if (currentGeneration.status == HouseModelGenerationStatus.failed) {
           return Err(
             AiFailure(
-              generation.message ?? 'Model generation failed. Try again.',
+              currentGeneration.message ??
+                  'Model generation failed. Try again.',
             ),
           );
         }
         await _delay(pollInterval);
-        result = await _remote.getGeneration(generation.id);
+        result = await _remote.getGeneration(currentGeneration.id);
         continue;
       }
 
       final failure = result.failureOrNull!;
       if (failure is! NetworkFailure) return Err(failure);
       await _delay(retryInterval);
-      result = await _remote.getGeneration(generationId!);
+      result = await _remote.getGeneration(generationId);
     }
     return const Err(
       AiFailure('Model generation is taking too long. Please try again.'),
     );
+  }
+
+  @override
+  Future<Result<void>> generateModel(AiHouseModelDraft draft) async {
+    final started = await startModelGeneration(draft);
+    final generation = started.valueOrNull;
+    if (generation == null) return Err(started.failureOrNull!);
+    return waitForModelGeneration(generation);
   }
 }

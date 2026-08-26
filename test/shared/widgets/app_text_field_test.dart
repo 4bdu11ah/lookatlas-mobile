@@ -159,6 +159,63 @@ void main() {
     expect(textField.keyboardType, TextInputType.number);
   });
 
+  testWidgets(
+    'AppTextField capitalizes sentences except for email and password fields',
+    (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.light(),
+          home: const Scaffold(
+            body: Column(
+              children: [
+                AppTextField(fieldKey: ValueKey('name')),
+                AppTextField(
+                  fieldKey: ValueKey('email'),
+                  keyboardType: TextInputType.emailAddress,
+                ),
+                AppTextField(fieldKey: ValueKey('password'), obscureText: true),
+              ],
+            ),
+          ),
+        ),
+      );
+
+      expect(
+        tester
+            .widget<TextField>(
+              find.descendant(
+                of: find.byKey(const ValueKey('name')),
+                matching: find.byType(TextField),
+              ),
+            )
+            .textCapitalization,
+        TextCapitalization.sentences,
+      );
+      expect(
+        tester
+            .widget<TextField>(
+              find.descendant(
+                of: find.byKey(const ValueKey('email')),
+                matching: find.byType(TextField),
+              ),
+            )
+            .textCapitalization,
+        TextCapitalization.none,
+      );
+      expect(
+        tester
+            .widget<TextField>(
+              find.descendant(
+                of: find.byKey(const ValueKey('password')),
+                matching: find.byType(TextField),
+              ),
+            )
+            .textCapitalization,
+        TextCapitalization.none,
+      );
+    },
+  );
+
   testWidgets('AppTextField forwards focus settings', (tester) async {
     final focusNode = FocusNode();
     addTearDown(focusNode.dispose);

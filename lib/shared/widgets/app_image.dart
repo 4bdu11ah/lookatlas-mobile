@@ -33,6 +33,7 @@ class AppImage extends StatelessWidget {
     this.semanticLabel,
     this.placeholder,
     this.errorWidget,
+    this.onImageLoaded,
     this.onRemove,
     this.removeTooltip = 'Remove image',
     this.removeIcon = Icons.close,
@@ -50,6 +51,7 @@ class AppImage extends StatelessWidget {
     this.semanticLabel,
     this.placeholder,
     this.errorWidget,
+    this.onImageLoaded,
     this.onRemove,
     this.removeTooltip = 'Remove image',
     this.removeIcon = Icons.close,
@@ -68,6 +70,7 @@ class AppImage extends StatelessWidget {
   final String? semanticLabel;
   final Widget? placeholder;
   final Widget? errorWidget;
+  final VoidCallback? onImageLoaded;
   final VoidCallback? onRemove;
   final String removeTooltip;
   final IconData removeIcon;
@@ -186,6 +189,21 @@ class AppImage extends StatelessWidget {
       memCacheWidth: width == null ? null : (width! * dpr).round(),
       memCacheHeight: height == null ? null : (height! * dpr).round(),
       fadeInDuration: const Duration(milliseconds: 250),
+      imageBuilder: onImageLoaded == null
+          ? null
+          : (context, provider) {
+              WidgetsBinding.instance.addPostFrameCallback(
+                (_) => onImageLoaded?.call(),
+              );
+              return Image(
+                image: provider,
+                width: width,
+                height: height,
+                fit: fit,
+                color: color,
+                colorBlendMode: color == null ? null : BlendMode.srcIn,
+              );
+            },
       // While the download runs, show the caller's placeholder or a shimmer.
       placeholder: (_, _) => placeholder ?? const ShimmerBox(),
       errorWidget: (_, _, _) => errorWidget ?? _defaultError,

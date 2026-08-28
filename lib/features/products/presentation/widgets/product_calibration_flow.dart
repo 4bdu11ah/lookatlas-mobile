@@ -7,6 +7,7 @@ enum _CalibrationStep {
   removingBackground,
   confirmCutout,
   placeProduct,
+  fit,
   review,
   wornPhoto,
   copyFrom,
@@ -54,62 +55,6 @@ class _ProductCalibrationLoadingShimmer extends StatelessWidget {
           Expanded(child: ShimmerBox()),
           SizedBox(height: 20),
           SizedBox(height: 44, child: ShimmerBox()),
-        ],
-      ),
-    );
-  }
-}
-
-class _ProductFlowHeader extends StatelessWidget {
-  const _ProductFlowHeader({
-    required this.title,
-    required this.subtitle,
-    this.action,
-  });
-
-  final String title;
-  final String subtitle;
-  final Widget? action;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(16, 12, 12, 12),
-      decoration: const BoxDecoration(
-        border: Border(bottom: BorderSide(color: AppColors.neutral200)),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w800,
-                    color: AppColors.black,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  subtitle,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontSize: 13,
-                    color: AppColors.neutral500,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          if (action != null) ...[const SizedBox(width: 8), action!],
-          _ProductMiniIcon(
-            icon: Icons.close,
-            onTap: () => Navigator.pop(context),
-          ),
         ],
       ),
     );

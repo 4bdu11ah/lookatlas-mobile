@@ -203,10 +203,13 @@ class _PhotoStrip extends StatelessWidget {
     required this.newPhotos,
     required this.angles,
     required this.newAngles,
+    required this.photoOrder,
     required this.onDeletePhoto,
     required this.onReplacePhoto,
     required this.onAngleChanged,
     required this.onNewAngleChanged,
+    required this.onMovePhoto,
+    required this.onCropNew,
     this.onClear,
     this.countLabel,
     this.clearLabel,
@@ -221,10 +224,13 @@ class _PhotoStrip extends StatelessWidget {
   final List<ProductUpload> newPhotos;
   final Map<int, String?> angles;
   final Map<int, String?> newAngles;
+  final List<String> photoOrder;
   final void Function(int index, ProductPhoto photo) onDeletePhoto;
   final Future<void> Function(ProductPhoto photo) onReplacePhoto;
   final void Function(int index, String? angle) onAngleChanged;
   final void Function(int index, String? angle) onNewAngleChanged;
+  final void Function(String token, int delta) onMovePhoto;
+  final ValueChanged<int> onCropNew;
   final VoidCallback? onClear;
 
   @override
@@ -276,21 +282,32 @@ class _PhotoStrip extends StatelessWidget {
             height: 182,
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
-              itemCount: existingPhotos.length + newPhotos.length,
+              itemCount: photoOrder.length,
               separatorBuilder: (_, _) => const SizedBox(width: 12),
               itemBuilder: (context, index) {
-                if (index >= existingPhotos.length) {
-                  final upload = newPhotos[index - existingPhotos.length];
+                final token = photoOrder[index];
+                if (token.startsWith('new:')) {
+                  final newIndex = newPhotos.indexWhere(
+                    (photo) => photo.orderKey == token.substring(4),
+                  );
+                  final upload = newPhotos[newIndex];
                   return _ProductThumb(
                     displayIndex: index,
                     upload: upload,
                     isNew: true,
-                    angle: newAngles[index - existingPhotos.length],
+                    angle: newAngles[newIndex],
                     onAngleChanged: (angle) =>
-                        onNewAngleChanged(index - existingPhotos.length, angle),
+                        onNewAngleChanged(newIndex, angle),
+                    onMoveUp: index == 0 ? null : () => onMovePhoto(token, -1),
+                    onMoveDown: index == photoOrder.length - 1
+                        ? null
+                        : () => onMovePhoto(token, 1),
+                    onCrop: () => onCropNew(newIndex),
                   );
                 }
-                final existing = existingPhotos[index];
+                final existing = existingPhotos.firstWhere(
+                  (entry) => entry.$2.id == token.substring(9),
+                );
                 return _ProductThumb(
                   displayIndex: index,
                   url: existing.$2.url,
@@ -304,6 +321,10 @@ class _PhotoStrip extends StatelessWidget {
                   onDelete: replacingPhotoId == existing.$2.id
                       ? null
                       : () => onDeletePhoto(existing.$1, existing.$2),
+                  onMoveUp: index == 0 ? null : () => onMovePhoto(token, -1),
+                  onMoveDown: index == photoOrder.length - 1
+                      ? null
+                      : () => onMovePhoto(token, 1),
                 );
               },
             ),
@@ -325,6 +346,9 @@ class _ProductThumb extends StatelessWidget {
     this.isLoading = false,
     this.onReplace,
     this.onDelete,
+    this.onMoveUp,
+    this.onMoveDown,
+    this.onCrop,
   });
 
   final int displayIndex;
@@ -336,6 +360,9 @@ class _ProductThumb extends StatelessWidget {
   final ValueChanged<String?> onAngleChanged;
   final VoidCallback? onReplace;
   final VoidCallback? onDelete;
+  final VoidCallback? onMoveUp;
+  final VoidCallback? onMoveDown;
+  final VoidCallback? onCrop;
 
   @override
   Widget build(BuildContext context) {
@@ -376,6 +403,33 @@ class _ProductThumb extends StatelessWidget {
                     top: 5,
                     right: 5,
                     child: _ThumbAction(icon: Icons.close, onTap: onDelete!),
+                  ),
+                if (onMoveUp != null)
+                  Positioned(
+                    left: 5,
+                    bottom: 30,
+                    child: _ThumbAction(
+                      icon: Icons.arrow_upward,
+                      onTap: onMoveUp!,
+                    ),
+                  ),
+                if (onMoveDown != null)
+                  Positioned(
+                    right: 5,
+                    bottom: 30,
+                    child: _ThumbAction(
+                      icon: Icons.arrow_downward,
+                      onTap: onMoveDown!,
+                    ),
+                  ),
+                if (onCrop != null)
+                  Positioned(
+                    top: 5,
+                    right: 5,
+                    child: _ThumbAction(
+                      icon: Icons.crop,
+                      onTap: onCrop!,
+                    ),
                   ),
                 Positioned(
                   left: 0,

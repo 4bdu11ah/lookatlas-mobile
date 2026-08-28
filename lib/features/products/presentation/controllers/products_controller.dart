@@ -79,13 +79,17 @@ class _ProductsScreenState {
 
 class _ProductsController extends Notifier<_ProductsScreenState> {
   Timer? _searchDebounce;
+  Timer? _statusRefreshTimer;
   int _requestGeneration = 0;
 
   ProductsRepository get _repository => ref.read(productsRepositoryProvider);
 
   @override
   _ProductsScreenState build() {
-    ref.onDispose(() => _searchDebounce?.cancel());
+    ref.onDispose(() {
+      _searchDebounce?.cancel();
+      _statusRefreshTimer?.cancel();
+    });
     unawaited(Future.microtask(reload));
     return const _ProductsScreenState();
   }
@@ -97,13 +101,17 @@ class _ProductsController extends Notifier<_ProductsScreenState> {
       isLoadingMore: false,
       clearFailure: true,
     );
-    final calibratedResult = await _repository.getCalibratedProductIds();
+    final calibratedResult = await _repository.getCalibrationStatuses();
     if (generation != _requestGeneration) return;
     if (calibratedResult case Err(:final failure)) {
       state = state.copyWith(isLoading: false, failure: failure);
       return;
     }
-    final calibratedIds = calibratedResult.valueOrNull!;
+    final statuses = calibratedResult.valueOrNull!;
+    final calibratedIds = {
+      for (final entry in statuses.entries)
+        if (entry.value.isCalibrated) entry.key,
+    };
     final productsResult = await _repository.getProducts(
       _query(1, calibratedIds),
     );
@@ -112,7 +120,7 @@ class _ProductsController extends Notifier<_ProductsScreenState> {
       Ok(:final value) => state.copyWith(
         products: [
           for (final product in value.products)
-            _Product.fromCatalog(product, calibratedIds),
+            _Product.fromCatalog(product, statuses),
         ],
         totalCount: value.total,
         currentPage: value.page,
@@ -125,6 +133,7 @@ class _ProductsController extends Notifier<_ProductsScreenState> {
         failure: failure,
       ),
     };
+    _syncStatusPolling();
   }
 
   Future<void> loadNextPage() async {
@@ -135,24 +144,24 @@ class _ProductsController extends Notifier<_ProductsScreenState> {
     }
     final generation = ++_requestGeneration;
     state = state.copyWith(isLoadingMore: true, clearFailure: true);
-    final calibratedResult = await _repository.getCalibratedProductIds();
+    final calibratedResult = await _repository.getCalibrationStatuses();
     if (generation != _requestGeneration) return;
     if (calibratedResult case Err(:final failure)) {
       state = state.copyWith(isLoadingMore: false, failure: failure);
       return;
     }
-    final calibratedIds = calibratedResult.valueOrNull!;
+    final statuses = calibratedResult.valueOrNull!;
+    final calibratedIds = {
+      for (final entry in statuses.entries)
+        if (entry.value.isCalibrated) entry.key,
+    };
     final result = await _repository.getProducts(
       _query(state.currentPage + 1, calibratedIds),
     );
     if (generation != _requestGeneration) return;
     state = switch (result) {
       Ok(:final value) => state.copyWith(
-        products: [
-          ...state.products,
-          for (final product in value.products)
-            _Product.fromCatalog(product, calibratedIds),
-        ],
+        products: _appendUnique(state.products, value.products, statuses),
         totalCount: value.total,
         currentPage: value.page,
         totalPages: value.totalPages,
@@ -164,6 +173,50 @@ class _ProductsController extends Notifier<_ProductsScreenState> {
         failure: failure,
       ),
     };
+    _syncStatusPolling();
+  }
+
+  List<_Product> _appendUnique(
+    List<_Product> current,
+    List<ProductCatalogItem> incoming,
+    Map<String, ProductCalibrationStatus> statuses,
+  ) {
+    final ids = {for (final product in current) product.id};
+    return [
+      ...current,
+      for (final product in incoming)
+        if (ids.add(product.id)) _Product.fromCatalog(product, statuses),
+    ];
+  }
+
+  void _syncStatusPolling() {
+    final shouldPoll = state.products.any(
+      (product) => product.calibrationStatus.needsPolling,
+    );
+    if (!shouldPoll) {
+      _statusRefreshTimer?.cancel();
+      _statusRefreshTimer = null;
+      return;
+    }
+    _statusRefreshTimer ??= Timer.periodic(
+      const Duration(seconds: 5),
+      (_) => unawaited(_refreshStatuses()),
+    );
+  }
+
+  Future<void> _refreshStatuses() async {
+    final result = await _repository.getCalibrationStatuses();
+    if (result case Ok(:final value)) {
+      state = state.copyWith(
+        products: [
+          for (final product in state.products)
+            _Product.fromCatalog(product.item, value),
+        ],
+      );
+    } else {
+      return;
+    }
+    _syncStatusPolling();
   }
 
   ProductQuery _query(int page, Set<String> calibratedIds) => ProductQuery(
@@ -240,8 +293,41 @@ class _ProductsController extends Notifier<_ProductsScreenState> {
     state = state.copyWith(categoryBannerDismissed: true);
   }
 
-  Future<Result<void>> createProduct(CatalogProductDraft draft) =>
-      _mutate(() => _repository.createProduct(draft));
+  Future<Result<void>> createProduct(CatalogProductDraft draft) async {
+    if (state.isMutating) {
+      return const Err(
+        ValidationFailure('Another product action is already running.'),
+      );
+    }
+    state = state.copyWith(isMutating: true, clearFailure: true);
+    final result = await _repository.createProduct(draft);
+    if (result case Err(:final failure)) {
+      state = state.copyWith(isMutating: false, failure: failure);
+      return Err(failure);
+    }
+    final productId = result.valueOrNull!;
+    final statuses = await _repository.getCalibrationStatuses();
+    final canonical = await _repository.getProducts(
+      ProductQuery(productId: productId, limit: 1),
+    );
+    state = state.copyWith(isMutating: false, clearFailure: true);
+    if (canonical case Ok(:final value) when value.products.isNotEmpty) {
+      final statusMap = statuses.valueOrNull ?? const {};
+      final created = _Product.fromCatalog(value.products.first, statusMap);
+      state = state.copyWith(
+        products: [
+          created,
+          ...state.products.where((item) => item.id != created.id),
+        ],
+        totalCount:
+            state.totalCount +
+            (state.products.any((item) => item.id == created.id) ? 0 : 1),
+      );
+    } else {
+      await reload();
+    }
+    return const Ok(null);
+  }
 
   Future<Result<void>> updateProduct(
     _Product product,
@@ -252,9 +338,12 @@ class _ProductsController extends Notifier<_ProductsScreenState> {
       reloadAfter: draft.photos.isNotEmpty && draft.viewAngles.isEmpty,
     );
     if (updated case Err()) return updated;
-    if (draft.viewAngles.isNotEmpty) {
+    if (draft.viewAngles.isNotEmpty || draft.existingPhotoAngles.isNotEmpty) {
       return _mutate(
-        () => _repository.updatePhotoAngles(product.id, draft.viewAngles),
+        () => _repository.updatePhotoAngles(product.id, {
+          ...draft.existingPhotoAngles,
+          ...draft.viewAngles,
+        }),
       );
     }
     if (draft.photos.isEmpty) _applyMetadataUpdate(product, draft);
@@ -274,7 +363,7 @@ class _ProductsController extends Notifier<_ProductsScreenState> {
         thumbnail: product.item.thumbnail,
         photos: product.item.photos,
       ),
-      calibrated: product.calibrated,
+      calibrationStatus: product.calibrationStatus,
     );
     state = state.copyWith(
       products: [

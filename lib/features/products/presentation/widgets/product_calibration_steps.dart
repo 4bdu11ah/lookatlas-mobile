@@ -242,7 +242,9 @@ class _CalibrationPlaceStep extends StatelessWidget {
     required this.placementX,
     required this.placementY,
     required this.placementScale,
+    required this.placementRotation,
     required this.onPlacementChanged,
+    required this.onRotationChanged,
     required this.onBodyZoomChanged,
     required this.onBack,
     required this.onNext,
@@ -255,7 +257,9 @@ class _CalibrationPlaceStep extends StatelessWidget {
   final double placementX;
   final double placementY;
   final double placementScale;
+  final double placementRotation;
   final void Function(double x, double y, double scale) onPlacementChanged;
+  final ValueChanged<double> onRotationChanged;
   final ValueChanged<double> onBodyZoomChanged;
   final VoidCallback onBack;
   final VoidCallback onNext;
@@ -295,8 +299,40 @@ class _CalibrationPlaceStep extends StatelessWidget {
                     placementX: placementX,
                     placementY: placementY,
                     placementScale: placementScale,
+                    placementRotation: placementRotation,
                     onPlacementChanged: onPlacementChanged,
                   ),
+                ),
+                const SizedBox(height: 10),
+                _PlacementFineControls(
+                  onLeft: () => onPlacementChanged(
+                    placementX - 0.01,
+                    placementY,
+                    placementScale,
+                  ),
+                  onUp: () => onPlacementChanged(
+                    placementX,
+                    placementY - 0.01,
+                    placementScale,
+                  ),
+                  onRight: () => onPlacementChanged(
+                    placementX + 0.01,
+                    placementY,
+                    placementScale,
+                  ),
+                  onSmaller: () => onPlacementChanged(
+                    placementX,
+                    placementY,
+                    placementScale - 0.03,
+                  ),
+                  onCenter: () => onPlacementChanged(0.5, 0.56, placementScale),
+                  onLarger: () => onPlacementChanged(
+                    placementX,
+                    placementY,
+                    placementScale + 0.03,
+                  ),
+                  onRotateLeft: () => onRotationChanged(placementRotation - 2),
+                  onRotateRight: () => onRotationChanged(placementRotation + 2),
                 ),
                 const SizedBox(height: 10),
                 const Text.rich(
@@ -355,12 +391,17 @@ class _CalibrationReviewStep extends StatelessWidget {
     required this.placementX,
     required this.placementY,
     required this.placementScale,
+    required this.placementRotation,
     required this.notesController,
     required this.onAdjust,
     required this.onClose,
     required this.onSave,
+    required this.onDiscard,
+    required this.onRemoveWornPhoto,
     required this.isSaving,
+    required this.canDiscard,
     this.wornPhotoUrl,
+    this.fitImageUrl,
     this.isLegacy = false,
   });
 
@@ -370,12 +411,17 @@ class _CalibrationReviewStep extends StatelessWidget {
   final double placementX;
   final double placementY;
   final double placementScale;
+  final double placementRotation;
   final TextEditingController notesController;
   final VoidCallback onAdjust;
   final VoidCallback onClose;
   final VoidCallback onSave;
+  final VoidCallback onDiscard;
+  final VoidCallback onRemoveWornPhoto;
   final bool isSaving;
+  final bool canDiscard;
   final String? wornPhotoUrl;
+  final String? fitImageUrl;
   final bool isLegacy;
 
   @override
@@ -402,7 +448,9 @@ class _CalibrationReviewStep extends StatelessWidget {
                 const SizedBox(height: 14),
                 SizedBox(
                   height: 300,
-                  child: wornPhotoUrl == null
+                  child: fitImageUrl != null
+                      ? _AssetImage(fitImageUrl!)
+                      : wornPhotoUrl == null
                       ? _PlacementCanvas(
                           product: product,
                           bodyArea: bodyArea,
@@ -410,6 +458,7 @@ class _CalibrationReviewStep extends StatelessWidget {
                           placementX: placementX,
                           placementY: placementY,
                           placementScale: placementScale,
+                          placementRotation: placementRotation,
                         )
                       : _AssetImage(wornPhotoUrl!),
                 ),
@@ -438,6 +487,26 @@ class _CalibrationReviewStep extends StatelessWidget {
                       fontWeight: AppTypography.bold,
                     ),
                   ),
+                  if (wornPhotoUrl != null) ...[
+                    const SizedBox(height: 8),
+                    AppOutlinedButton(
+                      label: 'Remove worn photo',
+                      icon: Icons.delete_outline,
+                      onPressed: isSaving ? null : onRemoveWornPhoto,
+                      foregroundColor: AppColors.dangerDark,
+                      height: 44,
+                    ),
+                  ],
+                  if (canDiscard) ...[
+                    const SizedBox(height: 8),
+                    AppOutlinedButton(
+                      label: 'Discard changes',
+                      icon: Icons.restore,
+                      onPressed: isSaving ? null : onDiscard,
+                      foregroundColor: AppColors.dangerDark,
+                      height: 44,
+                    ),
+                  ],
                 ],
               ],
             ),
@@ -449,102 +518,6 @@ class _CalibrationReviewStep extends StatelessWidget {
           onPrimary: isSaving ? null : onSave,
           showPrimary: !isLegacy,
         ),
-      ],
-    );
-  }
-}
-
-class _CalibrationWornStep extends StatelessWidget {
-  const _CalibrationWornStep({
-    required this.onBack,
-    required this.onUpload,
-    required this.isUploading,
-  });
-
-  final VoidCallback onBack;
-  final VoidCallback onUpload;
-  final bool isUploading;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        const _StepIndicator(current: 'Step 1', label: '2: Photo'),
-        Expanded(
-          child: Padding(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const _SectionCopy(
-                  title: 'Upload a photo of the product being worn',
-                  copy:
-                      'Any photo of the product on a person will do, even rough phone shots. We only use it to measure size.',
-                ),
-                const SizedBox(height: 18),
-                InkWell(
-                  onTap: isUploading ? null : onUpload,
-                  child: AppDottedBorder(
-                    color: AppColors.neutral200,
-                    strokeWidth: 2,
-                    dotWidth: 8,
-                    gap: 6,
-                    child: ConstrainedBox(
-                      constraints: const BoxConstraints(minHeight: 220),
-                      child: Container(
-                        alignment: Alignment.center,
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            if (isUploading)
-                              const BarSpinner(
-                                size: 28,
-                                color: AppColors.black,
-                              )
-                            else
-                              const Icon(
-                                Icons.photo_camera_outlined,
-                                size: 26,
-                                color: AppColors.neutral500,
-                              ),
-                            const SizedBox(height: 10),
-                            Text(
-                              isUploading
-                                  ? 'Uploading photo'
-                                  : 'Tap to choose a photo',
-                              style: const TextStyle(
-                                fontSize: 14,
-                                fontWeight: AppTypography.bold,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            const Text(
-                              'JPG, PNG, or WebP up to 10 MB',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: AppColors.neutral500,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                const Text(
-                  'Do not have a worn photo? Go back and place the product on a body outline instead.',
-                  style: TextStyle(
-                    fontSize: 12,
-                    height: 1.35,
-                    color: AppColors.neutral500,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-        _ProductFlowFooter(onBack: onBack, showPrimary: false),
       ],
     );
   }

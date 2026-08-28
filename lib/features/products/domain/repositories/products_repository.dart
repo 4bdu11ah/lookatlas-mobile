@@ -4,7 +4,7 @@ import 'package:look_atlas/features/products/domain/entities/product_catalog.dar
 abstract interface class ProductsRepository {
   Future<Result<ProductCatalogPage>> getProducts(ProductQuery query);
 
-  Future<Result<void>> createProduct(CatalogProductDraft draft);
+  Future<Result<String>> createProduct(CatalogProductDraft draft);
 
   Future<Result<void>> updateProduct(
     String productId,
@@ -13,7 +13,7 @@ abstract interface class ProductsRepository {
 
   Future<Result<void>> updatePhotoAngles(
     String productId,
-    Map<int, String?> angles,
+    Map<Object, String?> angles,
   );
 
   Future<Result<void>> deleteProduct(String productId);
@@ -28,6 +28,9 @@ abstract interface class ProductsRepository {
 
   Future<Result<Set<String>>> getCalibratedProductIds();
 
+  Future<Result<Map<String, ProductCalibrationStatus>>>
+  getCalibrationStatuses();
+
   Future<Result<ProductCalibrationWorkspace>> loadCalibration(
     String productId,
   );
@@ -35,14 +38,53 @@ abstract interface class ProductsRepository {
   Future<Result<void>> uploadWornPhoto(
     String productId,
     ProductUpload photo, {
-    required String calibrationId,
-    required String revision,
+    required String? calibrationId,
+    required String? revision,
     required String mutationId,
   });
 
-  Future<Result<void>> uploadCutout(
+  Future<Result<void>> deleteWornPhoto(
     String productId,
-    ProductUpload photo,
+    CalibrationMutationFence fence,
+  );
+
+  Future<Result<void>> uploadPlacement(
+    String productId,
+    ProductUpload cutout,
+    Map<String, dynamic> placement,
+    CalibrationMutationFence fence,
+  );
+
+  Future<Result<CalibrationRender>> startCalibrationRender(
+    String productId, {
+    required String bodyPreset,
+    required String mutationId,
+    String? feedback,
+    String? previousRenderId,
+  });
+
+  Future<Result<CalibrationRender?>> getLatestCalibrationRender(
+    String productId,
+  );
+
+  Future<Result<List<CalibrationRender>>> getCalibrationRenders(
+    String productId,
+  );
+
+  Future<Result<void>> approveCalibrationRender(
+    String productId,
+    String renderId,
+    CalibrationMutationFence fence,
+  );
+
+  Future<Result<void>> promoteCalibrationCandidate(
+    String productId,
+    CalibrationMutationFence fence,
+  );
+
+  Future<Result<void>> discardCalibrationCandidate(
+    String productId,
+    CalibrationMutationFence fence,
   );
 
   Future<Result<void>> saveCalibration(
@@ -53,5 +95,6 @@ abstract interface class ProductsRepository {
   Future<Result<void>> copyCalibration(
     String targetProductId,
     String sourceProductId,
+    CalibrationMutationFence fence,
   );
 }

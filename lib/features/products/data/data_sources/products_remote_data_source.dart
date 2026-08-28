@@ -8,16 +8,18 @@ import 'package:look_atlas/core/network/api_service.dart';
 import 'package:look_atlas/core/result/result.dart';
 import 'package:look_atlas/features/products/domain/entities/product_catalog.dart';
 
+part 'products_remote_data_codec.dart';
+
 abstract interface class ProductsRemoteDataSource {
   Future<Result<ProductCatalogPage>> getProducts(ProductQuery query);
-  Future<Result<void>> createProduct(CatalogProductDraft draft);
+  Future<Result<String>> createProduct(CatalogProductDraft draft);
   Future<Result<void>> updateProduct(
     String productId,
     CatalogProductDraft draft,
   );
   Future<Result<void>> updatePhotoAngles(
     String productId,
-    Map<int, String?> angles,
+    Map<Object, String?> angles,
   );
   Future<Result<void>> deleteProduct(String productId);
   Future<Result<void>> deletePhoto(String productId, String photoId);
@@ -29,16 +31,50 @@ abstract interface class ProductsRemoteDataSource {
   Future<Result<List<CalibrationOutline>>> getCalibrationOutlines();
   Future<Result<ProductCalibration>> getCalibration(String productId);
   Future<Result<List<ProductCatalogItem>>> getCalibratedProducts();
+  Future<Result<Map<String, ProductCalibrationStatus>>>
+  getCalibrationStatuses();
   Future<Result<void>> uploadWornPhoto(
     String productId,
     ProductUpload photo, {
-    required String calibrationId,
-    required String revision,
+    required String? calibrationId,
+    required String? revision,
     required String mutationId,
   });
-  Future<Result<void>> uploadCutout(
+  Future<Result<void>> deleteWornPhoto(
     String productId,
-    ProductUpload photo,
+    CalibrationMutationFence fence,
+  );
+  Future<Result<void>> uploadPlacement(
+    String productId,
+    ProductUpload cutout,
+    Map<String, dynamic> placement,
+    CalibrationMutationFence fence,
+  );
+  Future<Result<CalibrationRender>> startCalibrationRender(
+    String productId, {
+    required String bodyPreset,
+    required String mutationId,
+    String? feedback,
+    String? previousRenderId,
+  });
+  Future<Result<CalibrationRender?>> getLatestCalibrationRender(
+    String productId,
+  );
+  Future<Result<List<CalibrationRender>>> getCalibrationRenders(
+    String productId,
+  );
+  Future<Result<void>> approveCalibrationRender(
+    String productId,
+    String renderId,
+    CalibrationMutationFence fence,
+  );
+  Future<Result<void>> promoteCalibrationCandidate(
+    String productId,
+    CalibrationMutationFence fence,
+  );
+  Future<Result<void>> discardCalibrationCandidate(
+    String productId,
+    CalibrationMutationFence fence,
   );
   Future<Result<void>> saveCalibration(
     String productId,
@@ -47,6 +83,7 @@ abstract interface class ProductsRemoteDataSource {
   Future<Result<void>> copyCalibration(
     String targetProductId,
     String sourceProductId,
+    CalibrationMutationFence fence,
   );
 }
 
@@ -69,17 +106,34 @@ class ProductsRemoteDataSourceImpl implements ProductsRemoteDataSource {
       );
 
   @override
-  Future<Result<void>> createProduct(CatalogProductDraft draft) async {
-    final created = await _api.post<void>(
+  Future<Result<String>> createProduct(CatalogProductDraft draft) async {
+    final created = await _api.post<String>(
       ApiEndpoints.products,
       data: _productFormData(draft, includeAngles: true),
-      decoder: (_) {},
+      options: _uploadOptions(draft),
+      decoder: (data) {
+        final root = _map(data);
+        final nested = _map(root['data']);
+        return _string(root['id'] ?? nested['id'] ?? root['productId']);
+      },
     );
+    if (created case Ok(:final value) when value.isEmpty) {
+      return const Err(
+        ValidationFailure('Product was saved, but its id was missing.'),
+      );
+    }
     final existingProductId = _duplicateSkuProductId(created.failureOrNull);
     if (existingProductId == null) return created;
     final retried = await updateProduct(existingProductId, draft);
-    if (!retried.isOk || draft.viewAngles.isEmpty) return retried;
-    return updatePhotoAngles(existingProductId, draft.viewAngles);
+    if (retried case Err(:final failure)) return Err(failure);
+    if (draft.viewAngles.isNotEmpty) {
+      final angles = await updatePhotoAngles(
+        existingProductId,
+        draft.viewAngles,
+      );
+      if (angles case Err(:final failure)) return Err(failure);
+    }
+    return Ok(existingProductId);
   }
 
   @override
@@ -89,19 +143,24 @@ class ProductsRemoteDataSourceImpl implements ProductsRemoteDataSource {
   ) => _api.put<void>(
     ApiEndpoints.product(productId),
     data: _productFormData(draft, includeAngles: false),
+    options: _uploadOptions(draft),
     decoder: (_) {},
   );
 
   @override
   Future<Result<void>> updatePhotoAngles(
     String productId,
-    Map<int, String?> angles,
+    Map<Object, String?> angles,
   ) => _api.patch<void>(
     ApiEndpoints.productPhotoAngles(productId),
     data: {
       'angles': {
         for (final entry in angles.entries) '${entry.key}': entry.value,
       },
+      'photos': [
+        for (final entry in angles.entries)
+          if (entry.key is String) {'id': entry.key, 'viewAngle': entry.value},
+      ],
     },
     decoder: (_) {},
   );
@@ -188,11 +247,18 @@ class ProductsRemoteDataSourceImpl implements ProductsRemoteDataSource {
       );
 
   @override
+  Future<Result<Map<String, ProductCalibrationStatus>>>
+  getCalibrationStatuses() => _api.get<Map<String, ProductCalibrationStatus>>(
+    ApiEndpoints.calibratedProducts,
+    decoder: _decodeCalibrationStatuses,
+  );
+
+  @override
   Future<Result<void>> uploadWornPhoto(
     String productId,
     ProductUpload photo, {
-    required String calibrationId,
-    required String revision,
+    required String? calibrationId,
+    required String? revision,
     required String mutationId,
   }) => _api.post<void>(
     ApiEndpoints.productCalibrationWornPhoto(productId),
@@ -206,12 +272,103 @@ class ProductsRemoteDataSourceImpl implements ProductsRemoteDataSource {
   );
 
   @override
-  Future<Result<void>> uploadCutout(
+  Future<Result<void>> deleteWornPhoto(
     String productId,
-    ProductUpload photo,
+    CalibrationMutationFence fence,
+  ) => _api.delete<void>(
+    ApiEndpoints.productCalibrationWornPhoto(productId),
+    data: fence.toJson(),
+    decoder: (_) {},
+  );
+
+  @override
+  Future<Result<void>> uploadPlacement(
+    String productId,
+    ProductUpload cutout,
+    Map<String, dynamic> placement,
+    CalibrationMutationFence fence,
+  ) {
+    final data = FormData()
+      ..fields.add(
+        MapEntry('payload', jsonEncode({...placement, ...fence.toJson()})),
+      )
+      ..files.add(MapEntry('file', _multipart(cutout)));
+    return _api.post<void>(
+      ApiEndpoints.productCalibrationPlacement(productId),
+      data: data,
+      decoder: (_) {},
+    );
+  }
+
+  @override
+  Future<Result<CalibrationRender>> startCalibrationRender(
+    String productId, {
+    required String bodyPreset,
+    required String mutationId,
+    String? feedback,
+    String? previousRenderId,
+  }) => _api.post<CalibrationRender>(
+    ApiEndpoints.productCalibrationRender(productId),
+    data: {
+      'bodyPreset': bodyPreset,
+      'feedback': ?feedback,
+      'previousRenderId': ?previousRenderId,
+      'mutationId': mutationId,
+    },
+    decoder: _decodeRender,
+  );
+
+  @override
+  Future<Result<CalibrationRender?>> getLatestCalibrationRender(
+    String productId,
+  ) => _api.get<CalibrationRender?>(
+    ApiEndpoints.productCalibrationLatestRender(productId),
+    decoder: (data) {
+      final root = _map(data);
+      final render = root['render'] ?? _map(root['data'])['render'];
+      return render is Map<String, dynamic> ? _decodeRender(render) : null;
+    },
+  );
+
+  @override
+  Future<Result<List<CalibrationRender>>> getCalibrationRenders(
+    String productId,
+  ) => _api.get<List<CalibrationRender>>(
+    ApiEndpoints.productCalibrationRenders(productId),
+    decoder: (data) => [
+      for (final item in _items(data, const ['renders']))
+        if (item is Map<String, dynamic>) _decodeRender(item),
+    ],
+  );
+
+  @override
+  Future<Result<void>> approveCalibrationRender(
+    String productId,
+    String renderId,
+    CalibrationMutationFence fence,
   ) => _api.post<void>(
-    ApiEndpoints.productCalibrationCutout(productId),
-    data: _singleUpload('file', photo),
+    ApiEndpoints.approveProductCalibrationRender(productId),
+    data: {'renderId': renderId, ...fence.toJson()},
+    decoder: (_) {},
+  );
+
+  @override
+  Future<Result<void>> promoteCalibrationCandidate(
+    String productId,
+    CalibrationMutationFence fence,
+  ) => _api.post<void>(
+    ApiEndpoints.promoteProductCalibrationCandidate(productId),
+    data: fence.toJson(),
+    decoder: (_) {},
+  );
+
+  @override
+  Future<Result<void>> discardCalibrationCandidate(
+    String productId,
+    CalibrationMutationFence fence,
+  ) => _api.post<void>(
+    ApiEndpoints.discardProductCalibrationCandidate(productId),
+    data: fence.toJson(),
     decoder: (_) {},
   );
 
@@ -229,230 +386,10 @@ class ProductsRemoteDataSourceImpl implements ProductsRemoteDataSource {
   Future<Result<void>> copyCalibration(
     String targetProductId,
     String sourceProductId,
+    CalibrationMutationFence fence,
   ) => _api.post<void>(
     ApiEndpoints.copyProductCalibration(targetProductId),
-    data: {'sourceProductId': sourceProductId},
+    data: {'sourceProductId': sourceProductId, ...fence.toJson()},
     decoder: (_) {},
   );
-
-  static ProductCatalogPage _decodePage(dynamic data) {
-    final root = _map(data);
-    final nested = root['data'];
-    final body = nested is Map<String, dynamic> ? nested : root;
-    final pagination = _map(body['pagination']);
-    final products = [
-      for (final item in _items(body, const ['products']))
-        if (item is Map<String, dynamic>) _decodeProduct(item),
-    ];
-    return ProductCatalogPage(
-      products: products,
-      page: _integer(pagination['page'], fallback: 1),
-      limit: _integer(pagination['limit'], fallback: 20),
-      total: _integer(pagination['total'], fallback: products.length),
-      totalPages: _integer(pagination['totalPages'], fallback: 1),
-    );
-  }
-
-  static ProductCatalogItem _decodeProduct(Map<String, dynamic> json) {
-    final rawPhotos = json['photos'] as List? ?? const [];
-    final photos = [
-      for (final (index, raw) in rawPhotos.indexed) _decodePhoto(raw, index),
-    ].nonNulls.toList()..sort((a, b) => a.sortOrder.compareTo(b.sortOrder));
-    return ProductCatalogItem(
-      id: _string(json['id'] ?? json['_id'] ?? json['productId']),
-      name: _string(json['name'], fallback: 'Untitled product'),
-      sku: _string(json['sku']),
-      description: _nullableString(json['description']),
-      category: _string(json['category'], fallback: 'Other'),
-      subCategory: _nullableString(
-        json['subCategory'] ?? json['sub_category'],
-      ),
-      createdAt: _date(json['createdAt'] ?? json['created_at']),
-      thumbnail: _absoluteUrl(
-        _nullableString(json['thumbnail'] ?? json['thumbnailUrl']),
-      ),
-      photos: photos,
-    );
-  }
-
-  static ProductPhoto? _decodePhoto(Object? raw, int index) {
-    if (raw is String) {
-      return ProductPhoto(
-        id: '$index',
-        url: _absoluteUrl(raw) ?? '',
-        sortOrder: index,
-      );
-    }
-    if (raw is! Map<String, dynamic>) return null;
-    return ProductPhoto(
-      id: _string(raw['id'] ?? raw['_id'], fallback: '$index'),
-      url:
-          _absoluteUrl(
-            _nullableString(raw['url'] ?? raw['path'] ?? raw['thumbnail']),
-          ) ??
-          '',
-      sortOrder: _integer(
-        raw['sortOrder'] ?? raw['sort_order'],
-        fallback: index,
-      ),
-      viewAngle: _nullableString(raw['viewAngle'] ?? raw['view_angle']),
-    );
-  }
-
-  static ProductCalibration _decodeCalibration(dynamic data) {
-    final body = _map(data);
-    final nested = body['calibration'];
-    final json = nested is Map<String, dynamic> ? nested : body;
-    return ProductCalibration(
-      id: _nullableValueString(
-        json['id'] ?? json['calibrationId'] ?? json['calibration_id'],
-      ),
-      revision: _nullableValueString(json['revision']),
-      bodyArea: _nullableString(json['bodyArea'] ?? json['body_area']),
-      shapes: [
-        for (final shape in _shapeItems(json['shapes']))
-          if (shape is Map<String, dynamic>) shape,
-      ],
-      userNotes: _nullableString(json['userNotes'] ?? json['user_notes']),
-      cutoutPlacement: _map(
-        json['cutoutPlacement'] ?? json['cutout_placement'],
-      ),
-      wornPhotoUrl: _absoluteUrl(
-        _nullableString(json['wornPhotoUrl'] ?? json['worn_photo_url']),
-      ),
-      cutoutUrl: _absoluteUrl(
-        _nullableString(
-          json['productCutoutUrl'] ??
-              json['product_cutout_url'] ??
-              json['cutoutUrl'] ??
-              json['cutout_url'],
-        ),
-      ),
-      hasLegacyShapes: _shapeItems(json['shapes']).isNotEmpty,
-    );
-  }
-
-  static FormData _productFormData(
-    CatalogProductDraft draft, {
-    required bool includeAngles,
-  }) {
-    final data = FormData();
-    data.fields
-      ..add(MapEntry('name', draft.name))
-      ..add(MapEntry('sku', draft.sku));
-    if (draft.description.isNotEmpty) {
-      data.fields.add(MapEntry('description', draft.description));
-    }
-    data.fields.add(MapEntry('category', draft.category.toLowerCase()));
-    if (draft.subCategory.isNotEmpty) {
-      data.fields.add(MapEntry('sub_category', draft.subCategory));
-    }
-    if (includeAngles && draft.viewAngles.isNotEmpty) {
-      data.fields.add(
-        MapEntry(
-          'view_angles',
-          jsonEncode([
-            for (var index = 0; index < draft.viewAngles.length; index++)
-              draft.viewAngles[index],
-          ]),
-        ),
-      );
-    }
-    for (final photo in draft.photos) {
-      data.files.add(MapEntry('photos', _multipart(photo)));
-    }
-    if (draft.photos.isNotEmpty) {
-      data.fields.add(
-        MapEntry(
-          'photo_keys',
-          jsonEncode([
-            for (final (index, photo) in draft.photos.indexed)
-              _photoKey(photo, index),
-          ]),
-        ),
-      );
-    }
-    return data;
-  }
-
-  static String _photoKey(ProductUpload photo, int index) {
-    var hash = 0;
-    for (final byte in photo.bytes) {
-      hash = (hash * 31 + byte) & 0x7fffffff;
-    }
-    return '${photo.fileName}-${photo.bytes.lengthInBytes}-$hash-$index';
-  }
-
-  static String? _duplicateSkuProductId(Failure? failure) {
-    if (failure is! NetworkFailure ||
-        failure.statusCode != 409 ||
-        failure.code != 'DUPLICATE_SKU') {
-      return null;
-    }
-    final response = (failure.cause as DioException?)?.response?.data;
-    final error = _map(response)['error'];
-    return error is Map<String, dynamic>
-        ? _nullableString(error['existingProductId'])
-        : null;
-  }
-
-  static FormData _singleUpload(String field, ProductUpload upload) =>
-      FormData()..files.add(MapEntry(field, _multipart(upload)));
-
-  static MultipartFile _multipart(ProductUpload upload) =>
-      MultipartFile.fromBytes(
-        upload.bytes,
-        filename: upload.fileName,
-        contentType: upload.fileName.toLowerCase().endsWith('.png')
-            ? DioMediaType('image', 'png')
-            : DioMediaType('image', 'jpeg'),
-      );
-
-  static List<dynamic> _items(dynamic data, List<String> keys) {
-    if (data is List) return data;
-    var body = _map(data);
-    final nested = body['data'];
-    if (nested is List) return nested;
-    if (nested is Map<String, dynamic>) body = nested;
-    for (final key in keys) {
-      final value = body[key];
-      if (value is List) return value;
-    }
-    return const [];
-  }
-
-  static List<dynamic> _shapeItems(Object? value) {
-    if (value is List) return value;
-    if (value is Map<String, dynamic> && value['shapes'] is List) {
-      return value['shapes'] as List<dynamic>;
-    }
-    return const [];
-  }
-
-  static String? _absoluteUrl(String? value) {
-    if (value == null || value.isEmpty) return null;
-    final uri = Uri.tryParse(value);
-    if (uri?.hasScheme ?? false) return value;
-    return Uri.parse(AppConfig.apiBaseUrl).resolve(value).toString();
-  }
-
-  static Map<String, dynamic> _map(Object? data) =>
-      data is Map<String, dynamic> ? data : const {};
-
-  static String _string(Object? value, {String fallback = ''}) =>
-      value is String && value.trim().isNotEmpty ? value.trim() : fallback;
-
-  static String? _nullableString(Object? value) =>
-      value is String && value.trim().isNotEmpty ? value.trim() : null;
-
-  static String? _nullableValueString(Object? value) {
-    final text = value?.toString().trim() ?? '';
-    return text.isEmpty ? null : text;
-  }
-
-  static int _integer(Object? value, {int fallback = 0}) =>
-      value is num ? value.round() : int.tryParse('$value') ?? fallback;
-
-  static DateTime? _date(Object? value) =>
-      value is String ? DateTime.tryParse(value) : null;
 }

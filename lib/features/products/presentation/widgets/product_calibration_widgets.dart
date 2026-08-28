@@ -293,6 +293,7 @@ class _PlacementCanvas extends StatelessWidget {
     required this.placementX,
     required this.placementY,
     required this.placementScale,
+    this.placementRotation = 0,
     this.bodyZoom = 1,
     this.cutout,
     this.onPlacementChanged,
@@ -305,6 +306,7 @@ class _PlacementCanvas extends StatelessWidget {
   final double placementX;
   final double placementY;
   final double placementScale;
+  final double placementRotation;
   final void Function(double x, double y, double scale)? onPlacementChanged;
 
   @override
@@ -353,50 +355,57 @@ class _PlacementCanvas extends StatelessWidget {
                           placementY + details.delta.dy / height,
                           placementScale,
                         ),
-                  child: SizedBox(
-                    width: productWidth,
-                    height: productHeight,
-                    child: Stack(
-                      fit: StackFit.expand,
-                      children: [
-                        DecoratedBox(
-                          decoration: BoxDecoration(
-                            border: Border.all(
-                              color: AppColors.black,
-                              width: 2,
-                            ),
-                          ),
-                          child: cutout == null
-                              ? _AssetImage(product.asset)
-                              : AppImage.memory(cutout!.bytes),
-                        ),
-                        if (onPlacementChanged != null)
-                          Positioned(
-                            right: -10,
-                            bottom: -10,
-                            child: GestureDetector(
-                              behavior: HitTestBehavior.opaque,
-                              onPanUpdate: (details) => onPlacementChanged!(
-                                placementX,
-                                placementY,
-                                placementScale +
-                                    (details.delta.dx + details.delta.dy) / 180,
+                  child: Transform.rotate(
+                    angle: placementRotation * pi / 180,
+                    child: SizedBox(
+                      width: productWidth,
+                      height: productHeight,
+                      child: Stack(
+                        fit: StackFit.expand,
+                        children: [
+                          DecoratedBox(
+                            decoration: BoxDecoration(
+                              border: Border.all(
+                                color: AppColors.black,
+                                width: 2,
                               ),
-                              child: Container(
-                                width: 20,
-                                height: 20,
-                                decoration: BoxDecoration(
-                                  color: AppColors.white,
-                                  border: Border.all(
-                                    color: AppColors.black,
-                                    width: 2,
+                            ),
+                            child: cutout == null
+                                ? _AssetImage(product.asset)
+                                : AppImage.memory(cutout!.bytes),
+                          ),
+                          if (onPlacementChanged != null)
+                            Positioned(
+                              right: -10,
+                              bottom: -10,
+                              child: GestureDetector(
+                                behavior: HitTestBehavior.opaque,
+                                onPanUpdate: (details) => onPlacementChanged!(
+                                  placementX,
+                                  placementY,
+                                  placementScale +
+                                      (details.delta.dx + details.delta.dy) /
+                                          180,
+                                ),
+                                child: Container(
+                                  width: 20,
+                                  height: 20,
+                                  decoration: BoxDecoration(
+                                    color: AppColors.white,
+                                    border: Border.all(
+                                      color: AppColors.black,
+                                      width: 2,
+                                    ),
+                                  ),
+                                  child: const Icon(
+                                    Icons.open_in_full,
+                                    size: 12,
                                   ),
                                 ),
-                                child: const Icon(Icons.open_in_full, size: 12),
                               ),
                             ),
-                          ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
                 ),

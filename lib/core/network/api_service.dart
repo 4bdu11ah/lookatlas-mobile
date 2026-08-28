@@ -76,12 +76,14 @@ class ApiService {
     Object? data,
     JsonDecoder<T>? decoder,
     CancelToken? cancelToken,
+    Options? options,
   }) {
     return _send(
       () => _dio.put<dynamic>(
         path,
         data: data,
         cancelToken: cancelToken,
+        options: options,
       ),
       decoder,
     );

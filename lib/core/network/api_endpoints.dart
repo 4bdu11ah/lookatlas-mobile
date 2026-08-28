@@ -101,8 +101,26 @@ abstract final class ApiEndpoints {
   static String productCalibrationWornPhoto(String productId) =>
       '/products/$productId/calibration/worn-photo';
 
-  static String productCalibrationCutout(String productId) =>
-      '/products/$productId/calibration/cutout';
+  static String productCalibrationPlacement(String productId) =>
+      '/products/$productId/calibration/placement';
+
+  static String productCalibrationRender(String productId) =>
+      '/products/$productId/calibration/render';
+
+  static String productCalibrationLatestRender(String productId) =>
+      '/products/$productId/calibration/render/latest';
+
+  static String productCalibrationRenders(String productId) =>
+      '/products/$productId/calibration/renders';
+
+  static String approveProductCalibrationRender(String productId) =>
+      '/products/$productId/calibration/render/approve';
+
+  static String promoteProductCalibrationCandidate(String productId) =>
+      '/products/$productId/calibration/candidate/promote';
+
+  static String discardProductCalibrationCandidate(String productId) =>
+      '/products/$productId/calibration/candidate/discard';
 
   static String copyProductCalibration(String productId) =>
       '/products/$productId/calibration/copy-from';

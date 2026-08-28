@@ -51,7 +51,8 @@ class _ProductFormDialogState extends ConsumerState<_ProductFormDialog> {
     final uploads = await _pickProductPhotos(
       context,
       ref,
-      remaining: 10 - ref.read(_formProvider).photoCount,
+      remaining:
+          PRODUCT_PHOTO_UPLOAD_MAX_COUNT - ref.read(_formProvider).photoCount,
       title: 'Add product photos',
     );
     if (mounted && uploads.isNotEmpty) {
@@ -60,6 +61,13 @@ class _ProductFormDialogState extends ConsumerState<_ProductFormDialog> {
   }
 
   Future<void> _deletePhoto(int originalIndex, ProductPhoto photo) async {
+    if (ref.read(_formProvider).photoCount <= 1) {
+      AppSnackBar.showError(
+        context,
+        'Keep at least one reference image for this product.',
+      );
+      return;
+    }
     final deleted = await widget.onDeletePhoto(photo);
     if (mounted && deleted) {
       ref.read(_formProvider.notifier).removeExistingPhoto(originalIndex);
@@ -166,11 +174,10 @@ class _ProductFormDialogState extends ConsumerState<_ProductFormDialog> {
             _ProductField(
               label: 'Product Photos',
               required: true,
-              trailing: '${form.photoCount}/10',
+              trailing: '${form.photoCount}/$PRODUCT_PHOTO_UPLOAD_MAX_COUNT',
               child: _ProductUploadBox(
                 label: 'Click to upload photos',
-                copy:
-                    'or drag and drop\nPNG, JPG, WebP or HEIC up to 30MB each',
+                copy: 'PNG, JPG, or WebP, up to 20MB each',
                 onTap: _pickPhotos,
               ),
             )
@@ -189,10 +196,15 @@ class _ProductFormDialogState extends ConsumerState<_ProductFormDialog> {
               newPhotos: form.newPhotos,
               angles: form.angles,
               newAngles: form.newAngles,
+              photoOrder: form.orderedPhotoTokens,
               onAngleChanged: (index, angle) =>
                   ref.read(_formProvider.notifier).setAngle(index, angle),
               onNewAngleChanged: (index, angle) =>
                   ref.read(_formProvider.notifier).setNewAngle(index, angle),
+              onMovePhoto: ref.read(_formProvider.notifier).movePhoto,
+              onCropNew: (index) => unawaited(
+                ref.read(_formProvider.notifier).cropNewPhoto(index),
+              ),
               onDeletePhoto: _deletePhoto,
               onReplacePhoto: _replacePhoto,
               onClear: editing
@@ -202,10 +214,11 @@ class _ProductFormDialogState extends ConsumerState<_ProductFormDialog> {
             if (editing)
               _ProductField(
                 label: 'Add New Photos',
-                trailing: '${form.photoCount}/10 total',
+                trailing:
+                    '${form.photoCount}/$PRODUCT_PHOTO_UPLOAD_MAX_COUNT total',
                 child: _ProductUploadBox(
                   label: 'Click to add more photos',
-                  copy: 'PNG, JPG, WebP or HEIC up to 30MB each',
+                  copy: 'PNG, JPG, or WebP, up to 20MB each',
                   compact: true,
                   onTap: _pickPhotos,
                 ),

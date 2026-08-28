@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 import 'dart:math';
+import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -107,8 +108,11 @@ part '../../../products/presentation/controllers/product_form_controller.dart';
 part '../../../products/presentation/dialogs/product_form_dialog.dart';
 part '../../../products/presentation/widgets/product_form_widgets.dart';
 part '../../../products/presentation/screens/product_calibration_screens.dart';
+part '../../../products/presentation/controllers/product_calibration_actions.dart';
 part '../../../products/presentation/widgets/product_calibration_flow.dart';
 part '../../../products/presentation/widgets/product_calibration_steps.dart';
+part '../../../products/presentation/widgets/product_calibration_fit_step.dart';
+part '../../../products/presentation/widgets/product_calibration_placement_controls.dart';
 part '../../../products/presentation/widgets/product_calibration_widgets.dart';
 part '../../../house_model/domain/entities/house_model.dart';
 part '../../../house_model/presentation/controllers/house_model_controller.dart';

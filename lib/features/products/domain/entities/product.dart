@@ -1,15 +1,21 @@
 part of '../../../dashboard/presentation/screens/dashboard_screen.dart';
 
 class _Product {
-  const _Product({required this.item, required this.calibrated});
+  const _Product({required this.item, required this.calibrationStatus});
 
   factory _Product.fromCatalog(
     ProductCatalogItem item,
-    Set<String> calibratedIds,
-  ) => _Product(item: item, calibrated: calibratedIds.contains(item.id));
+    Map<String, ProductCalibrationStatus> statuses,
+  ) => _Product(
+    item: item,
+    calibrationStatus:
+        statuses[item.id] ?? ProductCalibrationStatus.recommended,
+  );
 
   final ProductCatalogItem item;
-  final bool calibrated;
+  final ProductCalibrationStatus calibrationStatus;
+
+  bool get calibrated => calibrationStatus.isCalibrated;
 
   String get id => item.id;
   String get name => item.name;
@@ -20,10 +26,10 @@ class _Product {
   int get photos => item.photos.length;
   List<ProductPhoto> get productPhotos => item.photos;
   String get asset => item.imageUrl;
-  String get status => calibrated ? 'Calibrated' : 'Calibrate size';
+  String get status => calibrationStatus.label;
   String get addedLabel => item.createdAt == null
       ? 'Recently added'
-      : DateFormat('MMM d').format(item.createdAt!.toLocal());
+      : DateFormat('MMM d, y').format(item.createdAt!.toLocal());
 
   List<String> get photoAssets {
     final photos = [

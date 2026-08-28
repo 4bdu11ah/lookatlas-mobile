@@ -90,7 +90,7 @@ void main() {
     expect(query, {
       'includePhotos': true,
       'page': 2,
-      'limit': 20,
+      'limit': 24,
       'search': 'bag',
       'category': 'Bags',
       'sort': 'name_asc',
@@ -105,17 +105,23 @@ void main() {
 
   test('create_and_update_send_documented_multipart_fields', () async {
     when(
-      () => api.post<void>(
+      () => api.post<String>(
         ApiEndpoints.products,
         data: any(named: 'data'),
         decoder: any(named: 'decoder'),
+        options: any(named: 'options'),
       ),
-    ).thenAnswer((_) async => const Result.ok(null));
+    ).thenAnswer((invocation) async {
+      final decoder =
+          invocation.namedArguments[#decoder] as JsonDecoder<String>;
+      return Result.ok(decoder({'id': 'product-created'}));
+    });
     when(
       () => api.put<void>(
         ApiEndpoints.product('product-1'),
         data: any(named: 'data'),
         decoder: any(named: 'decoder'),
+        options: any(named: 'options'),
       ),
     ).thenAnswer((_) async => const Result.ok(null));
     final draft = CatalogProductDraft(
@@ -141,10 +147,11 @@ void main() {
     await dataSource.updateProduct('product-1', draft);
     final createData =
         verify(
-              () => api.post<void>(
+              () => api.post<String>(
                 ApiEndpoints.products,
                 data: captureAny(named: 'data'),
                 decoder: any(named: 'decoder'),
+                options: any(named: 'options'),
               ),
             ).captured.single
             as FormData;
@@ -154,6 +161,7 @@ void main() {
                 ApiEndpoints.product('product-1'),
                 data: captureAny(named: 'data'),
                 decoder: any(named: 'decoder'),
+                options: any(named: 'options'),
               ),
             ).captured.single
             as FormData;
@@ -165,7 +173,8 @@ void main() {
       'category': 'bags',
       'sub_category': 'Crossbody',
       'view_angles': '["front","side"]',
-      'photo_keys': '["front.png-2-33-0","side.jpg-2-97-1"]',
+      'photo_keys': '["front.png-2-33","side.jpg-2-97"]',
+      'photo_order': '["front.png-2-33","side.jpg-2-97"]',
     });
     expect(createData.files.map((part) => part.key), ['photos', 'photos']);
     expect(
@@ -181,10 +190,11 @@ void main() {
   test('create_retries_duplicate_sku_with_existing_product_id', () async {
     final requestOptions = RequestOptions(path: ApiEndpoints.products);
     when(
-      () => api.post<void>(
+      () => api.post<String>(
         ApiEndpoints.products,
         data: any(named: 'data'),
         decoder: any(named: 'decoder'),
+        options: any(named: 'options'),
       ),
     ).thenAnswer(
       (_) async => Result.err(
@@ -213,6 +223,7 @@ void main() {
         ApiEndpoints.product('existing-product'),
         data: any(named: 'data'),
         decoder: any(named: 'decoder'),
+        options: any(named: 'options'),
       ),
     ).thenAnswer((_) async => const Result.ok(null));
 
@@ -230,8 +241,55 @@ void main() {
         ApiEndpoints.product('existing-product'),
         data: any(named: 'data'),
         decoder: any(named: 'decoder'),
+        options: any(named: 'options'),
       ),
     ).called(1);
+  });
+
+  test('update_preserves_combined_saved_and_new_photo_order', () async {
+    when(
+      () => api.put<void>(
+        ApiEndpoints.product('product-1'),
+        data: any(named: 'data'),
+        decoder: any(named: 'decoder'),
+        options: any(named: 'options'),
+      ),
+    ).thenAnswer((_) async => const Result.ok(null));
+    final draft = CatalogProductDraft(
+      name: 'Canvas Bag',
+      sku: 'BAG-1',
+      category: 'Bags',
+      subCategory: 'Crossbody',
+      existingPhotoOrder: const ['saved-front', 'saved-back'],
+      photos: [
+        ProductUpload(
+          bytes: Uint8List.fromList([1, 2]),
+          fileName: 'detail.png',
+          localKey: 'new-detail',
+        ),
+      ],
+      photoOrder: const ['saved-front', 'new-detail', 'saved-back'],
+    );
+
+    await dataSource.updateProduct('product-1', draft);
+
+    final formData =
+        verify(
+              () => api.put<void>(
+                ApiEndpoints.product('product-1'),
+                data: captureAny(named: 'data'),
+                decoder: any(named: 'decoder'),
+                options: any(named: 'options'),
+              ),
+            ).captured.single
+            as FormData;
+    expect(
+      Map<String, String>.fromEntries(formData.fields),
+      containsPair(
+        'photo_order',
+        '["saved-front","new-detail","saved-back"]',
+      ),
+    );
   });
 
   test('product_photo_actions_use_documented_paths_and_payloads', () async {
@@ -279,6 +337,7 @@ void main() {
         ApiEndpoints.productPhotoAngles('product-1'),
         data: {
           'angles': {'0': 'front', '1': null},
+          'photos': <Map<String, dynamic>>[],
         },
         decoder: any(named: 'decoder'),
       ),
@@ -404,6 +463,13 @@ void main() {
         decoder: any(named: 'decoder'),
       ),
     ).thenAnswer((_) async => const Result.ok(null));
+    when(
+      () => api.delete<void>(
+        ApiEndpoints.productCalibrationWornPhoto('product-1'),
+        data: any(named: 'data'),
+        decoder: any(named: 'decoder'),
+      ),
+    ).thenAnswer((_) async => const Result.ok(null));
     final upload = ProductUpload(
       bytes: Uint8List.fromList([1]),
       fileName: 'reference.png',
@@ -416,7 +482,14 @@ void main() {
       revision: '3',
       mutationId: 'mutation-1',
     );
-    await dataSource.uploadCutout('product-1', upload);
+    await dataSource.deleteWornPhoto(
+      'product-1',
+      const CalibrationMutationFence(
+        calibrationId: 'calibration-1',
+        revision: '3',
+        mutationId: 'mutation-delete',
+      ),
+    );
     await dataSource.saveCalibration(
       'product-1',
       const ProductCalibrationDraft(
@@ -426,7 +499,15 @@ void main() {
         cutoutPlacement: {'x': 0.5, 'y': 0.5, 'scale': 1.0},
       ),
     );
-    await dataSource.copyCalibration('product-1', 'product-2');
+    await dataSource.copyCalibration(
+      'product-1',
+      'product-2',
+      const CalibrationMutationFence(
+        calibrationId: 'calibration-1',
+        revision: '3',
+        mutationId: 'mutation-2',
+      ),
+    );
 
     final worn = verify(
       () => api.post<void>(
@@ -438,22 +519,23 @@ void main() {
     ).captured;
     final wornData = worn[0] as FormData;
     final wornQuery = worn[1] as Map<String, dynamic>;
-    final cutoutData =
-        verify(
-              () => api.post<void>(
-                ApiEndpoints.productCalibrationCutout('product-1'),
-                data: captureAny(named: 'data'),
-                decoder: any(named: 'decoder'),
-              ),
-            ).captured.single
-            as FormData;
     expect(wornData.files.single.key, 'file');
     expect(wornQuery, {
       'expectedCalibrationId': 'calibration-1',
       'expectedRevision': '3',
       'mutationId': 'mutation-1',
     });
-    expect(cutoutData.files.single.key, 'file');
+    verify(
+      () => api.delete<void>(
+        ApiEndpoints.productCalibrationWornPhoto('product-1'),
+        data: {
+          'expectedCalibrationId': 'calibration-1',
+          'expectedRevision': '3',
+          'mutationId': 'mutation-delete',
+        },
+        decoder: any(named: 'decoder'),
+      ),
+    ).called(1);
     verify(
       () => api.put<void>(
         ApiEndpoints.productCalibration('product-1'),
@@ -469,7 +551,12 @@ void main() {
     verify(
       () => api.post<void>(
         ApiEndpoints.copyProductCalibration('product-1'),
-        data: {'sourceProductId': 'product-2'},
+        data: {
+          'sourceProductId': 'product-2',
+          'expectedCalibrationId': 'calibration-1',
+          'expectedRevision': '3',
+          'mutationId': 'mutation-2',
+        },
         decoder: any(named: 'decoder'),
       ),
     ).called(1);
@@ -485,5 +572,161 @@ void main() {
       'bodyArea': 'full_body_front',
       'shapes': <Map<String, dynamic>>[],
     });
+  });
+
+  test('first calibration mutation fence preserves absent baseline', () {
+    const fence = CalibrationMutationFence(
+      calibrationId: null,
+      revision: null,
+      mutationId: 'mutation-first',
+    );
+
+    expect(fence.toJson(), {
+      'expectedCalibrationId': null,
+      'expectedRevision': null,
+      'mutationId': 'mutation-first',
+    });
+  });
+
+  test('calibration_statuses_decode_every_library_state', () async {
+    when(
+      () => api.get<Map<String, ProductCalibrationStatus>>(
+        ApiEndpoints.calibratedProducts,
+        decoder: any(named: 'decoder'),
+      ),
+    ).thenAnswer((invocation) async {
+      final decoder =
+          invocation.namedArguments[#decoder]
+              as JsonDecoder<Map<String, ProductCalibrationStatus>>;
+      return Result.ok(
+        decoder({
+          'statuses': {
+            'product-1': 'fit_rendering',
+            'product-2': {'status': 'changes_pending'},
+          },
+        }),
+      );
+    });
+
+    final statuses = (await dataSource.getCalibrationStatuses()).valueOrNull!;
+
+    expect(statuses['product-1'], ProductCalibrationStatus.fitRendering);
+    expect(statuses['product-2'], ProductCalibrationStatus.changesPending);
+  });
+
+  test('placement_upload_is_atomic_and_fenced', () async {
+    when(
+      () => api.post<void>(
+        ApiEndpoints.productCalibrationPlacement('product-1'),
+        data: any(named: 'data'),
+        decoder: any(named: 'decoder'),
+      ),
+    ).thenAnswer((_) async => const Result.ok(null));
+    final upload = ProductUpload(
+      bytes: Uint8List.fromList([1, 2]),
+      fileName: 'cutout.png',
+    );
+
+    await dataSource.uploadPlacement(
+      'product-1',
+      upload,
+      const {
+        'bodyArea': 'full_body_front',
+        'placement': {'x': 500, 'y': 750},
+      },
+      const CalibrationMutationFence(
+        calibrationId: 'calibration-1',
+        revision: '3',
+        mutationId: 'mutation-placement',
+      ),
+    );
+
+    final formData =
+        verify(
+              () => api.post<void>(
+                ApiEndpoints.productCalibrationPlacement('product-1'),
+                data: captureAny(named: 'data'),
+                decoder: any(named: 'decoder'),
+              ),
+            ).captured.single
+            as FormData;
+    expect(formData.files.single.key, 'file');
+    expect(formData.fields.single.key, 'payload');
+    expect(formData.fields.single.value, contains('mutation-placement'));
+    expect(formData.fields.single.value, contains('full_body_front'));
+  });
+
+  test('fit_render_contract_decodes_and_fences_mutations', () async {
+    when(
+      () => api.post<CalibrationRender>(
+        ApiEndpoints.productCalibrationRender('product-1'),
+        data: any(named: 'data'),
+        decoder: any(named: 'decoder'),
+      ),
+    ).thenAnswer((invocation) async {
+      final decoder =
+          invocation.namedArguments[#decoder] as JsonDecoder<CalibrationRender>;
+      return Result.ok(
+        decoder({
+          'render': {
+            'id': 'render-1',
+            'status': 'completed',
+            'imageUrl': '/fit.png',
+            'bodyPreset': 'Female',
+          },
+        }),
+      );
+    });
+    when(
+      () => api.post<void>(
+        ApiEndpoints.approveProductCalibrationRender('product-1'),
+        data: any(named: 'data'),
+        decoder: any(named: 'decoder'),
+      ),
+    ).thenAnswer((_) async => const Result.ok(null));
+
+    final render = (await dataSource.startCalibrationRender(
+      'product-1',
+      bodyPreset: 'Female',
+      feedback: 'Longer hem',
+      previousRenderId: 'render-0',
+      mutationId: 'mutation-render',
+    )).valueOrNull!;
+    const fence = CalibrationMutationFence(
+      calibrationId: 'calibration-1',
+      revision: '3',
+      mutationId: 'mutation-approve',
+    );
+    await dataSource.approveCalibrationRender(
+      'product-1',
+      render.id,
+      fence,
+    );
+
+    expect(render.isApprovalEligible, isTrue);
+    verify(
+      () => api.post<CalibrationRender>(
+        ApiEndpoints.productCalibrationRender('product-1'),
+        data: {
+          'bodyPreset': 'Female',
+          'feedback': 'Longer hem',
+          'previousRenderId': 'render-0',
+          'mutationId': 'mutation-render',
+        },
+        decoder: any(named: 'decoder'),
+      ),
+    ).called(1);
+    verify(
+      () => api.post<void>(
+        ApiEndpoints.approveProductCalibrationRender('product-1'),
+        data: {
+          'renderId': 'render-1',
+          'expectedCalibrationId': 'calibration-1',
+          'expectedRevision': '3',
+          'mutationId': 'mutation-approve',
+        },
+        decoder: any(named: 'decoder'),
+      ),
+    ).called(1);
   });
 }

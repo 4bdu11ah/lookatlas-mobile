@@ -231,10 +231,25 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutes.dashboardProducts,
         name: 'dashboard_products',
-        pageBuilder: (_, state) => buildAppTransitionPage(
-          state: state,
-          child: const ProductsScreen(),
-        ),
+        pageBuilder: (_, state) {
+          final requestedReturn = state.uri.queryParameters['returnTo'];
+          final returnTo =
+              requestedReturn != null &&
+                  requestedReturn.startsWith('/') &&
+                  !requestedReturn.startsWith('//') &&
+                  Uri.tryParse(requestedReturn)?.hasScheme == false
+              ? requestedReturn
+              : null;
+          return buildAppTransitionPage(
+            state: state,
+            child: ProductsScreen(
+              openCreate: state.uri.queryParameters['create'] == '1',
+              productId: state.uri.queryParameters['product'],
+              calibrateProductId: state.uri.queryParameters['calibrate'],
+              returnTo: returnTo,
+            ),
+          );
+        },
       ),
       GoRoute(
         path: AppRoutes.dashboardModels,

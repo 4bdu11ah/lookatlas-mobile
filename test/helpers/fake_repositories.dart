@@ -98,8 +98,12 @@ class FakeProductsRepository implements ProductsRepository {
       const Result.ok({});
 
   @override
-  Future<Result<void>> createProduct(CatalogProductDraft draft) async =>
-      const Result.ok(null);
+  Future<Result<Map<String, ProductCalibrationStatus>>>
+  getCalibrationStatuses() async => const Result.ok({});
+
+  @override
+  Future<Result<String>> createProduct(CatalogProductDraft draft) async =>
+      const Result.ok('product-created');
 
   @override
   Future<Result<void>> updateProduct(
@@ -110,7 +114,7 @@ class FakeProductsRepository implements ProductsRepository {
   @override
   Future<Result<void>> updatePhotoAngles(
     String productId,
-    Map<int, String?> angles,
+    Map<Object, String?> angles,
   ) async => const Result.ok(null);
 
   @override
@@ -143,15 +147,63 @@ class FakeProductsRepository implements ProductsRepository {
   Future<Result<void>> uploadWornPhoto(
     String productId,
     ProductUpload photo, {
-    required String calibrationId,
-    required String revision,
+    required String? calibrationId,
+    required String? revision,
     required String mutationId,
   }) async => const Result.ok(null);
 
   @override
-  Future<Result<void>> uploadCutout(
+  Future<Result<void>> deleteWornPhoto(
     String productId,
-    ProductUpload photo,
+    CalibrationMutationFence fence,
+  ) async => const Result.ok(null);
+
+  @override
+  Future<Result<void>> uploadPlacement(
+    String productId,
+    ProductUpload cutout,
+    Map<String, dynamic> placement,
+    CalibrationMutationFence fence,
+  ) async => const Result.ok(null);
+
+  @override
+  Future<Result<CalibrationRender>> startCalibrationRender(
+    String productId, {
+    required String bodyPreset,
+    required String mutationId,
+    String? feedback,
+    String? previousRenderId,
+  }) async => const Result.ok(
+    CalibrationRender(id: 'render-1', status: CalibrationRenderStatus.queued),
+  );
+
+  @override
+  Future<Result<CalibrationRender?>> getLatestCalibrationRender(
+    String productId,
+  ) async => const Result.ok(null);
+
+  @override
+  Future<Result<List<CalibrationRender>>> getCalibrationRenders(
+    String productId,
+  ) async => const Result.ok([]);
+
+  @override
+  Future<Result<void>> approveCalibrationRender(
+    String productId,
+    String renderId,
+    CalibrationMutationFence fence,
+  ) async => const Result.ok(null);
+
+  @override
+  Future<Result<void>> promoteCalibrationCandidate(
+    String productId,
+    CalibrationMutationFence fence,
+  ) async => const Result.ok(null);
+
+  @override
+  Future<Result<void>> discardCalibrationCandidate(
+    String productId,
+    CalibrationMutationFence fence,
   ) async => const Result.ok(null);
 
   @override
@@ -164,6 +216,7 @@ class FakeProductsRepository implements ProductsRepository {
   Future<Result<void>> copyCalibration(
     String targetProductId,
     String sourceProductId,
+    CalibrationMutationFence fence,
   ) async => const Result.ok(null);
 }
 

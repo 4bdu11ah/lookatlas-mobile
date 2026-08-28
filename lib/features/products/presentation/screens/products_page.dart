@@ -1,22 +1,99 @@
 part of '../../../dashboard/presentation/screens/dashboard_screen.dart';
 
-class ProductsScreen extends ConsumerWidget {
-  const ProductsScreen({super.key});
+bool _requestProductsManageAccess(BuildContext context, WidgetRef ref) {
+  final hasAccess =
+      ref.read(isPremiumProvider) ||
+      (ref
+              .read(subscriptionControllerProvider)
+              .value
+              ?.activeEntitlements
+              .contains('products_manage') ??
+          false);
+  if (hasAccess) return true;
+  unawaited(context.push(AppRoutes.paywall));
+  return false;
+}
+
+class ProductsScreen extends ConsumerStatefulWidget {
+  const ProductsScreen({
+    this.openCreate = false,
+    this.productId,
+    this.calibrateProductId,
+    this.returnTo,
+    super.key,
+  });
+
+  final bool openCreate;
+  final String? productId;
+  final String? calibrateProductId;
+  final String? returnTo;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    return AppFeatureScaffold(
-      title: 'Products',
-      maxContentWidth: 440,
-      contentBackgroundColor: AppColors.white,
-      floatingActionButton: AppFloatingActionButton(
-        label: 'Add Product',
-        onPressed: () => _showProductFormDialog(
+  ConsumerState<ProductsScreen> createState() => _ProductsScreenViewState();
+}
+
+class _ProductsScreenViewState extends ConsumerState<ProductsScreen> {
+  var _handledDeepLink = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _handleDeepLink());
+  }
+
+  void _handleDeepLink() {
+    if (!mounted || _handledDeepLink) return;
+    if (widget.openCreate) {
+      _handledDeepLink = true;
+      if (!_requestProductsManageAccess(context, ref)) return;
+      unawaited(
+        _showProductFormDialog(
           context,
           ref,
           (text) => _toastDashboard(context, text),
         ),
-      ),
+      );
+      return;
+    }
+    final targetId = widget.calibrateProductId ?? widget.productId;
+    if (targetId == null) {
+      _handledDeepLink = true;
+      return;
+    }
+    final product = ref
+        .read(_productsControllerProvider)
+        .products
+        .where((item) => item.id == targetId)
+        .firstOrNull;
+    if (product == null) return;
+    _handledDeepLink = true;
+    void onToast(String text) => _toastDashboard(context, text);
+    if (widget.calibrateProductId != null) {
+      if (!_requestProductsManageAccess(context, ref)) return;
+      unawaited(_openDeepLinkedCalibration(product, onToast));
+    } else {
+      unawaited(_showProductDetailSheet(context, ref, product, onToast));
+    }
+  }
+
+  Future<void> _openDeepLinkedCalibration(
+    _Product product,
+    ValueChanged<String> onToast,
+  ) async {
+    await _openCalibration(context, ref, product, onToast);
+    if (mounted && widget.returnTo != null) context.go(widget.returnTo!);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    ref.listen(
+      _productsControllerProvider.select((state) => state.products),
+      (_, _) => _handleDeepLink(),
+    );
+    return AppFeatureScaffold(
+      title: 'Products',
+      maxContentWidth: 440,
+      contentBackgroundColor: AppColors.neutral50,
       child: _ProductsPage(onToast: (text) => _toastDashboard(context, text)),
     );
   }
@@ -46,20 +123,27 @@ class _ProductsPage extends ConsumerWidget {
       child: CustomScrollView(
         slivers: [
           SliverPadding(
-            padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
+            padding: const EdgeInsets.fromLTRB(16, 30, 16, 0),
             sliver: SliverToBoxAdapter(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  const Text(
-                    'Manage your product catalog for AI-generated photoshoots',
-                    style: TextStyle(
-                      fontSize: 14,
-                      height: 1.35,
-                      color: AppColors.neutral500,
-                    ),
+                  _ProductsLibraryHeader(
+                    onAdd: () {
+                      if (_requestProductsManageAccess(context, ref)) {
+                        unawaited(
+                          _showProductFormDialog(context, ref, onToast),
+                        );
+                      }
+                    },
                   ),
-                  const SizedBox(height: 14),
+                  const SizedBox(height: 40),
+                  _ProductsCatalogStats(
+                    total: state.totalCount,
+                    loaded: state.products.length,
+                    calibrated: state.calibratedCount,
+                  ),
+                  const SizedBox(height: 42),
                   if (uncategorized.isNotEmpty &&
                       !state.categoryBannerDismissed)
                     _ProductCategoryBanner(
@@ -72,6 +156,11 @@ class _ProductsPage extends ConsumerWidget {
                       ),
                       onDismiss: controller.dismissCategoryBanner,
                     ),
+                  _ProductsSectionHeading(
+                    loaded: state.products.length,
+                    total: state.totalCount,
+                  ),
+                  const SizedBox(height: 22),
                   _ProductFilterBar(
                     query: state.searchQuery,
                     categoryFilter: state.categoryFilter,
@@ -90,7 +179,19 @@ class _ProductsPage extends ConsumerWidget {
                   ],
                   const SizedBox(height: 14),
                   if (state.products.isEmpty)
-                    _ProductEmptyResults(query: state.searchQuery),
+                    _ProductEmptyResults(
+                      query: state.searchQuery,
+                      hasActiveFilters:
+                          state.categoryFilter != _ProductCategoryFilter.all ||
+                          state.statusFilter != _ProductStatusFilter.all ||
+                          state.sortOrder != _ProductSortOrder.newest,
+                      onClear: controller.clearFilters,
+                      onAdd: () => _showProductFormDialog(
+                        context,
+                        ref,
+                        onToast,
+                      ),
+                    ),
                 ],
               ),
             ),
@@ -98,37 +199,41 @@ class _ProductsPage extends ConsumerWidget {
           if (state.products.isNotEmpty)
             SliverPadding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
-              sliver: SliverList.builder(
-                itemCount: state.products.length,
+              sliver: SliverGrid.builder(
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 2,
+                  crossAxisSpacing: 8,
+                  mainAxisSpacing: 12,
+                  childAspectRatio: 0.58,
+                ),
+                itemCount: state.products.length + 1,
                 itemBuilder: (context, index) {
+                  if (index == state.products.length) {
+                    return _ProductAddCard(
+                      onTap: () {
+                        if (_requestProductsManageAccess(context, ref)) {
+                          unawaited(
+                            _showProductFormDialog(context, ref, onToast),
+                          );
+                        }
+                      },
+                    );
+                  }
                   final product = state.products[index];
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 14),
-                    child: _ProductCard(
-                      key: ValueKey('product-card-${product.sku}'),
-                      product: product,
-                      onEdit: () => _showProductFormDialog(
-                        context,
-                        ref,
-                        onToast,
-                        product: product,
-                      ),
-                      onDelete: () => _showProductDeleteDialog(
-                        context,
-                        ref,
-                        product,
-                        onToast,
-                      ),
-                      onReplacePhoto: (photoIndex) => _openReplacePhotoScreen(
-                        context,
-                        ref,
-                        product,
-                        photoIndex,
-                        onToast,
-                      ),
-                      onCalibrate: () =>
-                          _openCalibration(context, ref, product, onToast),
+                  return _ProductCard(
+                    key: ValueKey('product-card-${product.sku}'),
+                    index: index,
+                    product: product,
+                    onOpen: () => unawaited(
+                      _showProductDetailSheet(context, ref, product, onToast),
                     ),
+                    onCalibrate: () {
+                      if (_requestProductsManageAccess(context, ref)) {
+                        unawaited(
+                          _openCalibration(context, ref, product, onToast),
+                        );
+                      }
+                    },
                   );
                 },
               ),
@@ -150,6 +255,119 @@ class _ProductsPage extends ConsumerWidget {
       ),
     );
   }
+}
+
+class _ProductsSectionHeading extends StatelessWidget {
+  const _ProductsSectionHeading({required this.loaded, required this.total});
+
+  final int loaded;
+  final int total;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.only(top: 12),
+    decoration: const BoxDecoration(
+      border: Border(top: BorderSide(color: AppColors.neutral200)),
+    ),
+    child: Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          '01',
+          style: TextStyle(
+            color: AppColors.neutral500,
+            fontFamily: 'Instrument Serif',
+            fontStyle: FontStyle.italic,
+            fontSize: 18,
+          ),
+        ),
+        const SizedBox(width: 16),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const _CatalogEyebrow('Your catalog'),
+              const SizedBox(height: 3),
+              const Text(
+                'The pieces in your studio.',
+                style: TextStyle(
+                  fontFamily: 'Instrument Serif',
+                  fontFamilyFallback: ['serif'],
+                  fontSize: 31,
+                  height: 1,
+                ),
+              ),
+              const SizedBox(height: 8),
+              _CatalogEyebrow('$loaded of $total'),
+            ],
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
+class _CatalogEyebrow extends StatelessWidget {
+  const _CatalogEyebrow(this.text, {this.color = AppColors.neutral500});
+
+  final String text;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) => Text(
+    text.toUpperCase(),
+    style: TextStyle(
+      color: color,
+      fontSize: 9,
+      fontWeight: FontWeight.w900,
+      letterSpacing: 1.2,
+    ),
+  );
+}
+
+class _ProductAddCard extends StatelessWidget {
+  const _ProductAddCard({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => InkWell(
+    onTap: onTap,
+    child: Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: AppColors.neutral100Alpha68,
+        border: Border.all(color: AppColors.neutral200),
+      ),
+      child: const Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.add, size: 25),
+          SizedBox(height: 16),
+          Text(
+            'Add another product',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontFamily: 'Instrument Serif',
+              fontFamilyFallback: ['serif'],
+              fontSize: 24,
+              height: 1,
+            ),
+          ),
+          SizedBox(height: 8),
+          Text(
+            'Bring a new piece into your studio catalog.',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: AppColors.neutral500,
+              fontSize: 10,
+              height: 1.5,
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
 }
 
 class _ProductsLoadingShimmer extends StatelessWidget {

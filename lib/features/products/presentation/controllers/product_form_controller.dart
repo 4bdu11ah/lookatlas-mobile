@@ -7,7 +7,7 @@ class _ProductFormState {
     this.sku = '',
     this.description = '',
     this.category = 'Tops',
-    this.subtype = 'Crossbody',
+    this.subtype = '',
     this.existingPhotos = const [],
     this.replacementPhotos = const {},
     this.replacingPhotoId,
@@ -15,6 +15,7 @@ class _ProductFormState {
     this.removedPhotoIndexes = const {},
     this.angles = const {},
     this.newAngles = const {},
+    this.photoOrder = const [],
     this.isSubmitting = false,
   });
 
@@ -31,15 +32,29 @@ class _ProductFormState {
   final Set<int> removedPhotoIndexes;
   final Map<int, String?> angles;
   final Map<int, String?> newAngles;
+  final List<String> photoOrder;
   final bool isSubmitting;
 
   List<(int, ProductPhoto)> get visibleExistingPhotos => [
-    for (final (index, photo) in existingPhotos.indexed)
-      if (!removedPhotoIndexes.contains(index)) (index, photo),
+    for (final token in orderedPhotoTokens)
+      if (token.startsWith('existing:'))
+        for (final entry in existingPhotos.indexed)
+          if (entry.$2.id == token.substring(9) &&
+              !removedPhotoIndexes.contains(entry.$1))
+            entry,
   ];
+  List<String> get orderedPhotoTokens => photoOrder.isEmpty
+      ? [
+          for (final photo in existingPhotos) 'existing:${photo.id}',
+          for (final photo in newPhotos) 'new:${photo.orderKey}',
+        ]
+      : photoOrder;
   int get photoCount => visibleExistingPhotos.length + newPhotos.length;
   bool get isValid =>
-      name.trim().isNotEmpty && sku.trim().isNotEmpty && photoCount > 0;
+      name.trim().isNotEmpty &&
+      sku.trim().isNotEmpty &&
+      photoCount > 0 &&
+      (category != 'Bags' || subtype.trim().isNotEmpty);
 
   _ProductFormState copyWith({
     String? name,
@@ -55,6 +70,7 @@ class _ProductFormState {
     Set<int>? removedPhotoIndexes,
     Map<int, String?>? angles,
     Map<int, String?>? newAngles,
+    List<String>? photoOrder,
     bool? isSubmitting,
   }) => _ProductFormState(
     productId: productId,
@@ -72,6 +88,7 @@ class _ProductFormState {
     removedPhotoIndexes: removedPhotoIndexes ?? this.removedPhotoIndexes,
     angles: angles ?? this.angles,
     newAngles: newAngles ?? this.newAngles,
+    photoOrder: photoOrder ?? this.photoOrder,
     isSubmitting: isSubmitting ?? this.isSubmitting,
   );
 }
@@ -88,8 +105,12 @@ class _ProductFormController extends Notifier<_ProductFormState> {
     sku: product?.sku ?? '',
     description: product?.description ?? '',
     category: product?.category ?? 'Tops',
-    subtype: product?.subtype ?? 'Crossbody',
+    subtype: product?.subtype ?? '',
     existingPhotos: product?.productPhotos ?? const [],
+    photoOrder: [
+      for (final photo in product?.productPhotos ?? const <ProductPhoto>[])
+        'existing:${photo.id}',
+    ],
     angles: {
       for (final (index, photo) in (product?.productPhotos ?? const []).indexed)
         index: photo.viewAngle,
@@ -102,12 +123,53 @@ class _ProductFormController extends Notifier<_ProductFormState> {
       state = state.copyWith(description: value);
   void setCategory(String value) => state = state.copyWith(category: value);
   void setSubtype(String value) => state = state.copyWith(subtype: value);
-  void addPhotos(List<ProductUpload> photos) =>
-      state = state.copyWith(newPhotos: [...state.newPhotos, ...photos]);
-  void clearNewPhotos() => state = state.copyWith(newPhotos: const []);
-  void removeExistingPhoto(int index) => state = state.copyWith(
-    removedPhotoIndexes: {...state.removedPhotoIndexes, index},
+  void addPhotos(List<ProductUpload> photos) => state = state.copyWith(
+    newPhotos: [...state.newPhotos, ...photos],
+    photoOrder: [
+      ...state.orderedPhotoTokens,
+      for (final photo in photos) 'new:${photo.orderKey}',
+    ],
   );
+  void clearNewPhotos() => state = state.copyWith(
+    newPhotos: const [],
+    newAngles: const {},
+    photoOrder: [
+      for (final token in state.orderedPhotoTokens)
+        if (token.startsWith('existing:')) token,
+    ],
+  );
+  void removeExistingPhoto(int index) {
+    final photos = [...state.existingPhotos]..removeAt(index);
+    state = state.copyWith(
+      existingPhotos: photos,
+      removedPhotoIndexes: const {},
+      angles: {
+        for (final (newIndex, photo) in photos.indexed)
+          newIndex: photo.viewAngle,
+      },
+      photoOrder: [
+        for (final token in state.orderedPhotoTokens)
+          if (token != 'existing:${state.existingPhotos[index].id}') token,
+      ],
+    );
+  }
+
+  void movePhoto(String token, int delta) {
+    final order = [...state.orderedPhotoTokens];
+    final index = order.indexOf(token);
+    final target = index + delta;
+    if (index < 0 || target < 0 || target >= order.length) return;
+    order.insert(target, order.removeAt(index));
+    state = state.copyWith(photoOrder: order);
+  }
+
+  Future<void> cropNewPhoto(int index) async {
+    if (index < 0 || index >= state.newPhotos.length) return;
+    final cropped = await _cropProductUploadToSquare(state.newPhotos[index]);
+    final photos = [...state.newPhotos]..[index] = cropped;
+    state = state.copyWith(newPhotos: photos);
+  }
+
   void replaceExistingPhoto(ProductPhoto photo, ProductUpload replacement) =>
       state = state.copyWith(
         replacementPhotos: {...state.replacementPhotos, photo.id: replacement},
@@ -125,20 +187,41 @@ class _ProductFormController extends Notifier<_ProductFormState> {
     if (state.isSubmitting || !state.isValid) return null;
     state = state.copyWith(isSubmitting: true);
     final existing = state.visibleExistingPhotos;
+    final orderedTokens = state.orderedPhotoTokens;
+    final orderedNewPhotos = [
+      for (final token in orderedTokens)
+        if (token.startsWith('new:'))
+          for (final photo in state.newPhotos)
+            if (photo.orderKey == token.substring(4)) photo,
+    ];
     final viewAngles = product == null
         ? {
-            for (final (displayIndex, photo) in existing.indexed)
-              displayIndex: state.angles[photo.$1],
-            for (final (index, _) in state.newPhotos.indexed)
-              existing.length + index: state.newAngles[index],
+            for (final (displayIndex, token) in orderedTokens.indexed)
+              displayIndex: token.startsWith('existing:')
+                  ? state.angles[state.existingPhotos.indexWhere(
+                      (photo) => photo.id == token.substring(9),
+                    )]
+                  : state.newAngles[state.newPhotos.indexWhere(
+                      (photo) => photo.orderKey == token.substring(4),
+                    )],
           }
         : {
-            for (final (displayIndex, photo) in existing.indexed)
-              if (state.angles[photo.$1] != photo.$2.viewAngle)
-                displayIndex: state.angles[photo.$1],
-            for (final (index, _) in state.newPhotos.indexed)
-              if (state.newAngles[index] != null)
-                existing.length + index: state.newAngles[index],
+            for (final (displayIndex, token) in orderedTokens.indexed)
+              if (token.startsWith('new:'))
+                displayIndex:
+                    state.newAngles[state.newPhotos.indexWhere(
+                      (photo) => photo.orderKey == token.substring(4),
+                    )]
+              else if (state.angles[state.existingPhotos.indexWhere(
+                    (photo) => photo.id == token.substring(9),
+                  )] !=
+                  state.existingPhotos
+                      .firstWhere((photo) => photo.id == token.substring(9))
+                      .viewAngle)
+                displayIndex:
+                    state.angles[state.existingPhotos.indexWhere(
+                      (photo) => photo.id == token.substring(9),
+                    )],
           };
     final draft = CatalogProductDraft(
       name: state.name.trim(),
@@ -146,8 +229,18 @@ class _ProductFormController extends Notifier<_ProductFormState> {
       description: state.description.trim(),
       category: state.category,
       subCategory: state.category == 'Bags' ? state.subtype : '',
-      photos: state.newPhotos,
+      photos: orderedNewPhotos,
       viewAngles: viewAngles,
+      existingPhotoOrder: [for (final photo in existing) photo.$2.id],
+      existingPhotoAngles: {
+        for (final photo in existing) photo.$2.id: state.angles[photo.$1],
+      },
+      photoOrder: [
+        for (final token in orderedTokens)
+          token.startsWith('existing:')
+              ? token.substring(9)
+              : token.substring(4),
+      ],
     );
     final products = ref.read(_productsControllerProvider.notifier);
     final result = product == null

@@ -14,7 +14,7 @@ class ProductsRepositoryImpl implements ProductsRepository {
       _remote.getProducts(query);
 
   @override
-  Future<Result<void>> createProduct(CatalogProductDraft draft) =>
+  Future<Result<String>> createProduct(CatalogProductDraft draft) =>
       _remote.createProduct(draft);
 
   @override
@@ -26,7 +26,7 @@ class ProductsRepositoryImpl implements ProductsRepository {
   @override
   Future<Result<void>> updatePhotoAngles(
     String productId,
-    Map<int, String?> angles,
+    Map<Object, String?> angles,
   ) => _remote.updatePhotoAngles(productId, angles);
 
   @override
@@ -49,6 +49,10 @@ class ProductsRepositoryImpl implements ProductsRepository {
       (await _remote.getCalibratedProducts()).map(
         (products) => {for (final product in products) product.id},
       );
+
+  @override
+  Future<Result<Map<String, ProductCalibrationStatus>>>
+  getCalibrationStatuses() => _remote.getCalibrationStatuses();
 
   @override
   Future<Result<ProductCalibrationWorkspace>> loadCalibration(
@@ -84,8 +88,8 @@ class ProductsRepositoryImpl implements ProductsRepository {
   Future<Result<void>> uploadWornPhoto(
     String productId,
     ProductUpload photo, {
-    required String calibrationId,
-    required String revision,
+    required String? calibrationId,
+    required String? revision,
     required String mutationId,
   }) => _remote.uploadWornPhoto(
     productId,
@@ -96,10 +100,62 @@ class ProductsRepositoryImpl implements ProductsRepository {
   );
 
   @override
-  Future<Result<void>> uploadCutout(
+  Future<Result<void>> deleteWornPhoto(
     String productId,
-    ProductUpload photo,
-  ) => _remote.uploadCutout(productId, photo);
+    CalibrationMutationFence fence,
+  ) => _remote.deleteWornPhoto(productId, fence);
+
+  @override
+  Future<Result<void>> uploadPlacement(
+    String productId,
+    ProductUpload cutout,
+    Map<String, dynamic> placement,
+    CalibrationMutationFence fence,
+  ) => _remote.uploadPlacement(productId, cutout, placement, fence);
+
+  @override
+  Future<Result<CalibrationRender>> startCalibrationRender(
+    String productId, {
+    required String bodyPreset,
+    required String mutationId,
+    String? feedback,
+    String? previousRenderId,
+  }) => _remote.startCalibrationRender(
+    productId,
+    bodyPreset: bodyPreset,
+    feedback: feedback,
+    previousRenderId: previousRenderId,
+    mutationId: mutationId,
+  );
+
+  @override
+  Future<Result<CalibrationRender?>> getLatestCalibrationRender(
+    String productId,
+  ) => _remote.getLatestCalibrationRender(productId);
+
+  @override
+  Future<Result<List<CalibrationRender>>> getCalibrationRenders(
+    String productId,
+  ) => _remote.getCalibrationRenders(productId);
+
+  @override
+  Future<Result<void>> approveCalibrationRender(
+    String productId,
+    String renderId,
+    CalibrationMutationFence fence,
+  ) => _remote.approveCalibrationRender(productId, renderId, fence);
+
+  @override
+  Future<Result<void>> promoteCalibrationCandidate(
+    String productId,
+    CalibrationMutationFence fence,
+  ) => _remote.promoteCalibrationCandidate(productId, fence);
+
+  @override
+  Future<Result<void>> discardCalibrationCandidate(
+    String productId,
+    CalibrationMutationFence fence,
+  ) => _remote.discardCalibrationCandidate(productId, fence);
 
   @override
   Future<Result<void>> saveCalibration(
@@ -111,5 +167,6 @@ class ProductsRepositoryImpl implements ProductsRepository {
   Future<Result<void>> copyCalibration(
     String targetProductId,
     String sourceProductId,
-  ) => _remote.copyCalibration(targetProductId, sourceProductId);
+    CalibrationMutationFence fence,
+  ) => _remote.copyCalibration(targetProductId, sourceProductId, fence);
 }

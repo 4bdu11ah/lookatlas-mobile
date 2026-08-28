@@ -1,48 +1,12 @@
 part of '../../../dashboard/presentation/screens/dashboard_screen.dart';
 
-void _openReplacePhotoScreen(
-  BuildContext context,
-  WidgetRef ref,
-  _Product product,
-  int photoIndex,
-  ValueChanged<String> onToast,
-) {
-  unawaited(
-    Navigator.of(context).push(
-      MaterialPageRoute<void>(
-        fullscreenDialog: true,
-        builder: (_) => _ProductPhotoReplaceScreen(
-          product: product,
-          photoIndex: photoIndex,
-          onReplace: (replacement) async {
-            if (product.productPhotos.isEmpty) {
-              return const Err(
-                ValidationFailure('This product has no photo to replace.'),
-              );
-            }
-            final index = photoIndex.clamp(0, product.productPhotos.length - 1);
-            final result = await ref
-                .read(_productsControllerProvider.notifier)
-                .replacePhoto(
-                  product,
-                  product.productPhotos[index],
-                  replacement,
-                );
-            if (result.isOk) onToast('Photo replaced');
-            return result;
-          },
-        ),
-      ),
-    ),
-  );
-}
-
 Future<void> _openCalibration(
   BuildContext context,
   WidgetRef ref,
   _Product product,
   ValueChanged<String> onToast,
 ) {
+  if (!_requestProductsManageAccess(context, ref)) return Future.value();
   return Navigator.of(context).push(
     MaterialPageRoute<void>(
       builder: (_) => _ProductCalibrationScreen(
@@ -57,44 +21,6 @@ Future<void> _openCalibration(
   );
 }
 
-class _ProductPhotoReplaceState {
-  const _ProductPhotoReplaceState({this.replacement, this.isSaving = false});
-
-  final ProductUpload? replacement;
-  final bool isSaving;
-
-  _ProductPhotoReplaceState copyWith({
-    ProductUpload? replacement,
-    bool? isSaving,
-  }) => _ProductPhotoReplaceState(
-    replacement: replacement ?? this.replacement,
-    isSaving: isSaving ?? this.isSaving,
-  );
-}
-
-class _ProductPhotoReplaceController
-    extends Notifier<_ProductPhotoReplaceState> {
-  _ProductPhotoReplaceController(this.productId);
-
-  final String productId;
-
-  @override
-  _ProductPhotoReplaceState build() => const _ProductPhotoReplaceState();
-
-  _ProductPhotoReplaceState get _value => state;
-  set _value(_ProductPhotoReplaceState value) {
-    if (_value == value) return;
-    state = value;
-  }
-}
-
-// Riverpod does not expose a stable public family type for this provider.
-// ignore: specify_nonobvious_property_types
-final _productPhotoReplaceProvider = NotifierProvider.autoDispose
-    .family<_ProductPhotoReplaceController, _ProductPhotoReplaceState, String>(
-      _ProductPhotoReplaceController.new,
-    );
-
 class _ProductCalibrationState {
   const _ProductCalibrationState({
     this.step = _CalibrationStep.method,
@@ -108,6 +34,10 @@ class _ProductCalibrationState {
     this.placementX = 0.5,
     this.placementY = 0.56,
     this.placementScale = 1,
+    this.placementRotation = 0,
+    this.bodyPreset = 'Female',
+    this.renders = const [],
+    this.feedback = '',
   });
 
   final _CalibrationStep step;
@@ -121,6 +51,12 @@ class _ProductCalibrationState {
   final double placementX;
   final double placementY;
   final double placementScale;
+  final double placementRotation;
+  final String bodyPreset;
+  final List<CalibrationRender> renders;
+  final String feedback;
+
+  CalibrationRender? get selectedRender => renders.firstOrNull;
 
   _ProductCalibrationState copyWith({
     _CalibrationStep? step,
@@ -134,6 +70,10 @@ class _ProductCalibrationState {
     double? placementX,
     double? placementY,
     double? placementScale,
+    double? placementRotation,
+    String? bodyPreset,
+    List<CalibrationRender>? renders,
+    String? feedback,
     bool clearFailure = false,
   }) => _ProductCalibrationState(
     step: step ?? this.step,
@@ -147,6 +87,10 @@ class _ProductCalibrationState {
     placementX: placementX ?? this.placementX,
     placementY: placementY ?? this.placementY,
     placementScale: placementScale ?? this.placementScale,
+    placementRotation: placementRotation ?? this.placementRotation,
+    bodyPreset: bodyPreset ?? this.bodyPreset,
+    renders: renders ?? this.renders,
+    feedback: feedback ?? this.feedback,
   );
 }
 
@@ -177,108 +121,6 @@ final _productCalibrationStateProvider = NotifierProvider.autoDispose
       _ProductCalibrationStateController.new,
     );
 
-class _ProductPhotoReplaceScreen extends ConsumerWidget {
-  const _ProductPhotoReplaceScreen({
-    required this.product,
-    required this.photoIndex,
-    required this.onReplace,
-  });
-
-  final _Product product;
-  final int photoIndex;
-  final Future<Result<void>> Function(ProductUpload replacement) onReplace;
-
-  Future<void> _chooseReplacement(BuildContext context, WidgetRef ref) async {
-    final replacement = await _pickProductPhoto(
-      context,
-      ref,
-      title: 'Choose replacement photo',
-    );
-    if (context.mounted && replacement != null) {
-      ref.read(_productPhotoReplaceProvider(product.id).notifier)._value =
-          _ProductPhotoReplaceState(replacement: replacement);
-    }
-  }
-
-  Future<void> _save(BuildContext context, WidgetRef ref) async {
-    final provider = _productPhotoReplaceProvider(product.id);
-    final state = ref.read(provider);
-    final replacement = state.replacement;
-    if (replacement == null || state.isSaving) return;
-    ref.read(provider.notifier)._value = state.copyWith(isSaving: true);
-    final result = await onReplace(replacement);
-    if (!context.mounted) return;
-    final failure = result.failureOrNull;
-    if (failure != null) {
-      ref.read(provider.notifier)._value = state.copyWith(isSaving: false);
-      AppSnackBar.showError(context, failure.message);
-      return;
-    }
-    Navigator.pop(context);
-  }
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final state = ref.watch(_productPhotoReplaceProvider(product.id));
-    final assets = product.photoAssets;
-    final currentAsset = assets.isEmpty
-        ? ''
-        : assets[photoIndex.clamp(0, assets.length - 1)];
-    return Scaffold(
-      backgroundColor: AppColors.white,
-      body: SafeArea(
-        child: Column(
-          children: [
-            _ProductFlowHeader(
-              title: 'Replace photo',
-              subtitle:
-                  'Choose a replacement photo, then save it to this product.',
-              action: AppOutlinedButton(
-                label: 'Choose photo',
-                icon: Icons.photo_library_outlined,
-                onPressed: () => _chooseReplacement(context, ref),
-                fitToContent: true,
-                height: 34,
-                borderColor: AppColors.transparent,
-                backgroundColor: AppColors.transparent,
-                iconSize: 16,
-                textStyle: const TextStyle(
-                  fontSize: 12,
-                  fontWeight: AppTypography.bold,
-                ),
-              ),
-            ),
-            Expanded(
-              child: Container(
-                color: AppColors.black,
-                padding: const EdgeInsets.all(18),
-                alignment: Alignment.center,
-                child: SizedBox(
-                  width: 284,
-                  height: 420,
-                  child: state.replacement == null
-                      ? _AssetImage(currentAsset)
-                      : AppImage.memory(
-                          state.replacement!.bytes,
-                          fit: BoxFit.cover,
-                        ),
-                ),
-              ),
-            ),
-            _ProductFlowFooter(
-              primaryLabel: 'Save replacement',
-              onBack: () => Navigator.pop(context),
-              onPrimary: state.replacement == null || state.isSaving
-                  ? null
-                  : () => _save(context, ref),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
 class _ProductCalibrationScreen extends ConsumerStatefulWidget {
   const _ProductCalibrationScreen({
     required this.product,
@@ -299,6 +141,10 @@ class _ProductCalibrationScreenState
     extends ConsumerState<_ProductCalibrationScreen> {
   final TextEditingController _notesController = TextEditingController();
   final TextEditingController _searchController = TextEditingController();
+  final TextEditingController _renderFeedbackController =
+      TextEditingController();
+  Timer? _renderPollTimer;
+  DateTime? _renderPollStartedAt;
   var _isInitialCalibrationLoad = true;
   var _openedWithSavedCalibration = false;
 
@@ -344,6 +190,14 @@ class _ProductCalibrationScreenState
   double get _placementScale => _state.placementScale;
   set _placementScale(double value) =>
       _state = _state.copyWith(placementScale: value);
+  double get _placementRotation => _state.placementRotation;
+  set _placementRotation(double value) =>
+      _state = _state.copyWith(placementRotation: value);
+  String get _bodyPreset => _state.bodyPreset;
+  set _bodyPreset(String value) => _state = _state.copyWith(bodyPreset: value);
+  List<CalibrationRender> get _renders => _state.renders;
+  set _renders(List<CalibrationRender> value) =>
+      _state = _state.copyWith(renders: value);
 
   @override
   void initState() {
@@ -353,15 +207,22 @@ class _ProductCalibrationScreenState
 
   @override
   void dispose() {
+    _renderPollTimer?.cancel();
     _notesController.dispose();
     _searchController.dispose();
+    _renderFeedbackController.dispose();
     super.dispose();
   }
 
   Future<void> _load() async {
     _isLoading = true;
     _failure = null;
-    final result = await widget.repository.loadCalibration(widget.product.id);
+    final results = await Future.wait([
+      widget.repository.loadCalibration(widget.product.id),
+      widget.repository.getCalibrationRenders(widget.product.id),
+    ]);
+    final result = results[0] as Result<ProductCalibrationWorkspace>;
+    final renderResult = results[1] as Result<List<CalibrationRender>>;
     if (!mounted) return;
     switch (result) {
       case Ok(:final value):
@@ -373,6 +234,7 @@ class _ProductCalibrationScreenState
           _isInitialCalibrationLoad = false;
         }
         _workspace = value;
+        _renders = renderResult.valueOrNull ?? const [];
         final preferredAreas = _recommendedBodyAreas(widget.product);
         _bodyArea =
             value.calibration.bodyArea ??
@@ -389,6 +251,10 @@ class _ProductCalibrationScreenState
         _placementX = _normalizedPlacement(placement['x'], 1000, _placementX);
         _placementY = _normalizedPlacement(placement['y'], 1500, _placementY);
         _placementScale = _placementValue(placement['w'], 220) / 220;
+        _placementRotation = switch (placement['rotation']) {
+          final num value => value.toDouble(),
+          _ => 0,
+        };
         if (value.calibration.isLegacyOnly) {
           _step = _CalibrationStep.review;
         } else if (value.calibration.hasPlacement ||
@@ -396,6 +262,10 @@ class _ProductCalibrationScreenState
           _step = _CalibrationStep.review;
         } else if (value.calibration.cutoutUrl != null) {
           _step = _CalibrationStep.placeProduct;
+        }
+        if (_renders.firstOrNull?.status.isPending ?? false) {
+          _step = _CalibrationStep.fit;
+          _startRenderPolling();
         }
         _isLoading = false;
       case Err(:final failure):
@@ -518,24 +388,7 @@ class _ProductCalibrationScreenState
   }
 
   Future<void> _confirmCutout() async {
-    final cutout = _cutout;
-    if (cutout == null || _isMutating) return;
-    _isMutating = true;
-    final result = await widget.repository.uploadCutout(
-      widget.product.id,
-      cutout,
-    );
-    if (!mounted) return;
-    final failure = result.failureOrNull;
-    if (failure != null) {
-      _isMutating = false;
-      _failure = failure;
-      AppSnackBar.showError(context, failure.message);
-      return;
-    }
-    _isMutating = false;
-    await _load();
-    if (!mounted) return;
+    if (_cutout == null || _isMutating) return;
     _step = _CalibrationStep.placeProduct;
   }
 
@@ -593,113 +446,11 @@ class _ProductCalibrationScreenState
     return null;
   }
 
-  Future<void> _uploadWornPhoto() async {
-    final upload = await _pickUpload('Upload worn product photo');
-    if (upload == null || !mounted) return;
-    final calibration = _workspace?.calibration;
-    final calibrationId = calibration?.id;
-    final revision = calibration?.revision;
-    if (calibrationId == null || revision == null) {
-      AppSnackBar.showError(
-        context,
-        'Could not load the current calibration. Please try again.',
-      );
-      return;
-    }
-    _isMutating = true;
-    final result = await widget.repository.uploadWornPhoto(
-      widget.product.id,
-      upload,
-      calibrationId: calibrationId,
-      revision: revision,
-      mutationId: _newMutationId(),
-    );
-    if (!mounted) return;
-    _isMutating = false;
-    final failure = result.failureOrNull;
-    if (failure != null) {
-      AppSnackBar.showError(context, failure.message);
-      return;
-    }
-    await _load();
-    if (mounted) _step = _CalibrationStep.review;
-  }
-
-  String _newMutationId() {
-    final bytes = List<int>.generate(16, (_) => Random.secure().nextInt(256));
-    bytes[6] = (bytes[6] & 0x0f) | 0x40;
-    bytes[8] = (bytes[8] & 0x3f) | 0x80;
-    final hex = bytes
-        .map((byte) => byte.toRadixString(16).padLeft(2, '0'))
-        .join();
-    return '${hex.substring(0, 8)}-${hex.substring(8, 12)}-${hex.substring(12, 16)}-${hex.substring(16, 20)}-${hex.substring(20)}';
-  }
-
-  Future<void> _save() async {
-    if (_isMutating) return;
-    _isMutating = true;
-    final calibration = _workspace?.calibration;
-    final hasPlacement = calibration?.cutoutUrl != null || _cutout != null;
-    if (!hasPlacement && calibration?.wornPhotoUrl == null) {
-      _isMutating = false;
-      AppSnackBar.showError(
-        context,
-        'Place the product on the body outline first.',
-      );
-      return;
-    }
-    final result = await widget.repository.saveCalibration(
-      widget.product.id,
-      ProductCalibrationDraft(
-        bodyArea: _bodyArea,
-        shapes: const [],
-        userNotes: _notesController.text.trim().isEmpty
-            ? null
-            : _notesController.text.trim(),
-        cutoutPlacement: hasPlacement
-            ? {
-                'x': _placementX * 1000,
-                'y': _placementY * 1500,
-                'w': 220 * _placementScale,
-                'h': 260 * _placementScale,
-              }
-            : null,
-      ),
-    );
-    if (!mounted) return;
-    _isMutating = false;
-    final failure = result.failureOrNull;
-    if (failure != null) {
-      AppSnackBar.showError(context, failure.message);
-      return;
-    }
-    widget.onSaved();
-    Navigator.pop(context);
-  }
-
-  Future<void> _copyFrom(ProductCatalogItem source) async {
-    if (_isMutating) return;
-    _isMutating = true;
-    final result = await widget.repository.copyCalibration(
-      widget.product.id,
-      source.id,
-    );
-    if (!mounted) return;
-    _isMutating = false;
-    final failure = result.failureOrNull;
-    if (failure != null) {
-      AppSnackBar.showError(context, failure.message);
-      return;
-    }
-    await _load();
-    if (mounted) _step = _CalibrationStep.review;
-  }
-
   @override
   Widget build(BuildContext context) {
     ref.watch(_productCalibrationStateProvider(widget.product.id));
     final workspace = _workspace;
-    final Widget body = _isLoading
+    final body = _isLoading
         ? const _ProductCalibrationLoadingShimmer()
         : workspace == null
         ? _ProductLoadFailure(
@@ -744,10 +495,27 @@ class _ProductCalibrationScreenState
               placementX: _placementX,
               placementY: _placementY,
               placementScale: _placementScale,
+              placementRotation: _placementRotation,
               onPlacementChanged: _updatePlacement,
+              onRotationChanged: (value) => _placementRotation = value,
               onBodyZoomChanged: (value) => _bodyZoom = value,
               onBack: () => _step = _CalibrationStep.confirmCutout,
-              onNext: () => _step = _CalibrationStep.review,
+              onNext: _continueToFit,
+            ),
+            _CalibrationStep.fit => _CalibrationFitStep(
+              bodyPreset: _bodyPreset,
+              renders: _renders,
+              feedbackController: _renderFeedbackController,
+              isMutating: _isMutating,
+              onBodyPresetChanged: (value) => _bodyPreset = value,
+              onRender: _startRender,
+              onRegenerate: () => _startRender(regenerate: true),
+              onApprove: _approveRender,
+              onSelectRender: (render) => _renders = [
+                render,
+                ..._renders.where((item) => item.id != render.id),
+              ],
+              onBack: () => _step = _CalibrationStep.placeProduct,
             ),
             _CalibrationStep.review => _CalibrationReviewStep(
               product: widget.product,
@@ -756,6 +524,7 @@ class _ProductCalibrationScreenState
               placementX: _placementX,
               placementY: _placementY,
               placementScale: _placementScale,
+              placementRotation: _placementRotation,
               notesController: _notesController,
               onAdjust: () => _step = workspace.calibration.wornPhotoUrl != null
                   ? _CalibrationStep.wornPhoto
@@ -766,8 +535,16 @@ class _ProductCalibrationScreenState
                         ? _CalibrationStep.wornPhoto
                         : _CalibrationStep.placeProduct,
               onSave: _save,
+              onDiscard: _confirmDiscardChanges,
+              onRemoveWornPhoto: _confirmDeleteWornPhoto,
               isSaving: _isMutating,
+              canDiscard:
+                  workspace.calibration.status ==
+                      ProductCalibrationStatus.changesPending ||
+                  workspace.calibration.status ==
+                      ProductCalibrationStatus.saveReady,
               wornPhotoUrl: workspace.calibration.wornPhotoUrl,
+              fitImageUrl: _renders.firstOrNull?.imageUrl,
               isLegacy: workspace.calibration.isLegacyOnly,
             ),
             _CalibrationStep.wornPhoto => _CalibrationWornStep(
@@ -778,20 +555,36 @@ class _ProductCalibrationScreenState
             _CalibrationStep.copyFrom => _CalibrationCopyStep(
               searchController: _searchController,
               onBack: () => _step = _CalibrationStep.method,
-              products: workspace.calibratedProducts
-                  .where((product) => product.id != widget.product.id)
-                  .toList(growable: false),
+              products:
+                  (workspace.calibratedProducts
+                      .where((product) => product.id != widget.product.id)
+                      .toList()
+                    ..sort((left, right) {
+                      final leftMatches =
+                          left.category.toLowerCase() ==
+                          widget.product.category.toLowerCase();
+                      final rightMatches =
+                          right.category.toLowerCase() ==
+                          widget.product.category.toLowerCase();
+                      if (leftMatches != rightMatches) {
+                        return leftMatches ? -1 : 1;
+                      }
+                      return left.name.compareTo(right.name);
+                    })),
               onCopy: _copyFrom,
               isCopying: _isMutating,
             ),
           };
-    return Scaffold(
-      backgroundColor: AppColors.white,
-      appBar: const CustomAppBar(
-        title: 'Set real-world size',
-        showBackButton: true,
+    return PopScope(
+      canPop: !_isMutating,
+      child: Scaffold(
+        backgroundColor: AppColors.white,
+        appBar: const CustomAppBar(
+          title: 'Set real-world size',
+          showBackButton: true,
+        ),
+        body: SafeArea(top: false, child: body),
       ),
-      body: SafeArea(top: false, child: body),
     );
   }
 }

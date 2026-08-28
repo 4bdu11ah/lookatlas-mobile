@@ -11,6 +11,7 @@ import 'package:look_atlas/features/dashboard/presentation/screens/dashboard_scr
 import 'package:look_atlas/features/products/di/products_providers.dart';
 import 'package:look_atlas/features/products/domain/entities/product_catalog.dart';
 import 'package:look_atlas/features/products/domain/repositories/products_repository.dart';
+import 'package:look_atlas/features/subscription/presentation/subscription_controller.dart';
 import 'package:look_atlas/shared/widgets/custom_app_bar.dart';
 
 import '../../helpers/fake_repositories.dart';
@@ -121,8 +122,14 @@ class _FakeProductsRepository implements ProductsRepository {
       const Result.ok({'product-2'});
 
   @override
-  Future<Result<void>> createProduct(CatalogProductDraft draft) async =>
-      const Result.ok(null);
+  Future<Result<Map<String, ProductCalibrationStatus>>>
+  getCalibrationStatuses() async => const Result.ok({
+    'product-2': ProductCalibrationStatus.calibrated,
+  });
+
+  @override
+  Future<Result<String>> createProduct(CatalogProductDraft draft) async =>
+      const Result.ok('product-created');
 
   @override
   Future<Result<void>> updateProduct(
@@ -136,7 +143,7 @@ class _FakeProductsRepository implements ProductsRepository {
   @override
   Future<Result<void>> updatePhotoAngles(
     String productId,
-    Map<int, String?> angles,
+    Map<Object, String?> angles,
   ) async => const Result.ok(null);
 
   @override
@@ -177,15 +184,67 @@ class _FakeProductsRepository implements ProductsRepository {
   Future<Result<void>> uploadWornPhoto(
     String productId,
     ProductUpload photo, {
-    required String calibrationId,
-    required String revision,
+    required String? calibrationId,
+    required String? revision,
     required String mutationId,
   }) async => const Result.ok(null);
 
   @override
-  Future<Result<void>> uploadCutout(
+  Future<Result<void>> deleteWornPhoto(
     String productId,
-    ProductUpload photo,
+    CalibrationMutationFence fence,
+  ) async => const Result.ok(null);
+
+  @override
+  Future<Result<void>> uploadPlacement(
+    String productId,
+    ProductUpload cutout,
+    Map<String, dynamic> placement,
+    CalibrationMutationFence fence,
+  ) async => const Result.ok(null);
+
+  @override
+  Future<Result<CalibrationRender>> startCalibrationRender(
+    String productId, {
+    required String bodyPreset,
+    required String mutationId,
+    String? feedback,
+    String? previousRenderId,
+  }) async => const Result.ok(
+    CalibrationRender(
+      id: 'render-1',
+      status: CalibrationRenderStatus.completed,
+      imageUrl: 'render.jpg',
+    ),
+  );
+
+  @override
+  Future<Result<CalibrationRender?>> getLatestCalibrationRender(
+    String productId,
+  ) async => const Result.ok(null);
+
+  @override
+  Future<Result<List<CalibrationRender>>> getCalibrationRenders(
+    String productId,
+  ) async => const Result.ok([]);
+
+  @override
+  Future<Result<void>> approveCalibrationRender(
+    String productId,
+    String renderId,
+    CalibrationMutationFence fence,
+  ) async => const Result.ok(null);
+
+  @override
+  Future<Result<void>> promoteCalibrationCandidate(
+    String productId,
+    CalibrationMutationFence fence,
+  ) async => const Result.ok(null);
+
+  @override
+  Future<Result<void>> discardCalibrationCandidate(
+    String productId,
+    CalibrationMutationFence fence,
   ) async => const Result.ok(null);
 
   @override
@@ -198,6 +257,7 @@ class _FakeProductsRepository implements ProductsRepository {
   Future<Result<void>> copyCalibration(
     String targetProductId,
     String sourceProductId,
+    CalibrationMutationFence fence,
   ) async => const Result.ok(null);
 }
 
@@ -220,10 +280,12 @@ class _PagedProductsRepository extends _FakeProductsRepository {
 }
 
 class _LoadingProductsRepository extends _FakeProductsRepository {
-  final calibration = Completer<Result<Set<String>>>();
+  final calibration =
+      Completer<Result<Map<String, ProductCalibrationStatus>>>();
 
   @override
-  Future<Result<Set<String>>> getCalibratedProductIds() => calibration.future;
+  Future<Result<Map<String, ProductCalibrationStatus>>>
+  getCalibrationStatuses() => calibration.future;
 }
 
 void main() {
@@ -241,6 +303,7 @@ void main() {
             ),
           ),
           productsRepositoryProvider.overrideWithValue(productsRepository),
+          isPremiumProvider.overrideWithValue(true),
         ],
         child: MaterialApp(
           theme: AppTheme.light(),
@@ -262,6 +325,7 @@ void main() {
           ),
         ),
         productsRepositoryProvider.overrideWithValue(productsRepository),
+        isPremiumProvider.overrideWithValue(true),
       ],
     );
     addTearDown(container.dispose);
@@ -305,11 +369,11 @@ void main() {
     String value,
   ) async {
     await tester.scrollUntilVisible(
-      find.byKey(const ValueKey('open-product-filter-sheet')),
-      -300,
+      find.byKey(filterKey),
+      300,
       scrollable: find.byType(Scrollable).first,
     );
-    await tester.tap(find.byKey(const ValueKey('open-product-filter-sheet')));
+    await tester.ensureVisible(find.byKey(filterKey));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(filterKey));
     await tester.pump();
@@ -322,8 +386,6 @@ void main() {
       );
     }
     await tester.tap(option);
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Show products'));
     await tester.pumpAndSettle();
   }
 
@@ -339,6 +401,36 @@ void main() {
     expect(find.text(productName), findsOneWidget);
   }
 
+  Future<void> openProductDetail(WidgetTester tester) async {
+    final card = find.byKey(const ValueKey('open-product-TSH-001'));
+    await tester.scrollUntilVisible(
+      card,
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.tap(card);
+    await tester.pumpAndSettle();
+  }
+
+  Future<void> scrollProductDetailTo(
+    WidgetTester tester,
+    Finder target,
+  ) async {
+    final detailScroll = find.byWidgetPredicate(
+      (widget) => widget is ListView && widget.scrollDirection == Axis.vertical,
+    );
+    final scrollable = find.descendant(
+      of: detailScroll.last,
+      matching: find.byType(Scrollable),
+    );
+    await tester.scrollUntilVisible(
+      target,
+      260,
+      scrollable: scrollable.first,
+    );
+    await tester.pumpAndSettle();
+  }
+
   testWidgets('product page renders catalog chrome and app bar', (
     tester,
   ) async {
@@ -346,20 +438,10 @@ void main() {
 
     expect(find.byIcon(Icons.arrow_back), findsOneWidget);
     expect(find.text('Products'), findsWidgets);
-    expect(find.text('Classic Cotton T-Shirt'), findsOneWidget);
-    expect(find.text('Search by name, sku, or description'), findsOneWidget);
-    expect(
-      find.byKey(const ValueKey('open-product-filter-sheet')),
-      findsOneWidget,
-    );
-    expect(
-      find.textContaining(
-        '3 products - 1 calibrated',
-        findRichText: true,
-      ),
-      findsOneWidget,
-    );
-    expect(find.text('Add Product'), findsOneWidget);
+    expect(find.text('Search products or SKUs'), findsOneWidget);
+    expect(find.text('3 PRODUCTS, 1 CALIBRATED'), findsOneWidget);
+    expect(find.text('Add a product'), findsOneWidget);
+    expect(find.text('The pieces in your studio.'), findsOneWidget);
     await ensureProductVisible(tester, 'Canvas Crossbody Bag');
   });
 
@@ -392,34 +474,22 @@ void main() {
     await tester.pump(const Duration(milliseconds: 400));
     await tester.pumpAndSettle();
 
-    expect(find.text('Canvas Crossbody Bag'), findsOneWidget);
+    await ensureProductVisible(tester, 'Canvas Crossbody Bag');
     expect(find.text('Classic Cotton T-Shirt'), findsNothing);
-    expect(
-      find.textContaining(
-        '1 products - 1 calibrated',
-        findRichText: true,
-      ),
-      findsOneWidget,
-    );
+    expect(find.text('1 PRODUCTS, 1 CALIBRATED'), findsOneWidget);
 
     await tester.enterText(searchField, 'JWL-018');
     await tester.pump(const Duration(milliseconds: 400));
     await tester.pumpAndSettle();
 
-    expect(find.text('Pendant Necklace'), findsOneWidget);
+    await ensureProductVisible(tester, 'Pendant Necklace');
     expect(find.text('Canvas Crossbody Bag'), findsNothing);
-    expect(
-      find.textContaining(
-        '1 products - 0 calibrated',
-        findRichText: true,
-      ),
-      findsOneWidget,
-    );
+    expect(find.text('1 PRODUCTS, 0 CALIBRATED'), findsOneWidget);
 
     await tester.tap(find.byKey(const ValueKey('clear-product-search')));
     await tester.pumpAndSettle();
 
-    expect(find.text('Classic Cotton T-Shirt'), findsOneWidget);
+    await ensureProductVisible(tester, 'Classic Cotton T-Shirt');
     await ensureProductVisible(tester, 'Canvas Crossbody Bag');
   });
 
@@ -434,15 +504,9 @@ void main() {
       'Tops',
     );
 
-    expect(find.text('Classic Cotton T-Shirt'), findsOneWidget);
+    await ensureProductVisible(tester, 'Classic Cotton T-Shirt');
     expect(find.text('Canvas Crossbody Bag'), findsNothing);
-    expect(
-      find.textContaining(
-        '1 products - 0 calibrated',
-        findRichText: true,
-      ),
-      findsOneWidget,
-    );
+    expect(find.text('1 PRODUCTS, 0 CALIBRATED'), findsOneWidget);
 
     await selectProductFilter(
       tester,
@@ -453,9 +517,7 @@ void main() {
     expect(find.text('No products found'), findsOneWidget);
     expect(find.text('Try a different filter combination.'), findsOneWidget);
 
-    await tester.tap(find.byKey(const ValueKey('open-product-filter-sheet')));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Clear'));
+    await tester.tap(find.text('Clear filters'));
     await tester.pumpAndSettle();
 
     await selectProductFilter(
@@ -469,44 +531,16 @@ void main() {
     await ensureProductVisible(tester, 'Classic Cotton T-Shirt');
   });
 
-  testWidgets('product card changes photo by swipe', (tester) async {
+  testWidgets('product card opens detail with selectable references', (
+    tester,
+  ) async {
     await pumpProducts(tester);
-
-    expect(
-      find.byKey(const ValueKey('product-TSH-001-photo-dot-0-active')),
-      findsOneWidget,
-    );
-    expect(
-      find.byKey(const ValueKey('product-TSH-001-photo-dot-1-active')),
-      findsNothing,
-    );
-
-    await tester.ensureVisible(
-      find.byKey(const ValueKey('product-TSH-001-photo-pager')),
-    );
-    await tester.pumpAndSettle();
-
-    await tester.drag(
-      find.byKey(const ValueKey('product-TSH-001-photo-pager')),
-      const Offset(-260, 0),
-    );
-    await tester.pumpAndSettle();
-
-    expect(
-      find.byKey(const ValueKey('product-TSH-001-photo-dot-1-active')),
-      findsOneWidget,
-    );
-
-    await tester.drag(
-      find.byKey(const ValueKey('product-TSH-001-photo-pager')),
-      const Offset(260, 0),
-    );
-    await tester.pumpAndSettle();
-
-    expect(
-      find.byKey(const ValueKey('product-TSH-001-photo-dot-0-active')),
-      findsOneWidget,
-    );
+    await openProductDetail(tester);
+    expect(find.text('PRODUCT RECORD'), findsOneWidget);
+    await scrollProductDetailTo(tester, find.text('REFERENCE VIEWS'));
+    expect(find.text('REFERENCE VIEWS'), findsOneWidget);
+    await scrollProductDetailTo(tester, find.text('Start a shoot'));
+    expect(find.text('Start a shoot'), findsOneWidget);
   });
 
   testWidgets('product page loads the next API page', (tester) async {
@@ -547,10 +581,9 @@ void main() {
   ) async {
     await pumpProducts(tester);
 
-    await tester.tap(find.text('Add Product'));
+    await tester.tap(find.text('Add a product'));
     await tester.pumpAndSettle();
-    expect(find.byType(Dialog), findsOneWidget);
-    expect(find.text('Add New Product'), findsOneWidget);
+    expect(find.text('Add a product'), findsWidgets);
     expect(
       find.textContaining('Product Name', findRichText: true),
       findsOneWidget,
@@ -563,31 +596,32 @@ void main() {
     await tester.tap(find.text('Cancel'));
     await tester.pumpAndSettle();
 
-    await tester.ensureVisible(
-      find.byKey(const ValueKey('edit-product-TSH-001')),
+    await openProductDetail(tester);
+    await scrollProductDetailTo(tester, find.text('Edit product'));
+    await tester.tap(find.text('Edit product'));
+    await tester.pumpAndSettle();
+    expect(find.text('Edit product'), findsOneWidget);
+    await tester.scrollUntilVisible(
+      find.text('Current Photos'),
+      250,
+      scrollable: find
+          .descendant(
+            of: find.byType(SingleChildScrollView).last,
+            matching: find.byType(Scrollable),
+          )
+          .first,
     );
-    await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const ValueKey('edit-product-TSH-001')));
-    await tester.pumpAndSettle();
-    expect(find.text('Edit Product'), findsOneWidget);
     expect(find.text('Current Photos'), findsOneWidget);
 
     await tester.tap(find.text('Cancel'));
     await tester.pumpAndSettle();
 
-    await tester.ensureVisible(
-      find.byKey(const ValueKey('delete-product-TSH-001')),
-    );
+    await openProductDetail(tester);
+    await scrollProductDetailTo(tester, find.text('Remove'));
+    await tester.tap(find.text('Remove'));
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const ValueKey('delete-product-TSH-001')));
-    await tester.pumpAndSettle();
-    expect(find.text('Delete Product'), findsWidgets);
-    expect(find.text('This action cannot be undone'), findsOneWidget);
-
-    await tester.tap(find.text('Cancel'));
-    await tester.pumpAndSettle();
-
-    await tester.tap(find.byKey(const ValueKey('delete-product-TSH-001')));
+    expect(find.text('Confirm remove'), findsOneWidget);
+    await tester.tap(find.text('Confirm remove'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Delete Product').last);
     await tester.pumpAndSettle();
@@ -597,10 +631,9 @@ void main() {
   testWidgets('product edit form submits its Riverpod draft', (tester) async {
     await pumpProducts(tester);
 
-    await tester.ensureVisible(
-      find.byKey(const ValueKey('edit-product-TSH-001')),
-    );
-    await tester.tap(find.byKey(const ValueKey('edit-product-TSH-001')));
+    await openProductDetail(tester);
+    await scrollProductDetailTo(tester, find.text('Edit product'));
+    await tester.tap(find.text('Edit product'));
     await tester.pumpAndSettle();
 
     await tester.enterText(
@@ -611,29 +644,18 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(productsRepository.updateCalls, 1);
-    expect(find.byType(Dialog), findsNothing);
+    expect(find.text('Edit product'), findsNothing);
   });
 
-  testWidgets('product page opens photo and calibration nested screens', (
+  testWidgets('product page opens calibration nested flow', (
     tester,
   ) async {
     await pumpProducts(tester);
 
-    await tester.ensureVisible(
-      find.byKey(const ValueKey('replace-product-photo-TSH-001')),
-    );
-    await tester.pumpAndSettle();
-    await tester.tap(
-      find.byKey(const ValueKey('replace-product-photo-TSH-001')),
-    );
-    await tester.pumpAndSettle();
-    expect(find.text('Replace photo'), findsOneWidget);
-    expect(find.text('Save replacement'), findsOneWidget);
-
-    Navigator.of(tester.element(find.text('Replace photo'))).pop();
-    await tester.pumpAndSettle();
-    await tester.ensureVisible(
+    await tester.scrollUntilVisible(
       find.byKey(const ValueKey('calibrate-product-TSH-001')),
+      300,
+      scrollable: find.byType(Scrollable).first,
     );
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('calibrate-product-TSH-001')));

@@ -18,31 +18,32 @@ Future<void> _showProductFormDialog(
         : AppColors.neutral800,
     builder: (context) => _ProductFormDialog(
       product: product,
-      onDeletePhoto: (photoIndex) => _showProductDeletePhotoDialog(
+      onDeletePhoto: (photo) => _showProductDeletePhotoDialog(
         context,
         ref,
         product!,
-        photoIndex,
+        photo,
         onToast,
       ),
-      onReplacePhoto: (photo) async {
+      onReplacePhoto: (photo, onUploadStart) async {
         final replacement = await _pickProductPhoto(
           context,
           ref,
           title: 'Replace product photo',
         );
-        if (replacement == null || !context.mounted) return false;
+        if (replacement == null || !context.mounted) return null;
+        onUploadStart();
         final result = await ref
             .read(_productsControllerProvider.notifier)
             .replacePhoto(product!, photo, replacement);
-        if (!context.mounted) return false;
+        if (!context.mounted) return null;
         final failure = result.failureOrNull;
         if (failure != null) {
           AppSnackBar.showError(context, failure.message);
-          return false;
+          return null;
         }
         onToast('Photo replaced');
-        return true;
+        return replacement;
       },
     ),
     footer: Consumer(
@@ -121,7 +122,7 @@ Future<bool> _showProductDeletePhotoDialog(
   BuildContext context,
   WidgetRef ref,
   _Product product,
-  int photoIndex,
+  ProductPhoto photo,
   ValueChanged<String> onToast,
 ) async {
   final deleted = await showAppDialog<bool>(
@@ -139,23 +140,31 @@ Future<bool> _showProductDeletePhotoDialog(
       ),
     ),
 
-    footer: AppDialogActionFooter(
-      primaryLabel: 'Delete Photo',
-      primaryIcon: Icons.photo_camera_outlined,
-      danger: true,
-      onCancel: () => Navigator.pop(context, false),
-      onPrimary: () async {
-        final result = await ref
-            .read(_productsControllerProvider.notifier)
-            .deletePhoto(product, photoIndex);
-        if (!context.mounted) return;
-        final failure = result.failureOrNull;
-        if (failure != null) {
-          AppSnackBar.showError(context, failure.message);
-          return;
-        }
-        Navigator.pop(context, true);
-        onToast('Photo deleted');
+    footer: Consumer(
+      builder: (context, ref, _) {
+        final isMutating = ref.watch(
+          _productsControllerProvider.select((state) => state.isMutating),
+        );
+        return AppDialogActionFooter(
+          primaryLabel: 'Delete Photo',
+          primaryIcon: Icons.photo_camera_outlined,
+          danger: true,
+          isLoading: isMutating,
+          onCancel: () => Navigator.pop(context, false),
+          onPrimary: () async {
+            final result = await ref
+                .read(_productsControllerProvider.notifier)
+                .deletePhoto(product, photo.id);
+            if (!context.mounted) return;
+            final failure = result.failureOrNull;
+            if (failure != null) {
+              AppSnackBar.showError(context, failure.message);
+              return;
+            }
+            Navigator.pop(context, true);
+            onToast('Photo deleted');
+          },
+        );
       },
     ),
   );

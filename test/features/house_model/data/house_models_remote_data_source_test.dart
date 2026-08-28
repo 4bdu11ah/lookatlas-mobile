@@ -20,7 +20,7 @@ void main() {
     dataSource = HouseModelsRemoteDataSourceImpl(api: api);
   });
 
-  test('get_user_models_decodes_nested_models_and_relative_photos', () async {
+  test('get_user_models_decodes_photo_records_with_urls_and_ids', () async {
     when(
       () => api.get<List<HouseModelProfile>>(
         ApiEndpoints.userModels,
@@ -40,9 +40,9 @@ void main() {
                 'gender': 'female',
                 'height': '174 cm',
                 'heightEstimated': true,
-                'photos': [
-                  {'url': '/uploads/front.jpg'},
-                  'https://cdn.example/back.jpg',
+                'photoRecords': [
+                  {'id': 'photo-front', 'url': '/uploads/front.jpg'},
+                  {'id': 'photo-back', 'url': 'https://cdn.example/back.jpg'},
                 ],
               },
             ],
@@ -62,6 +62,7 @@ void main() {
       'https://catalogmock-api-production.up.railway.app/uploads/front.jpg',
     );
     expect(model.photos.last, 'https://cdn.example/back.jpg');
+    expect(model.photoIds, ['photo-front', 'photo-back']);
   });
 
   test('get_library_models_marks_models_as_lookatlas_source', () async {
@@ -197,19 +198,19 @@ void main() {
     ).called(1);
   });
 
-  test('delete_photo_uses_photo_index_endpoint', () async {
+  test('delete_photo_uses_photo_id_endpoint', () async {
     when(
       () => api.delete<void>(
-        ApiEndpoints.userModelPhoto('model-1', 2),
+        ApiEndpoints.userModelPhoto('model-1', 'photo-2'),
         decoder: any(named: 'decoder'),
       ),
     ).thenAnswer((_) async => const Result.ok(null));
 
-    await dataSource.deletePhoto('model-1', 2);
+    await dataSource.deletePhoto('model-1', 'photo-2');
 
     verify(
       () => api.delete<void>(
-        ApiEndpoints.userModelPhoto('model-1', 2),
+        ApiEndpoints.userModelPhoto('model-1', 'photo-2'),
         decoder: any(named: 'decoder'),
       ),
     ).called(1);

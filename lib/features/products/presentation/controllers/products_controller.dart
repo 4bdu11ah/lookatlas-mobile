@@ -287,8 +287,14 @@ class _ProductsController extends Notifier<_ProductsScreenState> {
   Future<Result<void>> deleteProduct(_Product product) =>
       _mutate(() => _repository.deleteProduct(product.id));
 
-  Future<Result<void>> deletePhoto(_Product product, int photoIndex) =>
-      _mutate(() => _repository.deletePhoto(product.id, photoIndex));
+  Future<Result<void>> deletePhoto(_Product product, String photoId) async {
+    final result = await _mutate(
+      () => _repository.deletePhoto(product.id, photoId),
+      reloadAfter: false,
+    );
+    if (result.isOk) unawaited(Future.microtask(reload));
+    return result;
+  }
 
   Future<Result<void>> replacePhoto(
     _Product product,

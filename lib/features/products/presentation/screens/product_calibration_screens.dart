@@ -596,10 +596,23 @@ class _ProductCalibrationScreenState
   Future<void> _uploadWornPhoto() async {
     final upload = await _pickUpload('Upload worn product photo');
     if (upload == null || !mounted) return;
+    final calibration = _workspace?.calibration;
+    final calibrationId = calibration?.id;
+    final revision = calibration?.revision;
+    if (calibrationId == null || revision == null) {
+      AppSnackBar.showError(
+        context,
+        'Could not load the current calibration. Please try again.',
+      );
+      return;
+    }
     _isMutating = true;
     final result = await widget.repository.uploadWornPhoto(
       widget.product.id,
       upload,
+      calibrationId: calibrationId,
+      revision: revision,
+      mutationId: _newMutationId(),
     );
     if (!mounted) return;
     _isMutating = false;
@@ -610,6 +623,16 @@ class _ProductCalibrationScreenState
     }
     await _load();
     if (mounted) _step = _CalibrationStep.review;
+  }
+
+  String _newMutationId() {
+    final bytes = List<int>.generate(16, (_) => Random.secure().nextInt(256));
+    bytes[6] = (bytes[6] & 0x0f) | 0x40;
+    bytes[8] = (bytes[8] & 0x3f) | 0x80;
+    final hex = bytes
+        .map((byte) => byte.toRadixString(16).padLeft(2, '0'))
+        .join();
+    return '${hex.substring(0, 8)}-${hex.substring(8, 12)}-${hex.substring(12, 16)}-${hex.substring(16, 20)}-${hex.substring(20)}';
   }
 
   Future<void> _save() async {

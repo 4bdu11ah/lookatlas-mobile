@@ -198,6 +198,8 @@ class _PhotoStrip extends StatelessWidget {
   const _PhotoStrip({
     required this.title,
     required this.existingPhotos,
+    required this.replacementPhotos,
+    required this.replacingPhotoId,
     required this.newPhotos,
     required this.angles,
     required this.newAngles,
@@ -214,11 +216,13 @@ class _PhotoStrip extends StatelessWidget {
   final String? countLabel;
   final String? clearLabel;
   final List<(int, ProductPhoto)> existingPhotos;
+  final Map<String, ProductUpload> replacementPhotos;
+  final String? replacingPhotoId;
   final List<ProductUpload> newPhotos;
   final Map<int, String?> angles;
   final Map<int, String?> newAngles;
-  final ValueChanged<int> onDeletePhoto;
-  final Future<bool> Function(ProductPhoto photo) onReplacePhoto;
+  final void Function(int index, ProductPhoto photo) onDeletePhoto;
+  final Future<void> Function(ProductPhoto photo) onReplacePhoto;
   final void Function(int index, String? angle) onAngleChanged;
   final void Function(int index, String? angle) onNewAngleChanged;
   final VoidCallback? onClear;
@@ -290,10 +294,16 @@ class _PhotoStrip extends StatelessWidget {
                 return _ProductThumb(
                   displayIndex: index,
                   url: existing.$2.url,
+                  upload: replacementPhotos[existing.$2.id],
+                  isLoading: replacingPhotoId == existing.$2.id,
                   angle: angles[existing.$1],
                   onAngleChanged: (angle) => onAngleChanged(existing.$1, angle),
-                  onReplace: () => onReplacePhoto(existing.$2),
-                  onDelete: () => onDeletePhoto(existing.$1),
+                  onReplace: replacingPhotoId == existing.$2.id
+                      ? null
+                      : () => onReplacePhoto(existing.$2),
+                  onDelete: replacingPhotoId == existing.$2.id
+                      ? null
+                      : () => onDeletePhoto(existing.$1, existing.$2),
                 );
               },
             ),
@@ -312,6 +322,7 @@ class _ProductThumb extends StatelessWidget {
     this.url,
     this.upload,
     this.isNew = false,
+    this.isLoading = false,
     this.onReplace,
     this.onDelete,
   });
@@ -320,6 +331,7 @@ class _ProductThumb extends StatelessWidget {
   final String? url;
   final ProductUpload? upload;
   final bool isNew;
+  final bool isLoading;
   final String? angle;
   final ValueChanged<String?> onAngleChanged;
   final VoidCallback? onReplace;
@@ -343,6 +355,13 @@ class _ProductThumb extends StatelessWidget {
                       ? _AssetImage(url ?? '')
                       : AppImage.memory(upload!.bytes, fit: BoxFit.cover),
                 ),
+                if (isLoading)
+                  const ColoredBox(
+                    color: AppColors.inkAlpha80,
+                    child: Center(
+                      child: BarSpinner(color: AppColors.white),
+                    ),
+                  ),
                 if (onReplace != null)
                   Positioned(
                     top: 5,

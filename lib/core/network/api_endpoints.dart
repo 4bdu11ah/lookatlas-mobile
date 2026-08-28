@@ -89,8 +89,8 @@ abstract final class ApiEndpoints {
   static String productPhotoAngles(String productId) =>
       '/products/$productId/photo-angles';
 
-  static String productPhoto(String productId, int photoIndex) =>
-      '/products/$productId/photos/$photoIndex';
+  static String productPhoto(String productId, String photoId) =>
+      '/products/$productId/photos/$photoId';
 
   static String replaceProductPhoto(String productId, String photoId) =>
       '/products/$productId/photos/$photoId/replace';
@@ -109,8 +109,8 @@ abstract final class ApiEndpoints {
 
   static String userModel(String modelId) => '/models/$modelId';
 
-  static String userModelPhoto(String modelId, int photoIndex) =>
-      '/models/$modelId/photos/$photoIndex';
+  static String userModelPhoto(String modelId, String photoId) =>
+      '/models/$modelId/photos/$photoId';
 
   static String modelGeneration(String generationId) =>
       '/model-generations/$generationId';

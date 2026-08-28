@@ -137,6 +137,8 @@ class CalibrationOutline {
 @immutable
 class ProductCalibration {
   const ProductCalibration({
+    this.id,
+    this.revision,
     this.bodyArea,
     this.shapes = const [],
     this.userNotes,
@@ -146,6 +148,8 @@ class ProductCalibration {
     this.hasLegacyShapes = false,
   });
 
+  final String? id;
+  final String? revision;
   final String? bodyArea;
   final List<Map<String, dynamic>> shapes;
   final String? userNotes;

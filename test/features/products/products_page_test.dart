@@ -146,7 +146,7 @@ class _FakeProductsRepository implements ProductsRepository {
   }
 
   @override
-  Future<Result<void>> deletePhoto(String productId, int photoIndex) async =>
+  Future<Result<void>> deletePhoto(String productId, String photoId) async =>
       const Result.ok(null);
 
   @override
@@ -176,8 +176,11 @@ class _FakeProductsRepository implements ProductsRepository {
   @override
   Future<Result<void>> uploadWornPhoto(
     String productId,
-    ProductUpload photo,
-  ) async => const Result.ok(null);
+    ProductUpload photo, {
+    required String calibrationId,
+    required String revision,
+    required String mutationId,
+  }) async => const Result.ok(null);
 
   @override
   Future<Result<void>> uploadCutout(

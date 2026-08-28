@@ -131,14 +131,21 @@ class _HouseModelController extends Notifier<_HouseModelScreenState> {
     state = state.copyWith(isMutating: true, clearFailure: true);
     return _finishMutation(
       await _repository.updateModel(model.id, input.toDraft()),
+      reloadAfter: true,
     );
   }
 
   Future<Result<void>> deleteModel(_HouseModel model) =>
       _mutate(() => _repository.deleteModel(model.id));
 
-  Future<Result<void>> deletePhoto(_HouseModel model, int photoIndex) =>
-      _mutate(() => _repository.deletePhoto(model.id, photoIndex));
+  Future<Result<void>> deletePhoto(_HouseModel model, String photoId) async {
+    final result = await _mutate(
+      () => _repository.deletePhoto(model.id, photoId),
+      reloadAfter: false,
+    );
+    if (result.isOk) unawaited(Future.microtask(reload));
+    return result;
+  }
 
   Future<Result<void>> addAiModel({
     required _ModelGender gender,
@@ -206,19 +213,27 @@ class _HouseModelController extends Notifier<_HouseModelScreenState> {
   }
 
   Future<Result<void>> _mutate(
-    Future<Result<void>> Function() operation,
-  ) async {
+    Future<Result<void>> Function() operation, {
+    bool reloadAfter = true,
+  }) async {
     if (state.isMutating) {
       return const Err(ValidationFailure('Another model action is running.'));
     }
     state = state.copyWith(isMutating: true, clearFailure: true);
-    return _finishMutation(await operation());
+    return _finishMutation(await operation(), reloadAfter: reloadAfter);
   }
 
-  Future<Result<void>> _finishMutation(Result<void> result) async {
+  Future<Result<void>> _finishMutation(
+    Result<void> result, {
+    required bool reloadAfter,
+  }) async {
     if (result case Err(:final failure)) {
       state = state.copyWith(isMutating: false, failure: failure);
       return Err(failure);
+    }
+    if (!reloadAfter) {
+      state = state.copyWith(isMutating: false, clearFailure: true);
+      return const Ok(null);
     }
     final refreshed = await _repository.loadCatalog();
     if (refreshed case Err(:final failure)) {

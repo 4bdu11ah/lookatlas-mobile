@@ -250,7 +250,7 @@ void main() {
     ).thenAnswer((_) async => const Result.ok(null));
     when(
       () => api.delete<void>(
-        ApiEndpoints.productPhoto('product-1', 2),
+        ApiEndpoints.productPhoto('product-1', 'photo-2'),
         decoder: any(named: 'decoder'),
       ),
     ).thenAnswer((_) async => const Result.ok(null));
@@ -271,7 +271,7 @@ void main() {
       1: null,
     });
     await dataSource.deleteProduct('product-1');
-    await dataSource.deletePhoto('product-1', 2);
+    await dataSource.deletePhoto('product-1', 'photo-2');
     await dataSource.replacePhoto('product-1', 'photo-1', upload);
 
     verify(
@@ -291,7 +291,7 @@ void main() {
     ).called(1);
     verify(
       () => api.delete<void>(
-        ApiEndpoints.productPhoto('product-1', 2),
+        ApiEndpoints.productPhoto('product-1', 'photo-2'),
         decoder: any(named: 'decoder'),
       ),
     ).called(1);
@@ -337,6 +337,8 @@ void main() {
       return Result.ok(
         decoder({
           'calibration': {
+            'id': 'calibration-1',
+            'revision': 3,
             'bodyArea': 'full_body_front',
             'userNotes': 'Medium size',
             'productCutoutUrl': '/cutouts/product-1.png',
@@ -371,6 +373,8 @@ void main() {
 
     expect(outlines.single.id, 'full_body_front');
     expect(calibration.userNotes, 'Medium size');
+    expect(calibration.id, 'calibration-1');
+    expect(calibration.revision, '3');
     expect(calibration.cutoutPlacement['w'], 220);
     expect(calibration.cutoutUrl, contains('/cutouts/product-1.png'));
     expect(calibration.hasPlacement, isTrue);
@@ -386,6 +390,14 @@ void main() {
       ),
     ).thenAnswer((_) async => const Result.ok(null));
     when(
+      () => api.post<void>(
+        ApiEndpoints.productCalibrationWornPhoto('product-1'),
+        data: any(named: 'data'),
+        queryParameters: any(named: 'queryParameters'),
+        decoder: any(named: 'decoder'),
+      ),
+    ).thenAnswer((_) async => const Result.ok(null));
+    when(
       () => api.put<void>(
         ApiEndpoints.productCalibration('product-1'),
         data: any(named: 'data'),
@@ -397,7 +409,13 @@ void main() {
       fileName: 'reference.png',
     );
 
-    await dataSource.uploadWornPhoto('product-1', upload);
+    await dataSource.uploadWornPhoto(
+      'product-1',
+      upload,
+      calibrationId: 'calibration-1',
+      revision: '3',
+      mutationId: 'mutation-1',
+    );
     await dataSource.uploadCutout('product-1', upload);
     await dataSource.saveCalibration(
       'product-1',
@@ -410,15 +428,16 @@ void main() {
     );
     await dataSource.copyCalibration('product-1', 'product-2');
 
-    final wornData =
-        verify(
-              () => api.post<void>(
-                ApiEndpoints.productCalibrationWornPhoto('product-1'),
-                data: captureAny(named: 'data'),
-                decoder: any(named: 'decoder'),
-              ),
-            ).captured.single
-            as FormData;
+    final worn = verify(
+      () => api.post<void>(
+        ApiEndpoints.productCalibrationWornPhoto('product-1'),
+        data: captureAny(named: 'data'),
+        queryParameters: captureAny(named: 'queryParameters'),
+        decoder: any(named: 'decoder'),
+      ),
+    ).captured;
+    final wornData = worn[0] as FormData;
+    final wornQuery = worn[1] as Map<String, dynamic>;
     final cutoutData =
         verify(
               () => api.post<void>(
@@ -429,6 +448,11 @@ void main() {
             ).captured.single
             as FormData;
     expect(wornData.files.single.key, 'file');
+    expect(wornQuery, {
+      'expectedCalibrationId': 'calibration-1',
+      'expectedRevision': '3',
+      'mutationId': 'mutation-1',
+    });
     expect(cutoutData.files.single.key, 'file');
     verify(
       () => api.put<void>(

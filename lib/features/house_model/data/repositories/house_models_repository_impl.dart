@@ -61,8 +61,8 @@ class HouseModelsRepositoryImpl implements HouseModelsRepository {
       _remote.deleteModel(modelId);
 
   @override
-  Future<Result<void>> deletePhoto(String modelId, int photoIndex) =>
-      _remote.deletePhoto(modelId, photoIndex);
+  Future<Result<void>> deletePhoto(String modelId, String photoId) =>
+      _remote.deletePhoto(modelId, photoId);
 
   Failure? _validateNewModel(HouseModelDraft draft) {
     if (draft.name.trim().isEmpty) {

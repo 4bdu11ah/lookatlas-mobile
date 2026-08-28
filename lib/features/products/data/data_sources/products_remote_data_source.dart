@@ -20,7 +20,7 @@ abstract interface class ProductsRemoteDataSource {
     Map<int, String?> angles,
   );
   Future<Result<void>> deleteProduct(String productId);
-  Future<Result<void>> deletePhoto(String productId, int photoIndex);
+  Future<Result<void>> deletePhoto(String productId, String photoId);
   Future<Result<void>> replacePhoto(
     String productId,
     String photoId,
@@ -31,8 +31,11 @@ abstract interface class ProductsRemoteDataSource {
   Future<Result<List<ProductCatalogItem>>> getCalibratedProducts();
   Future<Result<void>> uploadWornPhoto(
     String productId,
-    ProductUpload photo,
-  );
+    ProductUpload photo, {
+    required String calibrationId,
+    required String revision,
+    required String mutationId,
+  });
   Future<Result<void>> uploadCutout(
     String productId,
     ProductUpload photo,
@@ -110,9 +113,9 @@ class ProductsRemoteDataSourceImpl implements ProductsRemoteDataSource {
   );
 
   @override
-  Future<Result<void>> deletePhoto(String productId, int photoIndex) =>
+  Future<Result<void>> deletePhoto(String productId, String photoId) =>
       _api.delete<void>(
-        ApiEndpoints.productPhoto(productId, photoIndex),
+        ApiEndpoints.productPhoto(productId, photoId),
         decoder: (_) {},
       );
 
@@ -187,10 +190,18 @@ class ProductsRemoteDataSourceImpl implements ProductsRemoteDataSource {
   @override
   Future<Result<void>> uploadWornPhoto(
     String productId,
-    ProductUpload photo,
-  ) => _api.post<void>(
+    ProductUpload photo, {
+    required String calibrationId,
+    required String revision,
+    required String mutationId,
+  }) => _api.post<void>(
     ApiEndpoints.productCalibrationWornPhoto(productId),
     data: _singleUpload('file', photo),
+    queryParameters: {
+      'expectedCalibrationId': calibrationId,
+      'expectedRevision': revision,
+      'mutationId': mutationId,
+    },
     decoder: (_) {},
   );
 
@@ -293,6 +304,10 @@ class ProductsRemoteDataSourceImpl implements ProductsRemoteDataSource {
     final nested = body['calibration'];
     final json = nested is Map<String, dynamic> ? nested : body;
     return ProductCalibration(
+      id: _nullableValueString(
+        json['id'] ?? json['calibrationId'] ?? json['calibration_id'],
+      ),
+      revision: _nullableValueString(json['revision']),
       bodyArea: _nullableString(json['bodyArea'] ?? json['body_area']),
       shapes: [
         for (final shape in _shapeItems(json['shapes']))
@@ -429,6 +444,11 @@ class ProductsRemoteDataSourceImpl implements ProductsRemoteDataSource {
 
   static String? _nullableString(Object? value) =>
       value is String && value.trim().isNotEmpty ? value.trim() : null;
+
+  static String? _nullableValueString(Object? value) {
+    final text = value?.toString().trim() ?? '';
+    return text.isEmpty ? null : text;
+  }
 
   static int _integer(Object? value, {int fallback = 0}) =>
       value is num ? value.round() : int.tryParse('$value') ?? fallback;

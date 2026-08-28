@@ -18,7 +18,7 @@ abstract interface class HouseModelsRemoteDataSource {
 
   Future<Result<void>> deleteModel(String modelId);
 
-  Future<Result<void>> deletePhoto(String modelId, int photoIndex);
+  Future<Result<void>> deletePhoto(String modelId, String photoId);
 
   Future<Result<HouseModelGeneration>> generateModel(AiHouseModelDraft draft);
 
@@ -83,9 +83,9 @@ class HouseModelsRemoteDataSourceImpl implements HouseModelsRemoteDataSource {
   );
 
   @override
-  Future<Result<void>> deletePhoto(String modelId, int photoIndex) =>
+  Future<Result<void>> deletePhoto(String modelId, String photoId) =>
       _api.delete<void>(
-        ApiEndpoints.userModelPhoto(modelId, photoIndex),
+        ApiEndpoints.userModelPhoto(modelId, photoId),
         decoder: (_) {},
       );
 
@@ -168,10 +168,16 @@ class HouseModelsRemoteDataSourceImpl implements HouseModelsRemoteDataSource {
     Map<String, dynamic> json,
     HouseModelSource source,
   ) {
-    final photos = [
-      for (final photo in json['photos'] as List? ?? const [])
-        ?_photoUrl(photo),
-    ];
+    final photoEntries =
+        json['photoRecords'] as List? ?? json['photos'] as List? ?? const [];
+    final photos = <String>[];
+    final photoIds = <String?>[];
+    for (final photo in photoEntries) {
+      final url = _photoUrl(photo);
+      if (url == null) continue;
+      photos.add(url);
+      photoIds.add(_photoId(photo));
+    }
     return HouseModelProfile(
       id: _string(json['id'] ?? json['_id']),
       name: _string(json['name'], fallback: 'Model'),
@@ -186,6 +192,7 @@ class HouseModelsRemoteDataSourceImpl implements HouseModelsRemoteDataSource {
           json['height_estimated'] as bool? ??
           false,
       photos: photos,
+      photoIds: photoIds,
       coverThumbnail: _absoluteUrl(
         _nullableString(
           json['coverThumbnail'] ??
@@ -235,6 +242,13 @@ class HouseModelsRemoteDataSourceImpl implements HouseModelsRemoteDataSource {
             photo['thumbnail'] ??
             photo['path'],
       ),
+    );
+  }
+
+  static String? _photoId(Object? photo) {
+    if (photo is! Map<String, dynamic>) return null;
+    return _nullableString(
+      photo['id'] ?? photo['photoId'] ?? photo['photo_id'],
     );
   }
 

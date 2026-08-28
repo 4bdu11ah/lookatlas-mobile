@@ -7,6 +7,7 @@ class _ModelFormData {
     this.gender = _ModelGender.female,
     this.heightEstimated = false,
     this.existingPhotos = const [],
+    this.existingPhotoIds = const [],
     this.newPhotos = const [],
     this.submitted = false,
     this.submitting = false,
@@ -17,6 +18,7 @@ class _ModelFormData {
   final _ModelGender gender;
   final bool heightEstimated;
   final List<String> existingPhotos;
+  final List<String?> existingPhotoIds;
   final List<HouseModelUpload> newPhotos;
   final bool submitted;
   final bool submitting;
@@ -44,6 +46,7 @@ class _ModelFormData {
     _ModelGender? gender,
     bool? heightEstimated,
     List<String>? existingPhotos,
+    List<String?>? existingPhotoIds,
     List<HouseModelUpload>? newPhotos,
     bool? submitted,
     bool? submitting,
@@ -54,6 +57,7 @@ class _ModelFormData {
       gender: gender ?? this.gender,
       heightEstimated: heightEstimated ?? this.heightEstimated,
       existingPhotos: existingPhotos ?? this.existingPhotos,
+      existingPhotoIds: existingPhotoIds ?? this.existingPhotoIds,
       newPhotos: newPhotos ?? this.newPhotos,
       submitted: submitted ?? this.submitted,
       submitting: submitting ?? this.submitting,
@@ -77,6 +81,9 @@ class _ModelFormNotifier extends Notifier<_ModelFormData> {
       existingPhotos: model.photoUrls.isNotEmpty
           ? [...model.photoUrls]
           : List.filled(model.photoCount, model.asset),
+      existingPhotoIds: model.photoIds.isNotEmpty
+          ? [...model.photoIds]
+          : List.filled(model.photoCount, null),
     );
   }
 
@@ -91,7 +98,8 @@ class _ModelFormNotifier extends Notifier<_ModelFormData> {
 
   void removeExistingPhoto(int index) {
     final photos = [...state.existingPhotos]..removeAt(index);
-    state = state.copyWith(existingPhotos: photos);
+    final photoIds = [...state.existingPhotoIds]..removeAt(index);
+    state = state.copyWith(existingPhotos: photos, existingPhotoIds: photoIds);
   }
 
   void removeNewPhoto(int index) {
@@ -467,12 +475,14 @@ class _ModelFormDialogState extends ConsumerState<_ModelFormDialog> {
   Future<void> _deleteExistingPhoto(int index) async {
     final formState = ref.read(_modelFormProvider);
     if (formState.submitting || widget.model == null) return;
+    final photoId = formState.existingPhotoIds[index];
+    if (photoId == null) return;
     final deleted = await _showDeletePhotoDialog(
       context,
       ref,
       () => ref
           .read(_houseModelControllerProvider.notifier)
-          .deletePhoto(widget.model!, index),
+          .deletePhoto(widget.model!, photoId),
     );
     if (deleted && mounted) {
       ref.read(_modelFormProvider.notifier).removeExistingPhoto(index);

@@ -412,7 +412,7 @@ Future<List<ProductUpload>> _pickProductPhotos(
   if (source == null || !context.mounted) return const [];
   try {
     final picker = ref.read(imagePickerProvider);
-    final files = source == ImageSource.camera
+    final files = source == ImageSource.camera || remaining == 1
         ? [
             ?await picker.pickImage(
               source: source,

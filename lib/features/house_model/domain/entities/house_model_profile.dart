@@ -15,6 +15,7 @@ class HouseModelProfile {
     this.heightCm,
     this.heightEstimated = false,
     this.photos = const [],
+    this.photoIds = const [],
     this.coverThumbnail,
   });
 
@@ -28,6 +29,7 @@ class HouseModelProfile {
   final int? heightCm;
   final bool heightEstimated;
   final List<String> photos;
+  final List<String?> photoIds;
   final String? coverThumbnail;
 
   String get imageUrl =>

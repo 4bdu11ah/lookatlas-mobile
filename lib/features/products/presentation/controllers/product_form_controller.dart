@@ -9,6 +9,8 @@ class _ProductFormState {
     this.category = 'Tops',
     this.subtype = 'Crossbody',
     this.existingPhotos = const [],
+    this.replacementPhotos = const {},
+    this.replacingPhotoId,
     this.newPhotos = const [],
     this.removedPhotoIndexes = const {},
     this.angles = const {},
@@ -23,6 +25,8 @@ class _ProductFormState {
   final String category;
   final String subtype;
   final List<ProductPhoto> existingPhotos;
+  final Map<String, ProductUpload> replacementPhotos;
+  final String? replacingPhotoId;
   final List<ProductUpload> newPhotos;
   final Set<int> removedPhotoIndexes;
   final Map<int, String?> angles;
@@ -44,6 +48,9 @@ class _ProductFormState {
     String? category,
     String? subtype,
     List<ProductPhoto>? existingPhotos,
+    Map<String, ProductUpload>? replacementPhotos,
+    String? replacingPhotoId,
+    bool clearReplacingPhotoId = false,
     List<ProductUpload>? newPhotos,
     Set<int>? removedPhotoIndexes,
     Map<int, String?>? angles,
@@ -57,6 +64,10 @@ class _ProductFormState {
     category: category ?? this.category,
     subtype: subtype ?? this.subtype,
     existingPhotos: existingPhotos ?? this.existingPhotos,
+    replacementPhotos: replacementPhotos ?? this.replacementPhotos,
+    replacingPhotoId: clearReplacingPhotoId
+        ? null
+        : replacingPhotoId ?? this.replacingPhotoId,
     newPhotos: newPhotos ?? this.newPhotos,
     removedPhotoIndexes: removedPhotoIndexes ?? this.removedPhotoIndexes,
     angles: angles ?? this.angles,
@@ -97,6 +108,14 @@ class _ProductFormController extends Notifier<_ProductFormState> {
   void removeExistingPhoto(int index) => state = state.copyWith(
     removedPhotoIndexes: {...state.removedPhotoIndexes, index},
   );
+  void replaceExistingPhoto(ProductPhoto photo, ProductUpload replacement) =>
+      state = state.copyWith(
+        replacementPhotos: {...state.replacementPhotos, photo.id: replacement},
+      );
+  void setReplacingPhoto(String photoId) =>
+      state = state.copyWith(replacingPhotoId: photoId);
+  void clearReplacingPhoto() =>
+      state = state.copyWith(clearReplacingPhotoId: true);
   void setAngle(int index, String? value) =>
       state = state.copyWith(angles: {...state.angles, index: value});
   void setNewAngle(int index, String? value) =>

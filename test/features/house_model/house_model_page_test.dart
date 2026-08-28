@@ -88,6 +88,7 @@ class _FakeHouseModelsRepository implements HouseModelsRepository {
   final Future<Result<void>>? generationCompletion;
   int _loadCount = 0;
   HouseModelDraft? lastCreatedDraft;
+  String? lastDeletedPhotoId;
 
   @override
   Future<Result<HouseModelCatalog>> loadCatalog() async {
@@ -139,6 +140,7 @@ class _FakeHouseModelsRepository implements HouseModelsRepository {
       heightCm: draft.heightCm,
       heightEstimated: draft.heightEstimated,
       photos: current.photos,
+      photoIds: current.photoIds,
     );
     return const Result.ok(null);
   }
@@ -150,10 +152,13 @@ class _FakeHouseModelsRepository implements HouseModelsRepository {
   }
 
   @override
-  Future<Result<void>> deletePhoto(String modelId, int photoIndex) async {
+  Future<Result<void>> deletePhoto(String modelId, String photoId) async {
+    lastDeletedPhotoId = photoId;
     final index = _userModels.indexWhere((model) => model.id == modelId);
     final current = _userModels[index];
+    final photoIndex = current.photoIds.indexOf(photoId);
     final photos = [...current.photos]..removeAt(photoIndex);
+    final photoIds = [...current.photoIds]..removeAt(photoIndex);
     _userModels[index] = HouseModelProfile(
       id: current.id,
       name: current.name,
@@ -162,6 +167,7 @@ class _FakeHouseModelsRepository implements HouseModelsRepository {
       heightCm: current.heightCm,
       heightEstimated: current.heightEstimated,
       photos: photos,
+      photoIds: photoIds,
     );
     return const Result.ok(null);
   }
@@ -260,6 +266,7 @@ const _existingUserModel = HouseModelProfile(
   source: HouseModelSource.user,
   heightCm: 174,
   photos: ['assets/images/onboarding/step-model.jpg'],
+  photoIds: ['photo-1'],
 );
 
 const _multiPhotoUserModel = HouseModelProfile(
@@ -272,6 +279,7 @@ const _multiPhotoUserModel = HouseModelProfile(
     'assets/images/onboarding/step-model.jpg',
     'assets/images/onboarding/showcase-tshirt-after.jpg',
   ],
+  photoIds: ['photo-2a', 'photo-2b'],
 );
 
 const _threePhotoUserModel = HouseModelProfile(
@@ -285,6 +293,7 @@ const _threePhotoUserModel = HouseModelProfile(
     'assets/images/onboarding/showcase-tshirt-after.jpg',
     'assets/images/onboarding/showcase-sunglasses-after.jpg',
   ],
+  photoIds: ['photo-3a', 'photo-3b', 'photo-3c'],
 );
 
 const _fourPhotoUserModel = HouseModelProfile(
@@ -299,6 +308,7 @@ const _fourPhotoUserModel = HouseModelProfile(
     'assets/images/onboarding/showcase-sunglasses-after.jpg',
     'assets/images/onboarding/showcase-dress-after.jpg',
   ],
+  photoIds: ['photo-4a', 'photo-4b', 'photo-4c', 'photo-4d'],
 );
 
 void main() {
@@ -836,6 +846,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(repository._userModels.single.photos, hasLength(3));
+    expect(repository.lastDeletedPhotoId, 'photo-4a');
     expect(find.text('(3 existing)'), findsOneWidget);
     expect(find.byKey(const ValueKey('model-photo-upload')), findsOneWidget);
   });

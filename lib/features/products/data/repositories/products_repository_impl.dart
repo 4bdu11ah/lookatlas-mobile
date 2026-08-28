@@ -34,8 +34,8 @@ class ProductsRepositoryImpl implements ProductsRepository {
       _remote.deleteProduct(productId);
 
   @override
-  Future<Result<void>> deletePhoto(String productId, int photoIndex) =>
-      _remote.deletePhoto(productId, photoIndex);
+  Future<Result<void>> deletePhoto(String productId, String photoId) =>
+      _remote.deletePhoto(productId, photoId);
 
   @override
   Future<Result<void>> replacePhoto(
@@ -83,8 +83,17 @@ class ProductsRepositoryImpl implements ProductsRepository {
   @override
   Future<Result<void>> uploadWornPhoto(
     String productId,
-    ProductUpload photo,
-  ) => _remote.uploadWornPhoto(productId, photo);
+    ProductUpload photo, {
+    required String calibrationId,
+    required String revision,
+    required String mutationId,
+  }) => _remote.uploadWornPhoto(
+    productId,
+    photo,
+    calibrationId: calibrationId,
+    revision: revision,
+    mutationId: mutationId,
+  );
 
   @override
   Future<Result<void>> uploadCutout(

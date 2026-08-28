@@ -58,6 +58,7 @@ class _HouseModel {
     this.photoCount = 4,
     this.heightEstimated = false,
     this.photoUrls = const [],
+    this.photoIds = const [],
   });
 
   factory _HouseModel.fromProfile(HouseModelProfile profile) {
@@ -79,6 +80,7 @@ class _HouseModel {
       photoCount: profile.photos.length,
       heightEstimated: profile.heightEstimated,
       photoUrls: profile.photos,
+      photoIds: profile.photoIds,
     );
   }
 
@@ -94,6 +96,7 @@ class _HouseModel {
   final int photoCount;
   final bool heightEstimated;
   final List<String> photoUrls;
+  final List<String?> photoIds;
 
   String get subtitle => '${gender.label} · ${body.label}';
 
@@ -128,6 +131,7 @@ class _HouseModel {
     int? photoCount,
     bool? heightEstimated,
     List<String>? photoUrls,
+    List<String?>? photoIds,
   }) {
     return _HouseModel(
       id: id,
@@ -142,6 +146,7 @@ class _HouseModel {
       photoCount: photoCount ?? this.photoCount,
       heightEstimated: heightEstimated ?? this.heightEstimated,
       photoUrls: photoUrls ?? this.photoUrls,
+      photoIds: photoIds ?? this.photoIds,
     );
   }
 

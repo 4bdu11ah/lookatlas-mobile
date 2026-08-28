@@ -8,8 +8,12 @@ class _ProductFormDialog extends ConsumerStatefulWidget {
   });
 
   final _Product? product;
-  final Future<bool> Function(int photoIndex) onDeletePhoto;
-  final Future<bool> Function(ProductPhoto photo) onReplacePhoto;
+  final Future<bool> Function(ProductPhoto photo) onDeletePhoto;
+  final Future<ProductUpload?> Function(
+    ProductPhoto photo,
+    VoidCallback onUploadStart,
+  )
+  onReplacePhoto;
 
   @override
   ConsumerState<_ProductFormDialog> createState() => _ProductFormDialogState();
@@ -55,10 +59,27 @@ class _ProductFormDialogState extends ConsumerState<_ProductFormDialog> {
     }
   }
 
-  Future<void> _deletePhoto(int originalIndex) async {
-    final deleted = await widget.onDeletePhoto(originalIndex);
+  Future<void> _deletePhoto(int originalIndex, ProductPhoto photo) async {
+    final deleted = await widget.onDeletePhoto(photo);
     if (mounted && deleted) {
       ref.read(_formProvider.notifier).removeExistingPhoto(originalIndex);
+    }
+  }
+
+  Future<void> _replacePhoto(ProductPhoto photo) async {
+    final notifier = ref.read(_formProvider.notifier);
+    var uploadStarted = false;
+    try {
+      final replacement = await widget.onReplacePhoto(photo, () {
+        if (!mounted) return;
+        uploadStarted = true;
+        notifier.setReplacingPhoto(photo.id);
+      });
+      if (mounted && replacement != null) {
+        notifier.replaceExistingPhoto(photo, replacement);
+      }
+    } finally {
+      if (mounted && uploadStarted) notifier.clearReplacingPhoto();
     }
   }
 
@@ -163,6 +184,8 @@ class _ProductFormDialogState extends ConsumerState<_ProductFormDialog> {
                   : null,
               clearLabel: editing ? null : 'Clear all',
               existingPhotos: form.visibleExistingPhotos,
+              replacementPhotos: form.replacementPhotos,
+              replacingPhotoId: form.replacingPhotoId,
               newPhotos: form.newPhotos,
               angles: form.angles,
               newAngles: form.newAngles,
@@ -171,7 +194,7 @@ class _ProductFormDialogState extends ConsumerState<_ProductFormDialog> {
               onNewAngleChanged: (index, angle) =>
                   ref.read(_formProvider.notifier).setNewAngle(index, angle),
               onDeletePhoto: _deletePhoto,
-              onReplacePhoto: widget.onReplacePhoto,
+              onReplacePhoto: _replacePhoto,
               onClear: editing
                   ? null
                   : ref.read(_formProvider.notifier).clearNewPhotos,

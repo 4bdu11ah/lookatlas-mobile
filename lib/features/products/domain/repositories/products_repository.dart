@@ -18,7 +18,7 @@ abstract interface class ProductsRepository {
 
   Future<Result<void>> deleteProduct(String productId);
 
-  Future<Result<void>> deletePhoto(String productId, int photoIndex);
+  Future<Result<void>> deletePhoto(String productId, String photoId);
 
   Future<Result<void>> replacePhoto(
     String productId,
@@ -34,8 +34,11 @@ abstract interface class ProductsRepository {
 
   Future<Result<void>> uploadWornPhoto(
     String productId,
-    ProductUpload photo,
-  );
+    ProductUpload photo, {
+    required String calibrationId,
+    required String revision,
+    required String mutationId,
+  });
 
   Future<Result<void>> uploadCutout(
     String productId,

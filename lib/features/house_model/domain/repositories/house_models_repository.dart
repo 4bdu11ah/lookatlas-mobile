@@ -10,7 +10,7 @@ abstract interface class HouseModelsRepository {
 
   Future<Result<void>> deleteModel(String modelId);
 
-  Future<Result<void>> deletePhoto(String modelId, int photoIndex);
+  Future<Result<void>> deletePhoto(String modelId, String photoId);
 
   Future<Result<HouseModelGeneration>> startModelGeneration(
     AiHouseModelDraft draft,

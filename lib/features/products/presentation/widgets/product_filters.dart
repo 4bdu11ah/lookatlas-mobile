@@ -8,6 +8,7 @@ class _ProductFilterBar extends ConsumerWidget {
     required this.sortOrder,
     required this.totalCount,
     required this.calibratedCount,
+    required this.calibrationStatusesAvailable,
   });
 
   final String query;
@@ -16,6 +17,7 @@ class _ProductFilterBar extends ConsumerWidget {
   final _ProductSortOrder sortOrder;
   final int totalCount;
   final int calibratedCount;
+  final bool calibrationStatusesAvailable;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -38,6 +40,7 @@ class _ProductFilterBar extends ConsumerWidget {
           values: _ProductStatusFilter.values,
           labelFor: (value) => value.label,
           onChanged: controller.updateStatusFilter,
+          enabled: calibrationStatusesAvailable,
           config: const AppDropdownConfig(height: 46),
         ),
         AppDropdown<_ProductSortOrder>(
@@ -49,7 +52,11 @@ class _ProductFilterBar extends ConsumerWidget {
           config: const AppDropdownConfig(height: 46),
         ),
         const SizedBox(height: 10),
-        _CatalogEyebrow('$totalCount products, $calibratedCount calibrated'),
+        _CatalogEyebrow(
+          calibrationStatusesAvailable
+              ? '$totalCount products, $calibratedCount calibrated'
+              : '$totalCount products, — calibrated',
+        ),
       ],
     );
   }

@@ -72,7 +72,7 @@ class ProductsRepositoryImpl implements ProductsRepository {
       if (failure is NetworkFailure && failure.statusCode == 404) {
         calibration = const Ok(ProductCalibration());
       } else {
-        calibration = const Ok(ProductCalibration());
+        return Err(failure);
       }
     }
     return Ok(

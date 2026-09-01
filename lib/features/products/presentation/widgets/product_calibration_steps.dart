@@ -7,6 +7,7 @@ class _CalibrationPickPhotoStep extends StatelessWidget {
     required this.onBack,
     required this.onNext,
     required this.onPhotoSelected,
+    required this.onChangeBody,
   });
 
   final _Product product;
@@ -14,6 +15,7 @@ class _CalibrationPickPhotoStep extends StatelessWidget {
   final VoidCallback onBack;
   final VoidCallback onNext;
   final ValueChanged<String> onPhotoSelected;
+  final VoidCallback onChangeBody;
 
   @override
   Widget build(BuildContext context) {
@@ -28,39 +30,57 @@ class _CalibrationPickPhotoStep extends StatelessWidget {
               children: [
                 const _SectionCopy(
                   title: 'Pick a product photo',
-                  copy:
-                      'We will remove its background, then you place the cutout on the body outline.',
+                  copy: 'We will remove its background, then you place the cutout on the body outline.',
                 ),
                 const SizedBox(height: 20),
-                const _Kicker('Placing on'),
+                const _Kicker('Size guide'),
                 const SizedBox(height: 10),
-                AspectRatio(
-                  aspectRatio: 2 / 3,
-                  child: Container(
-                    decoration: BoxDecoration(
-                      border: Border.all(color: AppColors.neutral200),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      width: 96,
+                      height: 144,
+                      decoration: BoxDecoration(
+                        border: Border.all(color: AppColors.neutral200),
+                      ),
+                      child: AppImage(
+                        _localOutlineAsset(bodyArea) ?? product.asset,
+                      ),
                     ),
-                    child: AppImage(
-                      _localOutlineAsset(bodyArea) ?? product.asset,
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            _bodyViewLabel(bodyArea),
+                            style: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: AppTypography.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          const Text(
+                            'Choose a photo from roughly this angle.',
+                            style: TextStyle(
+                              fontSize: 12,
+                              height: 1.38,
+                              color: AppColors.neutral500,
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                          AppOutlinedButton(
+                            label: 'Change',
+                            icon: Icons.edit_outlined,
+                            onPressed: onChangeBody,
+                            fitToContent: true,
+                            height: 44,
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  _bodyViewLabel(bodyArea),
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: AppTypography.bold,
-                  ),
-                ),
-                const SizedBox(height: 6),
-                const Text(
-                  'Pick a photo that shows the product from roughly this angle.',
-                  style: TextStyle(
-                    fontSize: 13,
-                    height: 1.38,
-                    color: AppColors.neutral500,
-                  ),
+                  ],
                 ),
                 const SizedBox(height: 24),
                 const _Kicker('Your product photos'),
@@ -118,8 +138,7 @@ class _CalibrationProgressStep extends StatelessWidget {
               children: [
                 const _SectionCopy(
                   title: 'Removing background',
-                  copy:
-                      'One-time model download on first use, then it is near-instant.',
+                  copy: 'One-time model download on first use, then it is near-instant.',
                 ),
                 const SizedBox(height: 18),
                 Container(
@@ -184,8 +203,7 @@ class _CalibrationConfirmCutoutStep extends StatelessWidget {
               children: [
                 const _SectionCopy(
                   title: 'Does this look right?',
-                  copy:
-                      'Edges do not need to be perfect. This is used as a size reference only.',
+                  copy: 'Edges do not need to be perfect. This is used as a size reference only.',
                 ),
                 const SizedBox(height: 14),
                 _CheckerBox(asset: product.asset, upload: cutout),
@@ -277,8 +295,7 @@ class _CalibrationPlaceStep extends StatelessWidget {
               children: [
                 const _SectionCopy(
                   title: 'Set the size on the body',
-                  copy:
-                      'Drag the product to reposition it. Use its corner handle to resize, and the zoom controls to inspect the body.',
+                  copy: 'Drag the product to reposition it. Use its corner handle to resize, and the zoom controls to inspect the body.',
                 ),
                 const SizedBox(height: 12),
                 Align(
@@ -347,8 +364,7 @@ class _CalibrationPlaceStep extends StatelessWidget {
                         ),
                       ),
                       TextSpan(
-                        text:
-                            ' of your product compared to the body. Final photo framing is up to the photographer.',
+                        text: ' of your product compared to the body. Final photo framing is up to the photographer.',
                       ),
                     ],
                   ),
@@ -468,8 +484,7 @@ class _CalibrationReviewStep extends StatelessWidget {
                   AppTextField(
                     controller: notesController,
                     labelText: 'Notes for the AI (optional)',
-                    hintText:
-                        'Anything that helps the AI get size right. Material, dimensions, context.',
+                    hintText: 'Anything that helps the AI get size right. Material, dimensions, context.',
                     minLines: 3,
                     maxLines: 4,
                     maxLength: 500,

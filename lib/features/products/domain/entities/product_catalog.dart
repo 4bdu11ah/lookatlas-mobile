@@ -126,17 +126,17 @@ enum ProductCalibrationStatus {
 
   String get label => switch (this) {
     calibrated => 'Size calibrated',
-    changesPending => 'Changes need action',
-    fitRendering => 'Rendering Fit',
-    fitReady => 'Fit ready',
-    fitFailed => 'Fit failed',
-    fitPending => 'Fit needed',
-    saveReady => 'Ready to save',
+    changesPending => 'Size calibrated · changes pending',
+    fitRendering => 'Fit rendering',
+    fitReady => 'Review Fit',
+    fitFailed => 'Retry Fit',
+    fitPending => 'Finish Fit',
+    saveReady => 'Review changes',
     recommended => 'Calibrate size',
-    optional => 'Size optional',
+    optional => 'Calibrate size',
   };
 
-  bool get needsPolling => this == fitRendering;
+  bool get needsPolling => this == fitRendering || this == fitPending;
   bool get isCalibrated => this == calibrated || this == changesPending;
 }
 

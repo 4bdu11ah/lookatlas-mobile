@@ -14,7 +14,9 @@ class _ProductsScreenState {
     this.isLoadingMore = false,
     this.isMutating = false,
     this.categoryBannerDismissed = false,
+    this.calibrationStatusesAvailable = true,
     this.failure,
+    this.calibrationFailure,
   });
 
   final List<_Product> products;
@@ -29,7 +31,9 @@ class _ProductsScreenState {
   final bool isLoadingMore;
   final bool isMutating;
   final bool categoryBannerDismissed;
+  final bool calibrationStatusesAvailable;
   final Failure? failure;
+  final Failure? calibrationFailure;
 
   int get calibratedCount =>
       products.where((product) => product.calibrated).length;
@@ -55,8 +59,11 @@ class _ProductsScreenState {
     bool? isLoadingMore,
     bool? isMutating,
     bool? categoryBannerDismissed,
+    bool? calibrationStatusesAvailable,
     Failure? failure,
+    Failure? calibrationFailure,
     bool clearFailure = false,
+    bool clearCalibrationFailure = false,
   }) {
     return _ProductsScreenState(
       products: products ?? this.products,
@@ -72,7 +79,12 @@ class _ProductsScreenState {
       isMutating: isMutating ?? this.isMutating,
       categoryBannerDismissed:
           categoryBannerDismissed ?? this.categoryBannerDismissed,
+      calibrationStatusesAvailable:
+          calibrationStatusesAvailable ?? this.calibrationStatusesAvailable,
       failure: clearFailure ? null : failure ?? this.failure,
+      calibrationFailure: clearCalibrationFailure
+          ? null
+          : calibrationFailure ?? this.calibrationFailure,
     );
   }
 }
@@ -103,11 +115,20 @@ class _ProductsController extends Notifier<_ProductsScreenState> {
     );
     final calibratedResult = await _repository.getCalibrationStatuses();
     if (generation != _requestGeneration) return;
-    if (calibratedResult case Err(:final failure)) {
-      state = state.copyWith(isLoading: false, failure: failure);
-      return;
+    final statuses = calibratedResult.valueOrNull ?? const {};
+    final calibrationFailure = calibratedResult.failureOrNull;
+    if (calibrationFailure != null) {
+      state = state.copyWith(
+        statusFilter: _ProductStatusFilter.all,
+        calibrationStatusesAvailable: false,
+        calibrationFailure: calibrationFailure,
+      );
+    } else {
+      state = state.copyWith(
+        calibrationStatusesAvailable: true,
+        clearCalibrationFailure: true,
+      );
     }
-    final statuses = calibratedResult.valueOrNull!;
     final calibratedIds = {
       for (final entry in statuses.entries)
         if (entry.value.isCalibrated) entry.key,
@@ -146,11 +167,20 @@ class _ProductsController extends Notifier<_ProductsScreenState> {
     state = state.copyWith(isLoadingMore: true, clearFailure: true);
     final calibratedResult = await _repository.getCalibrationStatuses();
     if (generation != _requestGeneration) return;
-    if (calibratedResult case Err(:final failure)) {
-      state = state.copyWith(isLoadingMore: false, failure: failure);
-      return;
+    final statuses = calibratedResult.valueOrNull ?? const {};
+    final calibrationFailure = calibratedResult.failureOrNull;
+    if (calibrationFailure != null) {
+      state = state.copyWith(
+        statusFilter: _ProductStatusFilter.all,
+        calibrationStatusesAvailable: false,
+        calibrationFailure: calibrationFailure,
+      );
+    } else {
+      state = state.copyWith(
+        calibrationStatusesAvailable: true,
+        clearCalibrationFailure: true,
+      );
     }
-    final statuses = calibratedResult.valueOrNull!;
     final calibratedIds = {
       for (final entry in statuses.entries)
         if (entry.value.isCalibrated) entry.key,
@@ -208,12 +238,19 @@ class _ProductsController extends Notifier<_ProductsScreenState> {
     final result = await _repository.getCalibrationStatuses();
     if (result case Ok(:final value)) {
       state = state.copyWith(
+        calibrationStatusesAvailable: true,
+        clearCalibrationFailure: true,
         products: [
           for (final product in state.products)
             _Product.fromCatalog(product.item, value),
         ],
       );
-    } else {
+    } else if (result case Err(:final failure)) {
+      state = state.copyWith(
+        statusFilter: _ProductStatusFilter.all,
+        calibrationStatusesAvailable: false,
+        calibrationFailure: failure,
+      );
       return;
     }
     _syncStatusPolling();
@@ -232,7 +269,7 @@ class _ProductsController extends Notifier<_ProductsScreenState> {
     if (value == state.searchQuery) return;
     state = state.copyWith(searchQuery: value);
     _searchDebounce?.cancel();
-    _searchDebounce = Timer(const Duration(milliseconds: 350), reload);
+    _searchDebounce = Timer(const Duration(milliseconds: 300), reload);
   }
 
   void clearSearch() {
@@ -249,6 +286,7 @@ class _ProductsController extends Notifier<_ProductsScreenState> {
   }
 
   void updateStatusFilter(_ProductStatusFilter value) {
+    if (!state.calibrationStatusesAvailable) return;
     if (value == state.statusFilter) return;
     state = state.copyWith(statusFilter: value);
     unawaited(reload());
@@ -291,6 +329,25 @@ class _ProductsController extends Notifier<_ProductsScreenState> {
 
   void dismissCategoryBanner() {
     state = state.copyWith(categoryBannerDismissed: true);
+  }
+
+  Future<_Product?> resolveProduct(String productId) async {
+    final loaded = state.products
+        .where((product) => product.id == productId)
+        .firstOrNull;
+    if (loaded != null) return loaded;
+    final results = await Future.wait([
+      _repository.getProducts(ProductQuery(productId: productId, limit: 1)),
+      _repository.getCalibrationStatuses(),
+    ]);
+    final page = results[0] as Result<ProductCatalogPage>;
+    final statuses =
+        results[1] as Result<Map<String, ProductCalibrationStatus>>;
+    final item = page.valueOrNull?.products
+        .where((product) => product.id == productId)
+        .firstOrNull;
+    if (item == null) return null;
+    return _Product.fromCatalog(item, statuses.valueOrNull ?? const {});
   }
 
   Future<Result<void>> createProduct(CatalogProductDraft draft) async {

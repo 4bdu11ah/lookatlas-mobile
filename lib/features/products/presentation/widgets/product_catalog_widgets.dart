@@ -53,7 +53,7 @@ class _ProductsCatalogStats extends StatelessWidget {
 
   final int total;
   final int loaded;
-  final int calibrated;
+  final int? calibrated;
 
   @override
   Widget build(BuildContext context) => ColoredBox(
@@ -91,7 +91,7 @@ class _CatalogMetric extends StatelessWidget {
   const _CatalogMetric(this.label, this.value);
 
   final String label;
-  final int value;
+  final int? value;
 
   @override
   Widget build(BuildContext context) => Container(
@@ -105,13 +105,45 @@ class _CatalogMetric extends StatelessWidget {
         _CatalogEyebrow(label, color: AppColors.whiteAlpha60),
         const Spacer(),
         Text(
-          value.toString().padLeft(2, '0'),
+          value == null ? '—' : value.toString().padLeft(2, '0'),
           style: const TextStyle(
             color: AppColors.white,
             fontFamily: 'Instrument Serif',
             fontFamilyFallback: ['serif'],
             fontSize: 23,
           ),
+        ),
+      ],
+    ),
+  );
+}
+
+class _CalibrationCatalogFailure extends StatelessWidget {
+  const _CalibrationCatalogFailure({required this.onRetry});
+
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.all(14),
+    decoration: BoxDecoration(
+      color: AppColors.neutral100Alpha68,
+      border: Border.all(color: AppColors.neutral200),
+    ),
+    child: Row(
+      children: [
+        const Expanded(
+          child: Text(
+            'Size status is temporarily unavailable. You can keep browsing your products.',
+            style: TextStyle(fontSize: 12, height: 1.4),
+          ),
+        ),
+        const SizedBox(width: 10),
+        AppOutlinedButton(
+          label: 'Retry',
+          onPressed: onRetry,
+          fitToContent: true,
+          height: 44,
         ),
       ],
     ),

@@ -21,6 +21,8 @@ abstract final class AppRoutes {
   static const dashboardShoots = '/shoots';
   static const shootDetailPath = '/shoots/:jobId';
   static const dashboardProducts = '/products';
+  static const productSizePath = '/products/:productId/size';
+  static const productSizeStagePath = '/products/:productId/size/:stage';
   static const dashboardModels = '/models';
   static const dashboardBilling = '/billing';
   static const dashboardAccount = '/account';
@@ -37,5 +39,10 @@ abstract final class AppRoutes {
   static String shootDetail(String jobId, {bool fromDashboard = false}) {
     final path = '/shoots/${Uri.encodeComponent(jobId)}';
     return fromDashboard ? '$path?from=dashboard' : path;
+  }
+
+  static String productSize(String productId, {String? stage}) {
+    final path = '/products/${Uri.encodeComponent(productId)}/size';
+    return stage == null ? path : '$path/${Uri.encodeComponent(stage)}';
   }
 }

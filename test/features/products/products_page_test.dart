@@ -12,7 +12,6 @@ import 'package:look_atlas/features/products/di/products_providers.dart';
 import 'package:look_atlas/features/products/domain/entities/product_catalog.dart';
 import 'package:look_atlas/features/products/domain/repositories/products_repository.dart';
 import 'package:look_atlas/features/subscription/presentation/subscription_controller.dart';
-import 'package:look_atlas/shared/widgets/custom_app_bar.dart';
 
 import '../../helpers/fake_repositories.dart';
 
@@ -665,16 +664,23 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('calibrate-product-TSH-001')));
     await tester.pumpAndSettle();
-    expect(find.text('Set real-world size'), findsOneWidget);
-    expect(find.byType(CustomAppBar), findsOneWidget);
+    expect(find.text('Set product size'), findsOneWidget);
+    expect(find.text('Exit'), findsOneWidget);
     expect(
-      find.text('How should we learn the real-world size?'),
+      find.text('Choose the easiest way to set the size'),
       findsOneWidget,
     );
 
-    await tester.tap(find.text('Place the product on a body outline'));
+    await tester.tap(find.text('Use a product photo'));
     await tester.pumpAndSettle();
-    expect(find.text('Pick a body view'), findsOneWidget);
+    expect(find.text('Set the size in 3 easy steps'), findsOneWidget);
+    await tester.tap(find.text('Choose a product photo'));
+    await tester.pumpAndSettle();
+    expect(find.text('Pick a product photo'), findsOneWidget);
+    expect(find.text('SIZE GUIDE'), findsOneWidget);
+    await tester.tap(find.text('Change'));
+    await tester.pumpAndSettle();
+    expect(find.text('Choose a different size guide'), findsOneWidget);
     expect(
       tester.getTopLeft(find.text('Full Body Front')).dx,
       lessThan(tester.getTopLeft(find.text('Hand Side')).dx),
@@ -691,7 +697,7 @@ void main() {
     await tester.tap(find.text('Next'));
     await tester.pumpAndSettle();
     expect(find.text('Pick a product photo'), findsOneWidget);
-    expect(find.text('PLACING ON'), findsOneWidget);
+    expect(find.text('SIZE GUIDE'), findsOneWidget);
     expect(find.text('hand side'), findsOneWidget);
     expect(find.text('YOUR PRODUCT PHOTOS'), findsOneWidget);
     expect(find.text('Upload another'), findsOneWidget);

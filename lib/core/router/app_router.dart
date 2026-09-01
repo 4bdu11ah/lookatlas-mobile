@@ -29,6 +29,16 @@ import 'package:look_atlas/features/workshop/presentation/screens/workshop_scree
 import 'package:look_atlas/services/service_providers.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 
+String? _validatedInternalReturnTo(String? value) {
+  if (value == null ||
+      !value.startsWith('/') ||
+      value.startsWith('//') ||
+      Uri.tryParse(value)?.hasScheme != false) {
+    return null;
+  }
+  return value;
+}
+
 final routerProvider = Provider<GoRouter>((ref) {
   // Re-evaluates redirects whenever the auth session changes.
   final refresh = ValueNotifier<int>(0);
@@ -229,22 +239,48 @@ final routerProvider = Provider<GoRouter>((ref) {
         ),
       ),
       GoRoute(
+        path: AppRoutes.productSizeStagePath,
+        name: 'product_size_stage',
+        pageBuilder: (_, state) => buildAppTransitionPage(
+          state: state,
+          child: ProductsScreen(
+            calibrateProductId: state.pathParameters['productId'],
+            calibrationStage: state.pathParameters['stage'],
+            directCalibrationRoute: true,
+            returnTo: _validatedInternalReturnTo(
+              state.uri.queryParameters['returnTo'],
+            ),
+          ),
+        ),
+      ),
+      GoRoute(
+        path: AppRoutes.productSizePath,
+        name: 'product_size',
+        pageBuilder: (_, state) => buildAppTransitionPage(
+          state: state,
+          child: ProductsScreen(
+            calibrateProductId: state.pathParameters['productId'],
+            directCalibrationRoute: true,
+            returnTo: _validatedInternalReturnTo(
+              state.uri.queryParameters['returnTo'],
+            ),
+          ),
+        ),
+      ),
+      GoRoute(
         path: AppRoutes.dashboardProducts,
         name: 'dashboard_products',
         pageBuilder: (_, state) {
-          final requestedReturn = state.uri.queryParameters['returnTo'];
-          final returnTo =
-              requestedReturn != null &&
-                  requestedReturn.startsWith('/') &&
-                  !requestedReturn.startsWith('//') &&
-                  Uri.tryParse(requestedReturn)?.hasScheme == false
-              ? requestedReturn
-              : null;
+          final returnTo = _validatedInternalReturnTo(
+            state.uri.queryParameters['returnTo'],
+          );
           return buildAppTransitionPage(
             state: state,
             child: ProductsScreen(
               openCreate: state.uri.queryParameters['create'] == '1',
-              productId: state.uri.queryParameters['product'],
+              productId:
+                  state.uri.queryParameters['product'] ??
+                  state.uri.queryParameters['productId'],
               calibrateProductId: state.uri.queryParameters['calibrate'],
               returnTo: returnTo,
             ),

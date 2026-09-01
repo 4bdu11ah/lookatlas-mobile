@@ -91,26 +91,38 @@ class _ProductDetailSheetState extends State<_ProductDetailSheet> {
               ],
             ),
             if (photos.length > 1)
-              SizedBox(
-                height: 92,
-                child: ListView.separated(
-                  padding: const EdgeInsets.fromLTRB(20, 10, 20, 0),
-                  scrollDirection: Axis.horizontal,
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 10, 20, 0),
+                child: GridView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
                   itemCount: photos.length,
-                  separatorBuilder: (_, _) => const SizedBox(width: 8),
-                  itemBuilder: (context, index) => InkWell(
-                    onTap: () => setState(() => _photoIndex = index),
-                    child: Container(
-                      width: 72,
-                      decoration: BoxDecoration(
-                        border: Border.all(
-                          color: index == _photoIndex
-                              ? AppColors.black
-                              : AppColors.neutral200,
-                          width: index == _photoIndex ? 2 : 1,
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 4,
+                    crossAxisSpacing: 8,
+                    mainAxisSpacing: 8,
+                  ),
+                  itemBuilder: (context, index) => Semantics(
+                    button: true,
+                    selected: index == _photoIndex,
+                    label:
+                        product.productPhotos
+                            .elementAtOrNull(index)
+                            ?.viewAngle ??
+                        'View ${index + 1}',
+                    child: InkWell(
+                      onTap: () => setState(() => _photoIndex = index),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          border: Border.all(
+                            color: index == _photoIndex
+                                ? AppColors.black
+                                : AppColors.neutral200,
+                            width: index == _photoIndex ? 2 : 1,
+                          ),
                         ),
+                        child: _AssetImage(photos[index]),
                       ),
-                      child: _AssetImage(photos[index]),
                     ),
                   ),
                 ),

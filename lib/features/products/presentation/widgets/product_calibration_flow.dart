@@ -2,6 +2,7 @@ part of '../../../dashboard/presentation/screens/dashboard_screen.dart';
 
 enum _CalibrationStep {
   method,
+  overview,
   bodyView,
   pickPhoto,
   removingBackground,
@@ -31,6 +32,69 @@ String? _localOutlineAsset(String bodyArea) =>
     _outlineBodyAreas.contains(bodyArea)
     ? 'assets/images/calibration/outlines/$bodyArea.png'
     : null;
+
+class _CalibrationHeader extends StatelessWidget
+    implements PreferredSizeWidget {
+  const _CalibrationHeader({required this.productName, required this.onExit});
+
+  final String productName;
+  final VoidCallback? onExit;
+
+  @override
+  Size get preferredSize => const Size.fromHeight(64);
+
+  @override
+  Widget build(BuildContext context) => SafeArea(
+    bottom: false,
+    child: Container(
+      height: 64,
+      padding: const EdgeInsets.fromLTRB(20, 8, 10, 8),
+      decoration: const BoxDecoration(
+        color: AppColors.white,
+        border: Border(bottom: BorderSide(color: AppColors.neutral200)),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Set product size',
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: AppTypography.bold,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  productName,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: AppColors.neutral500,
+                    fontSize: 11,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          TextButton.icon(
+            onPressed: onExit,
+            icon: const Icon(Icons.arrow_back, size: 16),
+            label: const Text('Exit'),
+            style: TextButton.styleFrom(
+              minimumSize: const Size(72, 44),
+              foregroundColor: AppColors.black,
+              shape: const RoundedRectangleBorder(),
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
+}
 
 class _ProductCalibrationLoadingShimmer extends StatelessWidget {
   const _ProductCalibrationLoadingShimmer();
@@ -115,7 +179,7 @@ class _CalibrationMethodStep extends StatelessWidget {
             child: Column(
               children: [
                 const Text(
-                  'How should we learn the real-world size?',
+                  'Choose the easiest way to set the size',
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 16,
@@ -124,7 +188,7 @@ class _CalibrationMethodStep extends StatelessWidget {
                 ),
                 const SizedBox(height: 5),
                 const Text(
-                  'Any of these work. Pick whichever is easiest for this product.',
+                  'This helps the product look naturally proportioned on every model.',
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 13,
@@ -135,22 +199,21 @@ class _CalibrationMethodStep extends StatelessWidget {
                 const SizedBox(height: 14),
                 _MethodCard(
                   icon: Icons.open_with,
-                  title: 'Place the product on a body outline',
-                  subtitle:
-                      'Remove the background, then drag the product onto a body outline.',
+                  title: 'Use a product photo',
+                  subtitle: 'Pick a clear photo. We remove the background, then you resize the product on a simple body guide.',
                   recommended: true,
                   onTap: onBody,
                 ),
                 _MethodCard(
                   icon: Icons.photo_camera_outlined,
-                  title: 'Upload a photo of it being worn',
-                  subtitle: 'Fastest if you already have a rough phone photo.',
+                  title: 'Use a worn photo',
+                  subtitle: 'Choose a photo where the product is worn or carried. No editing needed.',
                   onTap: onWorn,
                 ),
                 _MethodCard(
                   icon: Icons.copy_outlined,
-                  title: 'Copy from another calibrated product',
-                  subtitle: 'Reuse a setup from a similar product.',
+                  title: 'Reuse a saved size',
+                  subtitle: 'Copy the size from a similar product you already set up.',
                   onTap: onCopy,
                 ),
               ],
@@ -165,6 +228,130 @@ class _CalibrationMethodStep extends StatelessWidget {
       ],
     );
   }
+}
+
+class _CalibrationOverviewStep extends StatelessWidget {
+  const _CalibrationOverviewStep({required this.onBack, required this.onNext});
+
+  final VoidCallback onBack;
+  final VoidCallback onNext;
+
+  @override
+  Widget build(BuildContext context) => Column(
+    children: [
+      const _StepIndicator(current: 'Step 1', label: '3 · Product'),
+      const Expanded(
+        child: SingleChildScrollView(
+          padding: EdgeInsets.all(20),
+          child: Column(
+            children: [
+              _SectionCopy(
+                title: 'Set the size in 3 easy steps',
+                copy: 'Upload a photo, clean it up, then drag it to the right size.',
+              ),
+              SizedBox(height: 18),
+              _CalibrationOverviewCard(
+                number: '1',
+                icon: Icons.upload_outlined,
+                title: 'Upload one product photo',
+                copy: 'Choose one clear photo that shows the whole product.',
+              ),
+              _CalibrationOverviewCard(
+                number: '2',
+                icon: Icons.auto_fix_high_outlined,
+                title: 'Remove the background',
+                copy:
+                    'We remove the background. Crop or erase anything we miss.',
+              ),
+              _CalibrationOverviewCard(
+                number: '3',
+                icon: Icons.open_with,
+                title: 'Place and resize',
+                copy: 'Drag the product onto the body. Pull a corner until the size looks right.',
+              ),
+            ],
+          ),
+        ),
+      ),
+      _ProductFlowFooter(
+        onBack: onBack,
+        onPrimary: onNext,
+        primaryLabel: 'Choose a product photo',
+      ),
+    ],
+  );
+}
+
+class _CalibrationOverviewCard extends StatelessWidget {
+  const _CalibrationOverviewCard({
+    required this.number,
+    required this.icon,
+    required this.title,
+    required this.copy,
+  });
+
+  final String number;
+  final IconData icon;
+  final String title;
+  final String copy;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    width: double.infinity,
+    margin: const EdgeInsets.only(bottom: 10),
+    padding: const EdgeInsets.all(16),
+    decoration: BoxDecoration(
+      color: AppColors.white,
+      border: Border.all(color: AppColors.neutral200),
+    ),
+    child: Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          width: 44,
+          height: 44,
+          alignment: Alignment.center,
+          color: AppColors.black,
+          child: Text(
+            number,
+            style: const TextStyle(color: AppColors.white, fontSize: 16),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(icon, size: 18),
+                  const SizedBox(width: 7),
+                  Expanded(
+                    child: Text(
+                      title,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: AppTypography.bold,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 7),
+              Text(
+                copy,
+                style: const TextStyle(
+                  color: AppColors.neutral500,
+                  fontSize: 12,
+                  height: 1.4,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    ),
+  );
 }
 
 class _MethodCard extends StatelessWidget {
@@ -294,9 +481,8 @@ class _CalibrationBodyStep extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const _SectionCopy(
-                  title: 'Pick a body view',
-                  copy:
-                      'We have pre-selected the view that usually fits this category. Tap any other one to change it.',
+                  title: 'Choose a different size guide',
+                  copy: 'We picked the best match for this product. Change it only if another view makes the size easier to judge.',
                 ),
                 const SizedBox(height: 14),
                 GridView.builder(

@@ -20,6 +20,8 @@ class ProductsScreen extends ConsumerStatefulWidget {
     this.productId,
     this.calibrateProductId,
     this.returnTo,
+    this.calibrationStage,
+    this.directCalibrationRoute = false,
     super.key,
   });
 
@@ -27,6 +29,8 @@ class ProductsScreen extends ConsumerStatefulWidget {
   final String? productId;
   final String? calibrateProductId;
   final String? returnTo;
+  final String? calibrationStage;
+  final bool directCalibrationRoute;
 
   @override
   ConsumerState<ProductsScreen> createState() => _ProductsScreenViewState();
@@ -41,17 +45,16 @@ class _ProductsScreenViewState extends ConsumerState<ProductsScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) => _handleDeepLink());
   }
 
-  void _handleDeepLink() {
+  Future<void> _handleDeepLink() async {
     if (!mounted || _handledDeepLink) return;
     if (widget.openCreate) {
       _handledDeepLink = true;
+      _consumeCommand('create');
       if (!_requestProductsManageAccess(context, ref)) return;
-      unawaited(
-        _showProductFormDialog(
-          context,
-          ref,
-          (text) => _toastDashboard(context, text),
-        ),
+      await _showProductFormDialog(
+        context,
+        ref,
+        (text) => _toastDashboard(context, text),
       );
       return;
     }
@@ -60,35 +63,68 @@ class _ProductsScreenViewState extends ConsumerState<ProductsScreen> {
       _handledDeepLink = true;
       return;
     }
-    final product = ref
-        .read(_productsControllerProvider)
-        .products
-        .where((item) => item.id == targetId)
-        .firstOrNull;
-    if (product == null) return;
+    if (ref.read(_productsControllerProvider).isLoading) return;
     _handledDeepLink = true;
+    final product = await ref
+        .read(_productsControllerProvider.notifier)
+        .resolveProduct(targetId);
+    if (!mounted) return;
+    _consumeCommand(
+      widget.calibrateProductId != null ? 'calibrate' : 'product',
+    );
+    if (product == null) {
+      AppSnackBar.showError(
+        context,
+        widget.calibrateProductId != null
+            ? 'Calibration did not load. That product is unavailable.'
+            : 'That product is unavailable.',
+      );
+      return;
+    }
     void onToast(String text) => _toastDashboard(context, text);
     if (widget.calibrateProductId != null) {
       if (!_requestProductsManageAccess(context, ref)) return;
-      unawaited(_openDeepLinkedCalibration(product, onToast));
+      await _openDeepLinkedCalibration(product, onToast);
     } else {
-      unawaited(_showProductDetailSheet(context, ref, product, onToast));
+      await _showProductDetailSheet(context, ref, product, onToast);
     }
+  }
+
+  void _consumeCommand(String key) {
+    final uri = GoRouterState.of(context).uri;
+    if (!uri.queryParameters.containsKey(key) &&
+        !(key == 'product' && uri.queryParameters.containsKey('productId'))) {
+      return;
+    }
+    final query = Map<String, String>.from(uri.queryParameters)..remove(key);
+    if (key == 'product') query.remove('productId');
+    context.replace(uri.replace(queryParameters: query).toString());
   }
 
   Future<void> _openDeepLinkedCalibration(
     _Product product,
     ValueChanged<String> onToast,
   ) async {
-    await _openCalibration(context, ref, product, onToast);
-    if (mounted && widget.returnTo != null) context.go(widget.returnTo!);
+    await _openCalibration(
+      context,
+      ref,
+      product,
+      onToast,
+      initialStage: widget.calibrationStage,
+    );
+    if (!mounted) return;
+    if (widget.returnTo != null) {
+      context.go(widget.returnTo!);
+    } else if (widget.directCalibrationRoute) {
+      context.go(AppRoutes.dashboardProducts);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     ref.listen(
       _productsControllerProvider.select((state) => state.products),
-      (_, _) => _handleDeepLink(),
+      (_, _) => unawaited(_handleDeepLink()),
     );
     return AppFeatureScaffold(
       title: 'Products',
@@ -141,8 +177,16 @@ class _ProductsPage extends ConsumerWidget {
                   _ProductsCatalogStats(
                     total: state.totalCount,
                     loaded: state.products.length,
-                    calibrated: state.calibratedCount,
+                    calibrated: state.calibrationStatusesAvailable
+                        ? state.calibratedCount
+                        : null,
                   ),
+                  if (state.calibrationFailure != null) ...[
+                    const SizedBox(height: 12),
+                    _CalibrationCatalogFailure(
+                      onRetry: controller.reload,
+                    ),
+                  ],
                   const SizedBox(height: 42),
                   if (uncategorized.isNotEmpty &&
                       !state.categoryBannerDismissed)
@@ -168,6 +212,8 @@ class _ProductsPage extends ConsumerWidget {
                     sortOrder: state.sortOrder,
                     totalCount: state.totalCount,
                     calibratedCount: state.calibratedCount,
+                    calibrationStatusesAvailable:
+                        state.calibrationStatusesAvailable,
                   ),
                   if (state.isLoading) ...[
                     const SizedBox(height: 8),

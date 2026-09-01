@@ -4,14 +4,24 @@ Future<void> _openCalibration(
   BuildContext context,
   WidgetRef ref,
   _Product product,
-  ValueChanged<String> onToast,
-) {
+  ValueChanged<String> onToast, {
+  String? initialStage,
+}) {
   if (!_requestProductsManageAccess(context, ref)) return Future.value();
+  final expectedPath = AppRoutes.productSize(product.id);
+  final router = GoRouter.maybeOf(context);
+  final currentPath = router?.routerDelegate.currentConfiguration.uri.path;
+  if (router != null &&
+      currentPath != expectedPath &&
+      !(currentPath?.startsWith('$expectedPath/') ?? false)) {
+    return context.push<void>(expectedPath);
+  }
   return Navigator.of(context).push(
     MaterialPageRoute<void>(
       builder: (_) => _ProductCalibrationScreen(
         product: product,
         repository: ref.read(productsRepositoryProvider),
+        initialStage: initialStage,
         onSaved: () {
           unawaited(ref.read(_productsControllerProvider.notifier).reload());
           onToast('Calibration saved');
@@ -126,11 +136,13 @@ class _ProductCalibrationScreen extends ConsumerStatefulWidget {
     required this.product,
     required this.repository,
     required this.onSaved,
+    this.initialStage,
   });
 
   final _Product product;
   final ProductsRepository repository;
   final VoidCallback onSaved;
+  final String? initialStage;
 
   @override
   ConsumerState<_ProductCalibrationScreen> createState() =>
@@ -147,6 +159,7 @@ class _ProductCalibrationScreenState
   DateTime? _renderPollStartedAt;
   var _isInitialCalibrationLoad = true;
   var _openedWithSavedCalibration = false;
+  var _didApplyInitialStage = false;
 
   _ProductCalibrationStateController get _stateController => ref.read(
     _productCalibrationStateProvider(widget.product.id).notifier,
@@ -267,6 +280,10 @@ class _ProductCalibrationScreenState
           _step = _CalibrationStep.fit;
           _startRenderPolling();
         }
+        if (!_didApplyInitialStage && widget.initialStage != null) {
+          _step = _stepForRouteStage(widget.initialStage!);
+          _didApplyInitialStage = true;
+        }
         _isLoading = false;
       case Err(:final failure):
         _isLoading = false;
@@ -276,6 +293,45 @@ class _ProductCalibrationScreenState
 
   Future<ProductUpload?> _pickUpload(String title) =>
       _pickProductPhoto(context, ref, title: title);
+
+  bool get _navigationBlocked =>
+      _isMutating ||
+      (_step == _CalibrationStep.fit &&
+          (_renders.firstOrNull?.status.isPending ?? false));
+
+  void _handleSystemBack() {
+    if (_navigationBlocked) return;
+    switch (_step) {
+      case _CalibrationStep.method:
+        Navigator.pop(context);
+      case _CalibrationStep.overview:
+        _step = _CalibrationStep.method;
+      case _CalibrationStep.bodyView:
+        _step = _CalibrationStep.pickPhoto;
+      case _CalibrationStep.pickPhoto:
+        _step = _CalibrationStep.overview;
+      case _CalibrationStep.removingBackground:
+        _step = _CalibrationStep.pickPhoto;
+      case _CalibrationStep.confirmCutout:
+        _step = _CalibrationStep.pickPhoto;
+      case _CalibrationStep.placeProduct:
+        _step = _cutout == null
+            ? _CalibrationStep.pickPhoto
+            : _CalibrationStep.confirmCutout;
+      case _CalibrationStep.fit:
+        _step = _CalibrationStep.placeProduct;
+      case _CalibrationStep.review:
+        if (_openedWithSavedCalibration) {
+          Navigator.pop(context);
+        } else {
+          _step = _workspace?.calibration.wornPhotoUrl != null
+              ? _CalibrationStep.wornPhoto
+              : _CalibrationStep.placeProduct;
+        }
+      case _CalibrationStep.wornPhoto || _CalibrationStep.copyFrom:
+        _step = _CalibrationStep.method;
+    }
+  }
 
   static double _placementValue(Object? value, double fallback) =>
       value is num && value > 0 ? value.toDouble() : fallback;
@@ -310,6 +366,19 @@ class _ProductCalibrationScreenState
     }
     return {'full_body_front'};
   }
+
+  static _CalibrationStep _stepForRouteStage(String stage) => switch (stage) {
+    'overview' => _CalibrationStep.overview,
+    'photo' => _CalibrationStep.wornPhoto,
+    'body' => _CalibrationStep.bodyView,
+    'source' => _CalibrationStep.pickPhoto,
+    'cutout' || 'crop' || 'fix' => _CalibrationStep.confirmCutout,
+    'place' => _CalibrationStep.placeProduct,
+    'render' => _CalibrationStep.fit,
+    'copy-from' => _CalibrationStep.copyFrom,
+    'review' || 'legacy-preview' => _CalibrationStep.review,
+    _ => _CalibrationStep.method,
+  };
 
   void _updatePlacement(double x, double y, double scale) {
     _placementX = x.clamp(0.1, 0.9);
@@ -459,23 +528,28 @@ class _ProductCalibrationScreenState
           )
         : switch (_step) {
             _CalibrationStep.method => _CalibrationMethodStep(
-              onBody: () => _step = _CalibrationStep.bodyView,
+              onBody: () => _step = _CalibrationStep.overview,
               onWorn: () => _step = _CalibrationStep.wornPhoto,
               onCopy: () => _step = _CalibrationStep.copyFrom,
+            ),
+            _CalibrationStep.overview => _CalibrationOverviewStep(
+              onBack: () => _step = _CalibrationStep.method,
+              onNext: () => _step = _CalibrationStep.pickPhoto,
             ),
             _CalibrationStep.bodyView => _CalibrationBodyStep(
               outlines: workspace.outlines,
               selectedBodyArea: _bodyArea,
               onSelected: (value) => _bodyArea = value,
-              onBack: () => _step = _CalibrationStep.method,
+              onBack: () => _step = _CalibrationStep.pickPhoto,
               onNext: () => _step = _CalibrationStep.pickPhoto,
             ),
             _CalibrationStep.pickPhoto => _CalibrationPickPhotoStep(
               product: widget.product,
               bodyArea: _bodyArea,
-              onBack: () => _step = _CalibrationStep.bodyView,
+              onBack: () => _step = _CalibrationStep.overview,
               onNext: _uploadCutout,
               onPhotoSelected: _useExistingProductPhoto,
+              onChangeBody: () => _step = _CalibrationStep.bodyView,
             ),
             _CalibrationStep.removingBackground => _CalibrationProgressStep(
               onBack: () => _step = _CalibrationStep.pickPhoto,
@@ -576,12 +650,15 @@ class _ProductCalibrationScreenState
             ),
           };
     return PopScope(
-      canPop: !_isMutating,
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) _handleSystemBack();
+      },
       child: Scaffold(
         backgroundColor: AppColors.white,
-        appBar: const CustomAppBar(
-          title: 'Set real-world size',
-          showBackButton: true,
+        appBar: _CalibrationHeader(
+          productName: widget.product.name,
+          onExit: _navigationBlocked ? null : () => Navigator.pop(context),
         ),
         body: SafeArea(top: false, child: body),
       ),

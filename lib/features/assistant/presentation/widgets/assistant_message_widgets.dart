@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:look_atlas/features/assistant/domain/entities/assistant_models.dart';
 
@@ -60,7 +58,7 @@ class _AssistantTypingIndicatorState extends State<AssistantTypingIndicator>
       vsync: this,
       duration: const Duration(milliseconds: 1200),
     );
-    unawaited(_controller.repeat());
+    _controller.repeat();
   }
 
   @override

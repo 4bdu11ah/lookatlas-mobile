@@ -116,7 +116,7 @@ class _SwipeScreenState extends ConsumerState<SwipeScreen>
     _pendingDecision = saved;
     _releaseFrom = _drag;
     _releaseTo = Offset((saved ? 1 : -1) * width * 1.4, _drag.dy * 1.4);
-    unawaited(_release.forward(from: 0));
+    _release.forward(from: 0);
   }
 
   void _cancelDrag() {
@@ -124,7 +124,7 @@ class _SwipeScreenState extends ConsumerState<SwipeScreen>
     _pendingDecision = null;
     _releaseFrom = _drag;
     _releaseTo = Offset.zero;
-    unawaited(_release.forward(from: 0));
+    _release.forward(from: 0);
   }
 
   @override

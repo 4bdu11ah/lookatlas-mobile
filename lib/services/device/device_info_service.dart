@@ -3,10 +3,10 @@ import 'package:look_atlas/services/device/device_info.dart';
 
 class DeviceInfoService {
   const DeviceInfoService({
-    MethodChannel channel = const MethodChannel(
+    this._channel = const MethodChannel(
       'com.lookatlas/device_info',
     ),
-  }) : _channel = channel;
+  });
 
   final MethodChannel _channel;
 

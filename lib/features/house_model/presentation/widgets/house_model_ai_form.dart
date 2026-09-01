@@ -114,13 +114,11 @@ class _AiModelSheetState extends ConsumerState<_AiModelSheet> {
   void _scrollToError() {
     final errorContext = _errorKey.currentContext;
     if (errorContext == null) return;
-    unawaited(
-      Scrollable.ensureVisible(
-        errorContext,
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeInOut,
-        alignmentPolicy: ScrollPositionAlignmentPolicy.keepVisibleAtEnd,
-      ),
+    Scrollable.ensureVisible(
+      errorContext,
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeInOut,
+      alignmentPolicy: ScrollPositionAlignmentPolicy.keepVisibleAtEnd,
     );
   }
 

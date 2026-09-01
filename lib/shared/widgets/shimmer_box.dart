@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'dart:io' show Platform;
 
 import 'package:flutter/foundation.dart';
@@ -68,7 +67,7 @@ class _ShimmerBoxState extends State<ShimmerBox>
       vsync: this,
       duration: const Duration(milliseconds: 1400),
     );
-    if (!_isTestEnvironment) unawaited(_controller.repeat());
+    if (!_isTestEnvironment) _controller.repeat();
   }
 
   @override

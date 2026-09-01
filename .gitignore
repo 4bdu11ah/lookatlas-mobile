@@ -48,7 +48,6 @@ app.*.map.json
 .env
 .env.*
 !.env.example
-.fvmrc
 
 # Android release signing (see android/key.properties.example)
 android/key.properties
@@ -65,3 +64,6 @@ lookatlas-onboarding-mockups
 docs
 designs
 graphify-out/
+
+# FVM Version Cache
+.fvm/

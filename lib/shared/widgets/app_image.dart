@@ -141,7 +141,7 @@ class AppImage extends StatelessWidget {
   Widget _svg() {
     final placeholderBuilder = placeholder == null
         ? null
-        : (BuildContext _) => placeholder!;
+        : (_) => placeholder!;
 
     if (_isNetwork) {
       return SvgPicture.network(

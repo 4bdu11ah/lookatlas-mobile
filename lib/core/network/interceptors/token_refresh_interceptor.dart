@@ -11,11 +11,11 @@ import 'package:look_atlas/core/logging/app_logger.dart';
 /// this stays backend-agnostic (the template ships with a local auth repo).
 class TokenRefreshInterceptor extends Interceptor {
   TokenRefreshInterceptor({
-    required Dio dio,
+    required this._dio,
     required this.tokenProvider,
     required this.refreshToken,
     required this.onAuthFailure,
-  }) : _dio = dio;
+  });
 
   final Dio _dio;
 

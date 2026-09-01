@@ -53,12 +53,10 @@ class _PortfolioImageViewerState extends State<_PortfolioImageViewer> {
 
   void _goTo(int index) {
     final wrappedIndex = index % widget.urls.length;
-    unawaited(
-      _controller.animateToPage(
-        wrappedIndex,
-        duration: const Duration(milliseconds: 180),
-        curve: Curves.easeOutCubic,
-      ),
+    _controller.animateToPage(
+      wrappedIndex,
+      duration: const Duration(milliseconds: 180),
+      curve: Curves.easeOutCubic,
     );
   }
 

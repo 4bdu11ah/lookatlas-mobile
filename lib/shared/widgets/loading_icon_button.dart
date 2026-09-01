@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
@@ -34,7 +32,7 @@ class _LoadingIconButtonState extends State<LoadingIconButton>
       vsync: this,
       duration: const Duration(milliseconds: 850),
     );
-    if (widget.isLoading) unawaited(_controller.repeat());
+    if (widget.isLoading) _controller.repeat();
   }
 
   @override
@@ -42,7 +40,7 @@ class _LoadingIconButtonState extends State<LoadingIconButton>
     super.didUpdateWidget(oldWidget);
     if (oldWidget.isLoading == widget.isLoading) return;
     if (widget.isLoading) {
-      unawaited(_controller.repeat());
+      _controller.repeat();
     } else {
       _controller.stop();
     }

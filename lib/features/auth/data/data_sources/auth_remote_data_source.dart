@@ -62,12 +62,10 @@ abstract interface class AuthRemoteDataSource {
 
 class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   AuthRemoteDataSourceImpl({
-    required ApiService api,
-    required ApiService publicApi,
-    Future<Map<String, Object?>> Function()? registrationContext,
-  }) : _api = api,
-       _publicApi = publicApi,
-       _registrationContext = registrationContext;
+    required this._api,
+    required this._publicApi,
+    this._registrationContext,
+  });
 
   /// The shared bearer-authenticated client — only [logout] needs it.
   final ApiService _api;

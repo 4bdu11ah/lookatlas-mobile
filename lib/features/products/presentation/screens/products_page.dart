@@ -374,19 +374,210 @@ class _ProductsLoadingShimmer extends StatelessWidget {
   const _ProductsLoadingShimmer();
 
   @override
-  Widget build(BuildContext context) {
-    return ListView.builder(
-      key: const ValueKey('products-loading-shimmer'),
-      padding: const EdgeInsets.fromLTRB(16, 22, 16, 96),
-      itemCount: 3,
-      itemBuilder: (_, index) => Padding(
-        padding: const EdgeInsets.only(bottom: 14),
-        child: _ProductLoadingShimmerCard(
-          key: ValueKey('product-loading-shimmer-card-$index'),
-        ),
+  Widget build(BuildContext context) => const CustomScrollView(
+    key: ValueKey('products-loading-shimmer'),
+    slivers: [
+      SliverPadding(
+        padding: EdgeInsets.fromLTRB(16, 30, 16, 0),
+        sliver: SliverToBoxAdapter(child: _ProductsLoadingChrome()),
       ),
-    );
-  }
+      SliverPadding(
+        padding: EdgeInsets.fromLTRB(16, 14, 16, 96),
+        sliver: SliverToBoxAdapter(child: _ProductsLoadingShimmerGrid()),
+      ),
+    ],
+  );
+}
+
+class _ProductsLoadingShimmerGrid extends StatelessWidget {
+  const _ProductsLoadingShimmerGrid();
+
+  @override
+  Widget build(BuildContext context) => const Column(
+    children: [
+      Row(
+        children: [
+          Expanded(
+            child: AspectRatio(
+              aspectRatio: 0.58,
+              child: _ProductLoadingShimmerCard(
+                key: ValueKey('product-loading-shimmer-card-0'),
+              ),
+            ),
+          ),
+          SizedBox(width: 8),
+          Expanded(
+            child: AspectRatio(
+              aspectRatio: 0.58,
+              child: _ProductLoadingShimmerCard(
+                key: ValueKey('product-loading-shimmer-card-1'),
+              ),
+            ),
+          ),
+        ],
+      ),
+      SizedBox(height: 12),
+      Row(
+        children: [
+          Expanded(
+            child: AspectRatio(
+              aspectRatio: 0.58,
+              child: _ProductLoadingShimmerCard(
+                key: ValueKey('product-loading-shimmer-card-2'),
+              ),
+            ),
+          ),
+          SizedBox(width: 8),
+          Expanded(
+            child: AspectRatio(
+              aspectRatio: 0.58,
+              child: _ProductLoadingShimmerCard(
+                key: ValueKey('product-loading-shimmer-card-3'),
+              ),
+            ),
+          ),
+        ],
+      ),
+    ],
+  );
+}
+
+/// Mirrors the catalog's editorial header, metrics, section label, and
+/// filters so the loaded screen arrives without a disruptive layout shift.
+class _ProductsLoadingChrome extends StatelessWidget {
+  const _ProductsLoadingChrome();
+
+  @override
+  Widget build(BuildContext context) => const Column(
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    children: [
+      FractionallySizedBox(
+        widthFactor: 0.24,
+        child: SizedBox(height: 10, child: ShimmerBox()),
+      ),
+      SizedBox(height: 10),
+      FractionallySizedBox(
+        widthFactor: 0.48,
+        child: SizedBox(height: 48, child: ShimmerBox()),
+      ),
+      SizedBox(height: 16),
+      SizedBox(height: 12, child: ShimmerBox()),
+      SizedBox(height: 7),
+      FractionallySizedBox(
+        widthFactor: 0.76,
+        child: SizedBox(height: 12, child: ShimmerBox()),
+      ),
+      SizedBox(height: 28),
+      FractionallySizedBox(
+        widthFactor: 0.38,
+        alignment: Alignment.centerLeft,
+        child: SizedBox(height: 44, child: ShimmerBox()),
+      ),
+      SizedBox(height: 40),
+      _ProductsStatsLoadingShimmer(),
+      SizedBox(height: 42),
+      _ProductsSectionLoadingShimmer(),
+      SizedBox(height: 22),
+      _ProductsFiltersLoadingShimmer(),
+    ],
+  );
+}
+
+class _ProductsStatsLoadingShimmer extends StatelessWidget {
+  const _ProductsStatsLoadingShimmer();
+
+  @override
+  Widget build(BuildContext context) => Container(
+    height: 149,
+    color: AppColors.black,
+    padding: const EdgeInsets.all(14),
+    child: const Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Expanded(
+          child: Row(
+            children: [
+              Expanded(child: ShimmerBox(dark: true)),
+              SizedBox(width: 12),
+              Expanded(child: ShimmerBox(dark: true)),
+              SizedBox(width: 12),
+              Expanded(child: ShimmerBox(dark: true)),
+            ],
+          ),
+        ),
+        SizedBox(height: 14),
+        FractionallySizedBox(
+          widthFactor: 0.8,
+          child: SizedBox(height: 10, child: ShimmerBox(dark: true)),
+        ),
+      ],
+    ),
+  );
+}
+
+class _ProductsSectionLoadingShimmer extends StatelessWidget {
+  const _ProductsSectionLoadingShimmer();
+
+  @override
+  Widget build(BuildContext context) => const DecoratedBox(
+    decoration: BoxDecoration(
+      border: Border(top: BorderSide(color: AppColors.neutral200)),
+    ),
+    child: Padding(
+      padding: EdgeInsets.only(top: 12),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(width: 28, height: 18, child: ShimmerBox()),
+          SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                FractionallySizedBox(
+                  widthFactor: 0.34,
+                  child: SizedBox(height: 10, child: ShimmerBox()),
+                ),
+                SizedBox(height: 8),
+                FractionallySizedBox(
+                  widthFactor: 0.82,
+                  child: SizedBox(height: 31, child: ShimmerBox()),
+                ),
+                SizedBox(height: 10),
+                FractionallySizedBox(
+                  widthFactor: 0.2,
+                  child: SizedBox(height: 10, child: ShimmerBox()),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
+}
+
+class _ProductsFiltersLoadingShimmer extends StatelessWidget {
+  const _ProductsFiltersLoadingShimmer();
+
+  @override
+  Widget build(BuildContext context) => const Column(
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    children: [
+      SizedBox(height: 40, child: ShimmerBox()),
+      SizedBox(height: 1),
+      SizedBox(height: 46, child: ShimmerBox()),
+      SizedBox(height: 1),
+      SizedBox(height: 46, child: ShimmerBox()),
+      SizedBox(height: 1),
+      SizedBox(height: 46, child: ShimmerBox()),
+      SizedBox(height: 10),
+      FractionallySizedBox(
+        widthFactor: 0.34,
+        child: SizedBox(height: 10, child: ShimmerBox()),
+      ),
+    ],
+  );
 }
 
 class _ProductLoadingShimmerCard extends StatelessWidget {
@@ -395,7 +586,6 @@ class _ProductLoadingShimmerCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: AppColors.white,
         border: Border.all(color: AppColors.neutral200),
@@ -403,24 +593,34 @@ class _ProductLoadingShimmerCard extends StatelessWidget {
       child: const Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Row(
-            children: [
-              Expanded(child: SizedBox(height: 16, child: ShimmerBox())),
-              SizedBox(width: 32),
-              SizedBox(width: 32),
-            ],
+          AspectRatio(
+            aspectRatio: 1,
+            child: Padding(
+              padding: EdgeInsets.all(8),
+              child: ShimmerBox(),
+            ),
           ),
-          SizedBox(height: 8),
-          FractionallySizedBox(
-            widthFactor: 0.34,
-            child: SizedBox(height: 12, child: ShimmerBox()),
-          ),
-          SizedBox(height: 12),
-          AspectRatio(aspectRatio: 1, child: ShimmerBox()),
-          SizedBox(height: 11),
-          FractionallySizedBox(
-            widthFactor: 0.25,
-            child: SizedBox(height: 12, child: ShimmerBox()),
+          Padding(
+            padding: EdgeInsets.fromLTRB(12, 12, 12, 14),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                FractionallySizedBox(
+                  widthFactor: 0.76,
+                  child: SizedBox(height: 14, child: ShimmerBox()),
+                ),
+                SizedBox(height: 8),
+                FractionallySizedBox(
+                  widthFactor: 0.48,
+                  child: SizedBox(height: 10, child: ShimmerBox()),
+                ),
+                SizedBox(height: 18),
+                FractionallySizedBox(
+                  widthFactor: 0.42,
+                  child: SizedBox(height: 18, child: ShimmerBox()),
+                ),
+              ],
+            ),
           ),
         ],
       ),

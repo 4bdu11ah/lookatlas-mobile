@@ -53,12 +53,10 @@ class _LibraryModelCardState extends State<_LibraryModelCard> {
   void _selectAngle(_ModelAngle angle) {
     if (_angle == angle) return;
     setState(() => _angle = angle);
-    unawaited(
-      _pageController.animateToPage(
-        angle.index,
-        duration: const Duration(milliseconds: 220),
-        curve: Curves.easeOut,
-      ),
+    _pageController.animateToPage(
+      angle.index,
+      duration: const Duration(milliseconds: 220),
+      curve: Curves.easeOut,
     );
   }
 

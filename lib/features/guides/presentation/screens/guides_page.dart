@@ -55,12 +55,10 @@ class _GuidesPageState extends ConsumerState<_GuidesPage> {
   void _selectTab(_GuideTab tab) {
     ref.read(_guidesControllerProvider.notifier).selectTab(tab);
     if (!_scrollController.hasClients) return;
-    unawaited(
-      _scrollController.animateTo(
-        0,
-        duration: const Duration(milliseconds: 180),
-        curve: Curves.easeOut,
-      ),
+    _scrollController.animateTo(
+      0,
+      duration: const Duration(milliseconds: 180),
+      curve: Curves.easeOut,
     );
   }
 

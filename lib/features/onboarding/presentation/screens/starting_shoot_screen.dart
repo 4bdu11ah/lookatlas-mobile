@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -38,7 +37,7 @@ class _StartingShootScreenState extends State<StartingShootScreen>
     _progress
       ..addListener(_onProgress)
       ..addStatusListener(_onStatus);
-    unawaited(_progress.forward());
+    _progress.forward();
   }
 
   void _onProgress() {
@@ -46,7 +45,7 @@ class _StartingShootScreenState extends State<StartingShootScreen>
     for (final t in _burstThresholds) {
       if (percent >= t && _lastBurst < t) {
         _lastBurst = t;
-        unawaited(_burst.forward(from: 0));
+        _burst.forward(from: 0);
       }
     }
   }

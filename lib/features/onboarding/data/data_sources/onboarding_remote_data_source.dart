@@ -34,7 +34,7 @@ abstract interface class OnboardingRemoteDataSource {
 }
 
 class OnboardingRemoteDataSourceImpl implements OnboardingRemoteDataSource {
-  const OnboardingRemoteDataSourceImpl({required ApiService api}) : _api = api;
+  const OnboardingRemoteDataSourceImpl({required this._api});
 
   final ApiService _api;
 

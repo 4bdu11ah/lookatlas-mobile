@@ -187,12 +187,10 @@ class _AssistantScreenState extends ConsumerState<AssistantScreen> {
       if (duration == Duration.zero) {
         _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
       } else {
-        unawaited(
-          _scrollController.animateTo(
-            _scrollController.position.maxScrollExtent,
-            duration: duration,
-            curve: Curves.easeOut,
-          ),
+        _scrollController.animateTo(
+          _scrollController.position.maxScrollExtent,
+          duration: duration,
+          curve: Curves.easeOut,
         );
       }
     });

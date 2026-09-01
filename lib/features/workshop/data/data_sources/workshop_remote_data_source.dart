@@ -22,10 +22,9 @@ abstract interface class WorkshopRemoteDataSource {
 
 class WorkshopRemoteDataSourceImpl implements WorkshopRemoteDataSource {
   const WorkshopRemoteDataSourceImpl({
-    required ApiService api,
-    required ApiService publicApi,
-  }) : _api = api,
-       _publicApi = publicApi;
+    required this._api,
+    required this._publicApi,
+  });
 
   final ApiService _api;
   final ApiService _publicApi;

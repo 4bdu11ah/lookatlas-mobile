@@ -20,7 +20,8 @@ if (keystorePropertiesFile.exists()) {
 
 android {
     namespace = "com.lookatlas"
-    compileSdk = flutter.compileSdkVersion
+    // flutter_secure_storage 11 requires Android API 37 at compile time.
+    compileSdk = 37
     ndkVersion = flutter.ndkVersion
 
     compileOptions {

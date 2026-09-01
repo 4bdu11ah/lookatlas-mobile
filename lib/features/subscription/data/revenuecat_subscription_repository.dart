@@ -177,7 +177,7 @@ class RevenueCatSubscriptionRepository implements SubscriptionRepository {
       return SubscriptionStatusModel.fromJson(
         jsonDecode(raw) as Map<String, dynamic>,
       );
-    } on Object catch (error, _) {
+    } on Object catch (error) {
       // A corrupt or unexpectedly-shaped cache must never crash startup.
       AppLogger.warning('Discarding unreadable cached status: $error');
       return null;

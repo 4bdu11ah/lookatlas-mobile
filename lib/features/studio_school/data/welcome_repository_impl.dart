@@ -11,12 +11,10 @@ import 'package:look_atlas/features/studio_school/domain/welcome_repository.dart
 
 class WelcomeRepositoryImpl implements WelcomeRepository {
   WelcomeRepositoryImpl({
-    required StudioSchoolApi remote,
-    required KeyValueStore store,
+    required this._remote,
+    required this._store,
     DateTime Function()? now,
-  }) : _remote = remote,
-       _store = store,
-       _now = now ?? DateTime.now;
+  }) : _now = now ?? DateTime.now;
 
   static const _staleAfter = Duration(seconds: 45);
   static const _cachePrefix = 'welcome_state:';

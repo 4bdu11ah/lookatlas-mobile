@@ -456,6 +456,11 @@ void main() {
       find.byKey(const ValueKey('products-loading-shimmer')),
       findsOneWidget,
     );
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('product-loading-shimmer-card-0')),
+      300,
+      scrollable: find.byType(Scrollable),
+    );
     expect(
       find.byKey(const ValueKey('product-loading-shimmer-card-0')),
       findsOneWidget,

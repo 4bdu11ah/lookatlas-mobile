@@ -89,10 +89,9 @@ abstract interface class ProductsRemoteDataSource {
 
 class ProductsRemoteDataSourceImpl implements ProductsRemoteDataSource {
   const ProductsRemoteDataSourceImpl({
-    required ApiService api,
-    required ApiService publicApi,
-  }) : _api = api,
-       _publicApi = publicApi;
+    required this._api,
+    required this._publicApi,
+  });
 
   final ApiService _api;
   final ApiService _publicApi;

@@ -12,7 +12,7 @@ abstract interface class DashboardRemoteDataSource {
 }
 
 class DashboardRemoteDataSourceImpl implements DashboardRemoteDataSource {
-  const DashboardRemoteDataSourceImpl({required ApiService api}) : _api = api;
+  const DashboardRemoteDataSourceImpl({required this._api});
 
   final ApiService _api;
 

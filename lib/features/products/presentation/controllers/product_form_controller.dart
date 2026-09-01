@@ -237,9 +237,10 @@ class _ProductFormController extends Notifier<_ProductFormState> {
       },
       photoOrder: [
         for (final token in orderedTokens)
-          token.startsWith('existing:')
-              ? token.substring(9)
-              : token.substring(4),
+          if (token.startsWith('existing:'))
+            token.substring(9)
+          else
+            token.substring(4),
       ],
     );
     final products = ref.read(_productsControllerProvider.notifier);

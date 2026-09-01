@@ -2,8 +2,8 @@ import 'package:flutter/services.dart';
 
 class ImageSaveService {
   const ImageSaveService({
-    MethodChannel channel = const MethodChannel('com.lookatlas/image_save'),
-  }) : _channel = channel;
+    this._channel = const MethodChannel('com.lookatlas/image_save'),
+  });
 
   final MethodChannel _channel;
 

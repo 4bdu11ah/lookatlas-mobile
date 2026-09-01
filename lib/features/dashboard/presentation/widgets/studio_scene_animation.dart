@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'dart:math' as math;
 import 'dart:ui' as ui;
 
@@ -154,7 +153,7 @@ class _StudioSceneAnimationState extends State<StudioSceneAnimation>
         ..value = 0;
       _transition.value = 1;
     } else if (!_idle.isAnimating) {
-      unawaited(_idle.repeat());
+      _idle.repeat();
     }
   }
 

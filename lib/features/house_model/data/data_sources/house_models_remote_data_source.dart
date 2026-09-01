@@ -26,7 +26,7 @@ abstract interface class HouseModelsRemoteDataSource {
 }
 
 class HouseModelsRemoteDataSourceImpl implements HouseModelsRemoteDataSource {
-  const HouseModelsRemoteDataSourceImpl({required ApiService api}) : _api = api;
+  const HouseModelsRemoteDataSourceImpl({required this._api});
 
   final ApiService _api;
 

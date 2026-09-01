@@ -1,0 +1,34 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(flutter pub *)",
+      "Bash(flutter analyze *)",
+      "Skill(claude-api)",
+      "Bash(dart --version)",
+      "Bash(dart analyze *)",
+      "Bash(dart format *)",
+      "Bash(echo \"exit: $?\")",
+      "Bash(git -C /Users/mac/Documents/Metasense/look_atlas diff lib/features/ai/presentation/chat_controller.dart)",
+      "Bash(dart run *)",
+      "Bash(echo \"analyze exit: $?\")",
+      "Bash(echo \"format exit: $?\")",
+      "Bash(git check-ignore *)",
+      "Bash(echo \"ignore-check-exit: $?\")",
+      "Bash(git -C /Users/mac/Documents/Metasense/look_atlas check-ignore -v scripts/run.sh scripts/build.sh AGENTS.md android/key.properties android/upload-keystore.jks)",
+      "Bash(./gradlew -q help)",
+      "Bash(./gradlew -q :app:signingReport)",
+      "Bash(git -C /Users/mac/Documents/Metasense/look_atlas mv test/widget_test.dart test/features/auth/presentation/sign_in_screen_test.dart)",
+      "Bash(supabase --version)",
+      "Bash(deno --version)",
+      "Bash(sed -n '/const CustomerInfo/,/\\);/p' customer_info_wrapper.dart)",
+      "Bash(sed -n '/const EntitlementInfos/,/\\);/p' entitlement_infos_wrapper.dart)",
+      "Bash(sed -n '/const Package/,/\\);/p' package_wrapper.dart)",
+      "Bash(sed -n '/const StoreProduct/,/}\\);/p' store_product_wrapper.dart)",
+      "Bash(sed -n '/const PresentedOfferingContext/,/\\);/p' presented_offering_context_wrapper.dart)",
+      "Bash(supabase init *)",
+      "Bash(npx --yes deno check index.ts)",
+      "Bash(echo \"exit=$?\")",
+      "Bash(flutter test *)"
+    ]
+  }
+}

@@ -67,7 +67,7 @@ class _LookAtlasLoaderState extends State<LookAtlasLoader>
     _ticker = createTicker((elapsed) {
       _elapsedMs.value = elapsed.inMicroseconds / 1000;
     });
-    unawaited(_ticker.start());
+    _ticker.start();
   }
 
   @override
@@ -134,7 +134,7 @@ class _LookAtlasLoaderState extends State<LookAtlasLoader>
     // window and the particles would appear already converged.
     _ticker.stop();
     _elapsedMs.value = 0;
-    unawaited(_ticker.start());
+    _ticker.start();
 
     setState(() => _field = _ParticleField.generate(targets, size));
     _notifyIntroStarted();

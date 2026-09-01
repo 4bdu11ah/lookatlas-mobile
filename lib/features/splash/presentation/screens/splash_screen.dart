@@ -49,7 +49,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
   void _startClock() {
     _fallback?.cancel();
     if (mounted && !_controller.isAnimating && !_controller.isCompleted) {
-      unawaited(_controller.forward());
+      _controller.forward();
     }
   }
 

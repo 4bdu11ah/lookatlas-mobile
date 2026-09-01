@@ -16,10 +16,9 @@ abstract interface class BillingRemoteDataSource {
 
 class BillingRemoteDataSourceImpl implements BillingRemoteDataSource {
   const BillingRemoteDataSourceImpl({
-    required ApiService api,
-    required ApiService publicApi,
-  }) : _api = api,
-       _publicApi = publicApi;
+    required this._api,
+    required this._publicApi,
+  });
 
   final ApiService _api;
   final ApiService _publicApi;

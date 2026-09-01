@@ -73,7 +73,7 @@ class _DirectorPrintsState extends State<_DirectorPrints>
     if (!widget.animateEntrance || MediaQuery.disableAnimationsOf(context)) {
       _controller.value = 1;
     } else if (_controller.isDismissed) {
-      unawaited(_controller.forward());
+      _controller.forward();
     }
   }
 

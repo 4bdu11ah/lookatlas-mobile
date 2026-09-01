@@ -438,8 +438,8 @@ class FakeAuthRepository implements AuthRepository {
 class FakeSubscriptionRepository implements SubscriptionRepository {
   FakeSubscriptionRepository({
     this.products = const [],
-    SubscriptionStatus status = SubscriptionStatus.free,
-  }) : _status = status;
+    this._status = SubscriptionStatus.free,
+  });
 
   /// A premium status matching what a successful purchase would produce.
   static const premiumStatus = SubscriptionStatus(

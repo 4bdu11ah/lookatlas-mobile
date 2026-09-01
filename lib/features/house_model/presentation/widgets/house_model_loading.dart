@@ -209,7 +209,7 @@ class _HouseModelShimmerState extends State<_HouseModelShimmer>
     if (MediaQuery.disableAnimationsOf(context)) {
       _controller.stop();
     } else if (!_controller.isAnimating) {
-      unawaited(_controller.repeat());
+      _controller.repeat();
     }
   }
 

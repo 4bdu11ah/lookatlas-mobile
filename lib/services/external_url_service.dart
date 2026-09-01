@@ -2,8 +2,8 @@ import 'package:flutter/services.dart';
 
 class ExternalUrlService {
   const ExternalUrlService({
-    MethodChannel channel = const MethodChannel('com.lookatlas/external_url'),
-  }) : _channel = channel;
+    this._channel = const MethodChannel('com.lookatlas/external_url'),
+  });
 
   final MethodChannel _channel;
 

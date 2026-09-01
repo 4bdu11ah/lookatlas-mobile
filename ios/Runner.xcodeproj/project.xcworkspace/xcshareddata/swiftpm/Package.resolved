@@ -32,8 +32,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/google/GoogleUtilities.git",
       "state" : {
-        "revision" : "9f183ae842be978784f2963a343682e0c46d8fb3",
-        "version" : "8.1.2"
+        "revision" : "92c8f6dc3ac375d6febdfcb3db68bc3d10633db3",
+        "version" : "8.1.3"
       }
     },
     {
@@ -68,8 +68,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/PostHog/posthog-ios",
       "state" : {
-        "revision" : "4cf77c21b424ca16ec827da2fb3f0c61ee90d2aa",
-        "version" : "3.69.12"
+        "revision" : "d933f3050645b5df9fe86862110c1726e0c5b135",
+        "version" : "3.71.0"
       }
     },
     {
@@ -86,8 +86,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/RevenueCat/purchases-hybrid-common.git",
       "state" : {
-        "revision" : "058ef6c4eacde3e46a75af59ed35bcd22eacb4e9",
-        "version" : "18.18.0"
+        "revision" : "1ddfae809003768d49bbfd30b008b29181ce4cb1",
+        "version" : "18.33.1"
       }
     },
     {
@@ -95,8 +95,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/RevenueCat/purchases-ios-spm",
       "state" : {
-        "revision" : "e89cb027a472e5cf1c15435c4e690b9a3c170cdc",
-        "version" : "5.80.0"
+        "revision" : "b65cae4f227be800c57cb9700dbd94f2aa5409b2",
+        "version" : "5.87.1"
       }
     },
     {
@@ -104,8 +104,17 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/getsentry/sentry-cocoa",
       "state" : {
-        "revision" : "dad229c665bfd043c5d80ac7aa77717cbd19a1c3",
-        "version" : "8.58.3"
+        "revision" : "f196cbb98e0388381d57908f2f5a9bdc385cde68",
+        "version" : "8.58.4"
+      }
+    },
+    {
+      "identity" : "swift-collections",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/apple/swift-collections.git",
+      "state" : {
+        "revision" : "a0cb0954ecb21e4e31b0070e6ed5674e8556685a",
+        "version" : "1.6.0"
       }
     }
   ],

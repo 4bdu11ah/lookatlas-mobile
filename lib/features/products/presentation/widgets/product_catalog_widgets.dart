@@ -264,7 +264,10 @@ class _ProductCard extends StatelessWidget {
                       key: ValueKey('calibrate-product-${product.sku}'),
                       onTap: onCalibrate,
                       child: _ProductPill.neutral(
-                        product.status,
+                        product.status ==
+                                ProductCalibrationStatus.recommended.label
+                            ? ''
+                            : product.status,
                         icon: Icons.straighten,
                       ),
                     ),

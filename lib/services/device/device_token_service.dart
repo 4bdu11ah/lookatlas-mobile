@@ -31,12 +31,10 @@ class DeviceClientContext {
 
 class DeviceTokenService {
   const DeviceTokenService({
-    required ApiService publicApi,
-    required KeyValueStore store,
-    required DeviceInfoService deviceInfo,
-  }) : _publicApi = publicApi,
-       _store = store,
-       _deviceInfo = deviceInfo;
+    required this._publicApi,
+    required this._store,
+    required this._deviceInfo,
+  });
 
   static const _tokenKey = 'look_atlas_device_token';
 

@@ -27,6 +27,7 @@ dependencies:
   go_router: ^18.0.0 # declarative routing + auth redirects
   google_sign_in: ^7.2.0 # Google social sign-in
   image_picker: ^1.2.2
+  image: ^4.5.4
   intl: ^0.20.3 # i18n + formatting
   lucide_icons_flutter: ^3.1.15
   native_cutout: ^0.3.0
@@ -79,3 +80,10 @@ flutter:
           weight: 700
         - asset: assets/fonts/Satoshi-Black.ttf
           weight: 900
+    - family: InstrumentSerif
+      fonts:
+        - asset: assets/fonts/InstrumentSerif-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/InstrumentSerif-Italic.ttf
+          weight: 400
+          style: italic

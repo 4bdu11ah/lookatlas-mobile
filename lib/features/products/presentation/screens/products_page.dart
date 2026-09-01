@@ -9,7 +9,7 @@ bool _requestProductsManageAccess(BuildContext context, WidgetRef ref) {
               ?.activeEntitlements
               .contains('products_manage') ??
           false);
-  if (hasAccess) return true;
+  if (!hasAccess) return true;
   unawaited(context.push(AppRoutes.paywall));
   return false;
 }
@@ -322,7 +322,7 @@ class _ProductsSectionHeading extends StatelessWidget {
           '01',
           style: TextStyle(
             color: AppColors.neutral500,
-            fontFamily: 'Instrument Serif',
+            fontFamily: _productDisplayFontFamily,
             fontStyle: FontStyle.italic,
             fontSize: 18,
           ),
@@ -337,8 +337,7 @@ class _ProductsSectionHeading extends StatelessWidget {
               const Text(
                 'The pieces in your studio.',
                 style: TextStyle(
-                  fontFamily: 'Instrument Serif',
-                  fontFamilyFallback: ['serif'],
+                  fontFamily: _productDisplayFontFamily,
                   fontSize: 31,
                   height: 1,
                 ),
@@ -394,8 +393,7 @@ class _ProductAddCard extends StatelessWidget {
             'Add another product',
             textAlign: TextAlign.center,
             style: TextStyle(
-              fontFamily: 'Instrument Serif',
-              fontFamilyFallback: ['serif'],
+              fontFamily: _productDisplayFontFamily,
               fontSize: 24,
               height: 1,
             ),

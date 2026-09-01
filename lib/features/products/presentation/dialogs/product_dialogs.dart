@@ -101,6 +101,7 @@ class _ProductDetailSheetState extends State<_ProductDetailSheet> {
                     crossAxisCount: 4,
                     crossAxisSpacing: 8,
                     mainAxisSpacing: 8,
+                    childAspectRatio: .78,
                   ),
                   itemBuilder: (context, index) => Semantics(
                     button: true,
@@ -112,16 +113,38 @@ class _ProductDetailSheetState extends State<_ProductDetailSheet> {
                         'View ${index + 1}',
                     child: InkWell(
                       onTap: () => setState(() => _photoIndex = index),
-                      child: Container(
-                        decoration: BoxDecoration(
-                          border: Border.all(
-                            color: index == _photoIndex
-                                ? AppColors.black
-                                : AppColors.neutral200,
-                            width: index == _photoIndex ? 2 : 1,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Expanded(
+                            child: Container(
+                              decoration: BoxDecoration(
+                                border: Border.all(
+                                  color: index == _photoIndex
+                                      ? AppColors.black
+                                      : AppColors.neutral200,
+                                  width: index == _photoIndex ? 2 : 1,
+                                ),
+                              ),
+                              child: _AssetImage(photos[index]),
+                            ),
                           ),
-                        ),
-                        child: _AssetImage(photos[index]),
+                          const SizedBox(height: 4),
+                          Text(
+                            product.productPhotos
+                                    .elementAtOrNull(index)
+                                    ?.viewAngle ??
+                                'View ${index + 1}',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                              color: AppColors.neutral500,
+                              fontSize: 9,
+                              fontWeight: AppTypography.semiBold,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ),
@@ -137,8 +160,7 @@ class _ProductDetailSheetState extends State<_ProductDetailSheet> {
                   Text(
                     product.name,
                     style: const TextStyle(
-                      fontFamily: 'Instrument Serif',
-                      fontFamilyFallback: ['serif'],
+                      fontFamily: _productDisplayFontFamily,
                       fontSize: 36,
                       height: 1,
                     ),
@@ -264,8 +286,14 @@ Future<void> _showProductFormDialog(
   return showAppBottomSheet<void>(
     context,
     isScrollControlled: true,
-    builder: (sheetContext) => SizedBox(
+    backgroundColor: const Color(0xFFFBFBF9),
+    barrierColor: const Color(0x9E000000),
+    builder: (sheetContext) => Container(
       height: MediaQuery.sizeOf(sheetContext).height * 0.94,
+      decoration: const BoxDecoration(
+        color: Color(0xFFFBFBF9),
+        border: Border(top: BorderSide(color: Color(0xFF121211))),
+      ),
       child: Column(
         children: [
           _ProductFormSheetHeader(editing: product != null),
@@ -289,68 +317,35 @@ Future<void> _showProductFormDialog(
                   title: 'Replace product photo',
                 );
                 if (replacement == null || !sheetContext.mounted) return null;
-                onUploadStart();
-                final result = await ref
-                    .read(_productsControllerProvider.notifier)
-                    .replacePhoto(product!, photo, replacement);
-                if (!sheetContext.mounted) return null;
-                final failure = result.failureOrNull;
-                if (failure != null) {
-                  AppSnackBar.showError(sheetContext, failure.message);
-                  return null;
-                }
-                onToast('Photo replaced');
-                return replacement;
+                ProductUpload? savedReplacement;
+                await _showProductReferenceCrop(
+                  sheetContext,
+                  source: replacement,
+                  isReplacement: true,
+                  onSave: (cropped) async {
+                    onUploadStart();
+                    final result = await ref
+                        .read(_productsControllerProvider.notifier)
+                        .replacePhoto(product!, photo, cropped);
+                    if (!sheetContext.mounted) return false;
+                    final failure = result.failureOrNull;
+                    if (failure != null) {
+                      AppSnackBar.showError(sheetContext, failure.message);
+                      return false;
+                    }
+                    savedReplacement = cropped;
+                    onToast('Photo replaced');
+                    return true;
+                  },
+                );
+                return savedReplacement;
               },
             ),
           ),
-          Consumer(
-            builder: (context, ref, _) {
-              final form = ref.watch(_productFormProvider(product));
-              return AppDialogActionFooter(
-                primaryButtonKey: const ValueKey('submit-product-form'),
-                primaryLabel: product == null
-                    ? 'Add to library'
-                    : 'Save changes',
-                primaryIcon: Icons.arrow_forward,
-                primaryDisabled: !form.isValid,
-                isLoading: form.isSubmitting,
-                onCancel: () => Navigator.pop(sheetContext),
-                onPrimary: () async {
-                  if (!_requestProductsManageAccess(sheetContext, ref)) {
-                    return;
-                  }
-                  final result = await ref
-                      .read(_productFormProvider(product).notifier)
-                      .submit(product);
-                  if (!sheetContext.mounted || result == null) return;
-                  final failure = result.failureOrNull;
-                  if (failure != null) {
-                    AppSnackBar.showError(sheetContext, failure.message);
-                    return;
-                  }
-                  Navigator.pop(sheetContext);
-                  onToast(
-                    product == null ? 'Product added' : 'Product updated',
-                  );
-                  if (product == null && context.mounted) {
-                    final created = ref
-                        .read(_productsControllerProvider)
-                        .products
-                        .where((item) => item.sku == form.sku.trim())
-                        .firstOrNull;
-                    if (created != null) {
-                      await _showProductDetailSheet(
-                        context,
-                        ref,
-                        created,
-                        onToast,
-                      );
-                    }
-                  }
-                },
-              );
-            },
+          _ProductFormFooter(
+            product: product,
+            launchContext: context,
+            onToast: onToast,
           ),
         ],
       ),
@@ -365,7 +360,7 @@ class _ProductFormSheetHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.fromLTRB(20, 18, 12, 14),
+    padding: const EdgeInsets.fromLTRB(22, 28, 12, 24),
     decoration: const BoxDecoration(
       border: Border(bottom: BorderSide(color: AppColors.neutral200)),
     ),
@@ -378,27 +373,140 @@ class _ProductFormSheetHeader extends StatelessWidget {
               _CatalogEyebrow(
                 editing ? 'Product record' : 'New catalog object',
               ),
-              const SizedBox(height: 4),
+              const SizedBox(height: 9),
               Text(
                 editing ? 'Edit product' : 'Add a product',
-                style: const TextStyle(
-                  fontFamily: 'Instrument Serif',
-                  fontFamilyFallback: ['serif'],
-                  fontSize: 30,
-                  height: 1,
+                style: TextStyle(
+                  fontFamily: _productDisplayFontFamily,
+                  fontSize: editing ? 30 : 38,
+                  height: 0.98,
+                  letterSpacing: -1.3,
                 ),
               ),
             ],
           ),
         ),
-        AppIconButton(
-          icon: Icons.close,
-          tooltip: 'Close',
-          onPressed: () => Navigator.pop(context),
+        Tooltip(
+          message: 'Close',
+          child: Semantics(
+            button: true,
+            label: 'Close',
+            child: Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: const Color(0xFFFFFFFD),
+                border: Border.all(color: const Color(0xFFDEDED8)),
+              ),
+              child: IconButton(
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints.tightFor(
+                  width: 44,
+                  height: 44,
+                ),
+                icon: const Icon(Icons.close, size: 20),
+                onPressed: () => Navigator.pop(context),
+              ),
+            ),
+          ),
         ),
       ],
     ),
   );
+}
+
+class _ProductFormFooter extends ConsumerWidget {
+  const _ProductFormFooter({
+    required this.product,
+    required this.launchContext,
+    required this.onToast,
+  });
+
+  final _Product? product;
+  final BuildContext launchContext;
+  final ValueChanged<String> onToast;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final form = ref.watch(_productFormProvider(product));
+
+    Future<void> submit() async {
+      if (!_requestProductsManageAccess(context, ref)) return;
+      final result = await ref
+          .read(_productFormProvider(product).notifier)
+          .submit(product);
+      if (!context.mounted || result == null) return;
+      final failure = result.failureOrNull;
+      if (failure != null) {
+        AppSnackBar.showError(context, failure.message);
+        return;
+      }
+      Navigator.pop(context);
+      onToast(product == null ? 'Product added' : 'Product updated');
+      if (product == null && launchContext.mounted) {
+        final created = ref
+            .read(_productsControllerProvider)
+            .products
+            .where((item) => item.sku == form.sku.trim())
+            .firstOrNull;
+        if (created != null) {
+          await _showProductDetailSheet(
+            launchContext,
+            ref,
+            created,
+            onToast,
+          );
+        }
+      }
+    }
+
+    if (product != null) {
+      return AppDialogActionFooter(
+        primaryButtonKey: const ValueKey('submit-product-form'),
+        primaryLabel: 'Save changes',
+        primaryIcon: Icons.arrow_forward,
+        primaryDisabled: !form.isValid,
+        isLoading: form.isSubmitting,
+        onCancel: () => Navigator.pop(context),
+        onPrimary: submit,
+      );
+    }
+
+    final enabled = form.isValid && !form.isSubmitting;
+    return SafeArea(
+      top: false,
+      minimum: const EdgeInsets.only(bottom: 22),
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(22, 17, 22, 0),
+        decoration: const BoxDecoration(
+          color: Color(0xFFFBFBF9),
+          border: Border(top: BorderSide(color: Color(0xFFDEDED8))),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const Text(
+              '▧  Order, angles, and crop choices are saved with the product.',
+              style: TextStyle(color: Color(0xFF696964), fontSize: 9),
+            ),
+            const SizedBox(height: 18),
+            Opacity(
+              opacity: enabled ? 1 : 0.48,
+              child: PrimaryButton(
+                key: const ValueKey('submit-product-form'),
+                label: 'Add to library →',
+                onPressed: enabled ? submit : null,
+                isLoading: form.isSubmitting,
+                height: 44,
+                backgroundColor: const Color(0xFF121211),
+                foregroundColor: const Color(0xFFFBFBF9),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 Future<void> _showProductDeleteDialog(

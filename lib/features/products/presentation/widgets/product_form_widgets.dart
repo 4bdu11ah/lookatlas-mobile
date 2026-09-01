@@ -8,6 +8,7 @@ class _ProductField extends StatelessWidget {
     this.note,
     this.helper,
     this.trailing,
+    this.galleryStyle = false,
   });
 
   final String label;
@@ -16,11 +17,12 @@ class _ProductField extends StatelessWidget {
   final String? note;
   final String? helper;
   final String? trailing;
+  final bool galleryStyle;
 
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 15),
+      padding: EdgeInsets.only(bottom: galleryStyle ? 13 : 15),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -30,7 +32,9 @@ class _ProductField extends StatelessWidget {
                 child: Text.rich(
                   TextSpan(
                     children: [
-                      TextSpan(text: label),
+                      TextSpan(
+                        text: galleryStyle ? label.toUpperCase() : label,
+                      ),
                       if (required)
                         const TextSpan(
                           text: ' *',
@@ -47,11 +51,16 @@ class _ProductField extends StatelessWidget {
                         ),
                     ],
                   ),
-                  style: const TextStyle(
-                    fontSize: 12,
+                  style: TextStyle(
+                    fontSize: galleryStyle ? 9 : 12,
                     height: 1.1,
-                    fontWeight: FontWeight.w900,
-                    color: AppColors.black,
+                    fontWeight: galleryStyle
+                        ? AppTypography.bold
+                        : FontWeight.w900,
+                    letterSpacing: galleryStyle ? 0.72 : null,
+                    color: galleryStyle
+                        ? const Color(0xFF696964)
+                        : AppColors.black,
                   ),
                 ),
               ),
@@ -65,7 +74,7 @@ class _ProductField extends StatelessWidget {
                 ),
             ],
           ),
-          const SizedBox(height: 8),
+          SizedBox(height: galleryStyle ? 6 : 8),
           child,
           if (helper != null) ...[
             const SizedBox(height: 5),
@@ -82,6 +91,278 @@ class _ProductField extends StatelessWidget {
       ),
     );
   }
+}
+
+class _AddProductUploadStack extends StatelessWidget {
+  const _AddProductUploadStack({
+    required this.form,
+    required this.onPickPhotos,
+    required this.onAngleChanged,
+    required this.onMovePhoto,
+    required this.onCropPhoto,
+    required this.onRemovePhoto,
+  });
+
+  final _ProductFormState form;
+  final VoidCallback onPickPhotos;
+  final void Function(int index, String? angle) onAngleChanged;
+  final void Function(String token, int delta) onMovePhoto;
+  final ValueChanged<int> onCropPhoto;
+  final ValueChanged<int> onRemovePhoto;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.all(18),
+    margin: const EdgeInsets.all(22),
+    decoration: const BoxDecoration(
+      color: Color(0xFFECECE7),
+      border: Border(bottom: BorderSide(color: Color(0xFFD5D5CF))),
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _AddProductUploadBox(
+          enabled: form.photoCount < PRODUCT_PHOTO_UPLOAD_MAX_COUNT,
+          hasPhotos: form.photoCount > 0,
+          onTap: onPickPhotos,
+        ),
+        for (final (displayIndex, token) in form.orderedPhotoTokens.indexed)
+          if (token.startsWith('new:'))
+            for (final (newIndex, photo) in form.newPhotos.indexed)
+              if (photo.orderKey == token.substring(4))
+                _AddProductPhotoRow(
+                  displayIndex: displayIndex,
+                  upload: photo,
+                  angle: form.newAngles[newIndex],
+                  onAngleChanged: (angle) => onAngleChanged(newIndex, angle),
+                  onMoveUp: displayIndex == 0
+                      ? null
+                      : () => onMovePhoto(token, -1),
+                  onMoveDown: displayIndex == form.orderedPhotoTokens.length - 1
+                      ? null
+                      : () => onMovePhoto(token, 1),
+                  onCrop: () => onCropPhoto(newIndex),
+                  onRemove: () => onRemovePhoto(newIndex),
+                ),
+      ],
+    ),
+  );
+}
+
+class _AddProductUploadBox extends StatelessWidget {
+  const _AddProductUploadBox({
+    required this.enabled,
+    required this.hasPhotos,
+    required this.onTap,
+  });
+
+  final bool enabled;
+  final bool hasPhotos;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => Semantics(
+    button: true,
+    enabled: enabled,
+    label: 'Upload 1 to 8 reference views',
+    child: InkWell(
+      onTap: enabled ? onTap : null,
+      child: AppDottedBorder(
+        color: const Color(0xFFDEDED8),
+        dotWidth: 7,
+        gap: 5,
+        child: Container(
+          constraints: const BoxConstraints(minHeight: 142),
+          color: const Color(0xFFF1F1EE),
+          alignment: Alignment.center,
+          padding: const EdgeInsets.all(18),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(
+                Icons.file_upload_outlined,
+                size: 24,
+                color: Color(0xFF696964),
+              ),
+              const SizedBox(height: 10),
+              Text(
+                enabled
+                    ? hasPhotos
+                          ? 'Add more reference views'
+                          : 'Upload 1–8 reference views'
+                    : '8 reference views added',
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  color: Color(0xFF121211),
+                  fontFamily: _productDisplayFontFamily,
+                  fontSize: 23,
+                  fontWeight: FontWeight.w400,
+                ),
+              ),
+              const SizedBox(height: 10),
+              const Text(
+                'JPG, PNG · 20MB each',
+                style: TextStyle(color: Color(0xFF696964), fontSize: 9),
+              ),
+            ],
+          ),
+        ),
+      ),
+    ),
+  );
+}
+
+class _AddProductPhotoRow extends StatelessWidget {
+  const _AddProductPhotoRow({
+    required this.displayIndex,
+    required this.upload,
+    required this.angle,
+    required this.onAngleChanged,
+    required this.onMoveUp,
+    required this.onMoveDown,
+    required this.onCrop,
+    required this.onRemove,
+  });
+
+  final int displayIndex;
+  final ProductUpload upload;
+  final String? angle;
+  final ValueChanged<String?> onAngleChanged;
+  final VoidCallback? onMoveUp;
+  final VoidCallback? onMoveDown;
+  final VoidCallback onCrop;
+  final VoidCallback onRemove;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    margin: const EdgeInsets.only(top: 8),
+    padding: const EdgeInsets.all(8),
+    decoration: BoxDecoration(
+      color: const Color(0xFFFFFFFD),
+      border: Border.all(color: const Color(0xFFDEDED8)),
+    ),
+    child: Column(
+      children: [
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SizedBox(
+              width: 58,
+              height: 58,
+              child: AppImage.memory(upload.bytes, fit: BoxFit.cover),
+            ),
+            const SizedBox(width: 9),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'View ${displayIndex + 1}'.toUpperCase(),
+                    style: const TextStyle(
+                      color: Color(0xFF696964),
+                      fontSize: 8,
+                      fontWeight: AppTypography.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 5),
+                  _MiniSelect(
+                    angle,
+                    angleLabel:
+                        'Angle for new product view ${displayIndex + 1}',
+                    onChanged: onAngleChanged,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            Expanded(
+              child: _AddPhotoAction(
+                display: '↑',
+                label: 'Move up',
+                onTap: onMoveUp,
+              ),
+            ),
+            const SizedBox(width: 5),
+            Expanded(
+              child: _AddPhotoAction(
+                display: '↓',
+                label: 'Move down',
+                onTap: onMoveDown,
+              ),
+            ),
+            const SizedBox(width: 5),
+            Expanded(
+              child: _AddPhotoAction(
+                display: '',
+                icon: Icons.crop,
+                label: 'Crop',
+                onTap: onCrop,
+              ),
+            ),
+            const SizedBox(width: 5),
+            Expanded(
+              child: _AddPhotoAction(
+                display: '×',
+                label: 'Remove',
+                onTap: onRemove,
+                danger: true,
+              ),
+            ),
+          ],
+        ),
+      ],
+    ),
+  );
+}
+
+class _AddPhotoAction extends StatelessWidget {
+  const _AddPhotoAction({
+    required this.display,
+    required this.label,
+    required this.onTap,
+    this.icon,
+    this.danger = false,
+  });
+
+  final String display;
+  final IconData? icon;
+  final String label;
+  final VoidCallback? onTap;
+  final bool danger;
+
+  @override
+  Widget build(BuildContext context) => Semantics(
+    button: true,
+    label: label,
+    child: Opacity(
+      opacity: onTap == null ? 0.38 : 1,
+      child: InkWell(
+        onTap: onTap,
+        child: Container(
+          height: 44,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            border: Border.all(color: const Color(0xFFDEDED8)),
+          ),
+          child: icon != null
+              ? Icon(icon, size: 18, color: const Color(0xFF121211))
+              : Text(
+                  display,
+                  style: TextStyle(
+                    fontSize: 18,
+                    color: danger
+                        ? const Color(0xFF8A2D2D)
+                        : const Color(0xFF121211),
+                  ),
+                ),
+        ),
+      ),
+    ),
+  );
 }
 
 class _SubtypeRow extends StatelessWidget {
@@ -456,7 +737,9 @@ class _ProductThumb extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           _MiniSelect(
-            angle ?? '',
+            angle,
+            angleLabel:
+                'Angle for ${isNew ? 'new' : 'saved'} product view ${displayIndex + 1}',
             onChanged: onAngleChanged,
           ),
         ],
@@ -486,30 +769,159 @@ class _ThumbAction extends StatelessWidget {
 }
 
 class _MiniSelect extends StatelessWidget {
-  const _MiniSelect(this.value, {required this.onChanged});
+  const _MiniSelect(
+    this.value, {
+    required this.onChanged,
+    required this.angleLabel,
+  });
+
+  final String? value;
+  final ValueChanged<String?> onChanged;
+  final String angleLabel;
+
+  static const _standardAngles = [
+    'front',
+    'back',
+    'side',
+    'top',
+    'bottom',
+    'detail',
+    'inside',
+  ];
+  static const _noneToken = '__none__';
+  static const _customToken = '__custom__';
+
+  void _select(String token) {
+    if (token == _noneToken) {
+      onChanged(null);
+      return;
+    }
+    if (token == _customToken) {
+      onChanged('');
+      return;
+    }
+    onChanged(token);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isCustom = value != null && !_standardAngles.contains(value);
+    final dropdownValue = value == null
+        ? _noneToken
+        : isCustom
+        ? _customToken
+        : value!;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Semantics(
+          label: angleLabel,
+          child: AppDropdown<String>(
+            value: dropdownValue,
+            values: const [_noneToken, ..._standardAngles, _customToken],
+            labelFor: (angle) {
+              if (angle == _noneToken) return 'None';
+              if (angle == _customToken) return 'Custom…';
+              return '${angle[0].toUpperCase()}${angle.substring(1)}';
+            },
+            onChanged: _select,
+            config: const AppDropdownConfig(
+              height: 44,
+              horizontalPadding: 7,
+              menuMaxHeight: 320,
+            ),
+          ),
+        ),
+        if (isCustom) ...[
+          const SizedBox(height: 5),
+          SizedBox(
+            height: 44,
+            child: Semantics(
+              textField: true,
+              label: '$angleLabel custom name',
+              child: _ControlledCustomAngleField(
+                value: value!,
+                onChanged: onChanged,
+              ),
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+class _ControlledCustomAngleField extends StatefulWidget {
+  const _ControlledCustomAngleField({
+    required this.value,
+    required this.onChanged,
+  });
 
   final String value;
   final ValueChanged<String?> onChanged;
 
   @override
-  Widget build(BuildContext context) {
-    const values = ['', 'front', 'back', 'side', 'detail', 'top'];
-    return SizedBox(
-      height: 32,
-      child: AppDropdown<String>(
-        value: values.contains(value) ? value : '',
-        values: values,
-        labelFor: (angle) => angle.isEmpty
-            ? 'Choose angle'
-            : '${angle[0].toUpperCase()}${angle.substring(1)}',
-        onChanged: (angle) => onChanged(angle.isEmpty ? null : angle),
-        config: const AppDropdownConfig(
-          height: 32,
-          horizontalPadding: 7,
-        ),
-      ),
+  State<_ControlledCustomAngleField> createState() =>
+      _ControlledCustomAngleFieldState();
+}
+
+class _ControlledCustomAngleFieldState
+    extends State<_ControlledCustomAngleField> {
+  late final TextEditingController _controller;
+  final FocusNode _focusNode = FocusNode();
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: widget.value);
+    if (widget.value.isEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _focusNode.requestFocus();
+      });
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant _ControlledCustomAngleField oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (_controller.text == widget.value) return;
+    _controller.value = TextEditingValue(
+      text: widget.value,
+      selection: TextSelection.collapsed(offset: widget.value.length),
     );
   }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    _focusNode.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => TextField(
+    controller: _controller,
+    focusNode: _focusNode,
+    maxLength: 40,
+    inputFormatters: [LengthLimitingTextInputFormatter(40)],
+    onChanged: (text) => widget.onChanged(
+      text.substring(0, min(text.length, 40)),
+    ),
+    decoration: const InputDecoration(
+      hintText: 'e.g., Logo, Tag',
+      counterText: '',
+      contentPadding: EdgeInsets.symmetric(horizontal: 9, vertical: 10),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.zero,
+        borderSide: BorderSide(color: Color(0xFFDEDED8)),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.zero,
+        borderSide: BorderSide(color: Color(0xFF121211), width: 2),
+      ),
+    ),
+    style: const TextStyle(fontSize: 12, color: Color(0xFF121211)),
+  );
 }
 
 class _ProductIdCard extends StatelessWidget {

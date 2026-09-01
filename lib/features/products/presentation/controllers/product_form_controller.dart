@@ -6,7 +6,7 @@ class _ProductFormState {
     this.name = '',
     this.sku = '',
     this.description = '',
-    this.category = 'Tops',
+    this.category = 'Other',
     this.subtype = '',
     this.existingPhotos = const [],
     this.replacementPhotos = const {},
@@ -104,7 +104,7 @@ class _ProductFormController extends Notifier<_ProductFormState> {
     name: product?.name ?? '',
     sku: product?.sku ?? '',
     description: product?.description ?? '',
-    category: product?.category ?? 'Tops',
+    category: product?.category ?? 'Other',
     subtype: product?.subtype ?? '',
     existingPhotos: product?.productPhotos ?? const [],
     photoOrder: [
@@ -121,7 +121,10 @@ class _ProductFormController extends Notifier<_ProductFormState> {
   void setSku(String value) => state = state.copyWith(sku: value);
   void setDescription(String value) =>
       state = state.copyWith(description: value);
-  void setCategory(String value) => state = state.copyWith(category: value);
+  void setCategory(String value) => state = state.copyWith(
+    category: value,
+    subtype: value == state.category ? state.subtype : '',
+  );
   void setSubtype(String value) => state = state.copyWith(subtype: value);
   void addPhotos(List<ProductUpload> photos) => state = state.copyWith(
     newPhotos: [...state.newPhotos, ...photos],
@@ -138,18 +141,45 @@ class _ProductFormController extends Notifier<_ProductFormState> {
         if (token.startsWith('existing:')) token,
     ],
   );
+  void removeNewPhoto(int index) {
+    if (index < 0 || index >= state.newPhotos.length) return;
+    final removed = state.newPhotos[index];
+    final photos = [...state.newPhotos]..removeAt(index);
+    final angles = <int, String?>{
+      for (final (newIndex, _) in photos.indexed)
+        newIndex: state.newAngles[newIndex >= index ? newIndex + 1 : newIndex],
+    };
+    state = state.copyWith(
+      newPhotos: photos,
+      newAngles: angles,
+      photoOrder: [
+        for (final token in state.orderedPhotoTokens)
+          if (token != 'new:${removed.orderKey}') token,
+      ],
+    );
+  }
+
   void removeExistingPhoto(int index) {
+    if (index < 0 || index >= state.existingPhotos.length) return;
+    final removed = state.existingPhotos[index];
     final photos = [...state.existingPhotos]..removeAt(index);
     state = state.copyWith(
       existingPhotos: photos,
       removedPhotoIndexes: const {},
       angles: {
         for (final (newIndex, photo) in photos.indexed)
-          newIndex: photo.viewAngle,
+          newIndex:
+              state.angles[state.existingPhotos.indexWhere(
+                (existing) => existing.id == photo.id,
+              )],
+      },
+      replacementPhotos: {
+        for (final entry in state.replacementPhotos.entries)
+          if (entry.key != removed.id) entry.key: entry.value,
       },
       photoOrder: [
         for (final token in state.orderedPhotoTokens)
-          if (token != 'existing:${state.existingPhotos[index].id}') token,
+          if (token != 'existing:${removed.id}') token,
       ],
     );
   }
@@ -163,10 +193,16 @@ class _ProductFormController extends Notifier<_ProductFormState> {
     state = state.copyWith(photoOrder: order);
   }
 
-  Future<void> cropNewPhoto(int index) async {
+  void replaceNewPhoto(int index, ProductUpload cropped) {
     if (index < 0 || index >= state.newPhotos.length) return;
-    final cropped = await _cropProductUploadToSquare(state.newPhotos[index]);
-    final photos = [...state.newPhotos]..[index] = cropped;
+    final original = state.newPhotos[index];
+    final photos = [...state.newPhotos]
+      ..[index] = ProductUpload(
+        bytes: cropped.bytes,
+        fileName: cropped.fileName,
+        path: cropped.path,
+        localKey: original.orderKey,
+      );
     state = state.copyWith(newPhotos: photos);
   }
 
@@ -183,6 +219,13 @@ class _ProductFormController extends Notifier<_ProductFormState> {
   void setNewAngle(int index, String? value) =>
       state = state.copyWith(newAngles: {...state.newAngles, index: value});
 
+  String? _normalizedAngle(String? value) {
+    if (value == null) return null;
+    final cleaned = value.replaceAll(RegExp(r'[\x00-\x1F\x7F]'), '').trim();
+    if (cleaned.isEmpty) return null;
+    return cleaned.substring(0, min(cleaned.length, 40));
+  }
+
   Future<Result<void>?> submit(_Product? product) async {
     if (state.isSubmitting || !state.isValid) return null;
     state = state.copyWith(isSubmitting: true);
@@ -197,31 +240,35 @@ class _ProductFormController extends Notifier<_ProductFormState> {
     final viewAngles = product == null
         ? {
             for (final (displayIndex, token) in orderedTokens.indexed)
-              displayIndex: token.startsWith('existing:')
-                  ? state.angles[state.existingPhotos.indexWhere(
-                      (photo) => photo.id == token.substring(9),
-                    )]
-                  : state.newAngles[state.newPhotos.indexWhere(
-                      (photo) => photo.orderKey == token.substring(4),
-                    )],
+              displayIndex: _normalizedAngle(
+                token.startsWith('existing:')
+                    ? state.angles[state.existingPhotos.indexWhere(
+                        (photo) => photo.id == token.substring(9),
+                      )]
+                    : state.newAngles[state.newPhotos.indexWhere(
+                        (photo) => photo.orderKey == token.substring(4),
+                      )],
+              ),
           }
         : {
             for (final (displayIndex, token) in orderedTokens.indexed)
               if (token.startsWith('new:'))
-                displayIndex:
-                    state.newAngles[state.newPhotos.indexWhere(
-                      (photo) => photo.orderKey == token.substring(4),
-                    )]
+                displayIndex: _normalizedAngle(
+                  state.newAngles[state.newPhotos.indexWhere(
+                    (photo) => photo.orderKey == token.substring(4),
+                  )],
+                )
               else if (state.angles[state.existingPhotos.indexWhere(
                     (photo) => photo.id == token.substring(9),
                   )] !=
                   state.existingPhotos
                       .firstWhere((photo) => photo.id == token.substring(9))
                       .viewAngle)
-                displayIndex:
-                    state.angles[state.existingPhotos.indexWhere(
-                      (photo) => photo.id == token.substring(9),
-                    )],
+                displayIndex: _normalizedAngle(
+                  state.angles[state.existingPhotos.indexWhere(
+                    (photo) => photo.id == token.substring(9),
+                  )],
+                ),
           };
     final draft = CatalogProductDraft(
       name: state.name.trim(),
@@ -233,7 +280,8 @@ class _ProductFormController extends Notifier<_ProductFormState> {
       viewAngles: viewAngles,
       existingPhotoOrder: [for (final photo in existing) photo.$2.id],
       existingPhotoAngles: {
-        for (final photo in existing) photo.$2.id: state.angles[photo.$1],
+        for (final photo in existing)
+          photo.$2.id: _normalizedAngle(state.angles[photo.$1]),
       },
       photoOrder: [
         for (final token in orderedTokens)

@@ -1,12 +1,13 @@
 import 'dart:async';
 import 'dart:io';
 import 'dart:math';
-import 'dart:ui' as ui;
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image/image.dart' as image_lib;
 import 'package:intl/intl.dart';
 import 'package:look_atlas/core/error/failure.dart';
 import 'package:look_atlas/core/layout/app_responsive.dart';
@@ -101,6 +102,7 @@ part '../../../shoots/presentation/widgets/create_shoot_selection_widgets.dart';
 part '../../../products/domain/entities/product.dart';
 part '../../../products/presentation/controllers/products_controller.dart';
 part '../../../products/presentation/screens/products_page.dart';
+part '../../../products/presentation/screens/product_reference_crop_screen.dart';
 part '../../../products/presentation/widgets/product_filters.dart';
 part '../../../products/presentation/widgets/product_catalog_widgets.dart';
 part '../../../products/presentation/dialogs/product_dialogs.dart';

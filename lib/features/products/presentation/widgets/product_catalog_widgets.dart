@@ -1,5 +1,7 @@
 part of '../../../dashboard/presentation/screens/dashboard_screen.dart';
 
+const String _productDisplayFontFamily = 'InstrumentSerif';
+
 class _ProductsLibraryHeader extends StatelessWidget {
   const _ProductsLibraryHeader({required this.onAdd});
 
@@ -14,8 +16,7 @@ class _ProductsLibraryHeader extends StatelessWidget {
       const Text(
         'Products',
         style: TextStyle(
-          fontFamily: 'Instrument Serif',
-          fontFamilyFallback: ['serif'],
+          fontFamily: _productDisplayFontFamily,
           fontSize: 48,
           height: 0.98,
           letterSpacing: -1.6,
@@ -56,60 +57,86 @@ class _ProductsCatalogStats extends StatelessWidget {
   final int? calibrated;
 
   @override
-  Widget build(BuildContext context) => ColoredBox(
-    color: AppColors.black,
-    child: Column(
-      children: [
-        SizedBox(
-          height: 86,
-          child: Row(
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        // Page gutters consume 32 px, so a 420 px viewport gives this card
+        // 388 px. Match the HTML breakpoint using the available width.
+        final compact = constraints.maxWidth <= 388;
+        return ColoredBox(
+          color: AppColors.black,
+          child: Column(
             children: [
-              Expanded(child: _CatalogMetric('Total products', total)),
-              Expanded(child: _CatalogMetric('Loaded now', loaded)),
-              Expanded(child: _CatalogMetric('Size calibrated', calibrated)),
+              if (compact) ...[
+                _CatalogMetric('Total products', total, compact: true),
+                _CatalogMetric('Loaded now', loaded, compact: true),
+                _CatalogMetric('Size calibrated', calibrated, compact: true),
+              ] else
+                SizedBox(
+                  height: 88,
+                  child: Row(
+                    children: [
+                      Expanded(child: _CatalogMetric('Total products', total)),
+                      Expanded(child: _CatalogMetric('Loaded now', loaded)),
+                      Expanded(
+                        child: _CatalogMetric('Size calibrated', calibrated),
+                      ),
+                    ],
+                  ),
+                ),
+              const Divider(height: 1, color: AppColors.whiteAlpha20),
+              const Padding(
+                padding: EdgeInsets.all(18),
+                child: Text(
+                  'Strong source photography makes every shoot more accurate. Add up to eight front, back, side, and detail views.',
+                  style: TextStyle(
+                    color: AppColors.whiteAlpha60,
+                    fontSize: 10,
+                    height: 1.65,
+                  ),
+                ),
+              ),
             ],
           ),
-        ),
-        const Divider(height: 1, color: AppColors.whiteAlpha20),
-        const Padding(
-          padding: EdgeInsets.all(18),
-          child: Text(
-            'Strong source photography makes every shoot more accurate. Add up to eight front, back, side, and detail views.',
-            style: TextStyle(
-              color: AppColors.whiteAlpha60,
-              fontSize: 10,
-              height: 1.65,
-            ),
-          ),
-        ),
-      ],
-    ),
-  );
+        );
+      },
+    );
+  }
 }
 
 class _CatalogMetric extends StatelessWidget {
-  const _CatalogMetric(this.label, this.value);
+  const _CatalogMetric(this.label, this.value, {this.compact = false});
 
   final String label;
   final int? value;
+  final bool compact;
 
   @override
   Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.fromLTRB(10, 14, 8, 12),
-    decoration: const BoxDecoration(
-      border: Border(right: BorderSide(color: AppColors.whiteAlpha20)),
+    width: compact ? double.infinity : null,
+    padding: compact
+        ? const EdgeInsets.symmetric(horizontal: 12, vertical: 16)
+        : const EdgeInsets.fromLTRB(10, 14, 8, 12),
+    decoration: BoxDecoration(
+      border: Border(
+        right: compact
+            ? BorderSide.none
+            : const BorderSide(color: AppColors.whiteAlpha20),
+        bottom: compact
+            ? const BorderSide(color: AppColors.whiteAlpha20)
+            : BorderSide.none,
+      ),
     ),
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _CatalogEyebrow(label, color: AppColors.whiteAlpha60),
-        const Spacer(),
+        if (compact) const SizedBox(height: 10) else const Spacer(),
         Text(
           value == null ? '—' : value.toString().padLeft(2, '0'),
           style: const TextStyle(
             color: AppColors.white,
-            fontFamily: 'Instrument Serif',
-            fontFamilyFallback: ['serif'],
+            fontFamily: _productDisplayFontFamily,
             fontSize: 23,
           ),
         ),
@@ -279,8 +306,10 @@ class _ProductCard extends StatelessWidget {
                     top: 8,
                     left: 8,
                     child: _CatalogBadge(
+                      key: ValueKey('product-index-${product.sku}'),
                       text: (index + 1).toString().padLeft(2, '0'),
                       dark: true,
+                      editorialNumber: true,
                     ),
                   ),
                   Positioned(
@@ -291,16 +320,15 @@ class _ProductCard extends StatelessWidget {
                   Positioned(
                     top: 8,
                     left: 38,
-                    right: 54,
-                    child: InkWell(
-                      key: ValueKey('calibrate-product-${product.sku}'),
-                      onTap: onCalibrate,
-                      child: _ProductPill.neutral(
-                        product.status ==
-                                ProductCalibrationStatus.recommended.label
-                            ? ''
-                            : product.status,
-                        icon: Icons.straighten,
+                    child: Tooltip(
+                      message: product.status,
+                      child: InkWell(
+                        key: ValueKey('calibrate-product-${product.sku}'),
+                        onTap: onCalibrate,
+                        child: _ProductCalibrationIndicator(
+                          sku: product.sku,
+                          status: product.calibrationStatus,
+                        ),
                       ),
                     ),
                   ),
@@ -327,8 +355,7 @@ class _ProductCard extends StatelessWidget {
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
-                            fontFamily: 'Instrument Serif',
-                            fontFamilyFallback: ['serif'],
+                            fontFamily: _productDisplayFontFamily,
                             fontSize: 19,
                             height: 1,
                           ),
@@ -354,11 +381,74 @@ class _ProductCard extends StatelessWidget {
   }
 }
 
+class _ProductCalibrationIndicator extends StatelessWidget {
+  const _ProductCalibrationIndicator({
+    required this.sku,
+    required this.status,
+  });
+
+  final String sku;
+  final ProductCalibrationStatus status;
+
+  IconData get _icon => switch (status) {
+    ProductCalibrationStatus.calibrated ||
+    ProductCalibrationStatus.changesPending => Icons.check_circle_outline,
+    ProductCalibrationStatus.fitRendering ||
+    ProductCalibrationStatus.fitPending => Icons.hourglass_top,
+    ProductCalibrationStatus.fitReady ||
+    ProductCalibrationStatus.saveReady => Icons.rate_review_outlined,
+    ProductCalibrationStatus.fitFailed => Icons.error_outline,
+    ProductCalibrationStatus.recommended ||
+    ProductCalibrationStatus.optional => Icons.straighten,
+  };
+
+  Color get _color => switch (status) {
+    ProductCalibrationStatus.calibrated ||
+    ProductCalibrationStatus.changesPending => AppColors.successDarker,
+    ProductCalibrationStatus.fitFailed => AppColors.danger,
+    _ => AppColors.neutral800,
+  };
+
+  @override
+  Widget build(BuildContext context) => Semantics(
+    label: status.label,
+    button: true,
+    child: Container(
+      width: 28,
+      height: 28,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        border: Border.all(color: AppColors.neutral200),
+      ),
+      child: Transform.rotate(
+        angle:
+            status == ProductCalibrationStatus.recommended ||
+                status == ProductCalibrationStatus.optional
+            ? -0.785398
+            : 0,
+        child: Icon(
+          _icon,
+          key: ValueKey('product-status-icon-$sku'),
+          size: 16,
+          color: _color,
+        ),
+      ),
+    ),
+  );
+}
+
 class _CatalogBadge extends StatelessWidget {
-  const _CatalogBadge({required this.text, this.dark = false});
+  const _CatalogBadge({
+    required this.text,
+    this.dark = false,
+    this.editorialNumber = false,
+    super.key,
+  });
 
   final String text;
   final bool dark;
+  final bool editorialNumber;
 
   @override
   Widget build(BuildContext context) => Container(
@@ -369,6 +459,8 @@ class _CatalogBadge extends StatelessWidget {
       maxLines: 1,
       style: TextStyle(
         color: dark ? AppColors.white : AppColors.black,
+        fontFamily: editorialNumber ? _productDisplayFontFamily : null,
+        fontStyle: editorialNumber ? FontStyle.italic : null,
         fontSize: 8,
         fontWeight: FontWeight.w900,
         letterSpacing: 0.7,
@@ -492,38 +584,6 @@ Future<ProductUpload?> _pickProductPhoto(
     title: title,
   );
   return photos.firstOrNull;
-}
-
-Future<ProductUpload> _cropProductUploadToSquare(ProductUpload upload) async {
-  final codec = await ui.instantiateImageCodec(upload.bytes);
-  final frame = await codec.getNextFrame();
-  final image = frame.image;
-  final side = min(image.width, image.height);
-  final source = Rect.fromLTWH(
-    (image.width - side) / 2,
-    (image.height - side) / 2,
-    side.toDouble(),
-    side.toDouble(),
-  );
-  final recorder = ui.PictureRecorder();
-  Canvas(recorder).drawImageRect(
-    image,
-    source,
-    Rect.fromLTWH(0, 0, side.toDouble(), side.toDouble()),
-    Paint(),
-  );
-  final cropped = await recorder.endRecording().toImage(side, side);
-  final bytes = await cropped.toByteData(format: ui.ImageByteFormat.png);
-  image.dispose();
-  cropped.dispose();
-  codec.dispose();
-  if (bytes == null) return upload;
-  final fileName = '${upload.fileName.split('.').first}-cropped.png';
-  return ProductUpload(
-    bytes: bytes.buffer.asUint8List(),
-    fileName: fileName,
-    localKey: upload.orderKey,
-  );
 }
 
 Future<List<ProductUpload>> _pickProductPhotos(

@@ -91,6 +91,22 @@ class _ProductFormDialogState extends ConsumerState<_ProductFormDialog> {
     }
   }
 
+  Future<void> _cropNewPhoto(int index) async {
+    final form = ref.read(_formProvider);
+    if (index < 0 || index >= form.newPhotos.length) return;
+    final source = form.newPhotos[index];
+    await _showProductReferenceCrop(
+      context,
+      source: source,
+      isReplacement: false,
+      onSave: (cropped) async {
+        if (!mounted) return false;
+        ref.read(_formProvider.notifier).replaceNewPhoto(index, cropped);
+        return true;
+      },
+    );
+  }
+
   @override
   void dispose() {
     _nameController.dispose();
@@ -104,6 +120,91 @@ class _ProductFormDialogState extends ConsumerState<_ProductFormDialog> {
     final form = ref.watch(_formProvider);
     final editing = widget.product != null;
     final categoryNeedsSubtype = form.category == 'Bags';
+    if (!editing) {
+      final notifier = ref.read(_formProvider.notifier);
+      return SingleChildScrollView(
+        padding: EdgeInsets.zero,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            _AddProductUploadStack(
+              form: form,
+              onPickPhotos: _pickPhotos,
+              onAngleChanged: notifier.setNewAngle,
+              onMovePhoto: notifier.movePhoto,
+              onCropPhoto: (index) => unawaited(_cropNewPhoto(index)),
+              onRemovePhoto: notifier.removeNewPhoto,
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(22, 0, 22, 22),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  _ProductField(
+                    label: 'Product name',
+                    galleryStyle: true,
+                    child: AppTextField(
+                      controller: _nameController,
+                      hintText: 'Structured leather tote',
+                    ),
+                  ),
+                  _ProductField(
+                    label: 'SKU',
+                    galleryStyle: true,
+                    child: AppTextField(
+                      controller: _skuController,
+                      hintText: 'BAG-021',
+                    ),
+                  ),
+                  _ProductField(
+                    label: 'Category',
+                    galleryStyle: true,
+                    child: AppDropdown<String>(
+                      value: form.category,
+                      values: const [
+                        'Other',
+                        'Tops',
+                        'Dresses',
+                        'Outerwear',
+                        'Bottoms',
+                        'Bags',
+                        'Shoes',
+                        'Jewelry',
+                        'Eyewear',
+                        'Watches',
+                        'Accessories',
+                      ],
+                      labelFor: (value) => value,
+                      onChanged: notifier.setCategory,
+                    ),
+                  ),
+                  if (categoryNeedsSubtype)
+                    _ProductField(
+                      label: 'Sub-type',
+                      galleryStyle: true,
+                      helper: 'Choose a product sub-type so shoots place it correctly.',
+                      child: _SubtypeRow(
+                        value: form.subtype,
+                        onChanged: notifier.setSubtype,
+                      ),
+                    ),
+                  _ProductField(
+                    label: 'Description',
+                    galleryStyle: true,
+                    child: AppTextField(
+                      controller: _descriptionController,
+                      hintText: 'A short internal description for your team.',
+                      minLines: 4,
+                      maxLines: 5,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
+    }
     return SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(20, 18, 20, 18),
       child: Column(
@@ -130,8 +231,7 @@ class _ProductFormDialogState extends ConsumerState<_ProductFormDialog> {
           _ProductField(
             label: 'Category',
             required: true,
-            helper:
-                'Proportions matter for this category. Calibrate after saving for sharper results.',
+            helper: 'Proportions matter for this category. Calibrate after saving for sharper results.',
             child: AppDropdown<String>(
               value: form.category,
               values: const [
@@ -202,9 +302,7 @@ class _ProductFormDialogState extends ConsumerState<_ProductFormDialog> {
               onNewAngleChanged: (index, angle) =>
                   ref.read(_formProvider.notifier).setNewAngle(index, angle),
               onMovePhoto: ref.read(_formProvider.notifier).movePhoto,
-              onCropNew: (index) => unawaited(
-                ref.read(_formProvider.notifier).cropNewPhoto(index),
-              ),
+              onCropNew: (index) => unawaited(_cropNewPhoto(index)),
               onDeletePhoto: _deletePhoto,
               onReplacePhoto: _replacePhoto,
               onClear: editing

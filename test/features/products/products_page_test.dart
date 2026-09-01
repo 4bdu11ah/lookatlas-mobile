@@ -442,6 +442,51 @@ void main() {
     expect(find.text('Add a product'), findsOneWidget);
     expect(find.text('The pieces in your studio.'), findsOneWidget);
     await ensureProductVisible(tester, 'Canvas Crossbody Bag');
+    expect(
+      tester.widget<Text>(find.text('Canvas Crossbody Bag')).style?.fontFamily,
+      'InstrumentSerif',
+    );
+    final productIndex = find.descendant(
+      of: find.byKey(const ValueKey('product-index-BAG-012')),
+      matching: find.byType(Text),
+    );
+    expect(
+      tester.widget<Text>(productIndex).style?.fontFamily,
+      'InstrumentSerif',
+    );
+    expect(
+      tester.widget<Text>(productIndex).style?.fontStyle,
+      FontStyle.italic,
+    );
+  });
+
+  testWidgets('product cards use compact calibration status icons', (
+    tester,
+  ) async {
+    await pumpProducts(tester);
+
+    final recommendedIcon = find.byKey(
+      const ValueKey('product-status-icon-TSH-001'),
+    );
+    await tester.scrollUntilVisible(
+      recommendedIcon,
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
+    expect(tester.widget<Icon>(recommendedIcon).icon, Icons.straighten);
+
+    final calibratedIcon = find.byKey(
+      const ValueKey('product-status-icon-BAG-012'),
+    );
+    await tester.scrollUntilVisible(
+      calibratedIcon,
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
+    expect(
+      tester.widget<Icon>(calibratedIcon).icon,
+      Icons.check_circle_outline,
+    );
   });
 
   testWidgets('product page shows shimmer cards while the catalog loads', (
@@ -589,15 +634,18 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Add a product'), findsWidgets);
     expect(
-      find.textContaining('Product Name', findRichText: true),
+      find.textContaining('PRODUCT NAME', findRichText: true),
       findsOneWidget,
     );
+    expect(find.text('Upload 1–8 reference views'), findsOneWidget);
     expect(
-      find.textContaining('Product Photos', findRichText: true),
+      find.text(
+        '▧  Order, angles, and crop choices are saved with the product.',
+      ),
       findsOneWidget,
     );
 
-    await tester.tap(find.text('Cancel'));
+    await tester.tap(find.byTooltip('Close'));
     await tester.pumpAndSettle();
 
     await openProductDetail(tester);
@@ -630,6 +678,23 @@ void main() {
     await tester.tap(find.text('Delete Product').last);
     await tester.pumpAndSettle();
     expect(productsRepository.deleteCalls, 1);
+  });
+
+  testWidgets('add product sheet matches the compact mobile reference', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(320, 700));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await pumpProducts(tester);
+
+    await tester.tap(find.text('Add a product'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('NEW CATALOG OBJECT'), findsOneWidget);
+    expect(find.text('Upload 1–8 reference views'), findsOneWidget);
+    expect(find.text('Other'), findsOneWidget);
+    expect(find.text('Add to library →'), findsOneWidget);
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('product edit form submits its Riverpod draft', (tester) async {

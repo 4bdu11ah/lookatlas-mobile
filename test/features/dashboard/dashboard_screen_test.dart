@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:look_atlas/core/providers/core_providers.dart';
@@ -421,6 +422,80 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byType(Drawer), findsNothing);
+  });
+
+  testWidgets('mobile drawer matches the grouped modal navigation design', (
+    tester,
+  ) async {
+    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = const Size(390, 844);
+    addTearDown(() {
+      tester.view.resetDevicePixelRatio();
+      tester.view.resetPhysicalSize();
+    });
+    await pumpDashboard(
+      tester,
+      user: const AppUser(
+        id: 'user-1',
+        email: 'rina@example.com',
+        companyName: 'Rina Atelier',
+      ),
+    );
+
+    await tester.tap(find.byKey(const ValueKey('dashboard-open-navigation')));
+    await tester.pumpAndSettle();
+
+    expect(
+      tester
+          .getSize(
+            find.byKey(const ValueKey('dashboard-drawer-surface')),
+          )
+          .width,
+      closeTo(343.2, 0.01),
+    );
+    expect(find.text('Workspace'), findsOneWidget);
+    expect(find.text('Library'), findsOneWidget);
+    expect(find.text('Tools'), findsOneWidget);
+    expect(find.byKey(const ValueKey('dashboard-drawer-create')), findsOne);
+    expect(
+      find.byKey(const ValueKey('dashboard-drawer-video-editor')),
+      findsOne,
+    );
+    expect(find.text('SOON'), findsOneWidget);
+    expect(find.text('RA'), findsOneWidget);
+    expect(
+      tester
+          .widget<IconButton>(
+            find.byKey(const ValueKey('dashboard-close-navigation')),
+          )
+          .focusNode!
+          .hasFocus,
+      isTrue,
+    );
+
+    await tester.tap(
+      find.byKey(const ValueKey('dashboard-drawer-account')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Profile & brand'), findsOneWidget);
+    expect(find.text('Settings'), findsOneWidget);
+    expect(find.text('Billing'), findsOneWidget);
+    expect(find.text('Help'), findsOneWidget);
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+    await tester.pumpAndSettle();
+
+    expect(find.byType(Drawer), findsNothing);
+    expect(
+      tester
+          .widget<IconButton>(
+            find.byKey(const ValueKey('dashboard-open-navigation')),
+          )
+          .focusNode!
+          .hasFocus,
+      isTrue,
+    );
   });
 
   testWidgets('shows stats before slower dashboard sections complete', (
@@ -886,7 +961,9 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('profileAction_320px_rendersWithoutOverflow', (tester) async {
+  testWidgets('mobileNavigationHeader_320px_rendersWithoutOverflow', (
+    tester,
+  ) async {
     tester.view.devicePixelRatio = 1;
     tester.view.physicalSize = const Size(320, 844);
     addTearDown(tester.view.reset);
@@ -900,7 +977,11 @@ void main() {
       ),
     );
 
-    expect(find.text('Complete profile'), findsOneWidget);
+    expect(find.text('WORKSPACE'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('dashboard-header-credits')),
+      findsOneWidget,
+    );
     expect(tester.takeException(), isNull);
   });
 }

@@ -12,6 +12,7 @@ import 'package:look_atlas/features/products/di/products_providers.dart';
 import 'package:look_atlas/features/products/domain/entities/product_catalog.dart';
 import 'package:look_atlas/features/products/domain/repositories/products_repository.dart';
 import 'package:look_atlas/features/subscription/presentation/subscription_controller.dart';
+import 'package:look_atlas/shared/widgets/app_image.dart';
 
 import '../../helpers/fake_repositories.dart';
 
@@ -73,6 +74,7 @@ class _FakeProductsRepository implements ProductsRepository {
   int deleteCalls = 0;
   int updateCalls = 0;
   int getProductsCalls = 0;
+  CatalogProductDraft? lastUpdateDraft;
 
   @override
   Future<Result<ProductCatalogPage>> getProducts(ProductQuery query) async {
@@ -136,13 +138,14 @@ class _FakeProductsRepository implements ProductsRepository {
     CatalogProductDraft draft,
   ) async {
     updateCalls++;
+    lastUpdateDraft = draft;
     return const Result.ok(null);
   }
 
   @override
   Future<Result<void>> updatePhotoAngles(
     String productId,
-    Map<Object, String?> angles,
+    Map<String, String?> angles,
   ) async => const Result.ok(null);
 
   @override
@@ -184,8 +187,9 @@ class _FakeProductsRepository implements ProductsRepository {
     String productId,
     ProductUpload photo, {
     required String? calibrationId,
-    required String? revision,
+    required int? revision,
     required String mutationId,
+    String? bodyArea,
   }) async => const Result.ok(null);
 
   @override
@@ -201,6 +205,12 @@ class _FakeProductsRepository implements ProductsRepository {
     Map<String, dynamic> placement,
     CalibrationMutationFence fence,
   ) async => const Result.ok(null);
+
+  @override
+  Future<Result<ProductUpload>> removeBackgroundFallback(
+    String productId,
+    ProductUpload photo,
+  ) async => Result.ok(photo);
 
   @override
   Future<Result<CalibrationRender>> startCalibrationRender(
@@ -585,11 +595,57 @@ void main() {
   ) async {
     await pumpProducts(tester);
     await openProductDetail(tester);
+    await scrollProductDetailTo(tester, find.text('View 1'));
+    expect(find.text('View 1'), findsOneWidget);
+    expect(find.text('View 2'), findsOneWidget);
+    expect(find.text('front'), findsNothing);
+    expect(find.text('back'), findsNothing);
+    await scrollProductDetailTo(tester, find.text('PRODUCT RECORD'));
     expect(find.text('PRODUCT RECORD'), findsOneWidget);
     await scrollProductDetailTo(tester, find.text('REFERENCE VIEWS'));
     expect(find.text('REFERENCE VIEWS'), findsOneWidget);
     await scrollProductDetailTo(tester, find.text('Start a shoot'));
     expect(find.text('Start a shoot'), findsOneWidget);
+  });
+
+  testWidgets('product rows show full titles at matching card heights', (
+    tester,
+  ) async {
+    await pumpProducts(tester);
+
+    final firstCard = find.byKey(
+      const ValueKey('product-card-TSH-001'),
+    );
+    final secondCard = find.byKey(
+      const ValueKey('product-card-BAG-012'),
+    );
+    await tester.scrollUntilVisible(
+      firstCard,
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
+
+    expect(
+      tester.widget<Text>(find.text('Classic Cotton T-Shirt')).maxLines,
+      isNull,
+    );
+    expect(tester.widget<Text>(find.text('TSH-001')).maxLines, isNull);
+    expect(tester.getSize(firstCard).height, tester.getSize(secondCard).height);
+  });
+
+  testWidgets('product detail centers the full reference image', (
+    tester,
+  ) async {
+    await pumpProducts(tester);
+    await openProductDetail(tester);
+
+    final image = tester.widget<AppImage>(
+      find.descendant(
+        of: find.byKey(const ValueKey('product-detail-main-image')),
+        matching: find.byType(AppImage),
+      ),
+    );
+    expect(image.fit, BoxFit.contain);
   });
 
   testWidgets('product page loads the next API page', (tester) async {
@@ -652,9 +708,16 @@ void main() {
     await scrollProductDetailTo(tester, find.text('Edit product'));
     await tester.tap(find.text('Edit product'));
     await tester.pumpAndSettle();
-    expect(find.text('Edit product'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('product-edit-main-image')),
+      findsOneWidget,
+    );
+    expect(
+      find.textContaining('PRODUCT NAME', findRichText: true),
+      findsOneWidget,
+    );
     await tester.scrollUntilVisible(
-      find.text('Current Photos'),
+      find.text('REFERENCE VIEWS'),
       250,
       scrollable: find
           .descendant(
@@ -663,7 +726,11 @@ void main() {
           )
           .first,
     );
-    expect(find.text('Current Photos'), findsOneWidget);
+    expect(find.text('REFERENCE VIEWS'), findsOneWidget);
+    expect(find.text('SAVED VIEW · POSITION 1'), findsOneWidget);
+    expect(find.byIcon(Icons.file_upload_outlined), findsWidgets);
+    expect(find.byIcon(Icons.delete_outline), findsWidgets);
+    expect(find.text('Add reference views'), findsOneWidget);
 
     await tester.tap(find.text('Cancel'));
     await tester.pumpAndSettle();
@@ -709,11 +776,43 @@ void main() {
       find.byType(TextField).first,
       'Updated Cotton T-Shirt',
     );
+    await tester.enterText(find.byType(TextField).at(1), 'TSH-UPDATED');
     await tester.tap(find.byKey(const ValueKey('submit-product-form')));
     await tester.pumpAndSettle();
 
     expect(productsRepository.updateCalls, 1);
-    expect(find.text('Edit product'), findsNothing);
+    expect(productsRepository.lastUpdateDraft?.name, 'Updated Cotton T-Shirt');
+    expect(productsRepository.lastUpdateDraft?.sku, 'TSH-UPDATED');
+    expect(find.byKey(const ValueKey('product-edit-main-image')), findsNothing);
+  });
+
+  testWidgets('product editor saves reordered reference views', (
+    tester,
+  ) async {
+    await pumpProducts(tester);
+    await openProductDetail(tester);
+    await scrollProductDetailTo(tester, find.text('Edit product'));
+    await tester.tap(find.text('Edit product'));
+    await tester.pumpAndSettle();
+
+    await tester.scrollUntilVisible(
+      find.text('REFERENCE VIEWS'),
+      250,
+      scrollable: find
+          .descendant(
+            of: find.byType(SingleChildScrollView).last,
+            matching: find.byType(Scrollable),
+          )
+          .first,
+    );
+    await tester.tap(find.text('↓').first);
+    await tester.tap(find.byKey(const ValueKey('submit-product-form')));
+    await tester.pumpAndSettle();
+
+    expect(
+      productsRepository.lastUpdateDraft?.existingPhotoOrder,
+      const ['photo-2', 'photo-1'],
+    );
   });
 
   testWidgets('product page opens calibration nested flow', (
@@ -738,33 +837,78 @@ void main() {
 
     await tester.tap(find.text('Use a product photo'));
     await tester.pumpAndSettle();
-    expect(find.text('Set the size in 3 easy steps'), findsOneWidget);
-    await tester.tap(find.text('Choose a product photo'));
+    expect(find.text('Set size from a product photo'), findsOneWidget);
+    await tester.tap(find.text('Next'));
     await tester.pumpAndSettle();
-    expect(find.text('Pick a product photo'), findsOneWidget);
+    expect(find.text('Choose a clear product photo'), findsOneWidget);
     expect(find.text('SIZE GUIDE'), findsOneWidget);
     await tester.tap(find.text('Change'));
     await tester.pumpAndSettle();
     expect(find.text('Choose a different size guide'), findsOneWidget);
     expect(
-      tester.getTopLeft(find.text('Full Body Front')).dx,
-      lessThan(tester.getTopLeft(find.text('Hand Side')).dx),
+      tester.getTopLeft(find.text('Full body front')).dx,
+      lessThan(tester.getTopLeft(find.text('Hand side')).dx),
       reason: 'The recommended body view should be shown first.',
     );
-    await tester.ensureVisible(find.text('Hand Side'));
-    await tester.tap(find.text('Hand Side'));
+    await tester.ensureVisible(find.text('Hand side'));
+    await tester.tap(find.text('Hand side'));
     await tester.pumpAndSettle();
     expect(
-      tester.getTopLeft(find.text('Full Body Front')).dx,
-      lessThan(tester.getTopLeft(find.text('Hand Side')).dx),
+      tester.getTopLeft(find.text('Full body front')).dx,
+      lessThan(tester.getTopLeft(find.text('Hand side')).dx),
       reason: 'Selecting a view must not change the grid order.',
     );
     await tester.tap(find.text('Next'));
     await tester.pumpAndSettle();
-    expect(find.text('Pick a product photo'), findsOneWidget);
+    expect(find.text('Choose a clear product photo'), findsOneWidget);
     expect(find.text('SIZE GUIDE'), findsOneWidget);
-    expect(find.text('hand side'), findsOneWidget);
-    expect(find.text('YOUR PRODUCT PHOTOS'), findsOneWidget);
+    expect(find.text('Hand side'), findsOneWidget);
+    expect(find.text('CHOOSE A CLEAR PRODUCT PHOTO'), findsOneWidget);
     expect(find.text('Upload another'), findsOneWidget);
+  });
+
+  testWidgets('calibration method screen fits every supported mobile width', (
+    tester,
+  ) async {
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    for (final width in const [320.0, 360.0, 375.0, 390.0, 430.0]) {
+      await tester.binding.setSurfaceSize(Size(width, 760));
+      await pumpProducts(tester);
+      await tester.scrollUntilVisible(
+        find.byKey(const ValueKey('calibrate-product-TSH-001')),
+        300,
+        scrollable: find.byType(Scrollable).first,
+      );
+      expect(
+        tester.takeException(),
+        isNull,
+        reason: 'Product library overflowed at $width logical pixels.',
+      );
+      await tester.tap(
+        find.byKey(const ValueKey('calibrate-product-TSH-001')),
+      );
+      await tester.pumpAndSettle();
+
+      final methodCard = find.byKey(
+        const ValueKey('calibration-method-Use a product photo'),
+      );
+      expect(tester.getSize(methodCard).width, width - 40);
+      expect(tester.getSize(methodCard).height, greaterThanOrEqualTo(88));
+      expect(
+        tester.widget<Text>(find.text('Set product size')).style?.fontFamily,
+        'InstrumentSerif',
+      );
+      expect(find.text('Back'), findsNothing);
+      expect(find.text('Next'), findsNothing);
+      final calibrationException = tester.takeException();
+      expect(
+        calibrationException,
+        isNull,
+        reason: 'Calibration overflowed at $width logical pixels.',
+      );
+
+      await tester.tap(find.text('Exit'));
+      await tester.pumpAndSettle();
+    }
   });
 }

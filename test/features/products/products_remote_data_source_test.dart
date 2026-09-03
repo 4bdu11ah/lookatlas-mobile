@@ -12,6 +12,29 @@ import 'package:mocktail/mocktail.dart';
 
 class _MockApiService extends Mock implements ApiService {}
 
+class _BytesAdapter implements HttpClientAdapter {
+  RequestOptions? request;
+
+  @override
+  Future<ResponseBody> fetch(
+    RequestOptions options,
+    Stream<Uint8List>? requestStream,
+    Future<void>? cancelFuture,
+  ) async {
+    request = options;
+    return ResponseBody.fromBytes(
+      const [137, 80, 78, 71],
+      200,
+      headers: {
+        Headers.contentTypeHeader: ['image/png'],
+      },
+    );
+  }
+
+  @override
+  void close({bool force = false}) {}
+}
+
 void main() {
   late _MockApiService api;
   late _MockApiService publicApi;
@@ -171,20 +194,19 @@ void main() {
       'sku': 'BAG-1',
       'description': 'Natural canvas',
       'category': 'bags',
-      'sub_category': 'Crossbody',
+      'sub_category': 'crossbody',
       'view_angles': '["front","side"]',
-      'photo_keys': '["front.png-2-33","side.jpg-2-97"]',
-      'photo_order': '["front.png-2-33","side.jpg-2-97"]',
+      'photo_keys': '["photo121","photo261"]',
     });
     expect(createData.files.map((part) => part.key), ['photos', 'photos']);
     expect(
       createData.files.map((part) => part.value.contentType.toString()),
       ['image/png', 'image/jpeg'],
     );
-    expect(
-      Map<String, String>.fromEntries(updateData.fields),
-      isNot(contains('view_angles')),
-    );
+    expect(Map<String, String>.fromEntries(updateData.fields), {
+      'photo_keys': '["photo121","photo261"]',
+      'view_angles': '["front","side"]',
+    });
   });
 
   test('create_retries_duplicate_sku_with_existing_product_id', () async {
@@ -246,7 +268,7 @@ void main() {
     ).called(1);
   });
 
-  test('update_preserves_combined_saved_and_new_photo_order', () async {
+  test('update_sends_saved_photo_order_and_new_photo_fields', () async {
     when(
       () => api.put<void>(
         ApiEndpoints.product('product-1'),
@@ -261,6 +283,7 @@ void main() {
       category: 'Bags',
       subCategory: 'Crossbody',
       existingPhotoOrder: const ['saved-front', 'saved-back'],
+      existingPhotoOrderChanged: true,
       photos: [
         ProductUpload(
           bytes: Uint8List.fromList([1, 2]),
@@ -268,7 +291,7 @@ void main() {
           localKey: 'new-detail',
         ),
       ],
-      photoOrder: const ['saved-front', 'new-detail', 'saved-back'],
+      viewAngles: const {0: 'Side'},
     );
 
     await dataSource.updateProduct('product-1', draft);
@@ -286,11 +309,67 @@ void main() {
     expect(
       Map<String, String>.fromEntries(formData.fields),
       containsPair(
-        'photo_order',
-        '["saved-front","new-detail","saved-back"]',
+        'existingPhotosOrder',
+        '[{"id":"saved-front","sortOrder":0},{"id":"saved-back","sortOrder":1}]',
       ),
     );
+    expect(
+      Map<String, String>.fromEntries(formData.fields),
+      containsPair('view_angles', '["Side"]'),
+    );
+    final photoKeys = (Map<String, String>.fromEntries(
+      formData.fields,
+    )['photo_keys']!).replaceAll(RegExp('[\\[\\]"]'), '').split(',');
+    expect(photoKeys, everyElement(matches(RegExp(r'^[A-Za-z0-9]{1,32}$'))));
   });
+
+  test(
+    'update_only_sends_changed_values_and_complete_saved_photo_data',
+    () async {
+      when(
+        () => api.put<void>(
+          ApiEndpoints.product('product-1'),
+          data: any(named: 'data'),
+          decoder: any(named: 'decoder'),
+          options: any(named: 'options'),
+        ),
+      ).thenAnswer((_) async => const Result.ok(null));
+      const draft = CatalogProductDraft(
+        name: 'Unchanged name',
+        sku: 'NEW-SKU',
+        description: '',
+        category: 'Bags',
+        subCategory: 'Other Bag',
+        changedFields: {'sku', 'description', 'sub_category'},
+        existingPhotoOrder: ['photo-2', 'photo-1'],
+        existingPhotoAngles: {'photo-2': 'Side', 'photo-1': null},
+        existingPhotoOrderChanged: true,
+        existingPhotoAnglesChanged: true,
+      );
+
+      await dataSource.updateProduct('product-1', draft);
+
+      final formData =
+          verify(
+                () => api.put<void>(
+                  ApiEndpoints.product('product-1'),
+                  data: captureAny(named: 'data'),
+                  decoder: any(named: 'decoder'),
+                  options: any(named: 'options'),
+                ),
+              ).captured.single
+              as FormData;
+      expect(Map<String, String>.fromEntries(formData.fields), {
+        'sku': 'NEW-SKU',
+        'description': '',
+        'sub_category': 'other_bag',
+        'existingPhotosOrder':
+            '[{"id":"photo-2","sortOrder":0},{"id":"photo-1","sortOrder":1}]',
+        'existing_photo_angles': '[{"id":"photo-2","viewAngle":"Side"},{"id":"photo-1","viewAngle":null}]',
+      });
+      expect(formData.files, isEmpty);
+    },
+  );
 
   test('product_photo_actions_use_documented_paths_and_payloads', () async {
     when(
@@ -325,8 +404,8 @@ void main() {
     );
 
     await dataSource.updatePhotoAngles('product-1', const {
-      0: 'front',
-      1: null,
+      'photo-1': 'Front',
+      'photo-2': null,
     });
     await dataSource.deleteProduct('product-1');
     await dataSource.deletePhoto('product-1', 'photo-2');
@@ -336,8 +415,10 @@ void main() {
       () => api.patch<void>(
         ApiEndpoints.productPhotoAngles('product-1'),
         data: {
-          'angles': {'0': 'front', '1': null},
-          'photos': <Map<String, dynamic>>[],
+          'photos': [
+            {'id': 'photo-1', 'viewAngle': 'Front'},
+            {'id': 'photo-2', 'viewAngle': null},
+          ],
         },
         decoder: any(named: 'decoder'),
       ),
@@ -433,7 +514,7 @@ void main() {
     expect(outlines.single.id, 'full_body_front');
     expect(calibration.userNotes, 'Medium size');
     expect(calibration.id, 'calibration-1');
-    expect(calibration.revision, '3');
+    expect(calibration.revision, 3);
     expect(calibration.cutoutPlacement['w'], 220);
     expect(calibration.cutoutUrl, contains('/cutouts/product-1.png'));
     expect(calibration.hasPlacement, isTrue);
@@ -479,14 +560,14 @@ void main() {
       'product-1',
       upload,
       calibrationId: 'calibration-1',
-      revision: '3',
+      revision: 3,
       mutationId: 'mutation-1',
     );
     await dataSource.deleteWornPhoto(
       'product-1',
       const CalibrationMutationFence(
         calibrationId: 'calibration-1',
-        revision: '3',
+        revision: 3,
         mutationId: 'mutation-delete',
       ),
     );
@@ -504,7 +585,7 @@ void main() {
       'product-2',
       const CalibrationMutationFence(
         calibrationId: 'calibration-1',
-        revision: '3',
+        revision: 3,
         mutationId: 'mutation-2',
       ),
     );
@@ -522,7 +603,7 @@ void main() {
     expect(wornData.files.single.key, 'file');
     expect(wornQuery, {
       'expectedCalibrationId': 'calibration-1',
-      'expectedRevision': '3',
+      'expectedRevision': 3,
       'mutationId': 'mutation-1',
     });
     verify(
@@ -530,7 +611,7 @@ void main() {
         ApiEndpoints.productCalibrationWornPhoto('product-1'),
         data: {
           'expectedCalibrationId': 'calibration-1',
-          'expectedRevision': '3',
+          'expectedRevision': 3,
           'mutationId': 'mutation-delete',
         },
         decoder: any(named: 'decoder'),
@@ -554,7 +635,7 @@ void main() {
         data: {
           'sourceProductId': 'product-2',
           'expectedCalibrationId': 'calibration-1',
-          'expectedRevision': '3',
+          'expectedRevision': 3,
           'mutationId': 'mutation-2',
         },
         decoder: any(named: 'decoder'),
@@ -636,7 +717,7 @@ void main() {
       },
       const CalibrationMutationFence(
         calibrationId: 'calibration-1',
-        revision: '3',
+        revision: 3,
         mutationId: 'mutation-placement',
       ),
     );
@@ -654,6 +735,34 @@ void main() {
     expect(formData.fields.single.key, 'payload');
     expect(formData.fields.single.value, contains('mutation-placement'));
     expect(formData.fields.single.value, contains('full_body_front'));
+  });
+
+  test('background_removal_fallback_posts_image_and_returns_png', () async {
+    final adapter = _BytesAdapter();
+    final dio = Dio(BaseOptions(baseUrl: 'https://example.test'))
+      ..httpClientAdapter = adapter;
+    when(() => api.raw).thenReturn(dio);
+    final source = ProductUpload(
+      bytes: Uint8List.fromList([1, 2, 3]),
+      fileName: 'source.jpg',
+      localKey: 'photo-1',
+    );
+
+    final result = await dataSource.removeBackgroundFallback(
+      'product-1',
+      source,
+    );
+
+    expect(result.valueOrNull?.bytes, const [137, 80, 78, 71]);
+    expect(result.valueOrNull?.fileName, 'product-1-cutout.png');
+    expect(result.valueOrNull?.localKey, 'photo-1');
+    expect(
+      adapter.request?.path,
+      ApiEndpoints.productCalibrationBackgroundRemoval('product-1'),
+    );
+    final form = adapter.request?.data as FormData;
+    expect(form.files.single.key, 'file');
+    dio.close(force: true);
   });
 
   test('fit_render_contract_decodes_and_fences_mutations', () async {
@@ -694,7 +803,7 @@ void main() {
     )).valueOrNull!;
     const fence = CalibrationMutationFence(
       calibrationId: 'calibration-1',
-      revision: '3',
+      revision: 3,
       mutationId: 'mutation-approve',
     );
     await dataSource.approveCalibrationRender(
@@ -708,7 +817,7 @@ void main() {
       () => api.post<CalibrationRender>(
         ApiEndpoints.productCalibrationRender('product-1'),
         data: {
-          'bodyPreset': 'Female',
+          'bodyPreset': 'female',
           'feedback': 'Longer hem',
           'previousRenderId': 'render-0',
           'mutationId': 'mutation-render',
@@ -722,7 +831,7 @@ void main() {
         data: {
           'renderId': 'render-1',
           'expectedCalibrationId': 'calibration-1',
-          'expectedRevision': '3',
+          'expectedRevision': 3,
           'mutationId': 'mutation-approve',
         },
         decoder: any(named: 'decoder'),

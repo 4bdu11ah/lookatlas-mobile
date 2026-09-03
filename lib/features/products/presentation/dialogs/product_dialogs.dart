@@ -10,17 +10,7 @@ Future<void> _showProductDetailSheet(
   isScrollControlled: true,
   builder: (_) => _ProductDetailSheet(
     product: product,
-    onEdit: () {
-      Navigator.pop(context);
-      unawaited(
-        _showProductFormDialog(
-          context,
-          ref,
-          onToast,
-          product: product,
-        ),
-      );
-    },
+    onToast: onToast,
     onCalibrate: () {
       Navigator.pop(context);
       unawaited(_openCalibration(context, ref, product, onToast));
@@ -32,30 +22,99 @@ Future<void> _showProductDetailSheet(
   ),
 );
 
-class _ProductDetailSheet extends StatefulWidget {
+class _ProductDetailSheet extends ConsumerStatefulWidget {
   const _ProductDetailSheet({
     required this.product,
-    required this.onEdit,
+    required this.onToast,
     required this.onCalibrate,
     required this.onDelete,
   });
 
   final _Product product;
-  final VoidCallback onEdit;
+  final ValueChanged<String> onToast;
   final VoidCallback onCalibrate;
   final Future<void> Function() onDelete;
 
   @override
-  State<_ProductDetailSheet> createState() => _ProductDetailSheetState();
+  ConsumerState<_ProductDetailSheet> createState() =>
+      _ProductDetailSheetState();
 }
 
-class _ProductDetailSheetState extends State<_ProductDetailSheet> {
+class _ProductDetailSheetState extends ConsumerState<_ProductDetailSheet> {
   var _photoIndex = 0;
   var _confirmingDelete = false;
+  var _editing = false;
+
+  Future<ProductUpload?> _replacePhoto(
+    ProductPhoto photo,
+    VoidCallback onUploadStart,
+  ) async {
+    if (!_requestProductsManageAccess(context, ref)) return null;
+    final replacement = await _pickProductPhoto(
+      context,
+      ref,
+      title: 'Replace product photo',
+    );
+    if (replacement == null || !mounted) return null;
+    ProductUpload? savedReplacement;
+    await _showProductReferenceCrop(
+      context,
+      source: replacement,
+      isReplacement: true,
+      onSave: (cropped) async {
+        onUploadStart();
+        final result = await ref
+            .read(_productsControllerProvider.notifier)
+            .replacePhoto(widget.product, photo, cropped);
+        if (!mounted) return false;
+        final failure = result.failureOrNull;
+        if (failure != null) {
+          AppSnackBar.showError(context, failure.message);
+          return false;
+        }
+        savedReplacement = cropped;
+        widget.onToast('Photo replaced');
+        return true;
+      },
+    );
+    return savedReplacement;
+  }
 
   @override
   Widget build(BuildContext context) {
     final product = widget.product;
+    if (_editing) {
+      return SafeArea(
+        top: false,
+        child: SizedBox(
+          height: MediaQuery.sizeOf(context).height * 0.94,
+          child: Column(
+            children: [
+              Expanded(
+                child: _ProductFormDialog(
+                  product: product,
+                  showGallery: true,
+                  onClose: () => Navigator.pop(context),
+                  onDeletePhoto: (photo) => _showProductDeletePhotoDialog(
+                    context,
+                    ref,
+                    product,
+                    photo,
+                    widget.onToast,
+                  ),
+                  onReplacePhoto: _replacePhoto,
+                ),
+              ),
+              _ProductFormFooter(
+                product: product,
+                launchContext: context,
+                onToast: widget.onToast,
+              ),
+            ],
+          ),
+        ),
+      );
+    }
     final photos = product.photoAssets.isEmpty
         ? const ['']
         : product.photoAssets;
@@ -69,10 +128,14 @@ class _ProductDetailSheetState extends State<_ProductDetailSheet> {
             Stack(
               children: [
                 Container(
-                  height: 350,
+                  width: double.infinity,
                   padding: const EdgeInsets.all(24),
                   color: AppColors.neutral100,
-                  child: _AssetImage(photos[_photoIndex]),
+                  child: _AssetImage(
+                    photos[_photoIndex],
+                    key: const ValueKey('product-detail-main-image'),
+                    fit: BoxFit.contain,
+                  ),
                 ),
                 Positioned(
                   top: 14,
@@ -91,60 +154,57 @@ class _ProductDetailSheetState extends State<_ProductDetailSheet> {
               ],
             ),
             if (photos.length > 1)
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 10, 20, 0),
-                child: GridView.builder(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemCount: photos.length,
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 4,
-                    crossAxisSpacing: 8,
-                    mainAxisSpacing: 8,
-                    childAspectRatio: .78,
-                  ),
-                  itemBuilder: (context, index) => Semantics(
-                    button: true,
-                    selected: index == _photoIndex,
-                    label:
-                        product.productPhotos
-                            .elementAtOrNull(index)
-                            ?.viewAngle ??
-                        'View ${index + 1}',
-                    child: InkWell(
-                      onTap: () => setState(() => _photoIndex = index),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          Expanded(
-                            child: Container(
-                              decoration: BoxDecoration(
-                                border: Border.all(
-                                  color: index == _photoIndex
-                                      ? AppColors.black
-                                      : AppColors.neutral200,
-                                  width: index == _photoIndex ? 2 : 1,
+              ColoredBox(
+                color: AppColors.neutral100,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 10),
+                  child: GridView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: photos.length,
+                    gridDelegate:
+                        const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 4,
+                          crossAxisSpacing: 8,
+                          mainAxisSpacing: 8,
+                          childAspectRatio: .78,
+                        ),
+                    itemBuilder: (context, index) => Semantics(
+                      button: true,
+                      selected: index == _photoIndex,
+                      label: 'View ${index + 1}',
+                      child: InkWell(
+                        onTap: () => setState(() => _photoIndex = index),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            Expanded(
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  border: Border.all(
+                                    color: index == _photoIndex
+                                        ? AppColors.black
+                                        : AppColors.neutral200,
+                                    width: index == _photoIndex ? 2 : 1,
+                                  ),
                                 ),
+                                child: _AssetImage(photos[index]),
                               ),
-                              child: _AssetImage(photos[index]),
                             ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            product.productPhotos
-                                    .elementAtOrNull(index)
-                                    ?.viewAngle ??
-                                'View ${index + 1}',
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            textAlign: TextAlign.center,
-                            style: const TextStyle(
-                              color: AppColors.neutral500,
-                              fontSize: 9,
-                              fontWeight: AppTypography.semiBold,
+                            const SizedBox(height: 4),
+                            Text(
+                              'View ${index + 1}',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(
+                                color: AppColors.neutral500,
+                                fontSize: 9,
+                                fontWeight: AppTypography.semiBold,
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     ),
                   ),
@@ -209,7 +269,11 @@ class _ProductDetailSheetState extends State<_ProductDetailSheet> {
                   AppOutlinedButton(
                     label: 'Edit product',
                     icon: Icons.edit_outlined,
-                    onPressed: widget.onEdit,
+                    onPressed: () {
+                      if (_requestProductsManageAccess(context, ref)) {
+                        setState(() => _editing = true);
+                      }
+                    },
                     height: 44,
                   ),
                   const SizedBox(height: 8),
@@ -461,14 +525,41 @@ class _ProductFormFooter extends ConsumerWidget {
     }
 
     if (product != null) {
-      return AppDialogActionFooter(
-        primaryButtonKey: const ValueKey('submit-product-form'),
-        primaryLabel: 'Save changes',
-        primaryIcon: Icons.arrow_forward,
-        primaryDisabled: !form.isValid,
-        isLoading: form.isSubmitting,
-        onCancel: () => Navigator.pop(context),
-        onPrimary: submit,
+      return SafeArea(
+        top: false,
+        child: Container(
+          padding: const EdgeInsets.fromLTRB(20, 14, 20, 20),
+          decoration: const BoxDecoration(
+            color: AppColors.white,
+            border: Border(top: BorderSide(color: AppColors.neutral200)),
+          ),
+          child: Row(
+            children: [
+              Expanded(
+                flex: 2,
+                child: PrimaryButton(
+                  key: const ValueKey('submit-product-form'),
+                  label: 'Save changes',
+                  icon: Icons.check,
+                  onPressed: form.isValid ? submit : null,
+                  isLoading: form.isSubmitting,
+                  backgroundColor: AppColors.black,
+                  foregroundColor: AppColors.white,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: AppOutlinedButton(
+                  label: 'Cancel',
+                  onPressed: form.isSubmitting
+                      ? null
+                      : () => Navigator.pop(context),
+                  borderColor: AppColors.black,
+                ),
+              ),
+            ],
+          ),
+        ),
       );
     }
 

@@ -58,9 +58,10 @@ class _AssetBox extends StatelessWidget {
 }
 
 class _AssetImage extends StatelessWidget {
-  const _AssetImage(this.asset);
+  const _AssetImage(this.asset, {this.fit = BoxFit.cover, super.key});
 
   final String asset;
+  final BoxFit fit;
 
   @override
   Widget build(BuildContext context) {
@@ -69,7 +70,7 @@ class _AssetImage extends StatelessWidget {
     }
     return AppImage(
       asset,
-      fit: BoxFit.cover,
+      fit: fit,
       errorWidget: const ColoredBox(color: AppColors.neutral200),
     );
   }

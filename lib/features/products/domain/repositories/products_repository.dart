@@ -13,7 +13,7 @@ abstract interface class ProductsRepository {
 
   Future<Result<void>> updatePhotoAngles(
     String productId,
-    Map<Object, String?> angles,
+    Map<String, String?> angles,
   );
 
   Future<Result<void>> deleteProduct(String productId);
@@ -39,8 +39,9 @@ abstract interface class ProductsRepository {
     String productId,
     ProductUpload photo, {
     required String? calibrationId,
-    required String? revision,
+    required int? revision,
     required String mutationId,
+    String? bodyArea,
   });
 
   Future<Result<void>> deleteWornPhoto(
@@ -53,6 +54,11 @@ abstract interface class ProductsRepository {
     ProductUpload cutout,
     Map<String, dynamic> placement,
     CalibrationMutationFence fence,
+  );
+
+  Future<Result<ProductUpload>> removeBackgroundFallback(
+    String productId,
+    ProductUpload photo,
   );
 
   Future<Result<CalibrationRender>> startCalibrationRender(

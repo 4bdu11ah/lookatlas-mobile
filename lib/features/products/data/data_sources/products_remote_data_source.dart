@@ -1,10 +1,12 @@
 import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
 import 'package:look_atlas/core/config/app_config.dart';
 import 'package:look_atlas/core/error/failure.dart';
 import 'package:look_atlas/core/network/api_endpoints.dart';
 import 'package:look_atlas/core/network/api_service.dart';
+import 'package:look_atlas/core/network/dio_client.dart';
 import 'package:look_atlas/core/result/result.dart';
 import 'package:look_atlas/features/products/domain/entities/product_catalog.dart';
 
@@ -19,7 +21,7 @@ abstract interface class ProductsRemoteDataSource {
   );
   Future<Result<void>> updatePhotoAngles(
     String productId,
-    Map<Object, String?> angles,
+    Map<String, String?> angles,
   );
   Future<Result<void>> deleteProduct(String productId);
   Future<Result<void>> deletePhoto(String productId, String photoId);
@@ -37,8 +39,9 @@ abstract interface class ProductsRemoteDataSource {
     String productId,
     ProductUpload photo, {
     required String? calibrationId,
-    required String? revision,
+    required int? revision,
     required String mutationId,
+    String? bodyArea,
   });
   Future<Result<void>> deleteWornPhoto(
     String productId,
@@ -49,6 +52,10 @@ abstract interface class ProductsRemoteDataSource {
     ProductUpload cutout,
     Map<String, dynamic> placement,
     CalibrationMutationFence fence,
+  );
+  Future<Result<ProductUpload>> removeBackgroundFallback(
+    String productId,
+    ProductUpload photo,
   );
   Future<Result<CalibrationRender>> startCalibrationRender(
     String productId, {
@@ -108,7 +115,7 @@ class ProductsRemoteDataSourceImpl implements ProductsRemoteDataSource {
   Future<Result<String>> createProduct(CatalogProductDraft draft) async {
     final created = await _api.post<String>(
       ApiEndpoints.products,
-      data: _productFormData(draft, includeAngles: true),
+      data: _productFormData(draft),
       options: _uploadOptions(draft),
       decoder: (data) {
         final root = _map(data);
@@ -123,15 +130,13 @@ class ProductsRemoteDataSourceImpl implements ProductsRemoteDataSource {
     }
     final existingProductId = _duplicateSkuProductId(created.failureOrNull);
     if (existingProductId == null) return created;
-    final retried = await updateProduct(existingProductId, draft);
+    final retried = await _api.put<void>(
+      ApiEndpoints.product(existingProductId),
+      data: _productFormData(draft),
+      options: _uploadOptions(draft),
+      decoder: (_) {},
+    );
     if (retried case Err(:final failure)) return Err(failure);
-    if (draft.viewAngles.isNotEmpty) {
-      final angles = await updatePhotoAngles(
-        existingProductId,
-        draft.viewAngles,
-      );
-      if (angles case Err(:final failure)) return Err(failure);
-    }
     return Ok(existingProductId);
   }
 
@@ -141,7 +146,7 @@ class ProductsRemoteDataSourceImpl implements ProductsRemoteDataSource {
     CatalogProductDraft draft,
   ) => _api.put<void>(
     ApiEndpoints.product(productId),
-    data: _productFormData(draft, includeAngles: false),
+    data: _productFormData(draft, forUpdate: true),
     options: _uploadOptions(draft),
     decoder: (_) {},
   );
@@ -149,16 +154,13 @@ class ProductsRemoteDataSourceImpl implements ProductsRemoteDataSource {
   @override
   Future<Result<void>> updatePhotoAngles(
     String productId,
-    Map<Object, String?> angles,
+    Map<String, String?> angles,
   ) => _api.patch<void>(
     ApiEndpoints.productPhotoAngles(productId),
     data: {
-      'angles': {
-        for (final entry in angles.entries) '${entry.key}': entry.value,
-      },
       'photos': [
         for (final entry in angles.entries)
-          if (entry.key is String) {'id': entry.key, 'viewAngle': entry.value},
+          {'id': entry.key, 'viewAngle': entry.value},
       ],
     },
     decoder: (_) {},
@@ -257,8 +259,9 @@ class ProductsRemoteDataSourceImpl implements ProductsRemoteDataSource {
     String productId,
     ProductUpload photo, {
     required String? calibrationId,
-    required String? revision,
+    required int? revision,
     required String mutationId,
+    String? bodyArea,
   }) => _api.post<void>(
     ApiEndpoints.productCalibrationWornPhoto(productId),
     data: _singleUpload('file', photo),
@@ -266,6 +269,7 @@ class ProductsRemoteDataSourceImpl implements ProductsRemoteDataSource {
       'expectedCalibrationId': calibrationId,
       'expectedRevision': revision,
       'mutationId': mutationId,
+      'bodyArea': ?bodyArea,
     },
     decoder: (_) {},
   );
@@ -300,6 +304,43 @@ class ProductsRemoteDataSourceImpl implements ProductsRemoteDataSource {
   }
 
   @override
+  Future<Result<ProductUpload>> removeBackgroundFallback(
+    String productId,
+    ProductUpload photo,
+  ) async {
+    try {
+      final response = await _api.raw.post<List<int>>(
+        ApiEndpoints.productCalibrationBackgroundRemoval(productId),
+        data: _singleUpload('file', photo),
+        options: Options(responseType: ResponseType.bytes),
+      );
+      final bytes = Uint8List.fromList(response.data ?? const []);
+      if (bytes.isEmpty) {
+        return const Err(
+          UnknownFailure('Background removal returned an empty image.'),
+        );
+      }
+      return Ok(
+        ProductUpload(
+          bytes: bytes,
+          fileName: '$productId-cutout.png',
+          localKey: photo.localKey,
+        ),
+      );
+    } on DioException catch (error) {
+      return Err(mapDioError(error));
+    } on Object catch (error, stackTrace) {
+      return Err(
+        UnknownFailure(
+          'Could not remove the image background.',
+          cause: error,
+          stackTrace: stackTrace,
+        ),
+      );
+    }
+  }
+
+  @override
   Future<Result<CalibrationRender>> startCalibrationRender(
     String productId, {
     required String bodyPreset,
@@ -309,7 +350,7 @@ class ProductsRemoteDataSourceImpl implements ProductsRemoteDataSource {
   }) => _api.post<CalibrationRender>(
     ApiEndpoints.productCalibrationRender(productId),
     data: {
-      'bodyPreset': bodyPreset,
+      'bodyPreset': bodyPreset.toLowerCase(),
       'feedback': ?feedback,
       'previousRenderId': ?previousRenderId,
       'mutationId': mutationId,

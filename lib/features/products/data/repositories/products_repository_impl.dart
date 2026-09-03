@@ -26,7 +26,7 @@ class ProductsRepositoryImpl implements ProductsRepository {
   @override
   Future<Result<void>> updatePhotoAngles(
     String productId,
-    Map<Object, String?> angles,
+    Map<String, String?> angles,
   ) => _remote.updatePhotoAngles(productId, angles);
 
   @override
@@ -89,14 +89,16 @@ class ProductsRepositoryImpl implements ProductsRepository {
     String productId,
     ProductUpload photo, {
     required String? calibrationId,
-    required String? revision,
+    required int? revision,
     required String mutationId,
+    String? bodyArea,
   }) => _remote.uploadWornPhoto(
     productId,
     photo,
     calibrationId: calibrationId,
     revision: revision,
     mutationId: mutationId,
+    bodyArea: bodyArea,
   );
 
   @override
@@ -112,6 +114,12 @@ class ProductsRepositoryImpl implements ProductsRepository {
     Map<String, dynamic> placement,
     CalibrationMutationFence fence,
   ) => _remote.uploadPlacement(productId, cutout, placement, fence);
+
+  @override
+  Future<Result<ProductUpload>> removeBackgroundFallback(
+    String productId,
+    ProductUpload photo,
+  ) => _remote.removeBackgroundFallback(productId, photo);
 
   @override
   Future<Result<CalibrationRender>> startCalibrationRender(

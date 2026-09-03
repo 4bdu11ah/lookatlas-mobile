@@ -3,7 +3,6 @@ part of '../../../dashboard/presentation/screens/dashboard_screen.dart';
 class _PlacementFineControls extends StatelessWidget {
   const _PlacementFineControls({
     required this.onLeft,
-    required this.onUp,
     required this.onRight,
     required this.onSmaller,
     required this.onCenter,
@@ -13,7 +12,6 @@ class _PlacementFineControls extends StatelessWidget {
   });
 
   final VoidCallback onLeft;
-  final VoidCallback onUp;
   final VoidCallback onRight;
   final VoidCallback onSmaller;
   final VoidCallback onCenter;
@@ -23,7 +21,7 @@ class _PlacementFineControls extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.all(10),
+    padding: const EdgeInsets.all(12),
     decoration: BoxDecoration(
       color: AppColors.neutral100Alpha68,
       border: Border.all(color: AppColors.neutral200),
@@ -31,48 +29,52 @@ class _PlacementFineControls extends StatelessWidget {
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const _Kicker('Fine placement controls'),
+        const Text(
+          'Fine placement controls',
+          style: TextStyle(fontSize: 12, fontWeight: AppTypography.bold),
+        ),
+        const SizedBox(height: 4),
+        const Text(
+          'Drag the product, or use the controls below.',
+          style: TextStyle(fontSize: 11, color: AppColors.neutral500),
+        ),
         const SizedBox(height: 8),
         Row(
           children: [
-            Expanded(child: _FineControl('Left', Icons.arrow_back, onLeft)),
-            const SizedBox(width: 6),
-            Expanded(child: _FineControl('Up', Icons.arrow_upward, onUp)),
-            const SizedBox(width: 6),
             Expanded(
-              child: _FineControl('Right', Icons.arrow_forward, onRight),
+              child: _FineControl('← Left', onLeft),
             ),
-            const SizedBox(width: 6),
+            const SizedBox(width: 7),
             Expanded(
-              child: _FineControl(
-                'Center',
-                Icons.center_focus_strong,
-                onCenter,
-              ),
+              child: _FineControl('Center', onCenter),
+            ),
+            const SizedBox(width: 7),
+            Expanded(
+              child: _FineControl('Right →', onRight),
             ),
           ],
         ),
         const SizedBox(height: 6),
         Row(
           children: [
-            Expanded(child: _FineControl('Smaller', Icons.remove, onSmaller)),
-            const SizedBox(width: 6),
-            Expanded(child: _FineControl('Larger', Icons.add, onLarger)),
-            const SizedBox(width: 6),
             Expanded(
-              child: _FineControl(
-                'Rotate left',
-                Icons.rotate_left,
-                onRotateLeft,
-              ),
+              child: _FineControl('− Smaller', onSmaller),
             ),
-            const SizedBox(width: 6),
+            const SizedBox(width: 7),
             Expanded(
-              child: _FineControl(
-                'Rotate right',
-                Icons.rotate_right,
-                onRotateRight,
-              ),
+              child: _FineControl('＋ Larger', onLarger),
+            ),
+          ],
+        ),
+        const SizedBox(height: 7),
+        Row(
+          children: [
+            Expanded(
+              child: _FineControl('↶ Rotate left', onRotateLeft),
+            ),
+            const SizedBox(width: 7),
+            Expanded(
+              child: _FineControl('↷ Rotate right', onRotateRight),
             ),
           ],
         ),
@@ -82,20 +84,28 @@ class _PlacementFineControls extends StatelessWidget {
 }
 
 class _FineControl extends StatelessWidget {
-  const _FineControl(this.tooltip, this.icon, this.onTap);
+  const _FineControl(this.label, this.onTap);
 
-  final String tooltip;
-  final IconData icon;
+  final String label;
   final VoidCallback onTap;
 
   @override
-  Widget build(BuildContext context) => Tooltip(
-    message: tooltip,
-    child: InkWell(
-      onTap: onTap,
-      child: SizedBox(
-        height: 44,
-        child: Icon(icon, size: 17),
+  Widget build(BuildContext context) => InkWell(
+    onTap: onTap,
+    child: Container(
+      height: 44,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        border: Border.all(color: AppColors.black, width: 2),
+      ),
+      child: Text(
+        label,
+        textAlign: TextAlign.center,
+        style: const TextStyle(
+          fontSize: 11,
+          fontWeight: AppTypography.bold,
+        ),
       ),
     ),
   );

@@ -54,7 +54,8 @@ class _ProductFormState {
       name.trim().isNotEmpty &&
       sku.trim().isNotEmpty &&
       photoCount > 0 &&
-      (category != 'Bags' || subtype.trim().isNotEmpty);
+      (!const {'Bags', 'Jewelry'}.contains(category) ||
+          subtype.trim().isNotEmpty);
 
   _ProductFormState copyWith({
     String? name,
@@ -237,52 +238,46 @@ class _ProductFormController extends Notifier<_ProductFormState> {
           for (final photo in state.newPhotos)
             if (photo.orderKey == token.substring(4)) photo,
     ];
-    final viewAngles = product == null
-        ? {
-            for (final (displayIndex, token) in orderedTokens.indexed)
-              displayIndex: _normalizedAngle(
-                token.startsWith('existing:')
-                    ? state.angles[state.existingPhotos.indexWhere(
-                        (photo) => photo.id == token.substring(9),
-                      )]
-                    : state.newAngles[state.newPhotos.indexWhere(
-                        (photo) => photo.orderKey == token.substring(4),
-                      )],
-              ),
-          }
-        : {
-            for (final (displayIndex, token) in orderedTokens.indexed)
-              if (token.startsWith('new:'))
-                displayIndex: _normalizedAngle(
-                  state.newAngles[state.newPhotos.indexWhere(
-                    (photo) => photo.orderKey == token.substring(4),
-                  )],
-                )
-              else if (state.angles[state.existingPhotos.indexWhere(
-                    (photo) => photo.id == token.substring(9),
-                  )] !=
-                  state.existingPhotos
-                      .firstWhere((photo) => photo.id == token.substring(9))
-                      .viewAngle)
-                displayIndex: _normalizedAngle(
-                  state.angles[state.existingPhotos.indexWhere(
-                    (photo) => photo.id == token.substring(9),
-                  )],
-                ),
-          };
+    final viewAngles = {
+      for (final (uploadIndex, photo) in orderedNewPhotos.indexed)
+        uploadIndex: _normalizedAngle(
+          state.newAngles[state.newPhotos.indexWhere(
+            (candidate) => candidate.orderKey == photo.orderKey,
+          )],
+        ),
+    };
+    final existingPhotoOrder = [for (final photo in existing) photo.$2.id];
+    final originalPhotoOrder = [
+      for (final photo in product?.productPhotos ?? const <ProductPhoto>[])
+        photo.id,
+    ];
+    final existingPhotoAngles = {
+      for (final photo in existing)
+        photo.$2.id: _normalizedAngle(state.angles[photo.$1]),
+    };
+    final existingPhotoAnglesChanged =
+        product != null &&
+        existingPhotoAngles.entries.any(
+          (entry) =>
+              product.productPhotos
+                  .firstWhere((photo) => photo.id == entry.key)
+                  .viewAngle !=
+              entry.value,
+        );
+    final subCategory = switch (state.category) {
+      'Bags' || 'Jewelry' => state.subtype,
+      _ => '',
+    };
     final draft = CatalogProductDraft(
       name: state.name.trim(),
       sku: state.sku.trim(),
       description: state.description.trim(),
       category: state.category,
-      subCategory: state.category == 'Bags' ? state.subtype : '',
+      subCategory: subCategory,
       photos: orderedNewPhotos,
       viewAngles: viewAngles,
-      existingPhotoOrder: [for (final photo in existing) photo.$2.id],
-      existingPhotoAngles: {
-        for (final photo in existing)
-          photo.$2.id: _normalizedAngle(state.angles[photo.$1]),
-      },
+      existingPhotoOrder: existingPhotoOrder,
+      existingPhotoAngles: existingPhotoAngles,
       photoOrder: [
         for (final token in orderedTokens)
           if (token.startsWith('existing:'))
@@ -290,6 +285,20 @@ class _ProductFormController extends Notifier<_ProductFormState> {
           else
             token.substring(4),
       ],
+      changedFields: product == null
+          ? const {}
+          : {
+              if (state.name.trim() != product.name) 'name',
+              if (state.sku.trim() != product.sku) 'sku',
+              if (state.description.trim() != product.description)
+                'description',
+              if (state.category != product.category) 'category',
+              if (subCategory != (product.subtype ?? '')) 'sub_category',
+            },
+      existingPhotoOrderChanged:
+          product != null &&
+          !listEquals(existingPhotoOrder, originalPhotoOrder),
+      existingPhotoAnglesChanged: existingPhotoAnglesChanged,
     );
     final products = ref.read(_productsControllerProvider.notifier);
     final result = product == null

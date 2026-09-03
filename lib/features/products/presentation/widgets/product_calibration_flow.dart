@@ -10,6 +10,7 @@ enum _CalibrationStep {
   placeProduct,
   fit,
   review,
+  success,
   wornPhoto,
   copyFrom,
 }
@@ -41,14 +42,14 @@ class _CalibrationHeader extends StatelessWidget
   final VoidCallback? onExit;
 
   @override
-  Size get preferredSize => const Size.fromHeight(64);
+  Size get preferredSize => const Size.fromHeight(69);
 
   @override
   Widget build(BuildContext context) => SafeArea(
     bottom: false,
     child: Container(
-      height: 64,
-      padding: const EdgeInsets.fromLTRB(20, 8, 10, 8),
+      height: 69,
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
       decoration: const BoxDecoration(
         color: AppColors.white,
         border: Border(bottom: BorderSide(color: AppColors.neutral200)),
@@ -62,19 +63,23 @@ class _CalibrationHeader extends StatelessWidget
               children: [
                 const Text(
                   'Set product size',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: AppTypography.bold,
+                    fontFamily: 'InstrumentSerif',
+                    fontSize: 18,
+                    height: 1.1,
                   ),
                 ),
-                const SizedBox(height: 2),
+                const SizedBox(height: 4),
                 Text(
                   productName,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
                     color: AppColors.neutral500,
-                    fontSize: 11,
+                    fontSize: 12,
+                    height: 1.15,
                   ),
                 ),
               ],
@@ -82,11 +87,13 @@ class _CalibrationHeader extends StatelessWidget
           ),
           TextButton.icon(
             onPressed: onExit,
-            icon: const Icon(Icons.arrow_back, size: 16),
+            icon: const Icon(Icons.arrow_back, size: 20),
             label: const Text('Exit'),
             style: TextButton.styleFrom(
-              minimumSize: const Size(72, 44),
+              minimumSize: const Size(68, 44),
+              padding: EdgeInsets.zero,
               foregroundColor: AppColors.black,
+              textStyle: const TextStyle(fontSize: 13),
               shape: const RoundedRectangleBorder(),
             ),
           ),
@@ -126,33 +133,59 @@ class _ProductCalibrationLoadingShimmer extends StatelessWidget {
 }
 
 class _StepIndicator extends StatelessWidget {
-  const _StepIndicator({required this.current, required this.label});
+  const _StepIndicator({
+    required this.current,
+    required this.total,
+    required this.label,
+  });
 
-  final String current;
+  final int current;
+  final int total;
   final String label;
 
   @override
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
       decoration: const BoxDecoration(
         border: Border(bottom: BorderSide(color: AppColors.neutral200)),
       ),
-      child: Text.rich(
-        TextSpan(
-          children: [
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text.rich(
             TextSpan(
-              text: current,
-              style: const TextStyle(
-                color: AppColors.black,
-                fontWeight: AppTypography.bold,
-              ),
+              children: [
+                TextSpan(
+                  text: 'Step $current',
+                  style: const TextStyle(
+                    color: AppColors.black,
+                    fontWeight: AppTypography.bold,
+                  ),
+                ),
+                TextSpan(text: ' of $total · $label'),
+              ],
             ),
-            TextSpan(text: ' of $label'),
-          ],
-        ),
-        style: const TextStyle(fontSize: 12, color: AppColors.neutral500),
+            style: const TextStyle(fontSize: 11, color: AppColors.neutral500),
+          ),
+          const SizedBox(height: 7),
+          Row(
+            children: [
+              for (var index = 1; index <= total; index++) ...[
+                Expanded(
+                  child: Container(
+                    height: 3,
+                    color: index <= current
+                        ? AppColors.black
+                        : AppColors.neutral200,
+                  ),
+                ),
+                if (index != total) const SizedBox(width: 4),
+              ],
+            ],
+          ),
+        ],
       ),
     );
   }
@@ -171,103 +204,114 @@ class _CalibrationMethodStep extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Expanded(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              children: [
-                const Text(
-                  'Choose the easiest way to set the size',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w800,
+    return LayoutBuilder(
+      builder: (context, constraints) => SingleChildScrollView(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(minHeight: constraints.maxHeight),
+          child: Center(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: 20,
+                vertical: 24,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text(
+                    'Choose the easiest way to set the size',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontFamily: 'InstrumentSerif',
+                      fontSize: 16,
+                      height: 1.2,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 5),
-                const Text(
-                  'This helps the product look naturally proportioned on every model.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 13,
-                    height: 1.38,
-                    color: AppColors.neutral500,
+                  const SizedBox(height: 7),
+                  const Text(
+                    'This helps the product look naturally proportioned on every model.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 11,
+                      height: 1.45,
+                      color: AppColors.neutral500,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 14),
-                _MethodCard(
-                  icon: Icons.open_with,
-                  title: 'Use a product photo',
-                  subtitle: 'Pick a clear photo. We remove the background, then you resize the product on a simple body guide.',
-                  recommended: true,
-                  onTap: onBody,
-                ),
-                _MethodCard(
-                  icon: Icons.photo_camera_outlined,
-                  title: 'Use a worn photo',
-                  subtitle: 'Choose a photo where the product is worn or carried. No editing needed.',
-                  onTap: onWorn,
-                ),
-                _MethodCard(
-                  icon: Icons.copy_outlined,
-                  title: 'Reuse a saved size',
-                  subtitle: 'Copy the size from a similar product you already set up.',
-                  onTap: onCopy,
-                ),
-              ],
+                  const SizedBox(height: 16),
+                  _MethodCard(
+                    icon: Icons.open_with,
+                    title: 'Use a product photo',
+                    subtitle: 'Pick a clear photo. We remove the background, then you resize the product on a simple body guide.',
+                    recommended: true,
+                    onTap: onBody,
+                  ),
+                  const SizedBox(height: 8),
+                  _MethodCard(
+                    icon: Icons.photo_camera_outlined,
+                    title: 'Use a worn photo',
+                    subtitle: 'Choose a photo where the product is worn or carried. No editing needed.',
+                    onTap: onWorn,
+                  ),
+                  const SizedBox(height: 8),
+                  _MethodCard(
+                    icon: Icons.copy_outlined,
+                    title: 'Reuse a saved size',
+                    subtitle: 'Copy the size from a similar product you already set up.',
+                    onTap: onCopy,
+                  ),
+                ],
+              ),
             ),
           ),
         ),
-        _ProductFlowFooter(
-          onBack: () => Navigator.pop(context),
-          backLabel: 'Cancel',
-          showPrimary: false,
-        ),
-      ],
+      ),
     );
   }
 }
 
 class _CalibrationOverviewStep extends StatelessWidget {
-  const _CalibrationOverviewStep({required this.onBack, required this.onNext});
+  const _CalibrationOverviewStep({
+    required this.product,
+    required this.onBack,
+    required this.onNext,
+  });
 
+  final _Product product;
   final VoidCallback onBack;
   final VoidCallback onNext;
 
   @override
   Widget build(BuildContext context) => Column(
     children: [
-      const _StepIndicator(current: 'Step 1', label: '3 · Product'),
-      const Expanded(
+      const _StepIndicator(current: 1, total: 3, label: 'Product'),
+      Expanded(
         child: SingleChildScrollView(
-          padding: EdgeInsets.all(20),
+          padding: const EdgeInsets.all(20),
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _SectionCopy(
-                title: 'Set the size in 3 easy steps',
-                copy: 'Upload a photo, clean it up, then drag it to the right size.',
+              const _SectionCopy(
+                title: 'Set size from a product photo',
+                copy: 'Three quick steps turn one clear product photo into a reliable size reference.',
               ),
-              SizedBox(height: 18),
+              const SizedBox(height: 16),
               _CalibrationOverviewCard(
                 number: '1',
-                icon: Icons.upload_outlined,
-                title: 'Upload one product photo',
-                copy: 'Choose one clear photo that shows the whole product.',
+                title: 'Choose a photo',
+                imageUrl: product.asset,
+                copy: 'Pick a clear product view from the library or upload another.',
               ),
               _CalibrationOverviewCard(
                 number: '2',
-                icon: Icons.auto_fix_high_outlined,
-                title: 'Remove the background',
-                copy:
-                    'We remove the background. Crop or erase anything we miss.',
+                title: 'Clean the product',
+                imageUrl: product.asset,
+                copy: 'We remove the background. Crop or fix the cutout if needed.',
               ),
-              _CalibrationOverviewCard(
+              const _CalibrationOverviewCard(
                 number: '3',
-                icon: Icons.open_with,
-                title: 'Place and resize',
-                copy: 'Drag the product onto the body. Pull a corner until the size looks right.',
+                title: 'Place at true size',
+                imageUrl:
+                    'assets/images/calibration/outlines/full_body_front.png',
+                copy: 'Drag and resize the product against the suggested body guide.',
               ),
             ],
           ),
@@ -276,7 +320,6 @@ class _CalibrationOverviewStep extends StatelessWidget {
       _ProductFlowFooter(
         onBack: onBack,
         onPrimary: onNext,
-        primaryLabel: 'Choose a product photo',
       ),
     ],
   );
@@ -285,68 +328,80 @@ class _CalibrationOverviewStep extends StatelessWidget {
 class _CalibrationOverviewCard extends StatelessWidget {
   const _CalibrationOverviewCard({
     required this.number,
-    required this.icon,
     required this.title,
+    required this.imageUrl,
     required this.copy,
   });
 
   final String number;
-  final IconData icon;
   final String title;
+  final String imageUrl;
   final String copy;
 
   @override
   Widget build(BuildContext context) => Container(
     width: double.infinity,
     margin: const EdgeInsets.only(bottom: 10),
-    padding: const EdgeInsets.all(16),
     decoration: BoxDecoration(
       color: AppColors.white,
       border: Border.all(color: AppColors.neutral200),
     ),
-    child: Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    child: Column(
       children: [
         Container(
-          width: 44,
-          height: 44,
-          alignment: Alignment.center,
-          color: AppColors.black,
-          child: Text(
-            number,
-            style: const TextStyle(color: AppColors.white, fontSize: 16),
+          constraints: const BoxConstraints(minHeight: 62),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          decoration: const BoxDecoration(
+            border: Border(bottom: BorderSide(color: AppColors.neutral200)),
           ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          child: Row(
             children: [
-              Row(
-                children: [
-                  Icon(icon, size: 18),
-                  const SizedBox(width: 7),
-                  Expanded(
-                    child: Text(
-                      title,
-                      style: const TextStyle(
-                        fontSize: 14,
-                        fontWeight: AppTypography.bold,
-                      ),
-                    ),
+              Container(
+                width: 32,
+                height: 32,
+                alignment: Alignment.center,
+                decoration: const BoxDecoration(
+                  color: AppColors.black,
+                  shape: BoxShape.circle,
+                ),
+                child: Text(
+                  number,
+                  style: const TextStyle(
+                    color: AppColors.white,
+                    fontSize: 13,
+                    fontWeight: AppTypography.bold,
                   ),
-                ],
+                ),
               ),
-              const SizedBox(height: 7),
+              const SizedBox(width: 11),
               Text(
-                copy,
+                title,
                 style: const TextStyle(
-                  color: AppColors.neutral500,
-                  fontSize: 12,
-                  height: 1.4,
+                  fontSize: 14,
+                  fontWeight: AppTypography.bold,
                 ),
               ),
             ],
+          ),
+        ),
+        Container(
+          height: 150,
+          padding: const EdgeInsets.all(14),
+          color: const Color(0xFFF8F7F3),
+          alignment: Alignment.center,
+          child: AppImage(imageUrl),
+        ),
+        Container(
+          constraints: const BoxConstraints(minHeight: 64),
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          child: Text(
+            copy,
+            style: const TextStyle(
+              color: AppColors.neutral500,
+              fontSize: 12,
+              height: 1.45,
+            ),
           ),
         ),
       ],
@@ -372,11 +427,14 @@ class _MethodCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
+      padding: EdgeInsets.zero,
       child: InkWell(
+        key: ValueKey('calibration-method-$title'),
         onTap: onTap,
         child: Container(
-          padding: const EdgeInsets.all(13),
+          width: double.infinity,
+          constraints: const BoxConstraints(minHeight: 88),
+          padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
             color: AppColors.white,
             border: Border.all(color: AppColors.neutral200),
@@ -392,25 +450,25 @@ class _MethodCard extends StatelessWidget {
                 ),
                 child: Icon(icon, size: 16),
               ),
-              const SizedBox(width: 11),
+              const SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Wrap(
-                      spacing: 6,
+                      spacing: 7,
                       runSpacing: 4,
                       crossAxisAlignment: WrapCrossAlignment.center,
                       children: [
                         Text(
                           title,
                           style: const TextStyle(
-                            fontSize: 13,
-                            height: 1.18,
-                            fontWeight: FontWeight.w800,
+                            fontSize: 14,
+                            height: 1.2,
+                            fontWeight: AppTypography.bold,
                           ),
                         ),
-                        if (recommended) const _ProductPill.dark('Recommended'),
+                        if (recommended) const _CalibrationRecommendedBadge(),
                       ],
                     ),
                     const SizedBox(height: 4),
@@ -418,20 +476,50 @@ class _MethodCard extends StatelessWidget {
                       subtitle,
                       style: const TextStyle(
                         fontSize: 12,
-                        height: 1.3,
+                        height: 1.35,
                         color: AppColors.neutral500,
                       ),
                     ),
                   ],
                 ),
               ),
-              const Icon(Icons.chevron_right, size: 18),
+              const Padding(
+                padding: EdgeInsets.only(top: 5),
+                child: Icon(
+                  Icons.chevron_right,
+                  size: 20,
+                  color: AppColors.neutral500,
+                ),
+              ),
             ],
           ),
         ),
       ),
     );
   }
+}
+
+class _CalibrationRecommendedBadge extends StatelessWidget {
+  const _CalibrationRecommendedBadge({this.label = 'Recommended'});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+    color: AppColors.black,
+    alignment: Alignment.center,
+    child: Text(
+      label.toUpperCase(),
+      style: const TextStyle(
+        color: AppColors.white,
+        fontSize: 10,
+        height: 1.1,
+        fontWeight: AppTypography.bold,
+        letterSpacing: .8,
+      ),
+    ),
+  );
 }
 
 class _CalibrationBodyStep extends StatelessWidget {
@@ -473,7 +561,7 @@ class _CalibrationBodyStep extends StatelessWidget {
     ];
     return Column(
       children: [
-        const _StepIndicator(current: 'Step 1', label: '3: View'),
+        const _StepIndicator(current: 1, total: 3, label: 'Product'),
         Expanded(
           child: SingleChildScrollView(
             padding: const EdgeInsets.all(20),
@@ -498,8 +586,9 @@ class _CalibrationBodyStep extends StatelessWidget {
                   itemBuilder: (context, index) {
                     final view = orderedViews[index];
                     return _BodyTile(
-                      view.name,
-                      'Tap to use this body view',
+                      _bodyViewLabel(view.id),
+                      _bodyAreaDescription(view.id),
+                      recommended: index < 2,
                       active: selectedBodyArea == view.id,
                       imageUrl: _localOutlineAsset(view.id),
                       onTap: () => onSelected(view.id),
@@ -532,6 +621,7 @@ class _BodyTile extends StatelessWidget {
     this.subtitle, {
     required this.active,
     required this.onTap,
+    this.recommended = false,
     this.imageUrl,
   });
 
@@ -540,6 +630,7 @@ class _BodyTile extends StatelessWidget {
   final bool active;
   final VoidCallback onTap;
   final String? imageUrl;
+  final bool recommended;
 
   @override
   Widget build(BuildContext context) {
@@ -556,10 +647,10 @@ class _BodyTile extends StatelessWidget {
         ),
         child: Column(
           children: [
-            if (active)
+            if (recommended)
               const Align(
                 alignment: Alignment.centerLeft,
-                child: _ProductPill.dark('Selected'),
+                child: _CalibrationRecommendedBadge(),
               ),
             Expanded(
               child: imageUrl == null
@@ -590,3 +681,16 @@ class _BodyTile extends StatelessWidget {
     );
   }
 }
+
+String _bodyAreaDescription(String bodyArea) => switch (bodyArea) {
+  'full_body_front' => 'Clothing, bags, dresses',
+  'full_body_side' => 'Crossbody, shoulder bags',
+  'waist_front' => 'Belts, waist bags',
+  'hand_side' || 'hand_palm' => 'Rings, bracelets, gloves',
+  'wrist_side' => 'Watches and bracelets',
+  'neck_chest' => 'Necklaces and pendants',
+  'face_front' || 'head_3q' => 'Eyewear and earrings',
+  'ear_profile' => 'Earrings',
+  'foot_side' => 'Shoes',
+  _ => 'Choose this body view',
+};

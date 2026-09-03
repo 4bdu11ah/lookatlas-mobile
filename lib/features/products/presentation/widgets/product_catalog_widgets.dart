@@ -297,7 +297,8 @@ class _ProductCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Expanded(
+            AspectRatio(
+              aspectRatio: 1,
               child: Stack(
                 fit: StackFit.expand,
                 children: [
@@ -341,8 +342,11 @@ class _ProductCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Expanded(child: _CardKicker(product.sku)),
+                      Expanded(
+                        child: _CardKicker(product.sku, maxLines: null),
+                      ),
                       _CardKicker('${product.photos} views'),
                     ],
                   ),
@@ -352,8 +356,6 @@ class _ProductCard extends StatelessWidget {
                       Expanded(
                         child: Text(
                           product.name,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
                             fontFamily: _productDisplayFontFamily,
                             fontSize: 19,
@@ -470,15 +472,16 @@ class _CatalogBadge extends StatelessWidget {
 }
 
 class _CardKicker extends StatelessWidget {
-  const _CardKicker(this.text);
+  const _CardKicker(this.text, {this.maxLines = 1});
 
   final String text;
+  final int? maxLines;
 
   @override
   Widget build(BuildContext context) => Text(
     text.toUpperCase(),
-    maxLines: 1,
-    overflow: TextOverflow.ellipsis,
+    maxLines: maxLines,
+    overflow: maxLines == null ? TextOverflow.visible : TextOverflow.ellipsis,
     style: const TextStyle(
       color: AppColors.neutral500,
       fontSize: 8,
@@ -510,15 +513,6 @@ class _ProductPill extends StatelessWidget {
   //           ? AppColors.successDarker
   //           : AppColors.warningDark,
   //     );
-
-  const _ProductPill.dark(String label, {IconData? icon})
-    : this._(
-        label: label,
-        color: AppColors.black,
-        borderColor: AppColors.black,
-        textColor: AppColors.white,
-        icon: icon,
-      );
 
   const _ProductPill.neutral(String label, {IconData? icon})
     : this._(

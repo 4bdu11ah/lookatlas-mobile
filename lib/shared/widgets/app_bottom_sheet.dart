@@ -5,12 +5,14 @@ Future<T?> showAppBottomSheet<T>(
   BuildContext context, {
   required WidgetBuilder builder,
   bool isScrollControlled = false,
+  bool useSafeArea = true,
   Color backgroundColor = AppColors.white,
   Color? barrierColor,
 }) {
   return showModalBottomSheet<T>(
     context: context,
     isScrollControlled: isScrollControlled,
+    useSafeArea: useSafeArea,
     backgroundColor: backgroundColor,
     barrierColor: barrierColor,
     shape: const RoundedRectangleBorder(),

@@ -114,7 +114,7 @@ class FakeProductsRepository implements ProductsRepository {
   @override
   Future<Result<void>> updatePhotoAngles(
     String productId,
-    Map<Object, String?> angles,
+    Map<String, String?> angles,
   ) async => const Result.ok(null);
 
   @override
@@ -148,8 +148,9 @@ class FakeProductsRepository implements ProductsRepository {
     String productId,
     ProductUpload photo, {
     required String? calibrationId,
-    required String? revision,
+    required int? revision,
     required String mutationId,
+    String? bodyArea,
   }) async => const Result.ok(null);
 
   @override
@@ -165,6 +166,12 @@ class FakeProductsRepository implements ProductsRepository {
     Map<String, dynamic> placement,
     CalibrationMutationFence fence,
   ) async => const Result.ok(null);
+
+  @override
+  Future<Result<ProductUpload>> removeBackgroundFallback(
+    String productId,
+    ProductUpload photo,
+  ) async => Result.ok(photo);
 
   @override
   Future<Result<CalibrationRender>> startCalibrationRender(

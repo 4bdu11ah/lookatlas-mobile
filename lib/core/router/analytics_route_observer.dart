@@ -9,10 +9,12 @@ class AnalyticsRouteObserver extends NavigatorObserver {
   AnalyticsRouteObserver(this._analytics);
 
   final AnalyticsService _analytics;
+  String? _lastTrackedName;
 
   void _track(Route<dynamic>? route) {
     final name = route?.settings.name;
-    if (name == null || name.isEmpty) return;
+    if (name == null || name.isEmpty || name == _lastTrackedName) return;
+    _lastTrackedName = name;
     unawaited(_analytics.screen(name));
   }
 

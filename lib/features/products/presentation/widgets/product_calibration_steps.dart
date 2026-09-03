@@ -19,9 +19,18 @@ class _CalibrationPickPhotoStep extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final photos = product.productPhotos.isEmpty
+        ? [
+            for (final asset in product.photoAssets.indexed)
+              (url: asset.$2, angle: 'View ${asset.$1 + 1}'),
+          ]
+        : [
+            for (final photo in product.productPhotos)
+              (url: photo.url, angle: photo.viewAngle ?? 'Product'),
+          ];
     return Column(
       children: [
-        const _StepIndicator(current: 'Step 2', label: '3: Place'),
+        const _StepIndicator(current: 1, total: 3, label: 'Product'),
         Expanded(
           child: SingleChildScrollView(
             padding: const EdgeInsets.all(20),
@@ -29,23 +38,65 @@ class _CalibrationPickPhotoStep extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const _SectionCopy(
-                  title: 'Pick a product photo',
-                  copy: 'We will remove its background, then you place the cutout on the body outline.',
+                  title: 'Choose a clear product photo',
+                  copy: 'A front-facing photo with the whole product visible works best. We’ll remove the background automatically.',
                 ),
-                const SizedBox(height: 20),
-                const _Kicker('Size guide'),
-                const SizedBox(height: 10),
+                const SizedBox(height: 16),
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Container(
-                      width: 96,
-                      height: 144,
-                      decoration: BoxDecoration(
-                        border: Border.all(color: AppColors.neutral200),
-                      ),
-                      child: AppImage(
-                        _localOutlineAsset(bodyArea) ?? product.asset,
+                    SizedBox(
+                      width: 88,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const _Kicker('Size guide'),
+                          const SizedBox(height: 8),
+                          AspectRatio(
+                            aspectRatio: 2 / 3,
+                            child: Container(
+                              padding: const EdgeInsets.all(6),
+                              decoration: BoxDecoration(
+                                border: Border.all(
+                                  color: AppColors.neutral200,
+                                ),
+                              ),
+                              child: AppImage(
+                                _localOutlineAsset(bodyArea) ?? product.asset,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            _bodyViewLabel(bodyArea),
+                            style: const TextStyle(
+                              fontSize: 11,
+                              fontWeight: AppTypography.bold,
+                            ),
+                          ),
+                          TextButton.icon(
+                            onPressed: onChangeBody,
+                            icon: const Icon(Icons.edit_outlined, size: 13),
+                            label: const Text('Change'),
+                            style: TextButton.styleFrom(
+                              minimumSize: const Size(44, 44),
+                              padding: EdgeInsets.zero,
+                              foregroundColor: AppColors.neutral500,
+                              textStyle: const TextStyle(
+                                fontSize: 11,
+                                decoration: TextDecoration.underline,
+                              ),
+                            ),
+                          ),
+                          const Text(
+                            'Choose a photo from roughly this angle.',
+                            style: TextStyle(
+                              fontSize: 11,
+                              height: 1.45,
+                              color: AppColors.neutral500,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                     const SizedBox(width: 14),
@@ -53,83 +104,84 @@ class _CalibrationPickPhotoStep extends StatelessWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            _bodyViewLabel(bodyArea),
-                            style: const TextStyle(
-                              fontSize: 14,
-                              fontWeight: AppTypography.bold,
-                            ),
-                          ),
-                          const SizedBox(height: 6),
-                          const Text(
-                            'Choose a photo from roughly this angle.',
-                            style: TextStyle(
-                              fontSize: 12,
-                              height: 1.38,
-                              color: AppColors.neutral500,
-                            ),
-                          ),
+                          const _Kicker('Choose a clear product photo'),
                           const SizedBox(height: 10),
-                          AppOutlinedButton(
-                            label: 'Change',
-                            icon: Icons.edit_outlined,
-                            onPressed: onChangeBody,
-                            fitToContent: true,
-                            height: 44,
+                          for (final (index, photo) in photos.indexed) ...[
+                            _PhotoTile(
+                              key: ValueKey('calibration-photo-$index'),
+                              asset: photo.url,
+                              angle: photo.angle,
+                              onTap: () => onPhotoSelected(photo.url),
+                            ),
+                            const SizedBox(height: 10),
+                          ],
+                          AspectRatio(
+                            aspectRatio: 1.25,
+                            child: _UploadTile(onTap: onNext),
                           ),
                         ],
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 24),
-                const _Kicker('Your product photos'),
-                const SizedBox(height: 10),
-                GridView.builder(
-                  itemCount: product.photoAssets.length + 1,
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 2,
-                    crossAxisSpacing: 12,
-                    mainAxisSpacing: 12,
-                  ),
-                  itemBuilder: (context, index) =>
-                      index == product.photoAssets.length
-                      ? _UploadTile(onTap: onNext)
-                      : _PhotoTile(
-                          key: ValueKey('calibration-photo-$index'),
-                          asset: product.photoAssets[index],
-                          onTap: () =>
-                              onPhotoSelected(product.photoAssets[index]),
-                        ),
-                ),
               ],
             ),
           ),
         ),
-        _ProductFlowFooter(onBack: onBack, onPrimary: onNext),
+        _ProductFlowFooter(onBack: onBack, showPrimary: false),
       ],
     );
   }
 }
 
 String _bodyViewLabel(String bodyArea) => switch (bodyArea) {
-  'full_body_front' => 'Full body (front)',
-  'full_body_side' => 'Full body (side)',
+  'full_body_front' => 'Full body front',
+  'full_body_side' => 'Full body side',
+  'waist_front' => 'Waist front',
+  'hand_side' => 'Hand side',
+  'hand_palm' => 'Hand palm',
+  'wrist_side' => 'Wrist side',
+  'neck_chest' => 'Neck and chest',
+  'face_front' => 'Face front',
+  'head_3q' => 'Head three-quarter',
+  'ear_profile' => 'Ear profile',
+  'foot_side' => 'Foot side',
   _ => bodyArea.replaceAll('_', ' '),
 };
 
-class _CalibrationProgressStep extends StatelessWidget {
+class _CalibrationProgressStep extends StatefulWidget {
   const _CalibrationProgressStep({required this.onBack});
 
   final VoidCallback onBack;
 
   @override
+  State<_CalibrationProgressStep> createState() =>
+      _CalibrationProgressStepState();
+}
+
+class _CalibrationProgressStepState extends State<_CalibrationProgressStep> {
+  Timer? _timer;
+  var _progress = 18;
+
+  @override
+  void initState() {
+    super.initState();
+    _timer = Timer.periodic(const Duration(milliseconds: 350), (_) {
+      if (mounted && _progress < 88) setState(() => _progress += 7);
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Column(
       children: [
-        const _StepIndicator(current: 'Step 2', label: '3: Place'),
+        const _StepIndicator(current: 1, total: 3, label: 'Product'),
         Expanded(
           child: Padding(
             padding: const EdgeInsets.all(20),
@@ -137,28 +189,44 @@ class _CalibrationProgressStep extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const _SectionCopy(
-                  title: 'Removing background',
-                  copy: 'One-time model download on first use, then it is near-instant.',
+                  title: 'Preparing your product',
+                  copy: 'Removing the background. The first time can take a little longer.',
                 ),
                 const SizedBox(height: 18),
                 Container(
                   width: double.infinity,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 22,
-                    vertical: 30,
-                  ),
+                  constraints: const BoxConstraints(minHeight: 320),
                   decoration: BoxDecoration(
                     color: AppColors.neutral100Alpha68,
                     border: Border.all(color: AppColors.neutral200),
                   ),
-                  child: const Column(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      BarSpinner(size: 28, color: AppColors.black),
-                      SizedBox(height: 12),
+                      const SizedBox(
+                        width: 24,
+                        height: 24,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: AppColors.black,
+                          backgroundColor: AppColors.neutral200,
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+                      SizedBox(
+                        width: 220,
+                        height: 6,
+                        child: LinearProgressIndicator(
+                          value: _progress / 100,
+                          color: AppColors.black,
+                          backgroundColor: AppColors.neutral200,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
                       Text(
-                        'Uploading cutout',
-                        style: TextStyle(
-                          fontSize: 12,
+                        '$_progress%',
+                        style: const TextStyle(
+                          fontSize: 11,
                           color: AppColors.neutral500,
                         ),
                       ),
@@ -169,7 +237,6 @@ class _CalibrationProgressStep extends StatelessWidget {
             ),
           ),
         ),
-        _ProductFlowFooter(onBack: onBack, showPrimary: false),
       ],
     );
   }
@@ -182,6 +249,8 @@ class _CalibrationConfirmCutoutStep extends StatelessWidget {
     required this.isUploading,
     required this.onBack,
     required this.onNext,
+    required this.onCrop,
+    required this.onFix,
   });
 
   final _Product product;
@@ -189,12 +258,14 @@ class _CalibrationConfirmCutoutStep extends StatelessWidget {
   final bool isUploading;
   final VoidCallback onBack;
   final VoidCallback onNext;
+  final VoidCallback onCrop;
+  final VoidCallback onFix;
 
   @override
   Widget build(BuildContext context) {
     return Column(
       children: [
-        const _StepIndicator(current: 'Step 2', label: '3: Place'),
+        const _StepIndicator(current: 1, total: 3, label: 'Product'),
         Expanded(
           child: SingleChildScrollView(
             padding: const EdgeInsets.all(20),
@@ -202,50 +273,79 @@ class _CalibrationConfirmCutoutStep extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const _SectionCopy(
-                  title: 'Does this look right?',
-                  copy: 'Edges do not need to be perfect. This is used as a size reference only.',
+                  title: 'Is this the right product?',
+                  copy: 'Only the product you want to size should remain.',
                 ),
                 const SizedBox(height: 14),
                 _CheckerBox(asset: product.asset, upload: cutout),
                 const SizedBox(height: 12),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 12,
+                  ),
+                  decoration: BoxDecoration(
+                    border: Border.all(color: AppColors.neutral200),
+                    borderRadius: BorderRadius.zero,
+                  ),
+                  child: const Text.rich(
+                    TextSpan(
+                      children: [
+                        TextSpan(
+                          text: 'CUTOUT READY\n',
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: AppTypography.bold,
+                            letterSpacing: .8,
+                          ),
+                        ),
+                        TextSpan(
+                          text: 'Check the edges and make sure no other object remains.',
+                        ),
+                      ],
+                    ),
+                    style: TextStyle(fontSize: 12, height: 1.45),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Row(
                   children: [
-                    PrimaryButton(
-                      label: 'Looks good',
-                      icon: Icons.check,
-                      onPressed: onNext,
-                      isLoading: isUploading,
-                      fitToContent: true,
-                      height: 34,
-                      backgroundColor: AppColors.black,
-                      foregroundColor: AppColors.white,
-                      iconSize: 16,
-                      textStyle: const TextStyle(
-                        fontSize: 12,
-                        fontWeight: AppTypography.bold,
+                    Expanded(
+                      child: _CalibrationActionButton(
+                        label: 'Crop image',
+                        outlined: true,
+                        onPressed: isUploading ? null : onCrop,
                       ),
                     ),
-                    AppOutlinedButton(
-                      label: 'Use a different photo',
-                      icon: Icons.refresh,
-                      onPressed: isUploading ? null : onBack,
-                      fitToContent: true,
-                      height: 34,
-                      iconSize: 16,
-                      textStyle: const TextStyle(
-                        fontSize: 12,
-                        fontWeight: AppTypography.bold,
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: _CalibrationActionButton(
+                        label: 'Fix cutout',
+                        outlined: true,
+                        onPressed: isUploading ? null : onFix,
                       ),
                     ),
                   ],
+                ),
+                TextButton(
+                  onPressed: isUploading ? null : onBack,
+                  style: TextButton.styleFrom(
+                    minimumSize: const Size(44, 44),
+                    foregroundColor: AppColors.neutral500,
+                    shape: const RoundedRectangleBorder(),
+                  ),
+                  child: const Text('Use different photo'),
                 ),
               ],
             ),
           ),
         ),
-        _ProductFlowFooter(onBack: onBack, showPrimary: false),
+        _ProductFlowFooter(
+          onBack: onBack,
+          onPrimary: isUploading ? null : onNext,
+          primaryLabel: 'Use this cutout',
+        ),
       ],
     );
   }
@@ -286,111 +386,91 @@ class _CalibrationPlaceStep extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        const _StepIndicator(current: 'Step 2', label: '3: Place'),
+        const _StepIndicator(current: 2, total: 3, label: 'Size'),
         Expanded(
-          child: Padding(
+          child: ListView(
             padding: const EdgeInsets.all(20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const _SectionCopy(
-                  title: 'Set the size on the body',
-                  copy: 'Drag the product to reposition it. Use its corner handle to resize, and the zoom controls to inspect the body.',
+            children: [
+              const _SectionCopy(
+                title: 'Make the product look true to size',
+                copy: 'Drag the product into place, then resize it until its scale looks natural on the body.',
+              ),
+              const SizedBox(height: 12),
+              Align(
+                alignment: Alignment.centerRight,
+                child: _ZoomControl(
+                  onZoomOut: () => onBodyZoomChanged(bodyZoom - 0.1),
+                  onReset: () => onBodyZoomChanged(1),
+                  onZoomIn: () => onBodyZoomChanged(bodyZoom + 0.1),
                 ),
-                const SizedBox(height: 12),
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: _ZoomControl(
-                    onZoomOut: () => onBodyZoomChanged(bodyZoom - 0.1),
-                    onReset: () => onBodyZoomChanged(1),
-                    onZoomIn: () => onBodyZoomChanged(bodyZoom + 0.1),
-                  ),
+              ),
+              const SizedBox(height: 8),
+              AspectRatio(
+                aspectRatio: 2 / 3,
+                child: _PlacementCanvas(
+                  product: product,
+                  bodyArea: bodyArea,
+                  cutout: cutout,
+                  bodyZoom: bodyZoom,
+                  placementX: placementX,
+                  placementY: placementY,
+                  placementScale: placementScale,
+                  placementRotation: placementRotation,
+                  onPlacementChanged: onPlacementChanged,
+                  onRotationChanged: onRotationChanged,
                 ),
-                const SizedBox(height: 8),
-                Expanded(
-                  child: _PlacementCanvas(
-                    product: product,
-                    bodyArea: bodyArea,
-                    cutout: cutout,
-                    bodyZoom: bodyZoom,
-                    placementX: placementX,
-                    placementY: placementY,
-                    placementScale: placementScale,
-                    placementRotation: placementRotation,
-                    onPlacementChanged: onPlacementChanged,
-                  ),
+              ),
+              const SizedBox(height: 10),
+              _PlacementFineControls(
+                onLeft: () => onPlacementChanged(
+                  placementX - 0.01,
+                  placementY,
+                  placementScale,
                 ),
-                const SizedBox(height: 10),
-                _PlacementFineControls(
-                  onLeft: () => onPlacementChanged(
-                    placementX - 0.01,
-                    placementY,
-                    placementScale,
-                  ),
-                  onUp: () => onPlacementChanged(
-                    placementX,
-                    placementY - 0.01,
-                    placementScale,
-                  ),
-                  onRight: () => onPlacementChanged(
-                    placementX + 0.01,
-                    placementY,
-                    placementScale,
-                  ),
-                  onSmaller: () => onPlacementChanged(
-                    placementX,
-                    placementY,
-                    placementScale - 0.03,
-                  ),
-                  onCenter: () => onPlacementChanged(0.5, 0.56, placementScale),
-                  onLarger: () => onPlacementChanged(
-                    placementX,
-                    placementY,
-                    placementScale + 0.03,
-                  ),
-                  onRotateLeft: () => onRotationChanged(placementRotation - 2),
-                  onRotateRight: () => onRotationChanged(placementRotation + 2),
+                onRight: () => onPlacementChanged(
+                  placementX + 0.01,
+                  placementY,
+                  placementScale,
                 ),
-                const SizedBox(height: 10),
-                const Text.rich(
-                  TextSpan(
-                    children: [
-                      TextSpan(text: 'This sets the '),
-                      TextSpan(
-                        text: 'size',
-                        style: TextStyle(
-                          color: AppColors.black,
-                          fontWeight: AppTypography.bold,
-                        ),
+                onSmaller: () => onPlacementChanged(
+                  placementX,
+                  placementY,
+                  placementScale - 0.03,
+                ),
+                onCenter: () => onPlacementChanged(0.5, 0.56, placementScale),
+                onLarger: () => onPlacementChanged(
+                  placementX,
+                  placementY,
+                  placementScale + 0.03,
+                ),
+                onRotateLeft: () => onRotationChanged(placementRotation - 2),
+                onRotateRight: () => onRotationChanged(placementRotation + 2),
+              ),
+              const SizedBox(height: 10),
+              const Text.rich(
+                TextSpan(
+                  children: [
+                    TextSpan(text: 'This sets the '),
+                    TextSpan(
+                      text: 'size',
+                      style: TextStyle(
+                        color: AppColors.black,
+                        fontWeight: AppTypography.bold,
                       ),
-                      TextSpan(
-                        text: ' of your product compared to the body. Final photo framing is up to the photographer.',
-                      ),
-                    ],
-                  ),
-                  style: TextStyle(
-                    fontSize: 12,
-                    height: 1.35,
-                    color: AppColors.neutral500,
-                  ),
+                    ),
+                    TextSpan(
+                      text: ' of your product compared to the body. Final photo framing is up to the photographer.',
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 8),
-                AppOutlinedButton(
-                  label: 'Use a different photo',
-                  icon: Icons.arrow_back,
-                  onPressed: onBack,
-                  fitToContent: true,
-                  height: 34,
-                  borderColor: AppColors.transparent,
-                  backgroundColor: AppColors.transparent,
-                  iconSize: 16,
-                  textStyle: const TextStyle(
-                    fontSize: 12,
-                    fontWeight: AppTypography.bold,
-                  ),
+                style: TextStyle(
+                  fontSize: 12,
+                  height: 1.35,
+                  color: AppColors.neutral500,
                 ),
-              ],
-            ),
+              ),
+              const SizedBox(height: 8),
+            ],
           ),
         ),
         _ProductFlowFooter(onBack: onBack, onPrimary: onNext),
@@ -416,6 +496,7 @@ class _CalibrationReviewStep extends StatelessWidget {
     required this.onRemoveWornPhoto,
     required this.isSaving,
     required this.canDiscard,
+    required this.isActive,
     this.wornPhotoUrl,
     this.fitImageUrl,
     this.isLegacy = false,
@@ -436,6 +517,7 @@ class _CalibrationReviewStep extends StatelessWidget {
   final VoidCallback onRemoveWornPhoto;
   final bool isSaving;
   final bool canDiscard;
+  final bool isActive;
   final String? wornPhotoUrl;
   final String? fitImageUrl;
   final bool isLegacy;
@@ -444,7 +526,10 @@ class _CalibrationReviewStep extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        const _StepIndicator(current: 'Step 3', label: '3: Review'),
+        if (wornPhotoUrl != null)
+          const _StepIndicator(current: 2, total: 2, label: 'Finish')
+        else
+          const _StepIndicator(current: 3, total: 3, label: 'Finish'),
         Expanded(
           child: SingleChildScrollView(
             padding: const EdgeInsets.all(20),
@@ -452,14 +537,14 @@ class _CalibrationReviewStep extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 _SectionCopy(
-                  title: isLegacy
-                      ? 'Your saved calibration'
-                      : 'Review and save',
+                  title: isLegacy || isActive
+                      ? 'Size is set'
+                      : 'Check and save',
                   copy: isLegacy
                       ? 'This was set up with the older drawing tool. It still works, but the newer Place on body outline flow is faster and more accurate because it uses your actual product photo.'
                       : wornPhotoUrl != null
-                      ? 'The AI will match the size-to-body ratio from your photo. Framing and composition are up to the photographer.'
-                      : 'The AI will use this size-on-body setup as the scale reference. Framing and composition are up to the photographer.',
+                      ? 'We’ll use the product-to-body scale from this photo.'
+                      : 'We’ll use this Fit only as a size reference. Your shoots still use the model you choose.',
                 ),
                 const SizedBox(height: 14),
                 SizedBox(
@@ -481,26 +566,55 @@ class _CalibrationReviewStep extends StatelessWidget {
                 if (!isLegacy) ...[
                   const SizedBox(height: 14),
 
-                  AppTextField(
-                    controller: notesController,
-                    labelText: 'Notes for the AI (optional)',
-                    hintText: 'Anything that helps the AI get size right. Material, dimensions, context.',
-                    minLines: 3,
-                    maxLines: 4,
-                    maxLength: 500,
+                  Container(
+                    decoration: BoxDecoration(
+                      border: Border.all(color: AppColors.neutral200),
+                    ),
+                    child: ExpansionTile(
+                      tilePadding: const EdgeInsets.symmetric(horizontal: 13),
+                      minTileHeight: 44,
+                      shape: const Border(),
+                      collapsedShape: const Border(),
+                      title: const Text.rich(
+                        TextSpan(
+                          children: [
+                            TextSpan(
+                              text: 'Add instructions ',
+                              style: TextStyle(
+                                fontWeight: AppTypography.bold,
+                              ),
+                            ),
+                            TextSpan(
+                              text: '(optional)',
+                              style: TextStyle(color: AppColors.neutral500),
+                            ),
+                          ],
+                        ),
+                        style: TextStyle(fontSize: 12),
+                      ),
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+                          child: AppTextField(
+                            controller: notesController,
+                            hintText: _calibrationNotesHint(product),
+                            minLines: 4,
+                            maxLines: 5,
+                            maxLength: 500,
+                            showCounter: false,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                   const SizedBox(height: 14),
-                  AppOutlinedButton(
+                  _CalibrationActionButton(
                     label: wornPhotoUrl == null
                         ? 'Adjust placement'
                         : 'Replace photo',
+                    outlined: true,
+                    fullWidth: true,
                     onPressed: onAdjust,
-                    fitToContent: true,
-                    height: 34,
-                    textStyle: const TextStyle(
-                      fontSize: 12,
-                      fontWeight: AppTypography.bold,
-                    ),
                   ),
                   if (wornPhotoUrl != null) ...[
                     const SizedBox(height: 8),
@@ -529,11 +643,71 @@ class _CalibrationReviewStep extends StatelessWidget {
         ),
         _ProductFlowFooter(
           onBack: onClose,
-          primaryLabel: isSaving ? 'Saving...' : 'Save calibration',
+          backLabel: isLegacy || isActive ? 'Done' : 'Back',
+          primaryLabel: isSaving
+              ? 'Saving...'
+              : isActive
+              ? 'Save notes'
+              : 'Save size',
           onPrimary: isSaving ? null : onSave,
           showPrimary: !isLegacy,
         ),
       ],
     );
   }
+}
+
+String _calibrationNotesHint(_Product product) {
+  if (product.category.toLowerCase() == 'bags') {
+    return 'For example, leather exterior, 30 cm wide, 20 cm tall';
+  }
+  return 'For example, 18 inch chain, sunburst pendant';
+}
+
+class _CalibrationSuccessStep extends StatelessWidget {
+  const _CalibrationSuccessStep({required this.onDone});
+
+  final VoidCallback onDone;
+
+  @override
+  Widget build(BuildContext context) => Center(
+    child: Padding(
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 52,
+            height: 52,
+            decoration: const BoxDecoration(
+              color: Color(0xFF315B44),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(Icons.check, color: AppColors.white, size: 25),
+          ),
+          const SizedBox(height: 15),
+          const Text(
+            'Size is set',
+            style: TextStyle(
+              fontFamily: 'InstrumentSerif',
+              fontSize: 21,
+              height: 1.25,
+            ),
+          ),
+          const SizedBox(height: 5),
+          const Text(
+            'Future shoots will use this product size.',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: AppColors.neutral500,
+              fontSize: 14,
+              height: 1.45,
+            ),
+          ),
+          const SizedBox(height: 22),
+          _CalibrationActionButton(label: 'Done', onPressed: onDone),
+        ],
+      ),
+    ),
+  );
 }

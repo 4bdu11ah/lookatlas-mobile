@@ -349,7 +349,13 @@ class _AddPhotoAction extends StatelessWidget {
             border: Border.all(color: const Color(0xFFDEDED8)),
           ),
           child: icon != null
-              ? Icon(icon, size: 18, color: const Color(0xFF121211))
+              ? Icon(
+                  icon,
+                  size: 18,
+                  color: danger
+                      ? const Color(0xFF8A2D2D)
+                      : const Color(0xFF121211),
+                )
               : Text(
                   display,
                   style: TextStyle(
@@ -366,14 +372,21 @@ class _AddPhotoAction extends StatelessWidget {
 }
 
 class _SubtypeRow extends StatelessWidget {
-  const _SubtypeRow({required this.value, required this.onChanged});
+  const _SubtypeRow({
+    required this.category,
+    required this.value,
+    required this.onChanged,
+  });
 
+  final String category;
   final String value;
   final ValueChanged<String> onChanged;
 
   @override
   Widget build(BuildContext context) {
-    const values = ['Tote', 'Crossbody', 'Clutch', 'Backpack'];
+    final values = category == 'Jewelry'
+        ? const ['Ring', 'Necklace', 'Pendant', 'Earrings', 'Bracelet']
+        : const ['Tote', 'Crossbody', 'Clutch', 'Backpack', 'Other Bag'];
     return Wrap(
       spacing: 8,
       runSpacing: 8,
@@ -475,6 +488,43 @@ class _ProductUploadBox extends StatelessWidget {
   }
 }
 
+class _EditProductUploadBox extends StatelessWidget {
+  const _EditProductUploadBox({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => Semantics(
+    button: true,
+    label: 'Add reference views',
+    child: InkWell(
+      onTap: onTap,
+      child: const AppDottedBorder(
+        color: Color(0xFFB8B8B1),
+        dotWidth: 7,
+        gap: 5,
+        child: SizedBox(
+          height: 86,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.add_photo_alternate_outlined, size: 22),
+              SizedBox(width: 10),
+              Text(
+                'Add reference views',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: AppTypography.bold,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    ),
+  );
+}
+
 class _PhotoStrip extends StatelessWidget {
   const _PhotoStrip({
     required this.title,
@@ -491,6 +541,7 @@ class _PhotoStrip extends StatelessWidget {
     required this.onNewAngleChanged,
     required this.onMovePhoto,
     required this.onCropNew,
+    required this.onRemoveNew,
     this.onClear,
     this.countLabel,
     this.clearLabel,
@@ -512,104 +563,104 @@ class _PhotoStrip extends StatelessWidget {
   final void Function(int index, String? angle) onNewAngleChanged;
   final void Function(String token, int delta) onMovePhoto;
   final ValueChanged<int> onCropNew;
+  final ValueChanged<int> onRemoveNew;
   final VoidCallback? onClear;
+
+  Widget _buildPhoto(int index, String token) {
+    if (token.startsWith('new:')) {
+      final newIndex = newPhotos.indexWhere(
+        (photo) => photo.orderKey == token.substring(4),
+      );
+      final upload = newPhotos[newIndex];
+      return _ProductThumb(
+        displayIndex: index,
+        upload: upload,
+        isNew: true,
+        angle: newAngles[newIndex],
+        onAngleChanged: (angle) => onNewAngleChanged(newIndex, angle),
+        onMoveUp: index == 0 ? null : () => onMovePhoto(token, -1),
+        onMoveDown: index == photoOrder.length - 1
+            ? null
+            : () => onMovePhoto(token, 1),
+        onCrop: () => onCropNew(newIndex),
+        onDelete: () => onRemoveNew(newIndex),
+      );
+    }
+    final existing = existingPhotos.firstWhere(
+      (entry) => entry.$2.id == token.substring(9),
+    );
+    return _ProductThumb(
+      displayIndex: index,
+      url: existing.$2.url,
+      upload: replacementPhotos[existing.$2.id],
+      isLoading: replacingPhotoId == existing.$2.id,
+      angle: angles[existing.$1],
+      onAngleChanged: (angle) => onAngleChanged(existing.$1, angle),
+      onReplace: replacingPhotoId == existing.$2.id
+          ? null
+          : () => onReplacePhoto(existing.$2),
+      onDelete: replacingPhotoId == existing.$2.id
+          ? null
+          : () => onDeletePhoto(existing.$1, existing.$2),
+      onMoveUp: index == 0 ? null : () => onMovePhoto(token, -1),
+      onMoveDown: index == photoOrder.length - 1
+          ? null
+          : () => onMovePhoto(token, 1),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     return Container(
       margin: const EdgeInsets.only(bottom: 15),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: AppColors.neutral100Alpha68,
-        border: Border.all(color: AppColors.neutral200),
+      decoration: const BoxDecoration(
+        border: Border(
+          top: BorderSide(color: AppColors.neutral200),
+          bottom: BorderSide(color: AppColors.neutral200),
+        ),
       ),
       child: Column(
         children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  title,
-                  style: const TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-              ),
-              if (countLabel != null)
-                Text(
-                  countLabel!,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: AppColors.neutral500,
-                  ),
-                ),
-              if (clearLabel != null)
-                InkWell(
-                  onTap: onClear,
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 16),
+            child: Row(
+              children: [
+                Expanded(
                   child: Text(
-                    clearLabel!,
+                    title.toUpperCase(),
                     style: const TextStyle(
-                      fontSize: 12,
-                      fontWeight: AppTypography.semiBold,
-                      color: AppColors.neutral500,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: .8,
                     ),
                   ),
                 ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          SizedBox(
-            height: 182,
-            child: ListView.separated(
-              scrollDirection: Axis.horizontal,
-              itemCount: photoOrder.length,
-              separatorBuilder: (_, _) => const SizedBox(width: 12),
-              itemBuilder: (context, index) {
-                final token = photoOrder[index];
-                if (token.startsWith('new:')) {
-                  final newIndex = newPhotos.indexWhere(
-                    (photo) => photo.orderKey == token.substring(4),
-                  );
-                  final upload = newPhotos[newIndex];
-                  return _ProductThumb(
-                    displayIndex: index,
-                    upload: upload,
-                    isNew: true,
-                    angle: newAngles[newIndex],
-                    onAngleChanged: (angle) =>
-                        onNewAngleChanged(newIndex, angle),
-                    onMoveUp: index == 0 ? null : () => onMovePhoto(token, -1),
-                    onMoveDown: index == photoOrder.length - 1
-                        ? null
-                        : () => onMovePhoto(token, 1),
-                    onCrop: () => onCropNew(newIndex),
-                  );
-                }
-                final existing = existingPhotos.firstWhere(
-                  (entry) => entry.$2.id == token.substring(9),
-                );
-                return _ProductThumb(
-                  displayIndex: index,
-                  url: existing.$2.url,
-                  upload: replacementPhotos[existing.$2.id],
-                  isLoading: replacingPhotoId == existing.$2.id,
-                  angle: angles[existing.$1],
-                  onAngleChanged: (angle) => onAngleChanged(existing.$1, angle),
-                  onReplace: replacingPhotoId == existing.$2.id
-                      ? null
-                      : () => onReplacePhoto(existing.$2),
-                  onDelete: replacingPhotoId == existing.$2.id
-                      ? null
-                      : () => onDeletePhoto(existing.$1, existing.$2),
-                  onMoveUp: index == 0 ? null : () => onMovePhoto(token, -1),
-                  onMoveDown: index == photoOrder.length - 1
-                      ? null
-                      : () => onMovePhoto(token, 1),
-                );
-              },
+                if (countLabel != null)
+                  Text(
+                    countLabel!,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: AppColors.neutral500,
+                      fontWeight: AppTypography.bold,
+                    ),
+                  ),
+                if (clearLabel != null)
+                  InkWell(
+                    onTap: onClear,
+                    child: Text(
+                      clearLabel!,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: AppTypography.semiBold,
+                        color: AppColors.neutral500,
+                      ),
+                    ),
+                  ),
+              ],
             ),
           ),
+          for (final (index, token) in photoOrder.indexed)
+            _buildPhoto(index, token),
         ],
       ),
     );
@@ -646,126 +697,105 @@ class _ProductThumb extends StatelessWidget {
   final VoidCallback? onCrop;
 
   @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: 96,
-      child: Column(
-        children: [
-          Expanded(
-            child: Stack(
-              fit: StackFit.expand,
-              children: [
-                DecoratedBox(
-                  decoration: BoxDecoration(
-                    border: Border.all(color: AppColors.neutral200),
-                  ),
-                  child: upload == null
-                      ? _AssetImage(url ?? '')
-                      : AppImage.memory(upload!.bytes, fit: BoxFit.cover),
-                ),
-                if (isLoading)
-                  const ColoredBox(
-                    color: AppColors.inkAlpha80,
-                    child: Center(
-                      child: BarSpinner(color: AppColors.white),
-                    ),
-                  ),
-                if (onReplace != null)
-                  Positioned(
-                    top: 5,
-                    left: 5,
-                    child: _ThumbAction(
-                      icon: Icons.edit_outlined,
-                      onTap: onReplace!,
-                    ),
-                  ),
-                if (onDelete != null)
-                  Positioned(
-                    top: 5,
-                    right: 5,
-                    child: _ThumbAction(icon: Icons.close, onTap: onDelete!),
-                  ),
-                if (onMoveUp != null)
-                  Positioned(
-                    left: 5,
-                    bottom: 30,
-                    child: _ThumbAction(
-                      icon: Icons.arrow_upward,
-                      onTap: onMoveUp!,
-                    ),
-                  ),
-                if (onMoveDown != null)
-                  Positioned(
-                    right: 5,
-                    bottom: 30,
-                    child: _ThumbAction(
-                      icon: Icons.arrow_downward,
-                      onTap: onMoveDown!,
-                    ),
-                  ),
-                if (onCrop != null)
-                  Positioned(
-                    top: 5,
-                    right: 5,
-                    child: _ThumbAction(
-                      icon: Icons.crop,
-                      onTap: onCrop!,
-                    ),
-                  ),
-                Positioned(
-                  left: 0,
-                  right: 0,
-                  bottom: 0,
-                  child: Container(
-                    height: 25,
-                    color: isNew
-                        ? AppColors.successDarker
-                        : AppColors.blackAlpha90,
-                    alignment: Alignment.center,
-                    child: Text(
-                      isNew ? 'New' : '${displayIndex + 1}',
-                      style: const TextStyle(
-                        fontSize: 12,
-                        fontWeight: AppTypography.bold,
-                        color: AppColors.white,
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.symmetric(vertical: 10),
+    decoration: const BoxDecoration(
+      border: Border(top: BorderSide(color: AppColors.neutral200)),
+    ),
+    child: Column(
+      children: [
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SizedBox(
+              width: 60,
+              height: 72,
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  if (upload == null)
+                    _AssetImage(url ?? '', fit: BoxFit.contain)
+                  else
+                    AppImage.memory(upload!.bytes),
+                  if (isLoading)
+                    const ColoredBox(
+                      color: AppColors.inkAlpha80,
+                      child: Center(
+                        child: BarSpinner(color: AppColors.white),
                       ),
                     ),
-                  ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-          const SizedBox(height: 8),
-          _MiniSelect(
-            angle,
-            angleLabel:
-                'Angle for ${isNew ? 'new' : 'saved'} product view ${displayIndex + 1}',
-            onChanged: onAngleChanged,
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ThumbAction extends StatelessWidget {
-  const _ThumbAction({required this.icon, required this.onTap});
-
-  final IconData icon;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      child: Container(
-        width: 24,
-        height: 24,
-        color: AppColors.blackAlpha90,
-        child: Icon(icon, size: 14, color: AppColors.white),
-      ),
-    );
-  }
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '${isNew ? 'New' : 'Saved'} view · Position ${displayIndex + 1}'
+                        .toUpperCase(),
+                    style: const TextStyle(
+                      color: AppColors.neutral500,
+                      fontSize: 9,
+                      fontWeight: AppTypography.bold,
+                      letterSpacing: .55,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  _MiniSelect(
+                    angle,
+                    angleLabel:
+                        'Angle for ${isNew ? 'new' : 'saved'} product view ${displayIndex + 1}',
+                    onChanged: onAngleChanged,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 9),
+        Row(
+          children: [
+            Expanded(
+              child: _AddPhotoAction(
+                display: '↑',
+                label: 'Move view up',
+                onTap: onMoveUp,
+              ),
+            ),
+            const SizedBox(width: 5),
+            Expanded(
+              child: _AddPhotoAction(
+                display: '↓',
+                label: 'Move view down',
+                onTap: onMoveDown,
+              ),
+            ),
+            const SizedBox(width: 5),
+            Expanded(
+              child: _AddPhotoAction(
+                display: '',
+                icon: isNew ? Icons.crop : Icons.file_upload_outlined,
+                label: isNew ? 'Crop view' : 'Replace view',
+                onTap: isNew ? onCrop : onReplace,
+              ),
+            ),
+            const SizedBox(width: 5),
+            Expanded(
+              child: _AddPhotoAction(
+                display: '',
+                icon: Icons.delete_outline,
+                label: 'Delete view',
+                onTap: onDelete,
+                danger: true,
+              ),
+            ),
+          ],
+        ),
+      ],
+    ),
+  );
 }
 
 class _MiniSelect extends StatelessWidget {

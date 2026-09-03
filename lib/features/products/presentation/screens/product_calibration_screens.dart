@@ -8,16 +8,9 @@ Future<void> _openCalibration(
   String? initialStage,
 }) {
   if (!_requestProductsManageAccess(context, ref)) return Future.value();
-  final expectedPath = AppRoutes.productSize(product.id);
-  final router = GoRouter.maybeOf(context);
-  final currentPath = router?.routerDelegate.currentConfiguration.uri.path;
-  if (router != null &&
-      currentPath != expectedPath &&
-      !(currentPath?.startsWith('$expectedPath/') ?? false)) {
-    return context.push<void>(expectedPath);
-  }
   return Navigator.of(context).push(
     MaterialPageRoute<void>(
+      settings: const RouteSettings(name: 'product_size'),
       builder: (_) => _ProductCalibrationScreen(
         product: product,
         repository: ref.read(productsRepositoryProvider),
@@ -40,6 +33,7 @@ class _ProductCalibrationState {
     this.isLoading = true,
     this.isMutating = false,
     this.cutout,
+    this.sourceUpload,
     this.bodyZoom = 1,
     this.placementX = 0.5,
     this.placementY = 0.56,
@@ -57,6 +51,7 @@ class _ProductCalibrationState {
   final bool isLoading;
   final bool isMutating;
   final ProductUpload? cutout;
+  final ProductUpload? sourceUpload;
   final double bodyZoom;
   final double placementX;
   final double placementY;
@@ -76,6 +71,7 @@ class _ProductCalibrationState {
     bool? isLoading,
     bool? isMutating,
     ProductUpload? cutout,
+    ProductUpload? sourceUpload,
     double? bodyZoom,
     double? placementX,
     double? placementY,
@@ -93,6 +89,7 @@ class _ProductCalibrationState {
     isLoading: isLoading ?? this.isLoading,
     isMutating: isMutating ?? this.isMutating,
     cutout: cutout ?? this.cutout,
+    sourceUpload: sourceUpload ?? this.sourceUpload,
     bodyZoom: bodyZoom ?? this.bodyZoom,
     placementX: placementX ?? this.placementX,
     placementY: placementY ?? this.placementY,
@@ -150,13 +147,15 @@ class _ProductCalibrationScreen extends ConsumerStatefulWidget {
 }
 
 class _ProductCalibrationScreenState
-    extends ConsumerState<_ProductCalibrationScreen> {
+    extends ConsumerState<_ProductCalibrationScreen>
+    with WidgetsBindingObserver {
   final TextEditingController _notesController = TextEditingController();
   final TextEditingController _searchController = TextEditingController();
   final TextEditingController _renderFeedbackController =
       TextEditingController();
   Timer? _renderPollTimer;
   DateTime? _renderPollStartedAt;
+  final Map<String, String> _pendingMutationIds = {};
   var _isInitialCalibrationLoad = true;
   var _openedWithSavedCalibration = false;
   var _didApplyInitialStage = false;
@@ -192,6 +191,11 @@ class _ProductCalibrationScreenState
     if (value != null) _state = _state.copyWith(cutout: value);
   }
 
+  ProductUpload? get _sourceUpload => _state.sourceUpload;
+  set _sourceUpload(ProductUpload? value) {
+    if (value != null) _state = _state.copyWith(sourceUpload: value);
+  }
+
   double get _bodyZoom => _state.bodyZoom;
   set _bodyZoom(double value) =>
       _state = _state.copyWith(bodyZoom: value.clamp(0.7, 2).toDouble());
@@ -215,11 +219,22 @@ class _ProductCalibrationScreenState
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     unawaited(Future.microtask(_load));
   }
 
   @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed &&
+        (_renders.firstOrNull?.status.isPending ?? false)) {
+      _startRenderPolling();
+      unawaited(_pollRender());
+    }
+  }
+
+  @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _renderPollTimer?.cancel();
     _notesController.dispose();
     _searchController.dispose();
@@ -268,14 +283,23 @@ class _ProductCalibrationScreenState
           final num value => value.toDouble(),
           _ => 0,
         };
-        if (value.calibration.isLegacyOnly) {
-          _step = _CalibrationStep.review;
-        } else if (value.calibration.hasPlacement ||
-            value.calibration.wornPhotoUrl != null) {
-          _step = _CalibrationStep.review;
-        } else if (value.calibration.cutoutUrl != null) {
-          _step = _CalibrationStep.placeProduct;
-        }
+        _step = switch (value.calibration.status) {
+          ProductCalibrationStatus.fitPending ||
+          ProductCalibrationStatus.fitRendering ||
+          ProductCalibrationStatus.fitReady ||
+          ProductCalibrationStatus.fitFailed => _CalibrationStep.fit,
+          ProductCalibrationStatus.calibrated ||
+          ProductCalibrationStatus.changesPending ||
+          ProductCalibrationStatus.saveReady => _CalibrationStep.review,
+          _ when value.calibration.isLegacyOnly => _CalibrationStep.review,
+          _
+              when value.calibration.hasPlacement ||
+                  value.calibration.wornPhotoUrl != null =>
+            _CalibrationStep.review,
+          _ when value.calibration.cutoutUrl != null =>
+            _CalibrationStep.placeProduct,
+          _ => _CalibrationStep.method,
+        };
         if (_renders.firstOrNull?.status.isPending ?? false) {
           _step = _CalibrationStep.fit;
           _startRenderPolling();
@@ -295,9 +319,7 @@ class _ProductCalibrationScreenState
       _pickProductPhoto(context, ref, title: title);
 
   bool get _navigationBlocked =>
-      _isMutating ||
-      (_step == _CalibrationStep.fit &&
-          (_renders.firstOrNull?.status.isPending ?? false));
+      _isMutating && _step != _CalibrationStep.removingBackground;
 
   void _handleSystemBack() {
     if (_navigationBlocked) return;
@@ -328,6 +350,9 @@ class _ProductCalibrationScreenState
               ? _CalibrationStep.wornPhoto
               : _CalibrationStep.placeProduct;
         }
+      case _CalibrationStep.success:
+        widget.onSaved();
+        Navigator.pop(context);
       case _CalibrationStep.wornPhoto || _CalibrationStep.copyFrom:
         _step = _CalibrationStep.method;
     }
@@ -386,6 +411,13 @@ class _ProductCalibrationScreenState
     _placementScale = scale.clamp(0.5, 2);
   }
 
+  void _changeBodyArea(String value) {
+    if (_bodyArea == value) return;
+    _bodyArea = value;
+    _updatePlacement(0.5, 0.56, 1);
+    _placementRotation = 0;
+  }
+
   Future<void> _uploadCutout() async {
     final upload = await _pickUpload('Pick a product photo');
     if (upload == null || !mounted) return;
@@ -432,6 +464,10 @@ class _ProductCalibrationScreenState
         bytes: bytes,
         fileName: '${widget.product.id}-source.jpg',
         path: file.path,
+        localKey: widget.product.productPhotos
+            .where((photo) => photo.url == source)
+            .firstOrNull
+            ?.id,
       );
     } on Exception {
       if (mounted) {
@@ -442,6 +478,7 @@ class _ProductCalibrationScreenState
   }
 
   Future<void> _processCutout(ProductUpload upload) async {
+    _sourceUpload = upload;
     _isMutating = true;
     _step = _CalibrationStep.removingBackground;
     final cutout = await _removeBackground(upload);
@@ -461,56 +498,91 @@ class _ProductCalibrationScreenState
     _step = _CalibrationStep.placeProduct;
   }
 
+  Future<void> _cropCutout() async {
+    final cutout = _cutout;
+    if (cutout == null || _isMutating) return;
+    await _showProductReferenceCrop(
+      context,
+      source: cutout,
+      isReplacement: true,
+      preserveTransparency: true,
+      onSave: (cropped) async {
+        _cutout = ProductUpload(
+          bytes: cropped.bytes,
+          fileName: cropped.fileName,
+          localKey: cutout.localKey,
+        );
+        return true;
+      },
+    );
+  }
+
+  Future<void> _fixCutout() async {
+    final source = _sourceUpload;
+    if (source == null || _isMutating) return;
+    final temporary = File(
+      '${Directory.systemTemp.path}/${widget.product.id}-cutout-fix-${DateTime.now().microsecondsSinceEpoch}.jpg',
+    );
+    try {
+      await temporary.writeAsBytes(source.bytes);
+      final retrySource = ProductUpload(
+        bytes: source.bytes,
+        fileName: source.fileName,
+        path: temporary.path,
+        localKey: source.localKey,
+      );
+      await _processCutout(retrySource);
+    } finally {
+      try {
+        await temporary.delete();
+      } on FileSystemException {
+        // The platform may clean temporary files before this callback runs.
+      }
+    }
+  }
+
   Future<ProductUpload?> _removeBackground(ProductUpload upload) async {
     final imagePath = upload.path;
-    if (imagePath == null || imagePath.isEmpty) {
-      AppSnackBar.showError(
-        context,
-        'We could not remove the background for that photo. Please try a different photo.',
-      );
-      return null;
-    }
-    try {
-      final isModelReady = await NativeCutout.isModelAvailable();
-      if (!isModelReady && !await NativeCutout.downloadModel()) {
-        if (mounted) {
-          AppSnackBar.showError(
-            context,
-            'The background-removal model could not download. Check your connection and try again.',
+    if (imagePath != null && imagePath.isNotEmpty) {
+      try {
+        final isModelReady = await NativeCutout.isModelAvailable();
+        if (isModelReady || await NativeCutout.downloadModel()) {
+          final result = await NativeCutout.removeBackground(
+            imagePath,
+            options: const CutoutOptions(
+              cropToSubject: true,
+              writeToCache: false,
+            ),
           );
+          if (!mounted) return null;
+          if (result case CutoutBytesSuccess(:final pngBytes)) {
+            return ProductUpload(
+              bytes: pngBytes,
+              fileName: '${widget.product.id}-cutout.png',
+              localKey: upload.localKey,
+            );
+          }
         }
-        return null;
+      } on Exception {
+        // The authenticated server fallback below handles unsupported devices,
+        // model-download failures, and native processing errors.
       }
-      final result = await NativeCutout.removeBackground(
-        imagePath,
-        options: const CutoutOptions(cropToSubject: true, writeToCache: false),
-      );
-      if (!mounted) return null;
-      switch (result) {
-        case CutoutBytesSuccess(:final pngBytes):
-          return ProductUpload(
-            bytes: pngBytes,
-            fileName: '${widget.product.id}-cutout.png',
-          );
-        case CutoutFailure(:final message):
-          AppSnackBar.showError(
-            context,
-            message.isEmpty
-                ? 'We could not remove the background for that photo. Please try a different photo.'
-                : message,
-          );
-        case CutoutFileSuccess():
-          AppSnackBar.showError(
-            context,
-            'We could not remove the background for that photo. Please try a different photo.',
-          );
-      }
-    } on Exception {
-      if (!mounted) return null;
-      AppSnackBar.showError(
-        context,
-        'We could not remove the background for that photo. Please try a different photo.',
-      );
+    }
+    final fallback = await widget.repository.removeBackgroundFallback(
+      widget.product.id,
+      upload,
+    );
+    if (!mounted) return null;
+    switch (fallback) {
+      case Ok(:final value):
+        return value;
+      case Err(:final failure):
+        AppSnackBar.showError(
+          context,
+          failure.message.isEmpty
+              ? 'We could not remove the background for that photo. Please try a different photo.'
+              : failure.message,
+        );
     }
     return null;
   }
@@ -533,13 +605,14 @@ class _ProductCalibrationScreenState
               onCopy: () => _step = _CalibrationStep.copyFrom,
             ),
             _CalibrationStep.overview => _CalibrationOverviewStep(
+              product: widget.product,
               onBack: () => _step = _CalibrationStep.method,
               onNext: () => _step = _CalibrationStep.pickPhoto,
             ),
             _CalibrationStep.bodyView => _CalibrationBodyStep(
               outlines: workspace.outlines,
               selectedBodyArea: _bodyArea,
-              onSelected: (value) => _bodyArea = value,
+              onSelected: _changeBodyArea,
               onBack: () => _step = _CalibrationStep.pickPhoto,
               onNext: () => _step = _CalibrationStep.pickPhoto,
             ),
@@ -560,6 +633,8 @@ class _ProductCalibrationScreenState
               isUploading: _isMutating,
               onBack: () => _step = _CalibrationStep.pickPhoto,
               onNext: _confirmCutout,
+              onCrop: _cropCutout,
+              onFix: _fixCutout,
             ),
             _CalibrationStep.placeProduct => _CalibrationPlaceStep(
               product: widget.product,
@@ -617,9 +692,18 @@ class _ProductCalibrationScreenState
                       ProductCalibrationStatus.changesPending ||
                   workspace.calibration.status ==
                       ProductCalibrationStatus.saveReady,
+              isActive:
+                  workspace.calibration.status ==
+                  ProductCalibrationStatus.calibrated,
               wornPhotoUrl: workspace.calibration.wornPhotoUrl,
               fitImageUrl: _renders.firstOrNull?.imageUrl,
               isLegacy: workspace.calibration.isLegacyOnly,
+            ),
+            _CalibrationStep.success => _CalibrationSuccessStep(
+              onDone: () {
+                widget.onSaved();
+                Navigator.pop(context);
+              },
             ),
             _CalibrationStep.wornPhoto => _CalibrationWornStep(
               onBack: () => _step = _CalibrationStep.method,
@@ -658,9 +742,18 @@ class _ProductCalibrationScreenState
         backgroundColor: AppColors.white,
         appBar: _CalibrationHeader(
           productName: widget.product.name,
-          onExit: _navigationBlocked ? null : () => Navigator.pop(context),
+          onExit: _navigationBlocked
+              ? null
+              : () {
+                  if (_step == _CalibrationStep.success) widget.onSaved();
+                  Navigator.pop(context);
+                },
         ),
-        body: SafeArea(top: false, child: body),
+        body: Semantics(
+          liveRegion: true,
+          container: true,
+          child: SafeArea(top: false, child: body),
+        ),
       ),
     );
   }

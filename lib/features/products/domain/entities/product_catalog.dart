@@ -167,6 +167,30 @@ enum CalibrationRenderStatus {
   bool get isPending => this == queued || this == processing;
 }
 
+enum CalibrationCandidateState {
+  fitPending,
+  saveReady;
+
+  static CalibrationCandidateState? fromWire(String? value) => switch (value) {
+    'fit_pending' => fitPending,
+    'save_ready' => saveReady,
+    _ => null,
+  };
+}
+
+enum CalibrationReferenceStatus {
+  legacy,
+  pending,
+  ready;
+
+  static CalibrationReferenceStatus? fromWire(String? value) => switch (value) {
+    'legacy' => legacy,
+    'pending' => pending,
+    'ready' => ready,
+    _ => null,
+  };
+}
+
 @immutable
 class CalibrationRender {
   const CalibrationRender({
@@ -177,6 +201,10 @@ class CalibrationRender {
     this.feedback,
     this.previousRenderId,
     this.createdAt,
+    this.isStale = false,
+    this.approvalAllowed,
+    this.refundStatus,
+    this.version,
   });
 
   final String id;
@@ -186,9 +214,16 @@ class CalibrationRender {
   final String? feedback;
   final String? previousRenderId;
   final DateTime? createdAt;
+  final bool isStale;
+  final bool? approvalAllowed;
+  final String? refundStatus;
+  final int? version;
 
   bool get isApprovalEligible =>
-      status == CalibrationRenderStatus.completed && imageUrl != null;
+      status == CalibrationRenderStatus.completed &&
+      imageUrl != null &&
+      !isStale &&
+      (approvalAllowed ?? true);
 }
 
 @immutable
@@ -200,7 +235,7 @@ class CalibrationMutationFence {
   });
 
   final String? calibrationId;
-  final String? revision;
+  final int? revision;
   final String mutationId;
 
   Map<String, dynamic> toJson() => {
@@ -247,6 +282,9 @@ class CatalogProductDraft {
     this.existingPhotoOrder = const [],
     this.existingPhotoAngles = const {},
     this.photoOrder = const [],
+    this.changedFields = const {},
+    this.existingPhotoOrderChanged = false,
+    this.existingPhotoAnglesChanged = false,
   });
 
   final String name;
@@ -259,6 +297,15 @@ class CatalogProductDraft {
   final List<String> existingPhotoOrder;
   final Map<String, String?> existingPhotoAngles;
   final List<String> photoOrder;
+  final Set<String> changedFields;
+  final bool existingPhotoOrderChanged;
+  final bool existingPhotoAnglesChanged;
+
+  bool get hasUpdates =>
+      changedFields.isNotEmpty ||
+      photos.isNotEmpty ||
+      existingPhotoOrderChanged ||
+      existingPhotoAnglesChanged;
 }
 
 @immutable
@@ -288,10 +335,12 @@ class ProductCalibration {
     this.status = ProductCalibrationStatus.recommended,
     this.activeRenderId,
     this.hasLegacyShapes = false,
+    this.candidateState,
+    this.renderStatus,
   });
 
   final String? id;
-  final String? revision;
+  final int? revision;
   final String? bodyArea;
   final List<Map<String, dynamic>> shapes;
   final String? userNotes;
@@ -301,6 +350,8 @@ class ProductCalibration {
   final ProductCalibrationStatus status;
   final String? activeRenderId;
   final bool hasLegacyShapes;
+  final CalibrationCandidateState? candidateState;
+  final CalibrationReferenceStatus? renderStatus;
 
   bool get hasPlacement => cutoutPlacement.isNotEmpty && cutoutUrl != null;
   bool get isLegacyOnly =>

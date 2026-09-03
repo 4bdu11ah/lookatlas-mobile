@@ -19,6 +19,7 @@ class _CalibrationCopyStep extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
+        const _StepIndicator(current: 1, total: 3, label: 'Product'),
         Expanded(
           child: SingleChildScrollView(
             padding: const EdgeInsets.all(20),
@@ -27,11 +28,16 @@ class _CalibrationCopyStep extends StatelessWidget {
               children: [
                 const _SectionCopy(
                   title: 'Copy from a calibrated product',
-                  copy:
-                      'Reuse the size setup from another product. The two calibrations stay independent afterwards.',
+                  copy: 'Choose a similar product whose real-world size is already set.',
                 ),
                 const SizedBox(height: 14),
-                AppTextField(controller: searchController),
+                AppTextField(
+                  controller: searchController,
+                  hintText: 'Search products',
+                  height: 46,
+                  textStyle: const TextStyle(fontSize: 14),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 13),
+                ),
                 const SizedBox(height: 14),
                 ValueListenableBuilder<TextEditingValue>(
                   valueListenable: searchController,
@@ -91,14 +97,18 @@ class _SectionCopy extends StatelessWidget {
       children: [
         Text(
           title,
-          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+          style: const TextStyle(
+            fontFamily: 'InstrumentSerif',
+            fontSize: 16,
+            height: 1.25,
+          ),
         ),
         const SizedBox(height: 5),
         Text(
           copy,
           style: const TextStyle(
-            fontSize: 13,
-            height: 1.38,
+            fontSize: 14,
+            height: 1.45,
             color: AppColors.neutral500,
           ),
         ),
@@ -118,7 +128,8 @@ class _Kicker extends StatelessWidget {
       text.toUpperCase(),
       style: const TextStyle(
         fontSize: 10,
-        fontWeight: FontWeight.w900,
+        fontWeight: AppTypography.bold,
+        letterSpacing: .88,
         color: AppColors.neutral500,
       ),
     );
@@ -126,26 +137,80 @@ class _Kicker extends StatelessWidget {
 }
 
 class _PhotoTile extends StatelessWidget {
-  const _PhotoTile({required this.asset, this.onTap, super.key});
+  const _PhotoTile({
+    required this.asset,
+    required this.angle,
+    this.onTap,
+    super.key,
+  });
 
   final String asset;
+  final String angle;
   final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
     return InkWell(
       onTap: onTap,
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          DecoratedBox(
-            decoration: BoxDecoration(
-              color: AppColors.white,
-              border: Border.all(color: AppColors.neutral200, width: 2),
+      child: Container(
+        decoration: BoxDecoration(
+          color: AppColors.white,
+          border: Border.all(color: AppColors.neutral200, width: 2),
+        ),
+        child: Column(
+          children: [
+            AspectRatio(
+              aspectRatio: 1.25,
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.all(7),
+                    child: _AssetImage(asset, fit: BoxFit.contain),
+                  ),
+                  Positioned(
+                    left: 5,
+                    right: 5,
+                    bottom: 5,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 5,
+                        vertical: 3,
+                      ),
+                      color: AppColors.blackAlpha90,
+                      child: Text(
+                        angle.toUpperCase(),
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          color: AppColors.white,
+                          fontSize: 10,
+                          fontWeight: AppTypography.bold,
+                          letterSpacing: .8,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
-            child: _AssetImage(asset),
-          ),
-        ],
+            const SizedBox(
+              height: 44,
+              child: ColoredBox(
+                color: AppColors.black,
+                child: Center(
+                  child: Text(
+                    'Use this photo →',
+                    style: TextStyle(
+                      color: AppColors.white,
+                      fontSize: 12,
+                      fontWeight: AppTypography.bold,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -184,7 +249,7 @@ class _UploadTile extends StatelessWidget {
               ),
               SizedBox(height: 2),
               Text(
-                'JPG or PNG',
+                'JPG, PNG, or WebP · max 20MB',
                 style: TextStyle(fontSize: 10, color: AppColors.neutral500),
               ),
             ],
@@ -205,18 +270,20 @@ class _CheckerBox extends StatelessWidget {
   Widget build(BuildContext context) {
     return ConstrainedBox(
       constraints: const BoxConstraints(minHeight: 284),
-      child: Container(
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          border: Border.all(color: AppColors.neutral200),
-          color: AppColors.neutral50,
-        ),
-        child: SizedBox(
-          width: 176,
-          height: 210,
-          child: upload == null
-              ? _AssetImage(asset)
-              : AppImage.memory(upload!.bytes),
+      child: CustomPaint(
+        painter: const _CheckerPainter(),
+        child: Container(
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            border: Border.all(color: AppColors.neutral200),
+          ),
+          child: SizedBox(
+            width: 176,
+            height: 210,
+            child: upload == null
+                ? _AssetImage(asset)
+                : AppImage.memory(upload!.bytes),
+          ),
         ),
       ),
     );
@@ -270,8 +337,8 @@ class _ZoomButton extends StatelessWidget {
     return InkWell(
       onTap: onTap,
       child: SizedBox(
-        width: wide ? 58 : 38,
-        height: 34,
+        width: wide ? 60 : 44,
+        height: 44,
         child: Center(
           child: Text(
             label,
@@ -286,7 +353,7 @@ class _ZoomButton extends StatelessWidget {
   }
 }
 
-class _PlacementCanvas extends StatelessWidget {
+class _PlacementCanvas extends StatefulWidget {
   const _PlacementCanvas({
     required this.product,
     required this.bodyArea,
@@ -297,6 +364,7 @@ class _PlacementCanvas extends StatelessWidget {
     this.bodyZoom = 1,
     this.cutout,
     this.onPlacementChanged,
+    this.onRotationChanged,
   });
 
   final _Product product;
@@ -308,6 +376,18 @@ class _PlacementCanvas extends StatelessWidget {
   final double placementScale;
   final double placementRotation;
   final void Function(double x, double y, double scale)? onPlacementChanged;
+  final ValueChanged<double>? onRotationChanged;
+
+  @override
+  State<_PlacementCanvas> createState() => _PlacementCanvasState();
+}
+
+class _PlacementCanvasState extends State<_PlacementCanvas> {
+  late double _startX;
+  late double _startY;
+  late double _startScale;
+  late double _startRotation;
+  Offset _startFocal = Offset.zero;
 
   @override
   Widget build(BuildContext context) {
@@ -317,8 +397,8 @@ class _PlacementCanvas extends StatelessWidget {
         final height = constraints.maxHeight.isFinite
             ? constraints.maxHeight
             : 410.0;
-        final productWidth = 118 * placementScale;
-        final productHeight = 138 * placementScale;
+        final productWidth = width * .22 * widget.placementScale;
+        final productHeight = height * (260 / 1500) * widget.placementScale;
         return Container(
           height: height,
           decoration: BoxDecoration(
@@ -328,35 +408,49 @@ class _PlacementCanvas extends StatelessWidget {
           child: Stack(
             children: [
               Positioned.fill(
-                left: 78,
-                right: 78,
                 top: 8,
                 bottom: 8,
                 child: ClipRect(
                   child: Transform.scale(
-                    scale: bodyZoom,
-                    child: Opacity(
-                      opacity: 0.54,
-                      child: AppImage(
-                        _localOutlineAsset(bodyArea) ?? product.asset,
-                      ),
+                    scale: widget.bodyZoom,
+                    child: AppImage(
+                      _localOutlineAsset(widget.bodyArea) ??
+                          widget.product.asset,
                     ),
                   ),
                 ),
               ),
               Positioned(
-                left: placementX * width - productWidth / 2,
-                top: placementY * height - productHeight / 2,
+                left: widget.placementX * width - productWidth / 2,
+                top: widget.placementY * height - productHeight / 2,
                 child: GestureDetector(
-                  onPanUpdate: onPlacementChanged == null
+                  onScaleStart: widget.onPlacementChanged == null
                       ? null
-                      : (details) => onPlacementChanged!(
-                          placementX + details.delta.dx / width,
-                          placementY + details.delta.dy / height,
-                          placementScale,
-                        ),
+                      : (details) {
+                          _startX = widget.placementX;
+                          _startY = widget.placementY;
+                          _startScale = widget.placementScale;
+                          _startRotation = widget.placementRotation;
+                          _startFocal = details.focalPoint;
+                        },
+                  onScaleUpdate: widget.onPlacementChanged == null
+                      ? null
+                      : (details) {
+                          widget.onPlacementChanged!(
+                            _startX +
+                                (details.focalPoint.dx - _startFocal.dx) /
+                                    width,
+                            _startY +
+                                (details.focalPoint.dy - _startFocal.dy) /
+                                    height,
+                            _startScale * details.scale,
+                          );
+                          widget.onRotationChanged?.call(
+                            _startRotation + details.rotation * 180 / pi,
+                          );
+                        },
                   child: Transform.rotate(
-                    angle: placementRotation * pi / 180,
+                    angle: widget.placementRotation * pi / 180,
                     child: SizedBox(
                       width: productWidth,
                       height: productHeight,
@@ -370,23 +464,30 @@ class _PlacementCanvas extends StatelessWidget {
                                 width: 2,
                               ),
                             ),
-                            child: cutout == null
-                                ? _AssetImage(product.asset)
-                                : AppImage.memory(cutout!.bytes),
+                            child: widget.cutout == null
+                                ? _AssetImage(
+                                    widget.product.asset,
+                                    fit: BoxFit.contain,
+                                  )
+                                : AppImage.memory(
+                                    widget.cutout!.bytes,
+                                  ),
                           ),
-                          if (onPlacementChanged != null)
+                          if (widget.onPlacementChanged != null)
                             Positioned(
                               right: -10,
                               bottom: -10,
                               child: GestureDetector(
                                 behavior: HitTestBehavior.opaque,
-                                onPanUpdate: (details) => onPlacementChanged!(
-                                  placementX,
-                                  placementY,
-                                  placementScale +
-                                      (details.delta.dx + details.delta.dy) /
-                                          180,
-                                ),
+                                onPanUpdate: (details) =>
+                                    widget.onPlacementChanged!(
+                                      widget.placementX,
+                                      widget.placementY,
+                                      widget.placementScale +
+                                          (details.delta.dx +
+                                                  details.delta.dy) /
+                                              180,
+                                    ),
                                 child: Container(
                                   width: 20,
                                   height: 20,
@@ -433,7 +534,7 @@ class _CopyCard extends StatelessWidget {
       onTap: onTap,
       child: Container(
         margin: const EdgeInsets.only(bottom: 10),
-        padding: const EdgeInsets.all(10),
+        padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
           color: AppColors.white,
           border: Border.all(color: AppColors.neutral200),
@@ -441,8 +542,8 @@ class _CopyCard extends StatelessWidget {
         child: Row(
           children: [
             SizedBox(
-              width: 56,
-              height: 56,
+              width: 36,
+              height: 36,
               child: _AssetImage(product.imageUrl),
             ),
             const SizedBox(width: 11),
@@ -469,12 +570,10 @@ class _CopyCard extends StatelessWidget {
                       color: AppColors.neutral500,
                     ),
                   ),
-                  const SizedBox(height: 6),
-                  const _ProductPill.neutral('Calibrated'),
                 ],
               ),
             ),
-            const Icon(Icons.copy_outlined, size: 16),
+            const _CalibrationRecommendedBadge(label: 'Calibrated'),
           ],
         ),
       ),
@@ -500,33 +599,117 @@ class _ProductFlowFooter extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+      constraints: const BoxConstraints(minHeight: 68),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
       decoration: const BoxDecoration(
-        color: AppColors.neutral100,
+        color: AppColors.white,
         border: Border(top: BorderSide(color: AppColors.neutral200)),
       ),
       child: Row(
         children: [
-          AppOutlinedButton(
-            label: backLabel,
+          TextButton(
             onPressed: onBack,
-            fitToContent: true,
-            height: 34,
+            style: TextButton.styleFrom(
+              minimumSize: const Size(44, 44),
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              foregroundColor: AppColors.black,
+              textStyle: const TextStyle(
+                fontSize: 13,
+                fontWeight: AppTypography.medium,
+              ),
+              shape: const RoundedRectangleBorder(),
+            ),
+            child: Text(backLabel),
           ),
           const Spacer(),
           if (showPrimary)
-            PrimaryButton(
+            _CalibrationActionButton(
               label: primaryLabel,
               onPressed: onPrimary,
-              fitToContent: true,
-              height: 34,
-              // backgroundColor: AppColors.black,
-              foregroundColor: AppColors.white,
             ),
         ],
       ),
     );
   }
+}
+
+class _CalibrationActionButton extends StatelessWidget {
+  const _CalibrationActionButton({
+    required this.label,
+    required this.onPressed,
+    this.outlined = false,
+    this.fullWidth = false,
+    this.icon,
+  });
+
+  final String label;
+  final VoidCallback? onPressed;
+  final bool outlined;
+  final bool fullWidth;
+  final IconData? icon;
+
+  @override
+  Widget build(BuildContext context) {
+    final style = OutlinedButton.styleFrom(
+      minimumSize: const Size(44, 44),
+      padding: const EdgeInsets.symmetric(horizontal: 18),
+      backgroundColor: outlined ? AppColors.white : AppColors.black,
+      foregroundColor: outlined ? AppColors.black : AppColors.white,
+      disabledBackgroundColor: outlined ? AppColors.white : AppColors.black,
+      disabledForegroundColor: outlined
+          ? AppColors.neutral400
+          : AppColors.white,
+      side: BorderSide(
+        color: AppColors.black,
+        width: outlined ? 2 : 1,
+      ),
+      shape: const RoundedRectangleBorder(),
+      textStyle: const TextStyle(
+        fontSize: 13,
+        fontWeight: AppTypography.bold,
+      ),
+    );
+    return SizedBox(
+      width: fullWidth ? double.infinity : null,
+      height: 44,
+      child: icon == null
+          ? OutlinedButton(
+              onPressed: onPressed,
+              style: style,
+              child: Text(label),
+            )
+          : OutlinedButton.icon(
+              onPressed: onPressed,
+              style: style,
+              icon: Icon(icon, size: 16),
+              label: Text(label),
+            ),
+    );
+  }
+}
+
+class _CheckerPainter extends CustomPainter {
+  const _CheckerPainter();
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    const square = 10.0;
+    final light = Paint()..color = const Color(0xFFF7F7F5);
+    final dark = Paint()..color = const Color(0xFFDEDED9);
+    canvas.drawRect(Offset.zero & size, light);
+    for (var y = 0; y < (size.height / square).ceil(); y++) {
+      for (var x = 0; x < (size.width / square).ceil(); x++) {
+        if ((x + y).isEven) continue;
+        canvas.drawRect(
+          Rect.fromLTWH(x * square, y * square, square, square),
+          dark,
+        );
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
 class _BodyOutlinePainter extends CustomPainter {

@@ -72,7 +72,7 @@ ProductCalibration _decodeCalibration(dynamic data) {
     id: _nullableValueString(
       json['id'] ?? json['calibrationId'] ?? json['calibration_id'],
     ),
-    revision: _nullableValueString(json['revision']),
+    revision: _integerOrNull(json['revision']),
     bodyArea: _nullableString(json['bodyArea'] ?? json['body_area']),
     shapes: [
       for (final shape in _shapeItems(json['shapes']))
@@ -104,6 +104,12 @@ ProductCalibration _decodeCalibration(dynamic data) {
       json['activeRenderId'] ?? json['active_render_id'],
     ),
     hasLegacyShapes: _shapeItems(json['shapes']).isNotEmpty,
+    candidateState: CalibrationCandidateState.fromWire(
+      _nullableString(json['candidateState'] ?? json['candidate_state']),
+    ),
+    renderStatus: CalibrationReferenceStatus.fromWire(
+      _nullableString(json['renderStatus'] ?? json['render_status']),
+    ),
   );
 }
 
@@ -162,46 +168,60 @@ CalibrationRender _decodeRender(dynamic data) {
       json['previousRenderId'] ?? json['previous_render_id'],
     ),
     createdAt: _date(json['createdAt'] ?? json['created_at']),
+    isStale: json['isStale'] == true || json['is_stale'] == true,
+    approvalAllowed:
+        (json['approvalEligible'] ?? json['approval_eligible']) as bool?,
+    refundStatus: _nullableString(
+      json['refundStatus'] ?? json['refund_status'],
+    ),
+    version: _integerOrNull(json['version']),
   );
 }
 
 FormData _productFormData(
   CatalogProductDraft draft, {
-  required bool includeAngles,
+  bool forUpdate = false,
 }) {
   final data = FormData();
-  data.fields
-    ..add(MapEntry('name', draft.name))
-    ..add(MapEntry('sku', draft.sku));
-  if (draft.description.isNotEmpty) {
+  bool includes(String field) =>
+      !forUpdate || draft.changedFields.contains(field);
+  if (includes('name')) data.fields.add(MapEntry('name', draft.name));
+  if (includes('sku')) data.fields.add(MapEntry('sku', draft.sku));
+  if (includes('description')) {
     data.fields.add(MapEntry('description', draft.description));
   }
-  data.fields.add(MapEntry('category', draft.category.toLowerCase()));
-  if (draft.subCategory.isNotEmpty) {
-    data.fields.add(MapEntry('sub_category', draft.subCategory));
+  if (includes('category')) {
+    data.fields.add(MapEntry('category', draft.category.trim().toLowerCase()));
   }
-  if (draft.existingPhotoOrder.isNotEmpty) {
-    data.fields
-      ..add(
-        MapEntry(
-          'existingPhotosOrder',
-          jsonEncode(draft.existingPhotoOrder),
-        ),
-      )
-      ..add(
-        MapEntry(
-          'existing_photo_angles',
-          jsonEncode(draft.existingPhotoAngles),
-        ),
-      );
-  }
-  if (includeAngles && draft.viewAngles.isNotEmpty) {
+  if (includes('sub_category')) {
     data.fields.add(
       MapEntry(
-        'view_angles',
+        'sub_category',
+        draft.subCategory.trim().toLowerCase().replaceAll(
+          RegExp('[- ]+'),
+          '_',
+        ),
+      ),
+    );
+  }
+  if (forUpdate && draft.existingPhotoOrderChanged) {
+    data.fields.add(
+      MapEntry(
+        'existingPhotosOrder',
         jsonEncode([
-          for (var index = 0; index < draft.viewAngles.length; index++)
-            draft.viewAngles[index],
+          for (final (sortOrder, id) in draft.existingPhotoOrder.indexed)
+            {'id': id, 'sortOrder': sortOrder},
+        ]),
+      ),
+    );
+  }
+  if (forUpdate && draft.existingPhotoAnglesChanged) {
+    data.fields.add(
+      MapEntry(
+        'existing_photo_angles',
+        jsonEncode([
+          for (final entry in draft.existingPhotoAngles.entries)
+            {'id': entry.key, 'viewAngle': entry.value},
         ]),
       ),
     );
@@ -214,27 +234,28 @@ FormData _productFormData(
       for (final (index, photo) in draft.photos.indexed)
         _photoKey(photo, index),
     ];
-    data.fields.add(
-      MapEntry(
-        'photo_keys',
-        jsonEncode(photoKeys),
-      ),
-    );
-    data.fields.add(
-      MapEntry(
-        'photo_order',
-        jsonEncode(
-          draft.photoOrder.isEmpty
-              ? [...draft.existingPhotoOrder, ...photoKeys]
-              : draft.photoOrder,
+    data.fields
+      ..add(MapEntry('photo_keys', jsonEncode(photoKeys)))
+      ..add(
+        MapEntry(
+          'view_angles',
+          jsonEncode([
+            for (var index = 0; index < draft.photos.length; index++)
+              draft.viewAngles[index],
+          ]),
         ),
-      ),
-    );
+      );
   }
   return data;
 }
 
-String _photoKey(ProductUpload photo, int index) => photo.orderKey;
+String _photoKey(ProductUpload photo, int index) {
+  var hash = 0;
+  for (final byte in photo.bytes) {
+    hash = (hash * 31 + byte) & 0x7fffffff;
+  }
+  return 'photo${index + 1}${hash.toRadixString(16)}';
+}
 
 String? _duplicateSkuProductId(Failure? failure) {
   if (failure is! NetworkFailure ||
@@ -319,6 +340,12 @@ String? _nullableValueString(Object? value) {
 
 int _integer(Object? value, {int fallback = 0}) =>
     value is num ? value.round() : int.tryParse('$value') ?? fallback;
+
+int? _integerOrNull(Object? value) => switch (value) {
+  final num number => number.round(),
+  final String text => int.tryParse(text),
+  _ => null,
+};
 
 DateTime? _date(Object? value) =>
     value is String ? DateTime.tryParse(value) : null;

@@ -9,7 +9,7 @@ bool _requestProductsManageAccess(BuildContext context, WidgetRef ref) {
               ?.activeEntitlements
               .contains('products_manage') ??
           false);
-  if (!hasAccess) return true;
+  if (hasAccess) return true;
   unawaited(context.push(AppRoutes.paywall));
   return false;
 }
@@ -245,42 +245,22 @@ class _ProductsPage extends ConsumerWidget {
           if (state.products.isNotEmpty)
             SliverPadding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
-              sliver: SliverGrid.builder(
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2,
-                  crossAxisSpacing: 8,
-                  mainAxisSpacing: 12,
-                  childAspectRatio: 0.58,
+              sliver: _ProductCatalogGrid(
+                products: state.products,
+                onAdd: () {
+                  if (_requestProductsManageAccess(context, ref)) {
+                    unawaited(_showProductFormDialog(context, ref, onToast));
+                  }
+                },
+                onOpen: (product) => unawaited(
+                  _showProductDetailSheet(context, ref, product, onToast),
                 ),
-                itemCount: state.products.length + 1,
-                itemBuilder: (context, index) {
-                  if (index == state.products.length) {
-                    return _ProductAddCard(
-                      onTap: () {
-                        if (_requestProductsManageAccess(context, ref)) {
-                          unawaited(
-                            _showProductFormDialog(context, ref, onToast),
-                          );
-                        }
-                      },
+                onCalibrate: (product) {
+                  if (_requestProductsManageAccess(context, ref)) {
+                    unawaited(
+                      _openCalibration(context, ref, product, onToast),
                     );
                   }
-                  final product = state.products[index];
-                  return _ProductCard(
-                    key: ValueKey('product-card-${product.sku}'),
-                    index: index,
-                    product: product,
-                    onOpen: () => unawaited(
-                      _showProductDetailSheet(context, ref, product, onToast),
-                    ),
-                    onCalibrate: () {
-                      if (_requestProductsManageAccess(context, ref)) {
-                        unawaited(
-                          _openCalibration(context, ref, product, onToast),
-                        );
-                      }
-                    },
-                  );
                 },
               ),
             ),
@@ -299,6 +279,62 @@ class _ProductsPage extends ConsumerWidget {
           const SliverToBoxAdapter(child: SizedBox(height: 96)),
         ],
       ),
+    );
+  }
+}
+
+class _ProductCatalogGrid extends StatelessWidget {
+  const _ProductCatalogGrid({
+    required this.products,
+    required this.onAdd,
+    required this.onOpen,
+    required this.onCalibrate,
+  });
+
+  final List<_Product> products;
+  final VoidCallback onAdd;
+  final ValueChanged<_Product> onOpen;
+  final ValueChanged<_Product> onCalibrate;
+
+  @override
+  Widget build(BuildContext context) {
+    final itemCount = products.length + 1;
+    final rowCount = (itemCount / 2).ceil();
+    return SliverList.builder(
+      itemCount: rowCount,
+      itemBuilder: (context, rowIndex) {
+        final firstIndex = rowIndex * 2;
+        final secondIndex = firstIndex + 1;
+        return Padding(
+          padding: EdgeInsets.only(bottom: rowIndex == rowCount - 1 ? 0 : 12),
+          child: IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Expanded(child: _buildItem(firstIndex)),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: secondIndex < itemCount
+                      ? _buildItem(secondIndex)
+                      : const SizedBox.shrink(),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildItem(int index) {
+    if (index == products.length) return _ProductAddCard(onTap: onAdd);
+    final product = products[index];
+    return _ProductCard(
+      key: ValueKey('product-card-${product.sku}'),
+      index: index,
+      product: product,
+      onOpen: () => onOpen(product),
+      onCalibrate: () => onCalibrate(product),
     );
   }
 }

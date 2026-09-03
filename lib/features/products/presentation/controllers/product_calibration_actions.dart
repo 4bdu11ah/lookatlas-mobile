@@ -20,7 +20,7 @@ extension _ProductCalibrationActions on _ProductCalibrationScreenState {
       ),
     );
     if (confirmed != true || !mounted) return;
-    final fence = _currentFence();
+    final fence = _currentFence('delete-worn');
     if (fence == null || _isMutating) return;
     _isMutating = true;
     final result = await widget.repository.deleteWornPhoto(
@@ -34,6 +34,7 @@ extension _ProductCalibrationActions on _ProductCalibrationScreenState {
       await _load();
       return;
     }
+    _completeMutation('delete-worn');
     await _load();
     if (mounted) _step = _CalibrationStep.wornPhoto;
   }
@@ -61,19 +62,26 @@ extension _ProductCalibrationActions on _ProductCalibrationScreenState {
     if ((confirmed ?? false) && mounted) await _discardChanges();
   }
 
-  CalibrationMutationFence? _currentFence() {
+  String _mutationIdFor(String intent) =>
+      _pendingMutationIds.putIfAbsent(intent, _newMutationId);
+
+  void _completeMutation(String intent) => _pendingMutationIds.remove(intent);
+
+  CalibrationMutationFence? _currentFence(String intent) {
     final calibration = _workspace?.calibration;
     if (calibration == null) return null;
     return CalibrationMutationFence(
       calibrationId: calibration.id,
       revision: calibration.revision,
-      mutationId: _newMutationId(),
+      mutationId: _mutationIdFor(intent),
     );
   }
 
   Future<void> _continueToFit() async {
-    final fence = _currentFence();
     final cutout = _cutout;
+    final placementIntent =
+        'placement:${cutout?.orderKey}:${_placementX.toStringAsFixed(4)}:${_placementY.toStringAsFixed(4)}:${_placementScale.toStringAsFixed(4)}:${_placementRotation.toStringAsFixed(2)}';
+    final fence = _currentFence(placementIntent);
     if (fence == null || cutout == null) {
       if (mounted) {
         AppSnackBar.showError(
@@ -86,7 +94,9 @@ extension _ProductCalibrationActions on _ProductCalibrationScreenState {
     _isMutating = true;
     final placement = {
       'bodyArea': _bodyArea,
-      'placement': _placementPayload(),
+      'shapes': const <Map<String, dynamic>>[],
+      'userNotes': null,
+      'cutoutPlacement': _placementPayload(),
     };
     final result = await widget.repository.uploadPlacement(
       widget.product.id,
@@ -102,10 +112,10 @@ extension _ProductCalibrationActions on _ProductCalibrationScreenState {
       await _load();
       return;
     }
+    _completeMutation(placementIntent);
     await _load();
     if (!mounted) return;
     _step = _CalibrationStep.fit;
-    await _startRender();
   }
 
   Map<String, dynamic> _placementPayload() => {
@@ -114,11 +124,19 @@ extension _ProductCalibrationActions on _ProductCalibrationScreenState {
     'w': 220 * _placementScale,
     'h': 260 * _placementScale,
     'rotation': _placementRotation,
+    if (_cutout?.localKey != null) 'sourcePhotoId': _cutout!.localKey,
   };
 
   Future<void> _startRender({bool regenerate = false}) async {
     if (_isMutating) return;
     final feedback = _renderFeedbackController.text.trim();
+    if (regenerate && feedback.isEmpty) {
+      AppSnackBar.showError(
+        context,
+        'Describe what should change before regenerating the Fit.',
+      );
+      return;
+    }
     if (feedback.length > 300) {
       AppSnackBar.showError(
         context,
@@ -128,10 +146,13 @@ extension _ProductCalibrationActions on _ProductCalibrationScreenState {
     }
     _isMutating = true;
     final prior = regenerate ? _renders.firstOrNull?.id : null;
+    final renderIntent = regenerate
+        ? 'render-regenerate:${_renders.firstOrNull?.id ?? 'none'}:$feedback'
+        : 'render:${_bodyPreset.toLowerCase()}';
     final result = await widget.repository.startCalibrationRender(
       widget.product.id,
       bodyPreset: _bodyPreset,
-      mutationId: _newMutationId(),
+      mutationId: _mutationIdFor(renderIntent),
       feedback: feedback.isEmpty ? null : feedback,
       previousRenderId: prior,
     );
@@ -139,6 +160,7 @@ extension _ProductCalibrationActions on _ProductCalibrationScreenState {
     _isMutating = false;
     switch (result) {
       case Ok(:final value):
+        _completeMutation(renderIntent);
         _renders = [
           value,
           ..._renders.where((render) => render.id != value.id),
@@ -183,7 +205,8 @@ extension _ProductCalibrationActions on _ProductCalibrationScreenState {
 
   Future<void> _approveRender() async {
     final render = _renders.firstOrNull;
-    final fence = _currentFence();
+    final approveIntent = 'approve:${render?.id ?? 'none'}';
+    final fence = _currentFence(approveIntent);
     if (render?.isApprovalEligible != true || fence == null || _isMutating) {
       return;
     }
@@ -200,12 +223,13 @@ extension _ProductCalibrationActions on _ProductCalibrationScreenState {
       await _load();
       return;
     }
+    _completeMutation(approveIntent);
     await _load();
     if (mounted) _step = _CalibrationStep.review;
   }
 
   Future<void> _discardChanges() async {
-    final fence = _currentFence();
+    final fence = _currentFence('discard');
     if (fence == null || _isMutating) return;
     _isMutating = true;
     final result = await widget.repository.discardCalibrationCandidate(
@@ -219,6 +243,7 @@ extension _ProductCalibrationActions on _ProductCalibrationScreenState {
       await _load();
       return;
     }
+    _completeMutation('discard');
     widget.onSaved();
     Navigator.pop(context);
   }
@@ -236,13 +261,15 @@ extension _ProductCalibrationSaveActions on _ProductCalibrationScreenState {
       );
       return;
     }
+    final uploadIntent = 'worn-upload:${upload.orderKey}';
     _isMutating = true;
     final result = await widget.repository.uploadWornPhoto(
       widget.product.id,
       upload,
       calibrationId: calibration.id,
       revision: calibration.revision,
-      mutationId: _newMutationId(),
+      mutationId: _mutationIdFor(uploadIntent),
+      bodyArea: _bodyArea,
     );
     if (!mounted) return;
     _isMutating = false;
@@ -252,6 +279,7 @@ extension _ProductCalibrationSaveActions on _ProductCalibrationScreenState {
       await _load();
       return;
     }
+    _completeMutation(uploadIntent);
     await _load();
     if (mounted) _step = _CalibrationStep.review;
   }
@@ -268,7 +296,8 @@ extension _ProductCalibrationSaveActions on _ProductCalibrationScreenState {
 
   Future<void> _save() async {
     if (_isMutating) return;
-    final fence = _currentFence();
+    final saveIntent = 'save:${_notesController.text.trim()}';
+    final fence = _currentFence(saveIntent);
     if (fence == null) {
       AppSnackBar.showError(
         context,
@@ -290,8 +319,8 @@ extension _ProductCalibrationSaveActions on _ProductCalibrationScreenState {
         await _load();
         return;
       }
-      widget.onSaved();
-      Navigator.pop(context);
+      _completeMutation(saveIntent);
+      _step = _CalibrationStep.success;
       return;
     }
     final hasPlacement = calibration?.cutoutUrl != null || _cutout != null;
@@ -311,14 +340,7 @@ extension _ProductCalibrationSaveActions on _ProductCalibrationScreenState {
         userNotes: _notesController.text.trim().isEmpty
             ? null
             : _notesController.text.trim(),
-        cutoutPlacement: hasPlacement
-            ? {
-                'x': _placementX * 1000,
-                'y': _placementY * 1500,
-                'w': 220 * _placementScale,
-                'h': 260 * _placementScale,
-              }
-            : null,
+        cutoutPlacement: hasPlacement ? _placementPayload() : null,
         fence: fence,
       ),
     );
@@ -330,13 +352,14 @@ extension _ProductCalibrationSaveActions on _ProductCalibrationScreenState {
       await _load();
       return;
     }
-    widget.onSaved();
-    Navigator.pop(context);
+    _completeMutation(saveIntent);
+    _step = _CalibrationStep.success;
   }
 
   Future<void> _copyFrom(ProductCatalogItem source) async {
     if (_isMutating) return;
-    final fence = _currentFence();
+    final copyIntent = 'copy:${source.id}';
+    final fence = _currentFence(copyIntent);
     if (fence == null) {
       AppSnackBar.showError(context, 'Reload calibration, then try again.');
       return;
@@ -355,6 +378,7 @@ extension _ProductCalibrationSaveActions on _ProductCalibrationScreenState {
       await _load();
       return;
     }
+    _completeMutation(copyIntent);
     await _load();
     if (!mounted) return;
     final calibration = _workspace?.calibration;
@@ -364,6 +388,5 @@ extension _ProductCalibrationSaveActions on _ProductCalibrationScreenState {
       return;
     }
     _step = _CalibrationStep.fit;
-    await _startRender();
   }
 }

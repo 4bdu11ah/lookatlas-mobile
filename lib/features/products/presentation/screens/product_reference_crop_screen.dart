@@ -7,6 +7,7 @@ Future<bool> _showProductReferenceCrop(
   required ProductUpload source,
   required bool isReplacement,
   required _SaveCroppedReference onSave,
+  bool preserveTransparency = false,
 }) async =>
     await Navigator.of(context, rootNavigator: true).push<bool>(
       MaterialPageRoute<bool>(
@@ -15,6 +16,7 @@ Future<bool> _showProductReferenceCrop(
           source: source,
           isReplacement: isReplacement,
           onSave: onSave,
+          preserveTransparency: preserveTransparency,
         ),
       ),
     ) ??
@@ -122,8 +124,8 @@ class _ReferenceCropEditorController
     if (state.saving || _dragMode == _CropDragMode.none) return;
     final dx = (details.localPosition.dx - _dragStart.dx) / size.width;
     final dy = (details.localPosition.dy - _dragStart.dy) / size.height;
-    final minWidth = min(1.0, 16 / size.width);
-    final minHeight = min(1.0, 16 / size.height);
+    final minWidth = min(1, 16 / size.width);
+    final minHeight = min(1, 16 / size.height);
     var left = _dragStartSelection.left;
     var top = _dragStartSelection.top;
     var right = _dragStartSelection.right;
@@ -172,6 +174,8 @@ class _ReferenceCropEditorController
   void endDrag() => _dragMode = _CropDragMode.none;
 }
 
+// Riverpod does not expose a stable public family type for this provider.
+// ignore: specify_nonobvious_property_types
 final _referenceCropEditorProvider = NotifierProvider.autoDispose
     .family<
       _ReferenceCropEditorController,
@@ -184,11 +188,13 @@ class _ProductReferenceCropScreen extends ConsumerStatefulWidget {
     required this.source,
     required this.isReplacement,
     required this.onSave,
+    this.preserveTransparency = false,
   });
 
   final ProductUpload source;
   final bool isReplacement;
   final _SaveCroppedReference onSave;
+  final bool preserveTransparency;
 
   @override
   ConsumerState<_ProductReferenceCropScreen> createState() =>
@@ -250,7 +256,11 @@ class _ProductReferenceCropScreenState
     try {
       final outputBytes = await compute(
         _encodeReferenceCrop,
-        _ReferenceCropRequest(widget.source.bytes, cropState.selection),
+        _ReferenceCropRequest(
+          widget.source.bytes,
+          cropState.selection,
+          preserveTransparency: widget.preserveTransparency,
+        ),
       );
       final dot = widget.source.fileName.lastIndexOf('.');
       final baseName = dot > 0
@@ -258,7 +268,7 @@ class _ProductReferenceCropScreenState
           : 'cropped';
       final cropped = ProductUpload(
         bytes: outputBytes,
-        fileName: '$baseName.jpg',
+        fileName: '$baseName.${widget.preserveTransparency ? 'png' : 'jpg'}',
         localKey: widget.source.orderKey,
       );
       final saved = await widget.onSave(cropped);
@@ -487,46 +497,19 @@ class _ProductReferenceCropScreenState
         child: Row(
           children: [
             Expanded(
-              child: OutlinedButton(
+              child: AppOutlinedButton(
+                label: 'Cancel',
                 onPressed: cropState.saving ? null : _close,
-                style: OutlinedButton.styleFrom(
-                  minimumSize: const Size.fromHeight(48),
-                  shape: const RoundedRectangleBorder(),
-                  side: const BorderSide(color: Color(0xFF121211)),
-                  foregroundColor: const Color(0xFF121211),
-                ),
-                child: const Text('Cancel'),
               ),
             ),
             const SizedBox(width: 9),
             Expanded(
-              child: FilledButton(
+              child: PrimaryButton(
+                label: 'Save crop',
                 onPressed: cropState.saving || cropState.naturalSize == null
                     ? null
                     : _save,
-                style: FilledButton.styleFrom(
-                  minimumSize: const Size.fromHeight(48),
-                  shape: const RoundedRectangleBorder(),
-                  backgroundColor: const Color(0xFF121211),
-                  disabledBackgroundColor: const Color(0xFF696964),
-                ),
-                child: cropState.saving
-                    ? const Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          SizedBox(
-                            width: 14,
-                            height: 14,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: Colors.white,
-                            ),
-                          ),
-                          SizedBox(width: 8),
-                          Text('Saving crop…'),
-                        ],
-                      )
-                    : const Text('Save crop'),
+                isLoading: cropState.saving,
               ),
             ),
           ],
@@ -676,7 +659,7 @@ class _CropSelectionOverlay extends StatelessWidget {
           ),
           Positioned.fromRect(
             rect: rect,
-            child: CustomPaint(painter: const _CropFramePainter()),
+            child: const CustomPaint(painter: _CropFramePainter()),
           ),
           for (final point in [
             rect.topLeft,
@@ -718,27 +701,28 @@ class _CropFramePainter extends CustomPainter {
     final thirds = Paint()
       ..color = Colors.white.withValues(alpha: .72)
       ..strokeWidth = 1;
-    canvas.drawRect(Offset.zero & size, border);
-    canvas.drawLine(
-      Offset(size.width / 3, 0),
-      Offset(size.width / 3, size.height),
-      thirds,
-    );
-    canvas.drawLine(
-      Offset(size.width * 2 / 3, 0),
-      Offset(size.width * 2 / 3, size.height),
-      thirds,
-    );
-    canvas.drawLine(
-      Offset(0, size.height / 3),
-      Offset(size.width, size.height / 3),
-      thirds,
-    );
-    canvas.drawLine(
-      Offset(0, size.height * 2 / 3),
-      Offset(size.width, size.height * 2 / 3),
-      thirds,
-    );
+    canvas
+      ..drawRect(Offset.zero & size, border)
+      ..drawLine(
+        Offset(size.width / 3, 0),
+        Offset(size.width / 3, size.height),
+        thirds,
+      )
+      ..drawLine(
+        Offset(size.width * 2 / 3, 0),
+        Offset(size.width * 2 / 3, size.height),
+        thirds,
+      )
+      ..drawLine(
+        Offset(0, size.height / 3),
+        Offset(size.width, size.height / 3),
+        thirds,
+      )
+      ..drawLine(
+        Offset(0, size.height * 2 / 3),
+        Offset(size.width, size.height * 2 / 3),
+        thirds,
+      );
   }
 
   @override
@@ -746,9 +730,14 @@ class _CropFramePainter extends CustomPainter {
 }
 
 class _ReferenceCropRequest {
-  const _ReferenceCropRequest(this.bytes, this.selection);
+  const _ReferenceCropRequest(
+    this.bytes,
+    this.selection, {
+    this.preserveTransparency = false,
+  });
   final Uint8List bytes;
   final Rect selection;
+  final bool preserveTransparency;
 }
 
 List<int> _referenceImageSize(Uint8List bytes) {
@@ -789,5 +778,9 @@ Uint8List _encodeReferenceCrop(_ReferenceCropRequest request) {
     width: width,
     height: height,
   );
-  return Uint8List.fromList(image_lib.encodeJpg(cropped, quality: 95));
+  return Uint8List.fromList(
+    request.preserveTransparency
+        ? image_lib.encodePng(cropped)
+        : image_lib.encodeJpg(cropped, quality: 95),
+  );
 }

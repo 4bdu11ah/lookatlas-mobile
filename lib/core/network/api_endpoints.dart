@@ -104,6 +104,9 @@ abstract final class ApiEndpoints {
   static String productCalibrationPlacement(String productId) =>
       '/products/$productId/calibration/placement';
 
+  static String productCalibrationBackgroundRemoval(String productId) =>
+      '/products/$productId/calibration/background-removal-fallback';
+
   static String productCalibrationRender(String productId) =>
       '/products/$productId/calibration/render';
 

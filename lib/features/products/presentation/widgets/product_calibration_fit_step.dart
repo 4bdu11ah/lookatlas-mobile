@@ -14,7 +14,7 @@ class _CalibrationWornStep extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Column(
     children: [
-      const _StepIndicator(current: 'Step 1', label: '2: Photo'),
+      const _StepIndicator(current: 1, total: 2, label: 'Photo'),
       Expanded(
         child: Padding(
           padding: const EdgeInsets.all(20),
@@ -23,8 +23,7 @@ class _CalibrationWornStep extends StatelessWidget {
             children: [
               const _SectionCopy(
                 title: 'Upload a photo of the product being worn',
-                copy:
-                    'Any photo of the product on a person will do, even rough phone shots. We only use it to measure size.',
+                copy: 'Any photo of the product on a person will do, even rough phone shots. We only use it to measure size, not the person.',
               ),
               const SizedBox(height: 18),
               InkWell(
@@ -35,7 +34,7 @@ class _CalibrationWornStep extends StatelessWidget {
                   dotWidth: 8,
                   gap: 6,
                   child: ConstrainedBox(
-                    constraints: const BoxConstraints(minHeight: 220),
+                    constraints: const BoxConstraints(minHeight: 250),
                     child: Center(
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
@@ -135,15 +134,14 @@ class _CalibrationFitStepState extends State<_CalibrationFitStep> {
     final render = widget.renders.firstOrNull;
     return Column(
       children: [
-        const _StepIndicator(current: 'Step 3', label: '4: Fit'),
+        const _StepIndicator(current: 2, total: 3, label: 'Size'),
         Expanded(
           child: ListView(
             padding: const EdgeInsets.all(20),
             children: [
               const _SectionCopy(
                 title: 'Check the fit on a real body',
-                copy:
-                    'We turn your placement into a photo at that exact size. Approve only after the completed image loads correctly.',
+                copy: 'We turn your placement into a photo of the product at that exact size on a person. The AI reads its sizing from this photo, so it is worth getting right.',
               ),
               const SizedBox(height: 18),
               const _Kicker('Body'),
@@ -154,6 +152,11 @@ class _CalibrationFitStepState extends State<_CalibrationFitStep> {
                     Expanded(
                       child: _FitPreset(
                         label: preset,
+                        description: switch (preset) {
+                          'Female' => 'Womenswear, most jewellery',
+                          'Male' => 'Menswear, watches',
+                          _ => 'Either, or it does not matter',
+                        },
                         selected: widget.bodyPreset == preset,
                         onTap: widget.isMutating
                             ? null
@@ -164,20 +167,31 @@ class _CalibrationFitStepState extends State<_CalibrationFitStep> {
                   ],
                 ],
               ),
-              const SizedBox(height: 16),
-              Container(
-                height: 360,
-                alignment: Alignment.center,
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: AppColors.neutral100Alpha68,
-                  border: Border.all(color: AppColors.neutral200),
+              const SizedBox(height: 7),
+              const Text(
+                'This only decides the body in this photo. Your shoots still use whichever model you pick for them.',
+                style: TextStyle(
+                  fontSize: 11,
+                  height: 1.45,
+                  color: AppColors.neutral500,
                 ),
-                child: _FitPreview(
-                  render: render,
-                  onLoaded: render == null
-                      ? null
-                      : () => _markLoaded(render.id),
+              ),
+              const SizedBox(height: 16),
+              AspectRatio(
+                aspectRatio: 2 / 3,
+                child: Container(
+                  alignment: Alignment.center,
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: AppColors.neutral100Alpha68,
+                    border: Border.all(color: AppColors.neutral200),
+                  ),
+                  child: _FitPreview(
+                    render: render,
+                    onLoaded: render == null
+                        ? null
+                        : () => _markLoaded(render.id),
+                  ),
                 ),
               ),
               if (render == null ||
@@ -186,7 +200,7 @@ class _CalibrationFitStepState extends State<_CalibrationFitStep> {
                   padding: const EdgeInsets.only(top: 12),
                   child: PrimaryButton(
                     label: render == null
-                        ? 'Generate Fit, 1 credit'
+                        ? 'Generate ${widget.bodyPreset} Fit (1 credit)'
                         : 'Retry Fit',
                     onPressed: widget.isMutating ? null : widget.onRender,
                     height: 44,
@@ -196,6 +210,23 @@ class _CalibrationFitStepState extends State<_CalibrationFitStep> {
                 ),
               if (render?.status == CalibrationRenderStatus.completed) ...[
                 const SizedBox(height: 14),
+                const Text(
+                  'Does the product look the right size on this body?',
+                  style: TextStyle(fontSize: 13),
+                ),
+                const SizedBox(height: 9),
+                _CalibrationActionButton(
+                  label: 'Approve & use',
+                  icon: Icons.check,
+                  fullWidth: true,
+                  onPressed:
+                      render!.isApprovalEligible &&
+                          _loadedRenderId == render.id &&
+                          !widget.isMutating
+                      ? widget.onApprove
+                      : null,
+                ),
+                const SizedBox(height: 9),
                 AppTextField(
                   controller: widget.feedbackController,
                   labelText: 'Regeneration feedback',
@@ -205,19 +236,37 @@ class _CalibrationFitStepState extends State<_CalibrationFitStep> {
                   maxLines: 3,
                 ),
                 const SizedBox(height: 8),
-                AppOutlinedButton(
-                  label: 'Regenerate, 1 credit',
+                _CalibrationActionButton(
+                  label: 'Regenerate (1 credit)',
                   icon: Icons.refresh,
+                  outlined: true,
+                  fullWidth: true,
                   onPressed: widget.isMutating ? null : widget.onRegenerate,
-                  height: 44,
                 ),
               ],
-              if (widget.renders.length > 1) ...[
+              if (widget.renders.isNotEmpty) ...[
                 const SizedBox(height: 22),
-                const _Kicker('Fit history'),
+                const Divider(height: 1),
+                const SizedBox(height: 14),
+                const Text(
+                  'Fit history',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: AppTypography.bold,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                const Text(
+                  'Compare every version and see the note that created it.',
+                  style: TextStyle(
+                    color: AppColors.neutral500,
+                    fontSize: 11,
+                    height: 1.45,
+                  ),
+                ),
                 const SizedBox(height: 8),
                 SizedBox(
-                  height: 92,
+                  height: 190,
                   child: ListView.separated(
                     scrollDirection: Axis.horizontal,
                     itemCount: widget.renders.length,
@@ -227,7 +276,8 @@ class _CalibrationFitStepState extends State<_CalibrationFitStep> {
                       return InkWell(
                         onTap: () => widget.onSelectRender(item),
                         child: Container(
-                          width: 72,
+                          width: 150,
+                          padding: const EdgeInsets.all(7),
                           decoration: BoxDecoration(
                             border: Border.all(
                               color: index == 0
@@ -236,14 +286,41 @@ class _CalibrationFitStepState extends State<_CalibrationFitStep> {
                               width: index == 0 ? 2 : 1,
                             ),
                           ),
-                          child: item.imageUrl == null
-                              ? Center(
-                                  child: Text(
-                                    item.status.name,
-                                    style: const TextStyle(fontSize: 9),
-                                  ),
-                                )
-                              : _AssetImage(item.imageUrl!),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Expanded(
+                                child: item.imageUrl == null
+                                    ? Center(
+                                        child: Text(
+                                          item.status.name,
+                                          style: const TextStyle(fontSize: 10),
+                                        ),
+                                      )
+                                    : _AssetImage(item.imageUrl!),
+                              ),
+                              const SizedBox(height: 6),
+                              Text(
+                                'Version ${item.version ?? widget.renders.length - index} · ${item.bodyPreset ?? widget.bodyPreset}',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: AppTypography.bold,
+                                ),
+                              ),
+                              const SizedBox(height: 3),
+                              Text(
+                                item.status == CalibrationRenderStatus.completed
+                                    ? 'Ready to review'
+                                    : item.status.name,
+                                style: const TextStyle(
+                                  fontSize: 10,
+                                  color: AppColors.neutral500,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       );
                     },
@@ -255,13 +332,7 @@ class _CalibrationFitStepState extends State<_CalibrationFitStep> {
         ),
         _ProductFlowFooter(
           onBack: widget.onBack,
-          primaryLabel: 'Approve & use',
-          onPrimary:
-              (render?.isApprovalEligible ?? false) &&
-                  _loadedRenderId == render?.id &&
-                  !widget.isMutating
-              ? widget.onApprove
-              : null,
+          showPrimary: false,
         ),
       ],
     );
@@ -271,11 +342,13 @@ class _CalibrationFitStepState extends State<_CalibrationFitStep> {
 class _FitPreset extends StatelessWidget {
   const _FitPreset({
     required this.label,
+    required this.description,
     required this.selected,
     required this.onTap,
   });
 
   final String label;
+  final String description;
   final bool selected;
   final VoidCallback? onTap;
 
@@ -283,17 +356,34 @@ class _FitPreset extends StatelessWidget {
   Widget build(BuildContext context) => InkWell(
     onTap: onTap,
     child: Container(
-      height: 54,
-      alignment: Alignment.center,
+      constraints: const BoxConstraints(minHeight: 65),
+      padding: const EdgeInsets.all(8),
       decoration: BoxDecoration(
         color: selected ? AppColors.neutral100 : AppColors.white,
         border: Border.all(
           color: selected ? AppColors.black : AppColors.neutral200,
         ),
       ),
-      child: Text(
-        label,
-        style: const TextStyle(fontSize: 12, fontWeight: AppTypography.bold),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 12,
+              fontWeight: AppTypography.bold,
+            ),
+          ),
+          const SizedBox(height: 3),
+          Text(
+            description,
+            style: const TextStyle(
+              fontSize: 10,
+              color: AppColors.neutral500,
+            ),
+          ),
+        ],
       ),
     ),
   );
@@ -309,8 +399,13 @@ class _FitPreview extends StatelessWidget {
   Widget build(BuildContext context) {
     if (render == null) {
       return const Text(
-        'Ready to generate your Fit.',
-        style: TextStyle(color: AppColors.neutral500),
+        'Nothing rendered yet. Pick a body and generate.',
+        textAlign: TextAlign.center,
+        style: TextStyle(
+          fontSize: 14,
+          height: 1.45,
+          color: AppColors.neutral500,
+        ),
       );
     }
     if (render!.status.isPending) {
@@ -319,12 +414,36 @@ class _FitPreview extends StatelessWidget {
         children: [
           BarSpinner(color: AppColors.black),
           SizedBox(height: 12),
-          Text('Fit is being rendered'),
+          Text(
+            'Rendering. This usually takes two to three minutes. You can leave this open.',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 14,
+              height: 1.45,
+              color: AppColors.neutral500,
+            ),
+          ),
         ],
       );
     }
     if (render!.status == CalibrationRenderStatus.failed) {
-      return const Text('Fit failed. Retry when ready.');
+      return Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Text('Fit failed. Retry when ready.'),
+          if (render!.refundStatus != null) ...[
+            const SizedBox(height: 6),
+            Text(
+              render!.refundStatus!,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                color: AppColors.neutral500,
+                fontSize: 11,
+              ),
+            ),
+          ],
+        ],
+      );
     }
     return AppImage(
       render!.imageUrl ?? '',

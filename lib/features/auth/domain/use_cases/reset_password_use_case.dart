@@ -1,5 +1,7 @@
+import 'package:look_atlas/core/error/failure.dart';
 import 'package:look_atlas/core/result/result.dart';
 import 'package:look_atlas/features/auth/domain/repositories/auth_repository.dart';
+import 'package:look_atlas/features/auth/domain/validators/auth_validators.dart';
 
 /// Starts a password reset for the given email.
 ///
@@ -10,6 +12,9 @@ class ResetPasswordUseCase {
 
   final AuthRepository _repository;
 
-  Future<Result<void>> call({required String email}) =>
-      _repository.resetPassword(email: email);
+  Future<Result<void>> call({required String email}) {
+    final error = AuthValidators.validateEmail(email);
+    if (error != null) return Future.value(Err(AuthFailure(error)));
+    return _repository.resetPassword(email: email.trim());
+  }
 }

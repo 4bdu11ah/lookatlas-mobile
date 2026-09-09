@@ -14,7 +14,6 @@ import 'package:look_atlas/features/auth/data/models/social_credential.dart';
 import 'package:look_atlas/features/auth/domain/entities/app_user.dart';
 import 'package:look_atlas/features/auth/domain/entities/register_attribution.dart';
 import 'package:look_atlas/features/auth/domain/repositories/auth_repository.dart';
-import 'package:look_atlas/features/auth/domain/validators/auth_validators.dart';
 
 /// [AuthRepository] backed by the Look Atlas API (`/auth/*` endpoints).
 ///
@@ -97,10 +96,8 @@ class AuthRepositoryImpl implements AuthRepository {
     required String password,
     String? captchaToken,
   }) async {
-    final invalid = _validateCredentials(email, password);
-    if (invalid != null) return Err(invalid);
     final result = await _remote.login(
-      email: email.trim(),
+      email: email,
       password: password,
       captchaToken: captchaToken,
     );
@@ -115,13 +112,9 @@ class AuthRepositoryImpl implements AuthRepository {
     RegisterAttribution? attribution,
     String? captchaToken,
   }) async {
-    final invalid = _validateCredentials(email, password);
-    if (invalid != null) return Err(invalid);
-    final companyError = AuthValidators.validateCompanyName(companyName);
-    if (companyError != null) return Err(AuthFailure(companyError));
     final result = await _remote.register(
-      companyName: companyName.trim(),
-      email: email.trim(),
+      companyName: companyName,
+      email: email,
       password: password,
       attribution: attribution,
       captchaToken: captchaToken,
@@ -141,11 +134,8 @@ class AuthRepositoryImpl implements AuthRepository {
   /// whether or not the address exists, so success only means "email sent if
   /// the account exists".
   @override
-  Future<Result<void>> resetPassword({required String email}) async {
-    final emailError = AuthValidators.validateEmail(email);
-    if (emailError != null) return Err(AuthFailure(emailError));
-    return _remote.forgotPassword(email.trim());
-  }
+  Future<Result<void>> resetPassword({required String email}) =>
+      _remote.forgotPassword(email);
 
   /// Signs out, mirroring the web client: with no access token the backend
   /// call is skipped entirely; otherwise `POST /auth/logout` runs best-effort
@@ -291,15 +281,6 @@ class AuthRepositoryImpl implements AuthRepository {
         _controller.add(user);
         return Result.ok(user);
     }
-  }
-
-  /// Client-side pre-checks so obviously bad input never leaves the device.
-  Failure? _validateCredentials(String email, String password) {
-    final emailError = AuthValidators.validateEmail(email);
-    if (emailError != null) return AuthFailure(emailError);
-    final passwordError = AuthValidators.validatePassword(password);
-    if (passwordError != null) return AuthFailure(passwordError);
-    return null;
   }
 
   /// Clears every trace of the session (profile, both tokens) and broadcasts

@@ -42,11 +42,8 @@ class HouseModelsRepositoryImpl implements HouseModelsRepository {
   }
 
   @override
-  Future<Result<void>> createModel(HouseModelDraft draft) {
-    final failure = _validateNewModel(draft);
-    if (failure != null) return Future.value(Err<void>(failure));
-    return _remote.createModel(draft);
-  }
+  Future<Result<void>> createModel(HouseModelDraft draft) =>
+      _remote.createModel(draft);
 
   @override
   Future<Result<void>> updateModel(
@@ -63,28 +60,6 @@ class HouseModelsRepositoryImpl implements HouseModelsRepository {
   @override
   Future<Result<void>> deletePhoto(String modelId, String photoId) =>
       _remote.deletePhoto(modelId, photoId);
-
-  Failure? _validateNewModel(HouseModelDraft draft) {
-    if (draft.name.trim().isEmpty) {
-      return const ValidationFailure('Enter a model name.');
-    }
-    if (draft.gender.trim().isEmpty) {
-      return const ValidationFailure('Select a gender.');
-    }
-    if (draft.heightCm < HouseModelDraft.minHeightCm ||
-        draft.heightCm > HouseModelDraft.maxHeightCm) {
-      return const ValidationFailure(
-        'Enter a height between 100 and 250 cm.',
-      );
-    }
-    if (draft.photos.length < HouseModelDraft.minPhotoCount) {
-      return const ValidationFailure('Add at least one clear model photo.');
-    }
-    if (draft.photos.length > HouseModelDraft.maxPhotoCount) {
-      return const ValidationFailure('You can upload up to 4 photos.');
-    }
-    return null;
-  }
 
   @override
   Future<Result<HouseModelGeneration>> startModelGeneration(

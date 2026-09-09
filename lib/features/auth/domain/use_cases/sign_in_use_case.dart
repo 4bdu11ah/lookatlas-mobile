@@ -1,6 +1,8 @@
+import 'package:look_atlas/core/error/failure.dart';
 import 'package:look_atlas/core/result/result.dart';
 import 'package:look_atlas/features/auth/domain/entities/app_user.dart';
 import 'package:look_atlas/features/auth/domain/repositories/auth_repository.dart';
+import 'package:look_atlas/features/auth/domain/validators/auth_validators.dart';
 
 /// Signs an existing user in with email + password.
 ///
@@ -15,9 +17,20 @@ class SignInUseCase {
     required String email,
     required String password,
     String? captchaToken,
-  }) => _repository.signInWithEmail(
-    email: email,
-    password: password,
-    captchaToken: captchaToken,
-  );
+  }) {
+    final invalid = _validateCredentials(email, password);
+    if (invalid != null) return Future.value(Err(invalid));
+    return _repository.signInWithEmail(
+      email: email.trim(),
+      password: password,
+      captchaToken: captchaToken,
+    );
+  }
+
+  AuthFailure? _validateCredentials(String email, String password) {
+    final emailError = AuthValidators.validateEmail(email);
+    if (emailError != null) return AuthFailure(emailError);
+    final passwordError = AuthValidators.validatePassword(password);
+    return passwordError == null ? null : AuthFailure(passwordError);
+  }
 }

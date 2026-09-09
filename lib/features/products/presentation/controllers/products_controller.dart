@@ -113,11 +113,8 @@ class _ProductsController extends Notifier<_ProductsScreenState> {
       isLoadingMore: false,
       clearFailure: true,
     );
-    final loaded = await ref
-        .read(productCatalogUseCasesProvider)
-        .load(
-          _query(1),
-        );
+    final useCases = ref.read(productCatalogUseCasesProvider);
+    final loaded = await useCases.loadCalibrationContext();
     if (generation != _requestGeneration) return;
     final calibratedResult = loaded.statuses;
     final statuses = calibratedResult.valueOrNull ?? const {};
@@ -134,7 +131,11 @@ class _ProductsController extends Notifier<_ProductsScreenState> {
         clearCalibrationFailure: true,
       );
     }
-    final productsResult = loaded.page;
+    final productsResult = await useCases.load(
+      _query(1),
+      loaded.calibratedIds,
+    );
+    if (generation != _requestGeneration) return;
     state = switch (productsResult) {
       Ok(:final value) => state.copyWith(
         products: [
@@ -163,11 +164,8 @@ class _ProductsController extends Notifier<_ProductsScreenState> {
     }
     final generation = ++_requestGeneration;
     state = state.copyWith(isLoadingMore: true, clearFailure: true);
-    final loaded = await ref
-        .read(productCatalogUseCasesProvider)
-        .load(
-          _query(state.currentPage + 1),
-        );
+    final useCases = ref.read(productCatalogUseCasesProvider);
+    final loaded = await useCases.loadCalibrationContext();
     if (generation != _requestGeneration) return;
     final calibratedResult = loaded.statuses;
     final statuses = calibratedResult.valueOrNull ?? const {};
@@ -184,7 +182,11 @@ class _ProductsController extends Notifier<_ProductsScreenState> {
         clearCalibrationFailure: true,
       );
     }
-    final result = loaded.page;
+    final result = await useCases.load(
+      _query(state.currentPage + 1),
+      loaded.calibratedIds,
+    );
+    if (generation != _requestGeneration) return;
     state = switch (result) {
       Ok(:final value) => state.copyWith(
         products: _appendUnique(state.products, value.products, statuses),

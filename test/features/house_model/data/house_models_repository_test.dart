@@ -148,51 +148,6 @@ void main() {
     verify(() => remote.createModel(draft)).called(1);
   });
 
-  test('create_model_rejects_missing_name', () async {
-    final repository = HouseModelsRepositoryImpl(remote);
-
-    final result = await repository.createModel(_draft(name: ' '));
-
-    expect(result.failureOrNull, isA<ValidationFailure>());
-    verifyNever(() => remote.createModel(any()));
-  });
-
-  test('create_model_rejects_missing_gender', () async {
-    final repository = HouseModelsRepositoryImpl(remote);
-
-    final result = await repository.createModel(_draft(gender: ''));
-
-    expect(result.failureOrNull, isA<ValidationFailure>());
-    verifyNever(() => remote.createModel(any()));
-  });
-
-  test('create_model_rejects_invalid_height', () async {
-    final repository = HouseModelsRepositoryImpl(remote);
-
-    final result = await repository.createModel(_draft(heightCm: 99));
-
-    expect(result.failureOrNull, isA<ValidationFailure>());
-    verifyNever(() => remote.createModel(any()));
-  });
-
-  test('create_model_rejects_missing_photo', () async {
-    final repository = HouseModelsRepositoryImpl(remote);
-
-    final result = await repository.createModel(_draft(photoCount: 0));
-
-    expect(result.failureOrNull, isA<ValidationFailure>());
-    verifyNever(() => remote.createModel(any()));
-  });
-
-  test('create_model_rejects_more_than_four_photos', () async {
-    final repository = HouseModelsRepositoryImpl(remote);
-
-    final result = await repository.createModel(_draft(photoCount: 5));
-
-    expect(result.failureOrNull, isA<ValidationFailure>());
-    verifyNever(() => remote.createModel(any()));
-  });
-
   test('update_model_uses_patch_when_no_new_photos_exist', () async {
     const draft = HouseModelDraft(
       name: 'Taylor',

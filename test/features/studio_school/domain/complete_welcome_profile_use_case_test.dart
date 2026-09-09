@@ -16,7 +16,6 @@ void main() {
       primaryUses: ['Campaigns'],
       dropCadence: 'Monthly',
       referral: 'Search',
-      referralOther: '',
     );
     when(
       () => repository.recordEvent('user-1', 'welcome.intro_completed'),
@@ -36,5 +35,26 @@ void main() {
       () => repository.recordEvent('user-1', 'welcome.intro_completed'),
       () => repository.saveProfile('user-1', profile),
     ]);
+  });
+
+  test('call_skipped_recordsStepWithoutSavingProfile', () async {
+    final repository = _MockWelcomeRepository();
+    const profile = WelcomeProfileDraft();
+    when(
+      () => repository.recordEvent(
+        'user-1',
+        'welcome.intro_skipped',
+        properties: {'step': 3},
+      ),
+    ).thenAnswer((_) async => const Ok(null));
+
+    await CompleteWelcomeProfileUseCase(repository)(
+      userId: 'user-1',
+      profile: profile,
+      skipped: true,
+      step: 3,
+    );
+
+    verifyNever(() => repository.saveProfile('user-1', profile));
   });
 }

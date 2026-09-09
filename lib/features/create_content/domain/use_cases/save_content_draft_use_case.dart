@@ -12,11 +12,13 @@ class SaveContentDraftUseCase {
     required String? draftId,
     required ContentJson brief,
     required ContentJson patch,
+    required void Function() onRemoteDraftMissing,
   }) async {
     try {
       return await _repository.save(format, draftId, patch);
     } on ContentApiException catch (error) {
       if (error.status != 404 || draftId == null) rethrow;
+      onRemoteDraftMissing();
       return _repository.save(format, null, {...brief, ...patch});
     }
   }

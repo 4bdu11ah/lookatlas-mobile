@@ -107,29 +107,6 @@ void main() {
         verifyNever(() => tokenCache.set(any()));
       },
     );
-
-    test('rejects an invalid email before calling the backend', () async {
-      final result = await repository.signInWithEmail(
-        email: 'not-an-email',
-        password: 'secret123',
-      );
-
-      expect(result.failureOrNull, isA<AuthFailure>());
-      verifyZeroInteractions(remote);
-    });
-
-    test('rejects a password shorter than 8 characters', () async {
-      final result = await repository.signInWithEmail(
-        email: 'jane@example.com',
-        password: '1234567',
-      );
-
-      expect(
-        result.failureOrNull?.message,
-        'Password must be at least 8 characters.',
-      );
-      verifyZeroInteractions(remote);
-    });
   });
 
   group('signUpWithEmail', () {
@@ -150,17 +127,6 @@ void main() {
 
       expect(result.valueOrNull?.companyName, 'Acme Studios');
       verify(() => tokenCache.set('access-1')).called(1);
-    });
-
-    test('rejects a blank company name before calling the backend', () async {
-      final result = await repository.signUpWithEmail(
-        email: 'jane@example.com',
-        password: 'secret123',
-        companyName: '   ',
-      );
-
-      expect(result.failureOrNull, isA<AuthFailure>());
-      verifyZeroInteractions(remote);
     });
   });
 
@@ -269,13 +235,6 @@ void main() {
 
       expect(result.isOk, isTrue);
       verify(() => remote.forgotPassword('jane@example.com')).called(1);
-    });
-
-    test('rejects an invalid email before calling the backend', () async {
-      final result = await repository.resetPassword(email: 'nope');
-
-      expect(result.failureOrNull, isA<AuthFailure>());
-      verifyZeroInteractions(remote);
     });
   });
 

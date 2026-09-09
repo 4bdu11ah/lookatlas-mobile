@@ -3,8 +3,8 @@ import 'package:look_atlas/features/products/domain/entities/product_catalog.dar
 import 'package:look_atlas/features/products/domain/repositories/products_repository.dart';
 
 typedef ProductCatalogLoad = ({
-  Result<ProductCatalogPage> page,
   Result<Map<String, ProductCalibrationStatus>> statuses,
+  Set<String> calibratedIds,
 });
 
 typedef CreatedCatalogProduct = ({
@@ -17,13 +17,20 @@ class ProductCatalogUseCases {
 
   final ProductsRepository _repository;
 
-  Future<ProductCatalogLoad> load(ProductQuery query) async {
+  Future<ProductCatalogLoad> loadCalibrationContext() async {
     final statuses = await _repository.getCalibrationStatuses();
     final calibratedIds = {
       for (final entry in (statuses.valueOrNull ?? const {}).entries)
         if (entry.value.isCalibrated) entry.key,
     };
-    final page = await _repository.getProducts(
+    return (statuses: statuses, calibratedIds: calibratedIds);
+  }
+
+  Future<Result<ProductCatalogPage>> load(
+    ProductQuery query,
+    Set<String> calibratedIds,
+  ) {
+    return _repository.getProducts(
       ProductQuery(
         page: query.page,
         limit: query.limit,
@@ -35,7 +42,6 @@ class ProductCatalogUseCases {
         productId: query.productId,
       ),
     );
-    return (page: page, statuses: statuses);
   }
 
   Future<CreatedCatalogProduct?> resolve(String productId) async {

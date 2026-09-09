@@ -9,10 +9,33 @@ import 'package:mocktail/mocktail.dart';
 class _MockShootsRepository extends Mock implements ShootsRepository {}
 
 void main() {
+  const product = ShootCatalogItem(
+    id: 'product',
+    name: 'Product',
+    imageUrl: '',
+  );
+  const model = ShootCatalogItem(id: 'model', name: 'Model', imageUrl: '');
+  const selection = ShootSelection(
+    products: [product],
+    models: [model],
+    settings: ShootSettings(),
+  );
+  setUpAll(() {
+    registerFallbackValue(selection);
+    registerFallbackValue(
+      const CreateShootRequest(selection: selection, shots: []),
+    );
+  });
+
   test('call_partialFailure_preservesSuccessfulJobAndFailedDirector', () async {
     final repository = _MockShootsRepository();
     when(() => repository.planShots(any())).thenAnswer(
-      (_) async => const Ok([PlannedShootShot(title: 'Shot', description: 'Description', payload: {})]),
+      (_) async => const Ok([
+        PlannedShootShot(
+          title: 'Shot',
+          description: 'Description',
+        ),
+      ]),
     );
     var calls = 0;
     when(() => repository.createShoot(any())).thenAnswer((_) async {
@@ -21,13 +44,16 @@ void main() {
           ? const Ok('job-1')
           : const Err(UnknownFailure('Failed'));
     });
-    const product = ShootCatalogItem(id: 'product', name: 'Product', imageUrl: '');
-    const model = ShootCatalogItem(id: 'model', name: 'Model', imageUrl: '');
-
     final outcome = await CreateDemoShootsUseCase(repository)(
       directors: const [
-        DemoShootDirector(name: 'First', config: DemoDirectorConfig(directorId: 'one')),
-        DemoShootDirector(name: 'Second', config: DemoDirectorConfig(directorId: 'two')),
+        DemoShootDirector(
+          name: 'First',
+          config: DemoDirectorConfig(directorId: 'one'),
+        ),
+        DemoShootDirector(
+          name: 'Second',
+          config: DemoDirectorConfig(directorId: 'two'),
+        ),
       ],
       products: const [product],
       models: const [model],

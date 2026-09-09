@@ -26,7 +26,47 @@ void main() {
     final result = await CreateHouseModelUseCase(repository)(draft);
 
     expect(result.failureOrNull, isA<ValidationFailure>());
-    verifyNever(() => repository.createModel(any()));
+    verifyNever(() => repository.createModel(draft));
+  });
+
+  test('create_missingGender_returnsValidationWithoutRepositoryCall', () async {
+    final repository = _MockHouseModelsRepository();
+    final draft = _draft(gender: '');
+
+    final result = await CreateHouseModelUseCase(repository)(draft);
+
+    expect(result.failureOrNull, isA<ValidationFailure>());
+    verifyNever(() => repository.createModel(draft));
+  });
+
+  test('create_invalidHeight_returnsValidationWithoutRepositoryCall', () async {
+    final repository = _MockHouseModelsRepository();
+    final draft = _draft(heightCm: 99);
+
+    final result = await CreateHouseModelUseCase(repository)(draft);
+
+    expect(result.failureOrNull, isA<ValidationFailure>());
+    verifyNever(() => repository.createModel(draft));
+  });
+
+  test('create_missingPhoto_returnsValidationWithoutRepositoryCall', () async {
+    final repository = _MockHouseModelsRepository();
+    final draft = _draft(photoCount: 0);
+
+    final result = await CreateHouseModelUseCase(repository)(draft);
+
+    expect(result.failureOrNull, isA<ValidationFailure>());
+    verifyNever(() => repository.createModel(draft));
+  });
+
+  test('create_tooManyPhotos_returnsValidationWithoutRepositoryCall', () async {
+    final repository = _MockHouseModelsRepository();
+    final draft = _draft(photoCount: 5);
+
+    final result = await CreateHouseModelUseCase(repository)(draft);
+
+    expect(result.failureOrNull, isA<ValidationFailure>());
+    verifyNever(() => repository.createModel(draft));
   });
 
   test('completeGeneration_waitsThenLoadsCanonicalCatalog', () async {
@@ -54,3 +94,18 @@ void main() {
     ]);
   });
 }
+
+HouseModelDraft _draft({
+  String gender = 'female',
+  int heightCm = 170,
+  int photoCount = 1,
+}) => HouseModelDraft(
+  name: 'Taylor',
+  gender: gender,
+  heightCm: heightCm,
+  heightEstimated: false,
+  photos: [
+    for (var index = 0; index < photoCount; index++)
+      HouseModelUpload(bytes: Uint8List(1), fileName: 'model-$index.jpg'),
+  ],
+);

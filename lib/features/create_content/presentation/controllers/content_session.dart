@@ -380,6 +380,7 @@ class ContentSession extends ChangeNotifier {
           draftId: draftId,
           brief: brief,
           patch: patch,
+          onRemoteDraftMissing: () => draftId = null,
         );
         draftId = saved.id;
       } on Object catch (e) {

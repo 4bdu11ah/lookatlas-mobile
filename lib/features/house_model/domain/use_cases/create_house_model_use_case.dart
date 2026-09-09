@@ -9,13 +9,13 @@ class CreateHouseModelUseCase {
   final HouseModelsRepository _repository;
 
   Future<Result<void>> call(HouseModelDraft draft) {
-    final failure = validate(draft);
+    final failure = _validate(draft);
     return failure == null
         ? _repository.createModel(draft)
         : Future.value(Err(failure));
   }
 
-  ValidationFailure? validate(HouseModelDraft draft) {
+  ValidationFailure? _validate(HouseModelDraft draft) {
     if (draft.name.trim().isEmpty) {
       return const ValidationFailure('Enter a model name.');
     }

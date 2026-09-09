@@ -1,6 +1,3 @@
-import 'package:flutter/foundation.dart';
-
-@immutable
 class OnboardingAppConfig {
   const OnboardingAppConfig({
     required this.imageProvider,

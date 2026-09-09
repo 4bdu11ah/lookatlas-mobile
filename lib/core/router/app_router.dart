@@ -5,14 +5,18 @@ import 'package:look_atlas/core/logging/app_logger.dart';
 import 'package:look_atlas/core/router/analytics_route_observer.dart';
 import 'package:look_atlas/core/router/app_routes.dart';
 import 'package:look_atlas/core/router/app_transition_page.dart';
-import 'package:look_atlas/features/assistant/presentation/assistant_transition_page.dart';
 import 'package:look_atlas/features/assistant/presentation/screens/assistant_screen.dart';
+import 'package:look_atlas/features/assistant/presentation/screens/assistant_transition_page.dart';
 import 'package:look_atlas/features/auth/di/auth_providers.dart';
-import 'package:look_atlas/features/auth/presentation/auth_controller.dart';
 import 'package:look_atlas/features/auth/presentation/screens/reset_password_screen.dart';
 import 'package:look_atlas/features/auth/presentation/screens/sign_in_screen.dart';
 import 'package:look_atlas/features/auth/presentation/screens/sign_up_screen.dart';
+import 'package:look_atlas/features/billing/presentation/billing_feature.dart';
+import 'package:look_atlas/features/calendar/presentation/screens/calendar_screen.dart';
+import 'package:look_atlas/features/create_content/presentation/screens/create_content_screen.dart';
 import 'package:look_atlas/features/dashboard/presentation/screens/dashboard_screen.dart';
+import 'package:look_atlas/features/guides/presentation/guides_feature.dart';
+import 'package:look_atlas/features/house_model/presentation/house_model_feature.dart';
 import 'package:look_atlas/features/onboarding/presentation/screens/activate_paywall_screen.dart';
 import 'package:look_atlas/features/onboarding/presentation/screens/billing_success_screen.dart';
 import 'package:look_atlas/features/onboarding/presentation/screens/onboarding_wizard_screen.dart';
@@ -20,11 +24,15 @@ import 'package:look_atlas/features/onboarding/presentation/screens/onetime_succ
 import 'package:look_atlas/features/onboarding/presentation/screens/starting_shoot_screen.dart';
 import 'package:look_atlas/features/onboarding/presentation/screens/swipe_results_screen.dart';
 import 'package:look_atlas/features/onboarding/presentation/screens/swipe_screen.dart';
+import 'package:look_atlas/features/products/presentation/products_feature.dart';
+import 'package:look_atlas/features/settings/presentation/account_settings_feature.dart';
 import 'package:look_atlas/features/settings/presentation/screens/settings_screen.dart';
+import 'package:look_atlas/features/shoots/presentation/shoots_feature.dart';
 import 'package:look_atlas/features/splash/presentation/screens/splash_screen.dart';
-import 'package:look_atlas/features/studio_school/presentation/studio_school_screen.dart';
+import 'package:look_atlas/features/studio_school/presentation/screens/studio_school_screen.dart';
 import 'package:look_atlas/features/subscription/presentation/screens/paywall_screen.dart';
-import 'package:look_atlas/features/welcome_profile/presentation/welcome_profile_screen.dart';
+import 'package:look_atlas/features/support/presentation/support_feature.dart';
+import 'package:look_atlas/features/welcome_profile/presentation/screens/welcome_profile_screen.dart';
 import 'package:look_atlas/features/workshop/presentation/screens/workshop_screen.dart';
 import 'package:look_atlas/services/service_providers.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
@@ -88,8 +96,12 @@ final routerProvider = Provider<GoRouter>((ref) {
         // Preserve the checkout callback only. All normal auth entries must
         // pass through onboarding before reaching protected app features.
         final from = state.uri.queryParameters['from'];
-        if (from == AppRoutes.billingSuccess ||
-            from == AppRoutes.studioSchool) {
+        if (from == AppRoutes.calendar ||
+            from == AppRoutes.billingSuccess ||
+            from == AppRoutes.studioSchool ||
+            (from != null &&
+                from.startsWith('${AppRoutes.createContent}/item/') &&
+                _validatedInternalReturnTo(from) != null)) {
           return from;
         }
         return AppRoutes.onboarding;
@@ -218,6 +230,56 @@ final routerProvider = Provider<GoRouter>((ref) {
           state: state,
           child: const CreateShootScreen(),
         ),
+      ),
+      GoRoute(
+        path: AppRoutes.calendar,
+        name: 'calendar',
+        pageBuilder: (_, state) =>
+            buildAppTransitionPage(state: state, child: const CalendarScreen()),
+      ),
+      GoRoute(
+        path: AppRoutes.createContent,
+        name: 'create_content',
+        pageBuilder: (_, state) => buildAppTransitionPage(
+          state: state,
+          child: const CreateContentScreen(),
+        ),
+        routes: [
+          GoRoute(
+            path: 'single',
+            name: 'create_content_single',
+            pageBuilder: (_, state) => buildAppTransitionPage(
+              state: state,
+              child: const CreateContentScreen(initialFormat: 'single'),
+            ),
+          ),
+          GoRoute(
+            path: 'slideshow',
+            name: 'create_content_slideshow',
+            pageBuilder: (_, state) => buildAppTransitionPage(
+              state: state,
+              child: const CreateContentScreen(initialFormat: 'slideshow'),
+            ),
+          ),
+          GoRoute(
+            path: 'video',
+            name: 'create_content_video',
+            pageBuilder: (_, state) => buildAppTransitionPage(
+              state: state,
+              child: const CreateContentScreen(initialFormat: 'video'),
+            ),
+          ),
+          GoRoute(
+            path: 'item/:contentId',
+            name: 'create_content_item',
+            pageBuilder: (_, state) => buildAppTransitionPage(
+              state: state,
+              child: CreateContentScreen(
+                contentId: state.pathParameters['contentId'],
+              ),
+            ),
+          ),
+        ],
       ),
       GoRoute(
         path: AppRoutes.dashboardShoots,

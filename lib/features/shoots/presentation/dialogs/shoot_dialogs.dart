@@ -1,4 +1,4 @@
-part of '../../../dashboard/presentation/screens/dashboard_screen.dart';
+part of '../shoots_feature.dart';
 
 class _CustomShotSubmitting extends Notifier<bool> {
   @override
@@ -19,58 +19,57 @@ _customShotSubmittingProvider =
 class _ShootDialog extends StatelessWidget {
   const _ShootDialog({
     required this.kind,
-    required this.onNavigate,
+    required this.onOpenBilling,
     required this.onOpenModal,
     required this.onToast,
   });
 
-  final _ModalKind kind;
-  final ValueChanged<_DashboardPage> onNavigate;
-  final ValueChanged<_ModalKind> onOpenModal;
+  final _ShootModalKind kind;
+  final VoidCallback onOpenBilling;
+  final ValueChanged<_ShootModalKind> onOpenModal;
   final ValueChanged<String> onToast;
 
   @override
   Widget build(BuildContext context) {
     return switch (kind) {
-      _ModalKind.contextPaywall => _ShootPaywall(
-        onNavigate: onNavigate,
+      _ShootModalKind.contextPaywall => _ShootPaywall(
+        onOpenBilling: onOpenBilling,
       ),
-      _ModalKind.product => _AddProductDialog(onToast: onToast),
-      _ModalKind.model => _AddModelDialog(onToast: onToast),
-      _ModalKind.directorPortfolio => _DirectorPortfolioDialog(
-        onPreview: () => onOpenModal(_ModalKind.portfolioViewer),
+      _ShootModalKind.product => _AddProductDialog(onToast: onToast),
+      _ShootModalKind.model => _AddModelDialog(onToast: onToast),
+      _ShootModalKind.directorPortfolio => _DirectorPortfolioDialog(
+        onPreview: () => onOpenModal(_ShootModalKind.portfolioViewer),
       ),
-      _ModalKind.portfolioViewer => const _PortfolioViewer(),
-      _ModalKind.customShot => _CustomShotDialog(onToast: onToast),
-      _ModalKind.imagePreview => const _ImagePreviewDialog(),
-      _ModalKind.editAi => const _AiEditDialog(),
-      _ModalKind.variation => _VariationDialog(onToast: onToast),
-      _ModalKind.versions => _VersionHistoryDialog(onToast: onToast),
-      _ModalKind.videoOptions => _VideoOptionsDialog(
-        onNext: () => _replace(context, _ModalKind.videoFrame),
+      _ShootModalKind.portfolioViewer => const _PortfolioViewer(),
+      _ShootModalKind.customShot => _CustomShotDialog(onToast: onToast),
+      _ShootModalKind.imagePreview => const _ImagePreviewDialog(),
+      _ShootModalKind.editAi => const _AiEditDialog(),
+      _ShootModalKind.variation => _VariationDialog(onToast: onToast),
+      _ShootModalKind.versions => _VersionHistoryDialog(onToast: onToast),
+      _ShootModalKind.videoOptions => _VideoOptionsDialog(
+        onNext: () => _replace(context, _ShootModalKind.videoFrame),
       ),
-      _ModalKind.videoFrame => _VideoFrameDialog(
-        onBack: () => _replace(context, _ModalKind.videoOptions),
-        onNext: () => _replace(context, _ModalKind.videoConfirm),
+      _ShootModalKind.videoFrame => _VideoFrameDialog(
+        onBack: () => _replace(context, _ShootModalKind.videoOptions),
+        onNext: () => _replace(context, _ShootModalKind.videoConfirm),
       ),
-      _ModalKind.videoConfirm => _VideoConfirmDialog(
-        onBack: () => _replace(context, _ModalKind.videoFrame),
+      _ShootModalKind.videoConfirm => _VideoConfirmDialog(
+        onBack: () => _replace(context, _ShootModalKind.videoFrame),
         onToast: onToast,
       ),
-      _ModalKind.delete => const SizedBox.shrink(),
     };
   }
 
-  void _replace(BuildContext context, _ModalKind next) {
+  void _replace(BuildContext context, _ShootModalKind next) {
     Navigator.pop(context);
     onOpenModal(next);
   }
 }
 
 class _ShootPaywall extends StatelessWidget {
-  const _ShootPaywall({required this.onNavigate});
+  const _ShootPaywall({required this.onOpenBilling});
 
-  final ValueChanged<_DashboardPage> onNavigate;
+  final VoidCallback onOpenBilling;
 
   @override
   Widget build(BuildContext context) {
@@ -83,7 +82,7 @@ class _ShootPaywall extends StatelessWidget {
         children: [
           Align(
             alignment: Alignment.centerRight,
-            child: _IconButton(
+            child: AppTapIconButton(
               icon: Icons.close,
               label: 'Close paywall',
               onTap: () => Navigator.pop(context),
@@ -130,7 +129,7 @@ class _ShootPaywall extends StatelessWidget {
             iconAlignment: IconAlignment.end,
             onPressed: () {
               Navigator.pop(context);
-              onNavigate(_DashboardPage.billing);
+              onOpenBilling();
             },
           ),
           const SizedBox(height: 6),
@@ -210,7 +209,7 @@ class _CustomShotDialogState extends ConsumerState<_CustomShotDialog> {
         );
       }),
     );
-    return _ModalFrame(
+    return AppModalFrame(
       title: 'Create Custom Shot',
       subtitle: "Describe your vision, we'll format it",
       leading: Icons.edit_outlined,
@@ -249,20 +248,18 @@ class _CustomShotDialogState extends ConsumerState<_CustomShotDialog> {
           fieldKey: _ideaFieldKey,
           key: const ValueKey('custom-shot-idea'),
           labelText: "What's your shot idea? *",
-          hintText:
-              'Close-up focusing on the stitching detail while model hold the bag casually at her side',
+          hintText: 'Close-up focusing on the stitching detail while model hold the bag casually at her side',
           minLines: 4,
           maxLines: 4,
           validator: (value) => (value?.trim().length ?? 0) <= 10
               ? 'Shot idea must be more than 10 characters.'
               : null,
         ),
-        const _Caption('Be descriptive, this is the main input.'),
+        const AppCaption('Be descriptive, this is the main input.'),
         AppTextField(
           controller: _poseController,
           labelText: 'Pose Direction (optional)',
-          hintText:
-              "E.g., 'Walking confidently', 'Leaning against wall', 'Sitting cross-legged'",
+          hintText: "E.g., 'Walking confidently', 'Leaning against wall', 'Sitting cross-legged'",
         ),
         AppTextField(
           controller: _focusController,
@@ -270,8 +267,8 @@ class _CustomShotDialogState extends ConsumerState<_CustomShotDialog> {
           hintText:
               "E.g., 'Product detail', 'Full body', 'Waist up', 'Feet/shoes'",
         ),
-        _Alert(
-          kind: _AlertKind.info,
+        AppAlert(
+          kind: AppAlertKind.info,
           richText: TextSpan(
             children: [
               const TextSpan(

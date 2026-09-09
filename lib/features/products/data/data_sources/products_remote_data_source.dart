@@ -10,7 +10,7 @@ import 'package:look_atlas/core/network/dio_client.dart';
 import 'package:look_atlas/core/result/result.dart';
 import 'package:look_atlas/features/products/domain/entities/product_catalog.dart';
 
-part 'products_remote_data_codec.dart';
+part '../models/products_remote_data_codec.dart';
 
 abstract interface class ProductsRemoteDataSource {
   Future<Result<ProductCatalogPage>> getProducts(ProductQuery query);

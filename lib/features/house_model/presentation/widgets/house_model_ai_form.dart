@@ -1,4 +1,4 @@
-part of '../../../dashboard/presentation/screens/dashboard_screen.dart';
+part of '../house_model_feature.dart';
 
 class _AiModelFormState {
   const _AiModelFormState({
@@ -167,8 +167,7 @@ class _AiModelSheetState extends ConsumerState<_AiModelSheet> {
           if (!widget.dialog)
             const _IntroCopy(
               title: 'Create your own model',
-              body:
-                  'Describe your ideal talent and we will generate four consistent, studio-ready poses for 20 credits.',
+              body: 'Describe your ideal talent and we will generate four consistent, studio-ready poses for 20 credits.',
             ),
           _SelectBlock<_ModelGender>(
             label: 'Gender',
@@ -211,8 +210,7 @@ class _AiModelSheetState extends ConsumerState<_AiModelSheet> {
       children: [
         _ModelDialogHeader(
           title: 'Create your own model (AI)',
-          subtitle:
-              'We will generate 4 consistent poses (front, left, right, back) for 20 credits.',
+          subtitle: 'We will generate 4 consistent poses (front, left, right, back) for 20 credits.',
           onClose: () => Navigator.pop(context),
         ),
         Expanded(child: form),
@@ -240,7 +238,7 @@ class _AiModelSheetState extends ConsumerState<_AiModelSheet> {
             onClose: () => Navigator.pop(context),
           ),
           Expanded(child: form),
-          _SheetActionBar(
+          AppSheetActionBar(
             actions: [
               AppOutlinedButton(
                 label: 'Close',

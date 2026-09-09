@@ -3,8 +3,8 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:look_atlas/core/theme/app_typography.dart';
-import 'package:look_atlas/features/onboarding/domain/onboarding_models.dart';
-import 'package:look_atlas/features/onboarding/presentation/providers/wizard_controller.dart';
+import 'package:look_atlas/features/onboarding/domain/entities/onboarding_models.dart';
+import 'package:look_atlas/features/onboarding/presentation/controllers/wizard_controller.dart';
 import 'package:look_atlas/features/onboarding/presentation/widgets/onboarding_widgets.dart';
 
 /// Wizard step 1 — the free-shoot pitch with an auto-rotating before/after

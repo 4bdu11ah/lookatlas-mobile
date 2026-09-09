@@ -1,4 +1,4 @@
-part of '../../../dashboard/presentation/screens/dashboard_screen.dart';
+part of '../products_feature.dart';
 
 typedef _SaveCroppedReference = Future<bool> Function(ProductUpload upload);
 

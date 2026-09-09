@@ -1,4 +1,4 @@
-part of '../../../dashboard/presentation/screens/dashboard_screen.dart';
+part of '../billing_feature.dart';
 
 String _billingMoney(double value, {bool alwaysShowCents = false}) {
   final whole = value == value.roundToDouble();
@@ -188,7 +188,7 @@ class _BillingModal extends StatelessWidget {
             ],
           ),
         ),
-        const _Hairline(),
+        const AppHairline(),
         Flexible(
           child: SingleChildScrollView(
             padding: const EdgeInsets.all(24),
@@ -196,7 +196,7 @@ class _BillingModal extends StatelessWidget {
           ),
         ),
         if (footer != null) ...[
-          const _Hairline(),
+          const AppHairline(),
           ColoredBox(
             color: AppColors.neutral100,
             child: Padding(

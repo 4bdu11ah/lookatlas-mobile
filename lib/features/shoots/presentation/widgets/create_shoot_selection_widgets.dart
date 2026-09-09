@@ -1,4 +1,4 @@
-part of '../../../dashboard/presentation/screens/dashboard_screen.dart';
+part of '../shoots_feature.dart';
 
 const _directorBrands = <String, String>{
   'clean-pro': 'Uniqlo, Everlane',
@@ -152,7 +152,7 @@ class _DirectorCard extends StatelessWidget {
           child: Stack(
             fit: StackFit.expand,
             children: [
-              _AssetImage(director.imageUrl),
+              AppAssetImage(director.imageUrl),
               const DecoratedBox(
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
@@ -441,7 +441,7 @@ class _SelectionCard extends StatelessWidget {
         child: Stack(
           fit: StackFit.expand,
           children: [
-            _AssetImage(asset),
+            AppAssetImage(asset),
             const DecoratedBox(
               decoration: BoxDecoration(
                 gradient: LinearGradient(
@@ -462,9 +462,9 @@ class _SelectionCard extends StatelessWidget {
                 top: 8,
                 left: selectedLabelOnLeft ? 8 : null,
                 right: selectedLabelOnLeft ? null : 8,
-                child: _Badge(
+                child: AppBadge(
                   selectedLabel ?? 'Primary',
-                  kind: _BadgeKind.dark,
+                  kind: AppBadgeKind.dark,
                 ),
               ),
             Positioned(
@@ -532,7 +532,7 @@ class _SelectedRoster extends StatelessWidget {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Expanded(child: _Caption(count, fontSize: 12)),
+              Expanded(child: AppCaption(count, fontSize: 12)),
               if (items.length > 1) ...[
                 const SizedBox(width: 8),
                 GestureDetector(

@@ -4,7 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:look_atlas/core/error/failure.dart';
 import 'package:look_atlas/core/router/app_routes.dart';
 import 'package:look_atlas/features/auth/domain/validators/auth_validators.dart';
-import 'package:look_atlas/features/auth/presentation/auth_controller.dart';
+import 'package:look_atlas/features/auth/presentation/controllers/auth_controller.dart';
 import 'package:look_atlas/features/auth/presentation/widgets/auth_layout.dart';
 import 'package:look_atlas/shared/widgets/app_snack_bar.dart';
 import 'package:look_atlas/shared/widgets/app_text_field.dart';

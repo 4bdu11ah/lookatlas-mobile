@@ -10,7 +10,7 @@ import 'package:look_atlas/core/result/result.dart';
 import 'package:look_atlas/core/router/app_routes.dart';
 import 'package:look_atlas/core/theme/app_colors.dart';
 import 'package:look_atlas/core/theme/app_theme.dart';
-import 'package:look_atlas/features/subscription/presentation/subscription_controller.dart';
+import 'package:look_atlas/features/subscription/di/subscription_access_providers.dart';
 import 'package:look_atlas/features/workshop/di/workshop_providers.dart';
 import 'package:look_atlas/features/workshop/domain/entities/workshop_models.dart';
 import 'package:look_atlas/features/workshop/presentation/screens/workshop_screen.dart';

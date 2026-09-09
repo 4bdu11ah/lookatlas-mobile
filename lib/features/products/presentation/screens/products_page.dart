@@ -1,4 +1,4 @@
-part of '../../../dashboard/presentation/screens/dashboard_screen.dart';
+part of '../products_feature.dart';
 
 bool _requestProductsManageAccess(BuildContext context, WidgetRef ref) {
   final hasAccess =
@@ -54,7 +54,7 @@ class _ProductsScreenViewState extends ConsumerState<ProductsScreen> {
       await _showProductFormDialog(
         context,
         ref,
-        (text) => _toastDashboard(context, text),
+        (text) => AppSnackBar.show(context, text),
       );
       return;
     }
@@ -81,7 +81,7 @@ class _ProductsScreenViewState extends ConsumerState<ProductsScreen> {
       );
       return;
     }
-    void onToast(String text) => _toastDashboard(context, text);
+    void onToast(String text) => AppSnackBar.show(context, text);
     if (widget.calibrateProductId != null) {
       if (!_requestProductsManageAccess(context, ref)) return;
       await _openDeepLinkedCalibration(product, onToast);
@@ -130,7 +130,7 @@ class _ProductsScreenViewState extends ConsumerState<ProductsScreen> {
       title: 'Products',
       maxContentWidth: 440,
       contentBackgroundColor: AppColors.neutral50,
-      child: _ProductsPage(onToast: (text) => _toastDashboard(context, text)),
+      child: _ProductsPage(onToast: (text) => AppSnackBar.show(context, text)),
     );
   }
 }

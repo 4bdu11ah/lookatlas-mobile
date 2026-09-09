@@ -7,11 +7,11 @@ import 'package:look_atlas/core/result/result.dart';
 import 'package:look_atlas/core/theme/app_theme.dart';
 import 'package:look_atlas/features/auth/di/auth_providers.dart';
 import 'package:look_atlas/features/auth/domain/entities/app_user.dart';
-import 'package:look_atlas/features/dashboard/presentation/screens/dashboard_screen.dart';
 import 'package:look_atlas/features/products/di/products_providers.dart';
 import 'package:look_atlas/features/products/domain/entities/product_catalog.dart';
 import 'package:look_atlas/features/products/domain/repositories/products_repository.dart';
-import 'package:look_atlas/features/subscription/presentation/subscription_controller.dart';
+import 'package:look_atlas/features/products/presentation/products_feature.dart';
+import 'package:look_atlas/features/subscription/di/subscription_access_providers.dart';
 import 'package:look_atlas/shared/widgets/app_image.dart';
 
 import '../../helpers/fake_repositories.dart';

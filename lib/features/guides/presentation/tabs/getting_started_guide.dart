@@ -1,9 +1,9 @@
-part of '../../../dashboard/presentation/screens/dashboard_screen.dart';
+part of 'package:look_atlas/features/guides/presentation/guides_feature.dart';
 
 class _GettingStartedGuide extends StatelessWidget {
   const _GettingStartedGuide({required this.onNavigate});
 
-  final ValueChanged<_DashboardPage> onNavigate;
+  final ValueChanged<String> onNavigate;
 
   @override
   Widget build(BuildContext context) {
@@ -11,8 +11,7 @@ class _GettingStartedGuide extends StatelessWidget {
       children: [
         const _GuideIntroSection(
           title: 'Welcome to Look Atlas',
-          body:
-              'Look Atlas transforms your product photos into stunning on-model imagery using AI. No expensive photo shoots, no scheduling models, no studio rentals, just upload your products and watch the magic happen.',
+          body: 'Look Atlas transforms your product photos into stunning on-model imagery using AI. No expensive photo shoots, no scheduling models, no studio rentals, just upload your products and watch the magic happen.',
           largeBody: true,
         ),
         const _GuideSection(
@@ -21,20 +20,17 @@ class _GettingStartedGuide extends StatelessWidget {
             _GuideFeatureCard(
               icon: Icons.image_outlined,
               title: 'Generate On-Model Photos',
-              body:
-                  'Place your products on professional models with realistic lighting, poses, and backgrounds.',
+              body: 'Place your products on professional models with realistic lighting, poses, and backgrounds.',
             ),
             _GuideFeatureCard(
               icon: Icons.videocam_outlined,
               title: 'Create Product Videos',
-              body:
-                  'Transform your images into 8-second cinematic video clips perfect for social media and ads.',
+              body: 'Transform your images into 8-second cinematic video clips perfect for social media and ads.',
             ),
             _GuideFeatureCard(
               icon: Icons.auto_fix_high_outlined,
               title: 'AI-Powered Edits',
-              body:
-                  'Refine generated images with natural language, just describe what you want to change.',
+              body: 'Refine generated images with natural language, just describe what you want to change.',
             ),
           ],
         ),
@@ -44,8 +40,7 @@ class _GettingStartedGuide extends StatelessWidget {
             _GuideStep(
               number: 1,
               title: 'Upload Your Product',
-              body:
-                  'Go to Products and add your first product. Upload 1-5 photos showing front, back, side, and detail shots.',
+              body: 'Go to Products and add your first product. Upload 1-5 photos showing front, back, side, and detail shots.',
               extra: _GuideCallout(
                 type: _GuideCalloutType.tip,
                 strongPrefix: 'Best results: ',
@@ -55,31 +50,26 @@ class _GettingStartedGuide extends StatelessWidget {
             _GuideStep(
               number: 2,
               title: 'Choose a Model',
-              body:
-                  'Go to House Models and choose the Look Atlas Library, upload your own model, or create one with AI for 20 credits.',
+              body: 'Go to House Models and choose the Look Atlas Library, upload your own model, or create one with AI for 20 credits.',
             ),
             _GuideStep(
               number: 3,
               title: 'Create Your First Shoot',
-              body:
-                  'Head to Shoots, pick a director, generate shot ideas, choose your model, and submit.',
+              body: 'Head to Shoots, pick a director, generate shot ideas, choose your model, and submit.',
               extra: _GuideCallout(
                 type: _GuideCalloutType.info,
-                text:
-                    'Shoots create full catalog sets with multiple angles and variations, plus video generation.',
+                text: 'Shoots create full catalog sets with multiple angles and variations, plus video generation.',
               ),
             ),
             _GuideStep(
               number: 4,
               title: 'Review & Download',
-              body:
-                  'Review the generated image, download it, or use AI Edits to describe refinements.',
+              body: 'Review the generated image, download it, or use AI Edits to describe refinements.',
             ),
             _GuideStep(
               number: 5,
               title: 'Add Variations or Resize',
-              body:
-                  'Use Add Variation for alternates, or select Standard / HD / 4K when creating the next shoot.',
+              body: 'Use Add Variation for alternates, or select Standard / HD / 4K when creating the next shoot.',
             ),
           ],
         ),
@@ -92,14 +82,14 @@ class _GettingStartedGuide extends StatelessWidget {
               title: 'Products',
               body: 'Upload and manage your product photos',
               buttonLabel: 'Add Products',
-              onTap: () => onNavigate(_DashboardPage.products),
+              onTap: () => onNavigate(AppRoutes.dashboardProducts),
             ),
             _GuideQuickActionCard(
               icon: Icons.groups_outlined,
               title: 'Models',
               body: 'Browse or create your house models',
               buttonLabel: 'View Models',
-              onTap: () => onNavigate(_DashboardPage.models),
+              onTap: () => onNavigate(AppRoutes.dashboardModels),
             ),
             _GuideQuickActionCard(
               icon: Icons.play_arrow_outlined,
@@ -111,7 +101,7 @@ class _GettingStartedGuide extends StatelessWidget {
           ],
         ),
         _GuideReadyCallout(
-          onSupport: () => onNavigate(_DashboardPage.support),
+          onSupport: () => onNavigate(AppRoutes.dashboardSupport),
         ),
       ],
     );

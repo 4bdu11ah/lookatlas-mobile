@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:look_atlas/core/config/app_config.dart';
 import 'package:look_atlas/core/constants/app_assets.dart';
 import 'package:look_atlas/core/theme/app_colors.dart';
-import 'package:look_atlas/features/auth/presentation/auth_controller.dart';
+import 'package:look_atlas/features/auth/presentation/controllers/auth_controller.dart';
 import 'package:look_atlas/shared/widgets/app_image.dart';
 
 /// "or continue with" divider plus the Apple and Google sign-in buttons.

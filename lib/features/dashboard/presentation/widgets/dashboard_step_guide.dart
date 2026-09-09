@@ -36,13 +36,11 @@ class DashboardGuideContent {
 final dashboardGuideContent = <DashboardWelcomeStepId, DashboardGuideContent>{
   DashboardWelcomeStepId.product: const DashboardGuideContent(
     title: 'Add your product',
-    intro:
-        'Add one product to start. A few clear photos on a plain background work best.',
+    intro: 'Add one product to start. A few clear photos on a plain background work best.',
     icon: Icons.inventory_2_outlined,
     route: AppRoutes.dashboardProducts,
     cta: 'Go to Products',
-    tip:
-        'Phone photos are fine. What matters is even light and a plain background.',
+    tip: 'Phone photos are fine. What matters is even light and a plain background.',
     sections: [
       (
         'addProduct-1.png',
@@ -63,8 +61,7 @@ final dashboardGuideContent = <DashboardWelcomeStepId, DashboardGuideContent>{
   ),
   DashboardWelcomeStepId.calibration: const DashboardGuideContent(
     title: 'Calibrate sizes',
-    intro:
-        'Calibration tells us how big your piece is, so it sits right on the model. About a minute. It matters most for jewelry, bags, watches, eyewear and shoes.',
+    intro: 'Calibration tells us how big your piece is, so it sits right on the model. About a minute. It matters most for jewelry, bags, watches, eyewear and shoes.',
     icon: Icons.straighten,
     route: AppRoutes.dashboardProducts,
     cta: 'Go to Products',
@@ -88,8 +85,7 @@ final dashboardGuideContent = <DashboardWelcomeStepId, DashboardGuideContent>{
   ),
   DashboardWelcomeStepId.angles: const DashboardGuideContent(
     title: 'Label your angles',
-    intro:
-        'Label each photo with the angle it shows. Front, side, detail. Better labels make truer shots.',
+    intro: 'Label each photo with the angle it shows. Front, side, detail. Better labels make truer shots.',
     icon: Icons.center_focus_strong,
     route: AppRoutes.dashboardProducts,
     cta: 'Go to Products',
@@ -108,8 +104,7 @@ final dashboardGuideContent = <DashboardWelcomeStepId, DashboardGuideContent>{
   ),
   DashboardWelcomeStepId.model: const DashboardGuideContent(
     title: 'Create your model',
-    intro:
-        'Build a model that fits your brand, or pick one from the library. You can reuse them on every product, forever.',
+    intro: 'Build a model that fits your brand, or pick one from the library. You can reuse them on every product, forever.',
     icon: Icons.person_outline,
     route: AppRoutes.dashboardModels,
     cta: 'Go to Models',
@@ -133,8 +128,7 @@ final dashboardGuideContent = <DashboardWelcomeStepId, DashboardGuideContent>{
   ),
   DashboardWelcomeStepId.direction: const DashboardGuideContent(
     title: 'Choose your direction',
-    intro:
-        'Directors set the mood of a shoot. Same product, same model, very different photos. Pick the one that matches where these photos will live.',
+    intro: 'Directors set the mood of a shoot. Same product, same model, very different photos. Pick the one that matches where these photos will live.',
     icon: Icons.movie_filter_outlined,
     route: AppRoutes.dashboardShoots,
     cta: 'Start a shoot',
@@ -153,8 +147,7 @@ final dashboardGuideContent = <DashboardWelcomeStepId, DashboardGuideContent>{
   ),
   DashboardWelcomeStepId.firstShoot: const DashboardGuideContent(
     title: 'Run your first shoot',
-    intro:
-        'Pick your product, model and direction. Hit run. First photos land in minutes.',
+    intro: 'Pick your product, model and direction. Hit run. First photos land in minutes.',
     icon: Icons.play_arrow_outlined,
     route: AppRoutes.dashboardShoots,
     cta: 'Start a shoot',

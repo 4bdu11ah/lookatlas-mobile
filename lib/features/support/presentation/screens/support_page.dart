@@ -1,4 +1,4 @@
-part of '../../../dashboard/presentation/screens/dashboard_screen.dart';
+part of 'package:look_atlas/features/support/presentation/support_feature.dart';
 
 class SupportScreen extends StatelessWidget {
   const SupportScreen({super.key});

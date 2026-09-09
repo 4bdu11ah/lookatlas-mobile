@@ -1,4 +1,4 @@
-part of '../../../dashboard/presentation/screens/dashboard_screen.dart';
+part of '../shoots_feature.dart';
 
 class _DirectorChoiceList extends StatelessWidget {
   const _DirectorChoiceList({
@@ -58,26 +58,26 @@ class _DemoReviewStep extends StatelessWidget {
       0,
       (total, config) => total + config.numberOfShots * config.variations,
     );
-    return _Column(
+    return AppSpacedColumn(
       gap: 12,
       children: [
         const _CreateSectionHeader(
           title: 'Generate Demo',
           subtitle: 'Each director creates a separate shoot in one demo group',
         ),
-        _FieldLabel('${state.demoDirectors.length} directors selected'),
-        _Caption('$totalImages total images · HD (2K) · metered', fontSize: 12),
-        _Caption(
+        AppFieldLabel('${state.demoDirectors.length} directors selected'),
+        AppCaption('$totalImages total images · HD (2K) · metered', fontSize: 12),
+        AppCaption(
           '${state.demoRequiredCredits} credits required',
           fontSize: 11,
         ),
         if (!state.canGenerateDemo)
-          const _Caption(
+          const AppCaption(
             'Not enough credits for this demo configuration.',
             fontSize: 11,
           ),
         for (final config in state.demoDirectors)
-          _Caption(
+          AppCaption(
             '${state.directors.firstWhere((director) => director.id == config.directorId).name}: '
             '${config.numberOfShots} shots × ${config.variations} variations',
             fontSize: 11,

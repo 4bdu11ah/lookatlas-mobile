@@ -1,4 +1,4 @@
-part of '../../../dashboard/presentation/screens/dashboard_screen.dart';
+part of '../shoots_feature.dart';
 
 class _ShootsLoading extends StatelessWidget {
   const _ShootsLoading();

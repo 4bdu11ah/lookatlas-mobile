@@ -1,6 +1,3 @@
-import 'package:flutter/foundation.dart';
-
-@immutable
 class ShootSettings {
   const ShootSettings({
     required this.aspectRatio,
@@ -17,7 +14,6 @@ class ShootSettings {
 
 enum ShootModelSource { lookatlas, user }
 
-@immutable
 class StartShootRequest {
   const StartShootRequest({
     required this.productId,
@@ -42,7 +38,6 @@ class StartShootRequest {
   final int? tzOffset;
 }
 
-@immutable
 class StartShootResponse {
   const StartShootResponse({
     required this.id,

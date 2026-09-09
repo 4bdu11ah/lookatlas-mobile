@@ -11,14 +11,14 @@ import 'package:look_atlas/core/router/app_routes.dart';
 import 'package:look_atlas/core/theme/app_colors.dart';
 import 'package:look_atlas/core/theme/app_typography.dart';
 import 'package:look_atlas/features/auth/di/auth_providers.dart';
-import 'package:look_atlas/features/onboarding/presentation/providers/swipe_controller.dart';
+import 'package:look_atlas/features/onboarding/presentation/controllers/swipe_controller.dart';
 import 'package:look_atlas/features/onboarding/presentation/widgets/onboarding_widgets.dart';
 import 'package:look_atlas/features/onboarding/presentation/widgets/revenuecat_products_section.dart';
 import 'package:look_atlas/features/subscription/di/subscription_providers.dart';
-import 'package:look_atlas/features/subscription/presentation/subscription_action.dart';
-import 'package:look_atlas/features/subscription/presentation/subscription_controller.dart';
+import 'package:look_atlas/features/subscription/domain/entities/subscription_product.dart';
+import 'package:look_atlas/features/subscription/presentation/controllers/subscription_action.dart';
+import 'package:look_atlas/features/subscription/presentation/controllers/subscription_controller.dart';
 import 'package:look_atlas/shared/widgets/app_snack_bar.dart';
-import 'package:purchases_flutter/purchases_flutter.dart';
 
 part '../widgets/activate_paywall_loader_widgets.dart';
 part '../widgets/activate_paywall_content_widgets.dart';
@@ -114,7 +114,7 @@ class _ActivatePaywallScreenState extends ConsumerState<ActivatePaywallScreen> {
     );
   }
 
-  Future<void> _purchaseRevenueCatProduct(StoreProduct product) async {
+  Future<void> _purchaseRevenueCatProduct(SubscriptionProduct product) async {
     final purchased = await ref
         .read(subscriptionActionProvider.notifier)
         .purchase(product);

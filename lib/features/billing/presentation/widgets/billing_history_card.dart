@@ -1,4 +1,4 @@
-part of '../../../dashboard/presentation/screens/dashboard_screen.dart';
+part of '../billing_feature.dart';
 
 class _BillingHistoryCard extends ConsumerWidget {
   const _BillingHistoryCard();
@@ -7,7 +7,7 @@ class _BillingHistoryCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final history = ref.watch(billingHistoryProvider);
     final refreshing = history.isLoading;
-    return _Card(
+    return AppCard(
       padding: EdgeInsets.zero,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -37,7 +37,7 @@ class _BillingHistoryCard extends ConsumerWidget {
               ],
             ),
           ),
-          const _Hairline(),
+          const AppHairline(),
           Padding(
             padding: const EdgeInsets.all(20),
             child: history.when(

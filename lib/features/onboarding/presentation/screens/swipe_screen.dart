@@ -7,8 +7,8 @@ import 'package:go_router/go_router.dart';
 import 'package:look_atlas/core/router/app_routes.dart';
 import 'package:look_atlas/core/theme/app_colors.dart';
 import 'package:look_atlas/core/theme/app_typography.dart';
-import 'package:look_atlas/features/onboarding/presentation/providers/generation_controller.dart';
-import 'package:look_atlas/features/onboarding/presentation/providers/swipe_controller.dart';
+import 'package:look_atlas/features/onboarding/presentation/controllers/generation_controller.dart';
+import 'package:look_atlas/features/onboarding/presentation/controllers/swipe_controller.dart';
 import 'package:look_atlas/features/onboarding/presentation/widgets/onboarding_widgets.dart';
 
 part '../widgets/swipe_screen_widgets.dart';

@@ -1,4 +1,4 @@
-part of '../../../dashboard/presentation/screens/dashboard_screen.dart';
+part of '../products_feature.dart';
 
 class _CalibrationPickPhotoStep extends StatelessWidget {
   const _CalibrationPickPhotoStep({
@@ -550,7 +550,7 @@ class _CalibrationReviewStep extends StatelessWidget {
                 SizedBox(
                   height: 300,
                   child: fitImageUrl != null
-                      ? _AssetImage(fitImageUrl!)
+                      ? AppAssetImage(fitImageUrl!)
                       : wornPhotoUrl == null
                       ? _PlacementCanvas(
                           product: product,
@@ -561,7 +561,7 @@ class _CalibrationReviewStep extends StatelessWidget {
                           placementScale: placementScale,
                           placementRotation: placementRotation,
                         )
-                      : _AssetImage(wornPhotoUrl!),
+                      : AppAssetImage(wornPhotoUrl!),
                 ),
                 if (!isLegacy) ...[
                   const SizedBox(height: 14),

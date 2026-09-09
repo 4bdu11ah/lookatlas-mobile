@@ -1,9 +1,6 @@
-import 'package:flutter/foundation.dart';
-
 /// Domain entity for an authenticated user. Pure: no serialization concerns
 /// (that lives in the data-layer `AppUserModel`). Hand-written `copyWith` per
 /// AGENTS.md §8 (no codegen).
-@immutable
 class AppUser {
   const AppUser({
     required this.id,
@@ -40,6 +37,8 @@ class AppUser {
   );
 
   @override
+  // Immutable value object; Flutter's `@immutable` is intentionally avoided.
+  // ignore: avoid_equals_and_hash_code_on_mutable_classes
   bool operator ==(Object other) =>
       other is AppUser &&
       other.id == id &&
@@ -50,6 +49,8 @@ class AppUser {
       other.role == role;
 
   @override
+  // Same immutable-value rationale as `operator ==` above.
+  // ignore: avoid_equals_and_hash_code_on_mutable_classes
   int get hashCode =>
       Object.hash(id, email, displayName, photoUrl, companyName, role);
 }

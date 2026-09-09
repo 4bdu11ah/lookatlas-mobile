@@ -93,6 +93,7 @@ class _CustomAppBarIconButton extends StatelessWidget {
       button: true,
       label: label,
       child: IconButton(
+        tooltip: label,
         onPressed: onTap,
         icon: Icon(
           icon,

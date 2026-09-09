@@ -3,6 +3,8 @@ import 'package:look_atlas/core/providers/core_providers.dart';
 import 'package:look_atlas/features/house_model/data/data_sources/house_models_remote_data_source.dart';
 import 'package:look_atlas/features/house_model/data/repositories/house_models_repository_impl.dart';
 import 'package:look_atlas/features/house_model/domain/repositories/house_models_repository.dart';
+import 'package:look_atlas/features/house_model/domain/use_cases/complete_house_model_generation_use_case.dart';
+import 'package:look_atlas/features/house_model/domain/use_cases/create_house_model_use_case.dart';
 
 final houseModelsRemoteDataSourceProvider =
     Provider<HouseModelsRemoteDataSource>(
@@ -16,3 +18,14 @@ final houseModelsRepositoryProvider = Provider<HouseModelsRepository>(
     ref.watch(houseModelsRemoteDataSourceProvider),
   ),
 );
+
+final createHouseModelUseCaseProvider = Provider<CreateHouseModelUseCase>(
+  (ref) => CreateHouseModelUseCase(ref.watch(houseModelsRepositoryProvider)),
+);
+
+final completeHouseModelGenerationUseCaseProvider =
+    Provider<CompleteHouseModelGenerationUseCase>(
+      (ref) => CompleteHouseModelGenerationUseCase(
+        ref.watch(houseModelsRepositoryProvider),
+      ),
+    );

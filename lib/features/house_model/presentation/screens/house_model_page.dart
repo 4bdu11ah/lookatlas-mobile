@@ -1,4 +1,4 @@
-part of '../../../dashboard/presentation/screens/dashboard_screen.dart';
+part of '../house_model_feature.dart';
 
 class HouseModelsScreen extends ConsumerWidget {
   const HouseModelsScreen({super.key});
@@ -16,7 +16,7 @@ class HouseModelsScreen extends ConsumerWidget {
         onPressed: () => _showModelFormDialog(
           context,
           ref,
-          (text) => _toastDashboard(context, text),
+          (text) => AppSnackBar.show(context, text),
         ),
       ),
 
@@ -26,7 +26,7 @@ class HouseModelsScreen extends ConsumerWidget {
           physics: const AlwaysScrollableScrollPhysics(),
           padding: const EdgeInsets.fromLTRB(20, 22, 20, 112),
           child: _HouseModelPage(
-            onToast: (text) => _toastDashboard(context, text),
+            onToast: (text) => AppSnackBar.show(context, text),
           ),
         ),
       ),
@@ -50,7 +50,7 @@ class _HouseModelPage extends ConsumerWidget {
         onRetry: ref.read(_houseModelControllerProvider.notifier).reload,
       );
     }
-    return _Column(
+    return AppSpacedColumn(
       children: [
         if (state.failure != null)
           _HouseModelsRefreshError(
@@ -66,7 +66,7 @@ class _HouseModelPage extends ConsumerWidget {
         ),
         _CreateAiButton(onToast: onToast),
         const _LibraryModelsSection(),
-        const _Hairline(),
+        const AppHairline(),
         _UserModelsSection(onToast: onToast),
       ],
     );

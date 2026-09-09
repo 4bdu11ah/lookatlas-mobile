@@ -104,7 +104,7 @@ class _ActionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return _Card(
+    return AppCard(
       padding: EdgeInsets.zero,
       child: InkWell(
         onTap: onTap,
@@ -113,15 +113,15 @@ class _ActionCard extends StatelessWidget {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _SquareIcon(icon),
+              AppSquareIcon(icon),
               const SizedBox(width: 16),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _CardTitle(title),
+                    AppCardTitle(title),
                     const SizedBox(height: 4),
-                    _Caption(body),
+                    AppCaption(body),
                     if (subtitle.isNotEmpty) ...[
                       const SizedBox(height: 8),
                       Row(

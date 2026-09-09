@@ -155,8 +155,7 @@ class _ReferenceField extends StatelessWidget {
         const _WorkshopFieldLabel(
           title: 'Reference images',
           optional: '(optional, up to 4)',
-          tooltip:
-              'Optional. The AI uses these as visual inspiration alongside your base. Useful for compositing.',
+          tooltip: 'Optional. The AI uses these as visual inspiration alongside your base. Useful for compositing.',
         ),
         const SizedBox(height: 8),
         Container(
@@ -266,8 +265,7 @@ class _PromptField extends StatelessWidget {
           maxLengthEnforcement: MaxLengthEnforcement.none,
           showCounter: false,
           textStyle: const TextStyle(fontSize: 16, height: 20 / 16),
-          hintText:
-              "Describe the edit. e.g. 'place the watch from image 2 on the model's wrist, keep the studio lighting'.",
+          hintText: "Describe the edit. e.g. 'place the watch from image 2 on the model's wrist, keep the studio lighting'.",
           hintStyle: const TextStyle(fontSize: 14, height: 20 / 14),
           contentPadding: const EdgeInsets.symmetric(
             horizontal: 16,

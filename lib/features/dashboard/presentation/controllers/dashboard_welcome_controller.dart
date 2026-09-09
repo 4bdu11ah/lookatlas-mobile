@@ -2,10 +2,9 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:look_atlas/core/providers/core_providers.dart';
-import 'package:look_atlas/features/auth/presentation/auth_controller.dart';
+import 'package:look_atlas/features/auth/di/auth_providers.dart';
 import 'package:look_atlas/features/dashboard/domain/entities/dashboard_welcome.dart';
 import 'package:look_atlas/features/studio_school/di/studio_school_providers.dart';
-import 'package:look_atlas/features/studio_school/presentation/studio_school_controller.dart';
 import 'package:look_atlas/services/service_providers.dart';
 
 class DashboardWelcomePreferences {
@@ -199,7 +198,7 @@ class DashboardWelcomeController extends Notifier<DashboardWelcomePreferences> {
           .claimChecklist(userId);
       if (result.isErr) return false;
       _track('welcome.reward_claimed', {'kind': 'checklist'});
-      await ref.read(studioSchoolControllerProvider.notifier).refresh();
+      await ref.read(refreshStudioSchoolProvider)();
       return true;
     } finally {
       _claiming = false;
@@ -255,7 +254,7 @@ class DashboardWelcomeController extends Notifier<DashboardWelcomePreferences> {
   }
 
   void _refreshWelcome() => unawaited(
-    ref.read(studioSchoolControllerProvider.notifier).refresh(),
+    ref.read(refreshStudioSchoolProvider)(),
   );
 
   static const _defaults = DashboardWelcomePreferences(

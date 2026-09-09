@@ -29,6 +29,13 @@ abstract final class AppColors {
   static const Color neutralLight = Color(0xFFEFEFEF);
   static const Color neutralMedium = Color(0xFFC3C3C3);
 
+  // --- Studio / editorial surface tokens ----------------------------------
+  static const Color ink = Color(0xFF171715);
+  static const Color paper = Color(0xFFFBFAF7);
+  static const Color line = Color(0xFFD1D1CA);
+  static const Color muted = Color(0xFF696963);
+  static const Color soft = Color(0xFFF0F0EC);
+
   // --- Alpha tokens -------------------------------------------------------
   static const Color blackAlpha07 = Color(0x11000000);
   static const Color blackAlpha10 = Color(0x1A000000);

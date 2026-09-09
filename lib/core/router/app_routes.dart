@@ -18,6 +18,12 @@ abstract final class AppRoutes {
   static const workshop = '/workshop';
   static const workshopGuide = '/workshop/guide';
   static const createShoot = '/create';
+  static const calendar = '/calendar';
+  static const createContent = '/create-content';
+  static const createContentSingle = '/create-content/single';
+  static const createContentSlideshow = '/create-content/slideshow';
+  static const createContentVideo = '/create-content/video';
+  static const createContentItemPath = '/create-content/item/:contentId';
   static const dashboardShoots = '/shoots';
   static const shootDetailPath = '/shoots/:jobId';
   static const dashboardProducts = '/products';

@@ -8,9 +8,9 @@ import 'package:look_atlas/core/logging/app_logger.dart';
 import 'package:look_atlas/core/result/result.dart';
 import 'package:look_atlas/core/router/app_routes.dart';
 import 'package:look_atlas/features/workshop/di/workshop_providers.dart';
+import 'package:look_atlas/features/workshop/domain/entities/workshop_image_metadata.dart';
 import 'package:look_atlas/features/workshop/domain/entities/workshop_models.dart';
 import 'package:look_atlas/features/workshop/domain/repositories/workshop_repository.dart';
-import 'package:look_atlas/features/workshop/domain/workshop_image_metadata.dart';
 import 'package:look_atlas/features/workshop/presentation/controllers/workshop_error_messages.dart';
 import 'package:look_atlas/services/service_providers.dart';
 import 'package:look_atlas/shared/image_picker/image_picker_providers.dart';
@@ -132,32 +132,15 @@ class WorkshopController extends Notifier<WorkshopState> {
   }
 
   Future<bool> generate() async {
-    final base = state.baseImage;
-    if (base == null) {
-      state = state.copyWith(
-        validationMessage: 'Upload a base image first.',
-      );
-      return false;
-    }
-    if (!state.hasPrompt) {
-      state = state.copyWith(
-        validationMessage: 'Write a prompt describing the edit you want.',
-      );
-      return false;
-    }
-    if (state.prompt.length > WorkshopState.maxPromptLength) {
-      state = state.copyWith(
-        validationMessage: 'Prompt must be 1000 characters or fewer.',
-      );
-      return false;
-    }
-    final baseBytes = base.bytes;
-    if (baseBytes == null) {
-      state = state.copyWith(
-        validationMessage:
-            'We lost track of your uploaded images. Please try again — '
-            'your credit was refunded.',
-      );
+    final useCase = ref.read(generateWorkshopImageUseCaseProvider);
+    final prepared = useCase.prepare(
+      base: state.baseImage,
+      references: state.references,
+      prompt: state.prompt,
+      mode: state.editMode,
+    );
+    if (prepared case Err(:final failure)) {
+      state = state.copyWith(validationMessage: failure.message);
       return false;
     }
     if (state.isGenerating) return false;
@@ -173,23 +156,7 @@ class WorkshopController extends Notifier<WorkshopState> {
       validationMessage: null,
       failure: null,
     );
-    final result = await _repository.generate(
-      WorkshopGenerateRequest(
-        base: WorkshopUpload(
-          bytes: baseBytes,
-          fileName: base.fileName ?? 'workshop-base.jpg',
-        ),
-        references: [
-          for (final reference in state.references)
-            WorkshopUpload(
-              bytes: reference.bytes,
-              fileName: reference.fileName,
-            ),
-        ],
-        prompt: state.prompt.trim(),
-        mode: state.editMode,
-      ),
-    );
+    final result = await useCase.execute(prepared.valueOrNull!);
     if (_disposed) return false;
     if (result case Err(:final failure)) {
       state = state.copyWith(

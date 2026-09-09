@@ -6,14 +6,14 @@ import 'package:look_atlas/core/error/failure.dart';
 import 'package:look_atlas/core/result/result.dart';
 import 'package:look_atlas/features/onboarding/di/onboarding_providers.dart';
 import 'package:look_atlas/features/onboarding/domain/entities/free_shoot.dart';
+import 'package:look_atlas/features/onboarding/domain/entities/look_atlas_model.dart';
 import 'package:look_atlas/features/onboarding/domain/entities/onboarding_config.dart';
+import 'package:look_atlas/features/onboarding/domain/entities/onboarding_models.dart';
 import 'package:look_atlas/features/onboarding/domain/entities/onboarding_product.dart';
 import 'package:look_atlas/features/onboarding/domain/entities/onboarding_status.dart';
-import 'package:look_atlas/features/onboarding/domain/look_atlas_model.dart';
-import 'package:look_atlas/features/onboarding/domain/onboarding_models.dart';
 import 'package:look_atlas/features/onboarding/domain/repositories/onboarding_repository.dart';
 import 'package:look_atlas/features/onboarding/presentation/controllers/onboarding_submission_controller.dart';
-import 'package:look_atlas/features/onboarding/presentation/providers/wizard_controller.dart';
+import 'package:look_atlas/features/onboarding/presentation/controllers/wizard_controller.dart';
 
 void main() {
   test('save_product_photos_first_upload_stores_returned_id', () async {

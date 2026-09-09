@@ -114,4 +114,22 @@ void main() {
     expect(log, isNot(contains('creator@example.com')));
     expect(log, isNot(contains('access_token: secret')));
   });
+
+  test('formatResponseLog_redactsCamelCaseAuthTokens', () {
+    final log = interceptor.formatResponseLog(
+      Response<dynamic>(
+        requestOptions: RequestOptions(path: '/auth/refresh'),
+        statusCode: 200,
+        data: const {
+          'accessToken': 'access-secret',
+          'refreshToken': 'refresh-secret',
+        },
+      ),
+    );
+
+    expect(log, contains('accessToken: ***'));
+    expect(log, contains('refreshToken: ***'));
+    expect(log, isNot(contains('access-secret')));
+    expect(log, isNot(contains('refresh-secret')));
+  });
 }

@@ -1,4 +1,4 @@
-part of '../../../dashboard/presentation/screens/dashboard_screen.dart';
+part of '../shoots_feature.dart';
 
 class _VideoOptionsDialog extends ConsumerWidget {
   const _VideoOptionsDialog({required this.onNext});
@@ -13,7 +13,7 @@ class _VideoOptionsDialog extends ConsumerWidget {
     final quality = state.videoRequest.videoTier == 'hd' ? 1 : 0;
     final ratio = state.videoRequest.aspectRatio == '16:9' ? 1 : 0;
     final variation = state.videoRequest.variationIndex;
-    return _ModalFrame(
+    return AppModalFrame(
       title: 'Generate Model Video',
       subtitle: 'Choose quality, format, and variation',
       actions: [
@@ -30,7 +30,7 @@ class _VideoOptionsDialog extends ConsumerWidget {
       ],
       children: [
         const _VideoStepProgress(currentStep: 1),
-        const _FieldLabel('Choose quality'),
+        const AppFieldLabel('Choose quality'),
         Row(
           children: [
             Expanded(
@@ -58,7 +58,7 @@ class _VideoOptionsDialog extends ConsumerWidget {
             ),
           ],
         ),
-        const _FieldLabel('Aspect ratio'),
+        const AppFieldLabel('Aspect ratio'),
         _InteractiveSegmented(
           choices: const ['Portrait 9:16', 'Landscape 16:9'],
           selected: ratio,
@@ -68,7 +68,7 @@ class _VideoOptionsDialog extends ConsumerWidget {
             );
           },
         ),
-        const _FieldLabel('Starting variation'),
+        const AppFieldLabel('Starting variation'),
         GridView.builder(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
@@ -103,7 +103,7 @@ class _VideoFrameDialog extends ConsumerWidget {
     final state = ref.watch(_shootDetailControllerProvider);
     final images = state.images;
     final controller = ref.read(_shootDetailControllerProvider.notifier);
-    return _ModalFrame(
+    return AppModalFrame(
       title: 'Choose Starting Frame',
       subtitle: 'Pick which image from Variation 1 starts the video',
       actions: [
@@ -157,7 +157,7 @@ class _VideoConfirmDialog extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(_shootDetailControllerProvider);
     final controller = ref.read(_shootDetailControllerProvider.notifier);
-    return _ModalFrame(
+    return AppModalFrame(
       title: 'Almost There',
       subtitle: 'Review and confirm',
       actionFlexes: const [1, 3],
@@ -189,10 +189,9 @@ class _VideoConfirmDialog extends ConsumerWidget {
       children: [
         const _VideoStepProgress(currentStep: 3),
         _VideoSummary(request: state.videoRequest),
-        const _Alert(
-          kind: _AlertKind.warn,
-          text:
-              'AI video is still in early access. \nResults may vary. It sometimes takes 2-3 generations to get a great result. Credits are consumed per generation.',
+        const AppAlert(
+          kind: AppAlertKind.warn,
+          text: 'AI video is still in early access. \nResults may vary. It sometimes takes 2-3 generations to get a great result. Credits are consumed per generation.',
         ),
       ],
     );
@@ -257,8 +256,8 @@ class _VideoChoice extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _CardTitle(title),
-            _Caption(body),
+            AppCardTitle(title),
+            AppCaption(body),
             const SizedBox(height: 8),
             Text(
               credits,
@@ -343,7 +342,7 @@ class _VideoImageChoice extends StatelessWidget {
         child: Stack(
           fit: StackFit.expand,
           children: [
-            _AssetImage(asset),
+            AppAssetImage(asset),
             Positioned(
               left: 8,
               right: 8,
@@ -393,12 +392,12 @@ class _VideoSummary extends StatelessWidget {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Expanded(child: _Caption(rows[index].$1)),
+                Expanded(child: AppCaption(rows[index].$1)),
                 const SizedBox(width: 12),
                 Flexible(
                   child: Align(
                     alignment: Alignment.centerRight,
-                    child: _CardTitle(rows[index].$2),
+                    child: AppCardTitle(rows[index].$2),
                   ),
                 ),
               ],

@@ -6,14 +6,14 @@ import 'package:look_atlas/core/router/app_routes.dart';
 import 'package:look_atlas/core/theme/app_spacing.dart';
 import 'package:look_atlas/features/auth/di/auth_providers.dart';
 import 'package:look_atlas/features/subscription/di/subscription_providers.dart';
-import 'package:look_atlas/features/subscription/domain/subscription_status.dart';
-import 'package:look_atlas/features/subscription/presentation/subscription_action.dart';
-import 'package:look_atlas/features/subscription/presentation/subscription_controller.dart';
+import 'package:look_atlas/features/subscription/domain/entities/subscription_product.dart';
+import 'package:look_atlas/features/subscription/domain/entities/subscription_status.dart';
+import 'package:look_atlas/features/subscription/presentation/controllers/subscription_action.dart';
+import 'package:look_atlas/features/subscription/presentation/controllers/subscription_controller.dart';
 import 'package:look_atlas/shared/widgets/app_snack_bar.dart';
 import 'package:look_atlas/shared/widgets/bar_spinner.dart';
 import 'package:look_atlas/shared/widgets/custom_app_bar.dart';
 import 'package:look_atlas/shared/widgets/primary_button.dart';
-import 'package:purchases_flutter/purchases_flutter.dart';
 
 /// Public paywall: reachable before sign-in so an anonymous visitor can
 /// purchase first and register afterwards (the entitlement transfers to the
@@ -24,7 +24,7 @@ class PaywallScreen extends ConsumerWidget {
   Future<void> _purchase(
     BuildContext context,
     WidgetRef ref,
-    StoreProduct product,
+    SubscriptionProduct product,
   ) async {
     final succeeded = await ref
         .read(subscriptionActionProvider.notifier)
@@ -100,7 +100,7 @@ class PaywallScreen extends ConsumerWidget {
 class _ProductsView extends ConsumerWidget {
   const _ProductsView({required this.onPurchase, required this.onRestore});
 
-  final void Function(StoreProduct product) onPurchase;
+  final void Function(SubscriptionProduct product) onPurchase;
   final VoidCallback onRestore;
 
   @override
@@ -141,7 +141,7 @@ class _ProductsView extends ConsumerWidget {
                 enabled: !action.isBusy,
                 isPurchasing: switch (action) {
                   SubscriptionPurchasing(:final productId) =>
-                    productId == product.identifier,
+                    productId == product.id,
                   _ => false,
                 },
                 onTap: () => onPurchase(product),
@@ -182,7 +182,7 @@ class _PlanCard extends StatelessWidget {
     required this.onTap,
   });
 
-  final StoreProduct product;
+  final SubscriptionProduct product;
   final bool enabled;
   final bool isPurchasing;
   final VoidCallback onTap;
@@ -210,9 +210,7 @@ class _PlanCard extends StatelessWidget {
             ],
             const SizedBox(height: AppSpacing.md),
             PrimaryButton(
-              label: product.productCategory == ProductCategory.nonSubscription
-                  ? 'Buy now'
-                  : 'Subscribe',
+              label: product.isOneTime ? 'Buy now' : 'Subscribe',
               isLoading: isPurchasing,
               onPressed: enabled ? onTap : null,
               fitToContent: true,

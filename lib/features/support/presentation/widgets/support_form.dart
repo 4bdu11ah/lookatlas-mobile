@@ -1,4 +1,4 @@
-part of '../../../dashboard/presentation/screens/dashboard_screen.dart';
+part of 'package:look_atlas/features/support/presentation/support_feature.dart';
 
 class _SupportFormCard extends ConsumerStatefulWidget {
   const _SupportFormCard();
@@ -215,8 +215,7 @@ class _SupportMessageField extends ConsumerWidget {
                   maxLines: null,
                   keyboardType: TextInputType.multiline,
                   textStyle: const TextStyle(fontSize: 16, height: 1.5),
-                  hintText:
-                      'Please provide detailed information about your issue or question...',
+                  hintText: 'Please provide detailed information about your issue or question...',
                   hintStyle: const TextStyle(
                     fontSize: 16,
                     color: AppColors.neutral500,

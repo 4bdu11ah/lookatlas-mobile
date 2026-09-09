@@ -13,6 +13,18 @@ import UIKit
       NativeDeviceInfoChannel.register(with: registrar.messenger())
     }
     if let controller = window?.rootViewController as? FlutterViewController {
+      let calendarChannel = FlutterMethodChannel(name: "com.lookatlas/calendar", binaryMessenger: controller.binaryMessenger)
+      calendarChannel.setMethodCallHandler { call, result in
+        if call.method == "timeZone" { result(TimeZone.current.identifier); return }
+        if call.method == "openPublished", let args = call.arguments as? [String: Any],
+           let raw = args["url"] as? String, let url = URL(string: raw), url.scheme == "https" {
+          UIApplication.shared.open(url) { opened in
+            opened ? result(nil) : result(FlutterError(code: "OPEN_FAILED", message: "Could not open published post.", details: nil))
+          }
+          return
+        }
+        result(FlutterMethodNotImplemented)
+      }
       let channel = FlutterMethodChannel(
         name: "com.lookatlas/external_url",
         binaryMessenger: controller.binaryMessenger

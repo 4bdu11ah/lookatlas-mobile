@@ -1,4 +1,4 @@
-part of '../../../dashboard/presentation/screens/dashboard_screen.dart';
+part of '../shoots_feature.dart';
 
 class _DirectorStep extends StatelessWidget {
   const _DirectorStep({
@@ -34,7 +34,7 @@ class _DirectorStep extends StatelessWidget {
     final director = directors.isEmpty || selected < 0
         ? null
         : directors[selected.clamp(0, directors.length - 1)];
-    return _Column(
+    return AppSpacedColumn(
       gap: 24,
       children: [
         const _CreateSectionHeader(
@@ -42,7 +42,7 @@ class _DirectorStep extends StatelessWidget {
           subtitle:
               "Select what you're creating and who should direct the shoot",
         ),
-        const _FieldLabel('What are you creating?'),
+        const AppFieldLabel('What are you creating?'),
         _UseCaseGrid(
           selected: const [
             'pdp',
@@ -63,11 +63,11 @@ class _DirectorStep extends StatelessWidget {
             ),
           ),
         ),
-        _FieldLabel(
+        AppFieldLabel(
           demoMode ? 'Select directors (one or more)' : 'Select a Director',
         ),
         if (demoMode)
-          const _Caption(
+          const AppCaption(
             'Each director becomes one section of the demo, so the client can '
             'see their products in several styles.',
             fontSize: 11,
@@ -115,7 +115,7 @@ class _DirectorStep extends StatelessWidget {
             ),
           ),
         if (demoMode && demoDirectors.isNotEmpty)
-          const _Caption(
+          const AppCaption(
             'Shared by every director in this demo. Each one plans their '
             'shots with this brief in their own style.',
             fontSize: 11,
@@ -179,7 +179,7 @@ class _DemoDirectorBudget extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(12),
         color: AppColors.neutral50,
-        child: _Column(
+        child: AppSpacedColumn(
           gap: 10,
           children: [
             Row(
@@ -193,7 +193,7 @@ class _DemoDirectorBudget extends StatelessWidget {
                 TextButton(onPressed: onRemove, child: const Text('Remove')),
               ],
             ),
-            _Caption('Shots: ${config.numberOfShots}', fontSize: 10),
+            AppCaption('Shots: ${config.numberOfShots}', fontSize: 10),
             Slider(
               min: 1,
               max: maxShots.toDouble(),
@@ -203,7 +203,7 @@ class _DemoDirectorBudget extends StatelessWidget {
                 config.copyWith(numberOfShots: value.round()),
               ),
             ),
-            const _Caption('Variations / shot', fontSize: 10),
+            const AppCaption('Variations / shot', fontSize: 10),
             _DirectorChoiceList(
               values: const ['1', '2', '3', '4', '5'],
               selected: '${config.variations}',
@@ -211,7 +211,7 @@ class _DemoDirectorBudget extends StatelessWidget {
                 config.copyWith(variations: int.parse(value)),
               ),
             ),
-            _Caption(
+            AppCaption(
               '${config.numberOfShots * config.variations} images from this director',
               fontSize: 10,
             ),
@@ -264,11 +264,11 @@ class _HeirloomStylingFields extends StatelessWidget {
     ];
     return Semantics(
       liveRegion: true,
-      child: _Column(
+      child: AppSpacedColumn(
         gap: 11,
         children: [
-          const _FieldLabel('Styling for Beatrice Hartley (optional)'),
-          const _Caption(
+          const AppFieldLabel('Styling for Beatrice Hartley (optional)'),
+          const AppCaption(
             "Paste the client's per-style wardrobe spec. Each box overrides "
             "this director's default for that item; leave a box blank to keep "
             'the default. Location, scene, and mood are unaffected.',
@@ -337,7 +337,7 @@ class _UnlimitedDirectorCard extends StatelessWidget {
                       style: const TextStyle(fontWeight: AppTypography.bold),
                     ),
                     const SizedBox(height: 4),
-                    _Caption(description, fontSize: 11),
+                    AppCaption(description, fontSize: 11),
                   ],
                 ),
               ),
@@ -379,15 +379,15 @@ class _DirectorResolution extends StatelessWidget {
               ? '2K and 4K included, unlimited'
               : 'Unlimited photos are HD (2K). 4K is a Business feature.'
         : 'Higher resolution uses more credits';
-    return _Column(
+    return AppSpacedColumn(
       gap: 10,
       children: [
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const _FieldLabel('Resolution'),
+            const AppFieldLabel('Resolution'),
             const Spacer(),
-            Flexible(child: _Caption(helper, fontSize: 10)),
+            Flexible(child: AppCaption(helper, fontSize: 10)),
           ],
         ),
         Row(
@@ -467,7 +467,7 @@ class _ResolutionOption extends StatelessWidget {
             children: [
               Text(label, style: const TextStyle(fontSize: 11)),
               const SizedBox(height: 5),
-              _Caption(
+              AppCaption(
                 disabled
                     ? 'Business plan'
                     : included
@@ -509,12 +509,12 @@ class _DirectorAdditionalSettings extends StatelessWidget {
       ('home', 'Home'),
       ('ai_decide', 'Let AI Decide'),
     ];
-    return _Column(
+    return AppSpacedColumn(
       gap: 12,
       children: [
-        const _FieldLabel('Additional Settings'),
+        const AppFieldLabel('Additional Settings'),
         if (!demoMode) ...[
-          const _Caption(
+          const AppCaption(
             'Number of Shots',
             fontSize: 12,
             color: AppColors.black,
@@ -540,7 +540,7 @@ class _DirectorAdditionalSettings extends StatelessWidget {
             ],
           ),
         ],
-        const _Caption(
+        const AppCaption(
           'Aspect Ratio',
           fontSize: 12,
           color: AppColors.black,
@@ -551,7 +551,7 @@ class _DirectorAdditionalSettings extends StatelessWidget {
           onSelect: (value) => onChanged(settings.copyWith(aspectRatio: value)),
         ),
         if (!demoMode) ...[
-          const _Caption(
+          const AppCaption(
             'Variations per Shot',
             fontSize: 12,
             color: AppColors.black,
@@ -562,7 +562,7 @@ class _DirectorAdditionalSettings extends StatelessWidget {
             onSelect: (value) =>
                 onChanged(settings.copyWith(variations: int.parse(value))),
           ),
-          _Caption(
+          AppCaption(
             '${settings.numberOfShots * settings.variations} total images\n'
             'AI generation can occasionally produce unexpected results. '
             'Multiple variations give you options to choose from. '
@@ -570,7 +570,7 @@ class _DirectorAdditionalSettings extends StatelessWidget {
             fontSize: 11,
           ),
         ],
-        const _Caption(
+        const AppCaption(
           'Background Preference',
           fontSize: 12,
           color: AppColors.black,

@@ -1,7 +1,7 @@
 import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:look_atlas/features/workshop/domain/workshop_image_metadata.dart';
+import 'package:look_atlas/features/workshop/domain/entities/workshop_image_metadata.dart';
 
 void main() {
   test('workshopImageFileName_pngBytes_usesPngExtension', () {

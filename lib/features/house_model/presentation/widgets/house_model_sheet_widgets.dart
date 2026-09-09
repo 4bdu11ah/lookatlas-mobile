@@ -1,74 +1,4 @@
-part of '../../../dashboard/presentation/screens/dashboard_screen.dart';
-
-class _SheetFrame extends StatelessWidget {
-  const _SheetFrame({required this.child, this.title, this.actions = const []});
-
-  final String? title;
-  final Widget child;
-  final List<Widget> actions;
-
-  @override
-  Widget build(BuildContext context) {
-    return SafeArea(
-      top: false,
-      child: ConstrainedBox(
-        constraints: BoxConstraints(
-          maxHeight: MediaQuery.sizeOf(context).height * 0.86,
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const SizedBox(height: 10),
-            Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: AppColors.neutral250,
-                borderRadius: BorderRadius.circular(99),
-              ),
-            ),
-            if (title != null)
-              Container(
-                height: 68,
-                padding: const EdgeInsets.fromLTRB(18, 8, 8, 8),
-                decoration: const BoxDecoration(
-                  border: Border(
-                    bottom: BorderSide(color: AppColors.neutral200),
-                  ),
-                ),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        title!,
-                        style: const TextStyle(
-                          fontSize: 19,
-                          fontWeight: AppTypography.bold,
-                          color: AppColors.black,
-                        ),
-                      ),
-                    ),
-                    _IconButton(
-                      icon: Icons.close,
-                      label: 'Close',
-                      onTap: () => Navigator.pop(context),
-                    ),
-                  ],
-                ),
-              ),
-            Flexible(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(18, 20, 18, 24),
-                child: child,
-              ),
-            ),
-            if (actions.isNotEmpty) _SheetActionBar(actions: actions),
-          ],
-        ),
-      ),
-    );
-  }
-}
+part of '../house_model_feature.dart';
 
 class _InnerHeader extends StatelessWidget {
   const _InnerHeader({
@@ -90,7 +20,7 @@ class _InnerHeader extends StatelessWidget {
       ),
       child: Row(
         children: [
-          _IconButton(
+          AppTapIconButton(
             icon: Icons.chevron_left,
             label: 'Back',
             onTap: onClose,
@@ -108,36 +38,6 @@ class _InnerHeader extends StatelessWidget {
             ),
           ),
           const SizedBox.square(dimension: 44),
-        ],
-      ),
-    );
-  }
-}
-
-class _SheetActionBar extends StatelessWidget {
-  const _SheetActionBar({required this.actions});
-
-  final List<Widget> actions;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: EdgeInsets.fromLTRB(
-        16,
-        13,
-        16,
-        MediaQuery.paddingOf(context).bottom + 13,
-      ),
-      decoration: const BoxDecoration(
-        color: AppColors.neutral100,
-        border: Border(top: BorderSide(color: AppColors.neutral200)),
-      ),
-      child: Row(
-        children: [
-          for (var i = 0; i < actions.length; i++) ...[
-            Expanded(child: actions[i]),
-            if (i != actions.length - 1) const SizedBox(width: 10),
-          ],
         ],
       ),
     );

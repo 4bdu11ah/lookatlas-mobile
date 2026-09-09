@@ -1,6 +1,3 @@
-import 'package:flutter/foundation.dart';
-
-@immutable
 class ShootJob {
   const ShootJob({
     required this.id,
@@ -82,7 +79,6 @@ class ShootJob {
   }
 }
 
-@immutable
 class ShootImage {
   const ShootImage({
     required this.id,
@@ -110,7 +106,6 @@ class ShootImage {
   );
 }
 
-@immutable
 class ShootShot {
   const ShootShot({
     required this.index,
@@ -125,7 +120,6 @@ class ShootShot {
   final List<ShootImage> images;
 }
 
-@immutable
 class ShootPage {
   const ShootPage({
     required this.jobs,
@@ -140,7 +134,6 @@ class ShootPage {
   final int total;
 }
 
-@immutable
 class ShootProgressStatus {
   const ShootProgressStatus({
     required this.status,
@@ -163,7 +156,6 @@ class ShootProgressStatus {
   }.contains(status.toLowerCase());
 }
 
-@immutable
 class ShootImageVersion {
   const ShootImageVersion({
     required this.id,

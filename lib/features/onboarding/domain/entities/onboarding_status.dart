@@ -1,6 +1,3 @@
-import 'package:flutter/foundation.dart';
-
-@immutable
 class OnboardingStatus {
   const OnboardingStatus({
     required this.freeShootUsed,
@@ -34,7 +31,6 @@ class OnboardingStatus {
   }
 }
 
-@immutable
 class OnboardingJob {
   const OnboardingJob({
     required this.id,
@@ -53,7 +49,6 @@ class OnboardingJob {
   final DateTime? createdAt;
 }
 
-@immutable
 class OnboardingImage {
   const OnboardingImage({
     required this.url,

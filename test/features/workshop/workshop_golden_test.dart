@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:look_atlas/core/theme/app_theme.dart';
-import 'package:look_atlas/features/subscription/presentation/subscription_controller.dart';
+import 'package:look_atlas/features/subscription/di/subscription_access_providers.dart';
 import 'package:look_atlas/features/workshop/di/workshop_providers.dart';
 import 'package:look_atlas/features/workshop/domain/entities/workshop_models.dart';
 import 'package:look_atlas/features/workshop/presentation/screens/workshop_screen.dart';

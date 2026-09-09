@@ -4,11 +4,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:look_atlas/core/error/failure.dart';
 import 'package:look_atlas/core/result/result.dart';
+import 'package:look_atlas/features/subscription/di/subscription_access_providers.dart';
 import 'package:look_atlas/features/subscription/di/subscription_providers.dart';
-import 'package:look_atlas/features/subscription/domain/subscription_repository.dart';
-import 'package:look_atlas/features/subscription/domain/subscription_status.dart';
-import 'package:look_atlas/features/subscription/presentation/subscription_action.dart';
-import 'package:look_atlas/features/subscription/presentation/subscription_controller.dart';
+import 'package:look_atlas/features/subscription/domain/entities/subscription_status.dart';
+import 'package:look_atlas/features/subscription/domain/repositories/subscription_repository.dart';
+import 'package:look_atlas/features/subscription/presentation/controllers/subscription_action.dart';
+import 'package:look_atlas/features/subscription/presentation/controllers/subscription_controller.dart';
 import 'package:mocktail/mocktail.dart';
 
 import '../../../helpers/fake_repositories.dart';
@@ -84,7 +85,7 @@ void main() {
         isA<SubscriptionPurchasing>().having(
           (s) => s.productId,
           'productId',
-          product.identifier,
+          product.id,
         ),
         isA<SubscriptionIdle>().having((s) => s.failure, 'failure', isNull),
       ]);

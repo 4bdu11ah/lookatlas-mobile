@@ -1,4 +1,4 @@
-part of '../../../dashboard/presentation/screens/dashboard_screen.dart';
+part of '../billing_feature.dart';
 
 class _BillingController extends Notifier<_BillingScreenState> {
   @override

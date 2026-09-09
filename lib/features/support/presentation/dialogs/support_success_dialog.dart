@@ -1,4 +1,4 @@
-part of '../../../dashboard/presentation/screens/dashboard_screen.dart';
+part of 'package:look_atlas/features/support/presentation/support_feature.dart';
 
 Future<void> _showSupportSuccessDialog(BuildContext context) {
   return showAppDialog<void>(

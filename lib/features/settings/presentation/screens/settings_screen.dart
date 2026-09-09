@@ -6,9 +6,10 @@ import 'package:go_router/go_router.dart';
 import 'package:look_atlas/core/error/failure.dart';
 import 'package:look_atlas/core/providers/core_providers.dart';
 import 'package:look_atlas/core/router/app_routes.dart';
-import 'package:look_atlas/features/auth/presentation/auth_controller.dart';
-import 'package:look_atlas/features/settings/presentation/theme_controller.dart';
-import 'package:look_atlas/features/subscription/presentation/subscription_controller.dart';
+import 'package:look_atlas/features/auth/di/auth_action_providers.dart';
+import 'package:look_atlas/features/auth/di/auth_providers.dart';
+import 'package:look_atlas/features/settings/presentation/controllers/theme_controller.dart';
+import 'package:look_atlas/features/subscription/di/subscription_access_providers.dart';
 import 'package:look_atlas/shared/widgets/app_snack_bar.dart';
 import 'package:look_atlas/shared/widgets/bar_spinner.dart';
 
@@ -21,10 +22,10 @@ class SettingsScreen extends ConsumerWidget {
     final themeMode = ref.watch(themeModeProvider);
     final isPremium = ref.watch(isPremiumProvider);
     final isSigningOut = ref.watch(
-      authControllerProvider.select((s) => s.isLoading),
+      authOperationProvider.select((state) => state.isLoading),
     );
 
-    ref.listen(authControllerProvider, (_, next) {
+    ref.listen(authOperationProvider, (_, next) {
       if (next case AsyncError(:final error)) {
         final message = error is Failure
             ? error.message
@@ -86,7 +87,7 @@ class SettingsScreen extends ConsumerWidget {
             onTap: isSigningOut
                 ? null
                 : () => unawaited(
-                    ref.read(authControllerProvider.notifier).signOut(),
+                    ref.read(authSignOutProvider)(),
                   ),
           ),
           const Divider(),

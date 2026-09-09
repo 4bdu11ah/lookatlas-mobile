@@ -1,6 +1,3 @@
-import 'package:flutter/foundation.dart';
-
-@immutable
 class DashboardStats {
   const DashboardStats({
     required this.credits,
@@ -19,7 +16,6 @@ class DashboardStats {
   final int completedJobs;
 }
 
-@immutable
 class DashboardRecentJob {
   const DashboardRecentJob({
     required this.id,
@@ -40,7 +36,6 @@ class DashboardRecentJob {
   final String modelThumbnail;
 }
 
-@immutable
 class DashboardSubscription {
   const DashboardSubscription({
     required this.status,

@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:look_atlas/features/onboarding/domain/look_atlas_model.dart';
-import 'package:look_atlas/features/onboarding/domain/onboarding_models.dart';
+import 'package:look_atlas/features/onboarding/domain/entities/look_atlas_model.dart';
+import 'package:look_atlas/features/onboarding/domain/entities/onboarding_models.dart';
 
 void main() {
   group('LookAtlasModel.fromJson', () {

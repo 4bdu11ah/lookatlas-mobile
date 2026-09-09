@@ -1,4 +1,4 @@
-part of '../../../dashboard/presentation/screens/dashboard_screen.dart';
+part of '../house_model_feature.dart';
 
 Future<void> _showFilterSheet(BuildContext context, WidgetRef ref) {
   final state = ref.read(_houseModelControllerProvider);
@@ -10,7 +10,7 @@ Future<void> _showFilterSheet(BuildContext context, WidgetRef ref) {
     builder: (context) {
       return StatefulBuilder(
         builder: (context, setSheetState) {
-          return _SheetFrame(
+          return AppSheetFrame(
             title: 'Filter models',
             actions: [
               AppOutlinedButton(

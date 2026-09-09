@@ -1,4 +1,4 @@
-part of '../../../dashboard/presentation/screens/dashboard_screen.dart';
+part of '../shoots_feature.dart';
 
 class _CreateShootState {
   const _CreateShootState({
@@ -202,7 +202,6 @@ class _CreateShootController extends Notifier<_CreateShootState>
   @override
   bool _createInFlight = false;
 
-  @override
   ShootsRepository get _repository => ref.read(shootsRepositoryProvider);
 
   @override

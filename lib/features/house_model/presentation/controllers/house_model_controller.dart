@@ -1,4 +1,4 @@
-part of '../../../dashboard/presentation/screens/dashboard_screen.dart';
+part of '../house_model_feature.dart';
 
 class _HouseModelScreenState {
   const _HouseModelScreenState({
@@ -119,7 +119,7 @@ class _HouseModelController extends Notifier<_HouseModelScreenState> {
   void showMore() => state = state.copyWith(expanded: true);
 
   Future<Result<void>> addModel(_ModelFormInput input) =>
-      _mutate(() => _repository.createModel(input.toDraft()));
+      _mutate(() => ref.read(createHouseModelUseCaseProvider)(input.toDraft()));
 
   Future<Result<void>> updateModel(
     _HouseModel model,
@@ -178,17 +178,14 @@ class _HouseModelController extends Notifier<_HouseModelScreenState> {
   }
 
   Future<void> _finishAiGeneration(HouseModelGeneration generation) async {
-    final result = await _repository.waitForModelGeneration(generation);
+    final result = await ref.read(completeHouseModelGenerationUseCaseProvider)(
+      generation,
+    );
     if (result case Err(:final failure)) {
       state = state.copyWith(isGeneratingAiModel: false, failure: failure);
       return;
     }
-    final refreshed = await _repository.loadCatalog();
-    if (refreshed case Err(:final failure)) {
-      state = state.copyWith(isGeneratingAiModel: false, failure: failure);
-      return;
-    }
-    final catalog = refreshed.valueOrNull!;
+    final catalog = result.valueOrNull!;
     state = state.copyWith(
       libraryModels: [
         for (final model in catalog.libraryModels)

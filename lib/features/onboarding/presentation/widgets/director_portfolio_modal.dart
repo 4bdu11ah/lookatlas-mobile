@@ -4,8 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:look_atlas/core/theme/app_colors.dart';
 import 'package:look_atlas/core/theme/app_typography.dart';
-import 'package:look_atlas/features/onboarding/domain/onboarding_models.dart';
-import 'package:look_atlas/features/onboarding/presentation/providers/wizard_controller.dart';
+import 'package:look_atlas/features/onboarding/domain/entities/onboarding_models.dart';
+import 'package:look_atlas/features/onboarding/presentation/controllers/wizard_controller.dart';
 import 'package:look_atlas/features/onboarding/presentation/widgets/onboarding_widgets.dart';
 import 'package:look_atlas/shared/widgets/app_dialog.dart';
 

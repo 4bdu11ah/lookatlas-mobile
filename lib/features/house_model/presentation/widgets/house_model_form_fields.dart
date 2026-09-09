@@ -1,4 +1,4 @@
-part of '../../../dashboard/presentation/screens/dashboard_screen.dart';
+part of '../house_model_feature.dart';
 
 class _TextFieldBlock extends StatelessWidget {
   const _TextFieldBlock({
@@ -393,7 +393,7 @@ class _CurrentPhotoPreview extends StatelessWidget {
         children: [
           ColoredBox(
             color: AppColors.neutral100,
-            child: _AssetImage(source),
+            child: AppAssetImage(source),
           ),
           Positioned(
             top: 6,
@@ -467,7 +467,7 @@ class _PhotoPreview extends StatelessWidget {
           ColoredBox(
             color: AppColors.neutral100,
             child: bytes == null
-                ? _AssetImage(source ?? '')
+                ? AppAssetImage(source ?? '')
                 : AppImage.memory(bytes!, fit: BoxFit.cover),
           ),
           Positioned(

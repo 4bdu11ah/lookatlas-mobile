@@ -6,7 +6,7 @@ import 'package:look_atlas/features/onboarding/di/onboarding_providers.dart';
 import 'package:look_atlas/features/onboarding/domain/entities/free_shoot.dart';
 import 'package:look_atlas/features/onboarding/domain/entities/onboarding_status.dart';
 import 'package:look_atlas/features/onboarding/domain/use_cases/get_onboarding_status_use_case.dart';
-import 'package:look_atlas/features/onboarding/presentation/providers/generation_controller.dart';
+import 'package:look_atlas/features/onboarding/presentation/controllers/generation_controller.dart';
 import 'package:mocktail/mocktail.dart';
 
 class _MockGetStatusUseCase extends Mock

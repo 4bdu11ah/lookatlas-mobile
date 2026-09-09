@@ -1,4 +1,4 @@
-part of '../../../dashboard/presentation/screens/dashboard_screen.dart';
+part of 'package:look_atlas/features/settings/presentation/account_settings_feature.dart';
 
 class _AccountSettingsController extends Notifier<_AccountSettingsState> {
   @override

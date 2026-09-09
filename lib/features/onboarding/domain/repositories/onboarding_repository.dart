@@ -1,9 +1,9 @@
 import 'package:look_atlas/core/result/result.dart';
 import 'package:look_atlas/features/onboarding/domain/entities/free_shoot.dart';
+import 'package:look_atlas/features/onboarding/domain/entities/look_atlas_model.dart';
 import 'package:look_atlas/features/onboarding/domain/entities/onboarding_config.dart';
 import 'package:look_atlas/features/onboarding/domain/entities/onboarding_product.dart';
 import 'package:look_atlas/features/onboarding/domain/entities/onboarding_status.dart';
-import 'package:look_atlas/features/onboarding/domain/look_atlas_model.dart';
 
 abstract interface class OnboardingRepository {
   Future<Result<OnboardingAppConfig>> fetchAppConfig();

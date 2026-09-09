@@ -1,4 +1,4 @@
-part of '../../../dashboard/presentation/screens/dashboard_screen.dart';
+part of '../products_feature.dart';
 
 const String _productDisplayFontFamily = 'InstrumentSerif';
 
@@ -302,7 +302,7 @@ class _ProductCard extends StatelessWidget {
               child: Stack(
                 fit: StackFit.expand,
                 children: [
-                  _AssetImage(product.asset),
+                  AppAssetImage(product.asset),
                   Positioned(
                     top: 8,
                     left: 8,

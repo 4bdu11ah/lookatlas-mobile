@@ -1,4 +1,4 @@
-part of '../../../dashboard/presentation/screens/dashboard_screen.dart';
+part of '../shoots_feature.dart';
 
 class _PortfolioIndex extends Notifier<int> {
   @override
@@ -22,7 +22,7 @@ class _DirectorPortfolioDialog extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final director = _selectedShootDirector(ref);
     final assets = _directorAssets(director);
-    return _ModalFrame(
+    return AppModalFrame(
       title: director?.name ?? 'Creative Director',
       subtitle: director?.subtitle,
       leading: Icons.person_outline,
@@ -38,7 +38,7 @@ class _DirectorPortfolioDialog extends ConsumerWidget {
         ),
       ],
       children: [
-        const _FieldLabel('Portfolio'),
+        const AppFieldLabel('Portfolio'),
         GridView.builder(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
@@ -52,22 +52,22 @@ class _DirectorPortfolioDialog extends ConsumerWidget {
           itemBuilder: (context, index) => InkWell(
             key: ValueKey('portfolio-image-$index'),
             onTap: onPreview,
-            child: _AssetImage(assets[index]),
+            child: AppAssetImage(assets[index]),
           ),
         ),
-        const _Card(
+        const AppCard(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _Eyebrow('The story'),
+              AppEyebrow('The story'),
               SizedBox(height: 8),
-              _BodyText(
+              AppBodyText(
                 'Alex built a career on images where clarity is the luxury: clean lines, honest light, and product-first composition.',
               ),
             ],
           ),
         ),
-        const _FieldLabel('Style characteristics'),
+        const AppFieldLabel('Style characteristics'),
         const _OptionWrap(
           options: [
             'Clean lighting',
@@ -205,7 +205,7 @@ class _FullPreview extends StatelessWidget {
                             width: 2,
                           ),
                         ),
-                        child: _AssetImage(asset),
+                        child: AppAssetImage(asset),
                       ),
                     ),
                     if (caption != null) ...[
@@ -292,7 +292,7 @@ class _VariationDialogState extends ConsumerState<_VariationDialog> {
   Widget build(BuildContext context) {
     final state = ref.watch(_shootDetailControllerProvider);
     final controller = ref.read(_shootDetailControllerProvider.notifier);
-    return _ModalFrame(
+    return AppModalFrame(
       title: 'Add Variation',
       leading: Icons.add,
       actions: [
@@ -319,8 +319,8 @@ class _VariationDialogState extends ConsumerState<_VariationDialog> {
         ),
       ],
       children: [
-        _CardTitle('Shot ${state.selectedShotIndex + 1}'),
-        const _BodyText(
+        AppCardTitle('Shot ${state.selectedShotIndex + 1}'),
+        const AppBodyText(
           'Generate a fresh variation using the same product and model references.',
         ),
         AppTextField(
@@ -330,7 +330,7 @@ class _VariationDialogState extends ConsumerState<_VariationDialog> {
           minLines: 3,
           maxLines: 3,
         ),
-        const _Caption('Generated using current shoot settings.'),
+        const AppCaption('Generated using current shoot settings.'),
       ],
     );
   }
@@ -345,12 +345,12 @@ class _VersionHistoryDialog extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(_shootDetailControllerProvider);
     final controller = ref.read(_shootDetailControllerProvider.notifier);
-    return _ModalFrame(
+    return AppModalFrame(
       title: 'Version History',
       leading: Icons.history,
       children: [
         if (state.versions.isEmpty)
-          const _Caption('No previous versions are available.')
+          const AppCaption('No previous versions are available.')
         else
           for (final version in state.versions)
             _VersionCard(
@@ -405,7 +405,7 @@ class _VersionCard extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _AssetBox(asset, width: 68, height: 68),
+          AppAssetBox(asset, width: 68, height: 68),
           const SizedBox(width: 10),
           Expanded(
             child: Column(
@@ -413,12 +413,12 @@ class _VersionCard extends StatelessWidget {
               children: [
                 Row(
                   children: [
-                    Expanded(child: _CardTitle(version)),
-                    if (active) const _Badge('Active', kind: _BadgeKind.dark),
+                    Expanded(child: AppCardTitle(version)),
+                    if (active) const AppBadge('Active', kind: AppBadgeKind.dark),
                   ],
                 ),
                 const SizedBox(height: 4),
-                _Caption(description),
+                AppCaption(description),
                 if (!active) ...[
                   const SizedBox(height: 6),
                   AppOutlinedButton(

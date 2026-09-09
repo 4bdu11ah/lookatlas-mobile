@@ -1,4 +1,4 @@
-part of '../../../dashboard/presentation/screens/dashboard_screen.dart';
+part of '../shoots_feature.dart';
 
 class _AddProductPhotos extends Notifier<List<OnboardingUpload>> {
   @override
@@ -140,7 +140,7 @@ class _AddProductDialogState extends ConsumerState<_AddProductDialog> {
   Widget build(BuildContext context) {
     final photos = ref.watch(_addProductPhotosProvider);
     final isSubmitting = ref.watch(_addProductSubmittingProvider);
-    return _ModalFrame(
+    return AppModalFrame(
       title: 'Add New Product',
       subtitle: 'It will also be saved to Products',
       leading: Icons.inventory_2_outlined,
@@ -273,7 +273,7 @@ class _AddModelDialogState extends ConsumerState<_AddModelDialog> {
   Widget build(BuildContext context) {
     final photos = ref.watch(_addModelPhotosProvider);
     final isSubmitting = ref.watch(_addModelSubmittingProvider);
-    return _ModalFrame(
+    return AppModalFrame(
       title: 'Add New Model',
       subtitle: 'Upload photos and details',
       leading: Icons.person_outline,

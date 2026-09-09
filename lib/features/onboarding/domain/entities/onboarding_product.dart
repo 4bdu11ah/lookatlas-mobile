@@ -1,6 +1,5 @@
-import 'package:flutter/foundation.dart';
+import 'dart:typed_data';
 
-@immutable
 class OnboardingUpload {
   const OnboardingUpload({required this.bytes, required this.fileName});
 
@@ -8,7 +7,6 @@ class OnboardingUpload {
   final String fileName;
 }
 
-@immutable
 class ProductDraft {
   const ProductDraft({
     required this.name,
@@ -29,7 +27,6 @@ class ProductDraft {
   final String subCategory;
 }
 
-@immutable
 class OnboardingProduct {
   const OnboardingProduct({
     required this.id,
@@ -54,7 +51,6 @@ class OnboardingProduct {
   final List<OnboardingProductPhoto> photos;
 }
 
-@immutable
 class OnboardingProductPhoto {
   const OnboardingProductPhoto({
     required this.id,
@@ -69,7 +65,6 @@ class OnboardingProductPhoto {
   final String? viewAngle;
 }
 
-@immutable
 class OnboardingUserModel {
   const OnboardingUserModel({
     required this.id,
@@ -86,7 +81,6 @@ class OnboardingUserModel {
   String get imageUrl => thumbnail ?? (photos.isNotEmpty ? photos.first : '');
 }
 
-@immutable
 class UserModelDraft {
   const UserModelDraft({
     required this.name,

@@ -8,7 +8,7 @@ import 'package:look_atlas/features/auth/di/auth_providers.dart';
 import 'package:look_atlas/features/auth/domain/entities/app_user.dart';
 import 'package:look_atlas/features/dashboard/domain/entities/dashboard_welcome.dart';
 import 'package:look_atlas/features/studio_school/di/studio_school_providers.dart';
-import 'package:look_atlas/features/welcome_profile/presentation/welcome_profile_screen.dart';
+import 'package:look_atlas/features/welcome_profile/presentation/screens/welcome_profile_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../helpers/fake_repositories.dart';

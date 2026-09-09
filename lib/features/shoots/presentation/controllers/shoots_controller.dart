@@ -1,4 +1,4 @@
-part of '../../../dashboard/presentation/screens/dashboard_screen.dart';
+part of '../shoots_feature.dart';
 
 class _ShootsScreenState {
   const _ShootsScreenState({
@@ -12,7 +12,7 @@ class _ShootsScreenState {
     this.failure,
   });
 
-  final List<_Shoot> shoots;
+  final List<ShootViewModel> shoots;
   final String query;
   final String status;
   final int page;
@@ -22,7 +22,7 @@ class _ShootsScreenState {
   final Failure? failure;
 
   _ShootsScreenState copyWith({
-    List<_Shoot>? shoots,
+    List<ShootViewModel>? shoots,
     String? query,
     String? status,
     int? page,
@@ -94,7 +94,7 @@ class _ShootsController extends Notifier<_ShootsScreenState> {
         if (shoot.status == 'processing') shoot.id,
     };
     final shoots = [
-      for (final job in page.jobs) _Shoot.fromJob(job),
+      for (final job in page.jobs) ShootViewModel.fromJob(job),
     ];
     state = state.copyWith(
       shoots: shoots,

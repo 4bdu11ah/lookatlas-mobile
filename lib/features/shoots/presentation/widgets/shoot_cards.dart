@@ -1,4 +1,4 @@
-part of '../../../dashboard/presentation/screens/dashboard_screen.dart';
+part of '../shoots_feature.dart';
 
 class _ShootFilters extends StatelessWidget {
   const _ShootFilters({
@@ -83,7 +83,7 @@ class _ShootFilterSheet extends ConsumerWidget {
     final controller = ref.read(
       _shootFilterSheetProvider(initialStatus).notifier,
     );
-    return _SheetFrame(
+    return AppSheetFrame(
       title: 'Filter shoots',
       actions: [
         AppOutlinedButton(
@@ -216,7 +216,7 @@ class _ShootStatusList extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const _Eyebrow('Status'),
+        const AppEyebrow('Status'),
         const SizedBox(height: 8),
         Container(
           decoration: BoxDecoration(
@@ -270,7 +270,7 @@ class _ShootStatusList extends StatelessWidget {
 class _ShootCard extends StatelessWidget {
   const _ShootCard({required this.shoot, required this.onTap});
 
-  final _Shoot shoot;
+  final ShootViewModel shoot;
   final VoidCallback onTap;
 
   @override
@@ -292,9 +292,9 @@ class _ShootCard extends StatelessWidget {
         children: [
           _ShootVisual(shoot: shoot),
           const SizedBox(height: 10),
-          _CardTitle(shoot.name),
+          AppCardTitle(shoot.name),
           const SizedBox(height: 10),
-          _StatusBadge(shoot.status),
+          AppStatusBadge(shoot.status),
           const SizedBox(height: 10),
           Wrap(
             spacing: 7,
@@ -320,14 +320,15 @@ class _ShootCard extends StatelessWidget {
   }
 }
 
-class _ShootRow extends StatelessWidget {
-  const _ShootRow({
+class ShootRow extends StatelessWidget {
+  const ShootRow({
     required this.shoot,
     required this.striped,
     required this.onTap,
+    super.key,
   });
 
-  final _Shoot shoot;
+  final ShootViewModel shoot;
   final bool striped;
   final VoidCallback onTap;
 
@@ -345,7 +346,7 @@ class _ShootRow extends StatelessWidget {
               height: 64,
               child: Stack(
                 children: [
-                  _AssetBox(shoot.productAsset, width: 56, height: 56),
+                  AppAssetBox(shoot.productAsset, width: 56, height: 56),
                   Positioned(
                     right: 0,
                     bottom: 0,
@@ -355,7 +356,7 @@ class _ShootRow extends StatelessWidget {
                       decoration: BoxDecoration(
                         border: Border.all(color: AppColors.white, width: 2),
                       ),
-                      child: _AssetImage(shoot.modelAsset),
+                      child: AppAssetImage(shoot.modelAsset),
                     ),
                   ),
                 ],
@@ -368,13 +369,13 @@ class _ShootRow extends StatelessWidget {
                 children: [
                   Row(
                     children: [
-                      Expanded(child: _CardTitle(shoot.name)),
+                      Expanded(child: AppCardTitle(shoot.name)),
                       const SizedBox(width: 8),
-                      _StatusBadge(shoot.status),
+                      AppStatusBadge(shoot.status),
                     ],
                   ),
                   const SizedBox(height: 5),
-                  _Caption('${shoot.renders} renders, ${shoot.date}'),
+                  AppCaption('${shoot.renders} renders, ${shoot.date}'),
                 ],
               ),
             ),
@@ -388,7 +389,7 @@ class _ShootRow extends StatelessWidget {
 class _ShootVisual extends StatelessWidget {
   const _ShootVisual({required this.shoot});
 
-  final _Shoot shoot;
+  final ShootViewModel shoot;
 
   @override
   Widget build(BuildContext context) {
@@ -459,7 +460,7 @@ class _ShootPolaroid extends StatelessWidget {
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(circular ? size : 6),
-        child: _AssetImage(asset),
+        child: AppAssetImage(asset),
       ),
     );
   }

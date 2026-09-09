@@ -21,8 +21,10 @@ class CampaignShot {
   final bool approved;
 }
 
-typedef ToggleCampaignShot =
-    Future<Failure?> Function(CampaignShot shot, {required bool approved});
+typedef ToggleCampaignShot = Future<Failure?> Function(
+  CampaignShot shot, {
+  required bool approved,
+});
 
 class CampaignFlipCard extends StatefulWidget {
   const CampaignFlipCard({

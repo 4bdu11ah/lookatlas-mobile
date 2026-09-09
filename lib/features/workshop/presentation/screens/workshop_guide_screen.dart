@@ -28,24 +28,21 @@ class _WorkshopGuideContent extends StatelessWidget {
       caption: 'Same model. Drop them into any scene.',
       before: AppAssets.showcaseDressBefore,
       after: AppAssets.showcaseDressAfter,
-      prompt:
-          'Re-render this photo as if she was actually photographed at a sunlit Paris cafe terrace at golden hour. Keep her face, outfit, hair, and pose exactly the same. Re-light her body and hair to match the warm directional sunlight, add a soft natural shadow on the ground behind her, and let the background fall into soft bokeh. Shot on a 50mm lens with shallow depth of field.',
+      prompt: 'Re-render this photo as if she was actually photographed at a sunlit Paris cafe terrace at golden hour. Keep her face, outfit, hair, and pose exactly the same. Re-light her body and hair to match the warm directional sunlight, add a soft natural shadow on the ground behind her, and let the background fall into soft bokeh. Shot on a 50mm lens with shallow depth of field.',
     ),
     _GuideExampleData(
       title: 'Restyle a product',
       caption: 'Recolor a product without losing its shape.',
       before: AppAssets.showcaseShoesBefore,
       after: AppAssets.showcaseShoesAfter,
-      prompt:
-          'Recolor the sneaker to deep navy blue suede. Keep the silhouette, laces, sole, stitching, and shadow exactly as they are.',
+      prompt: 'Recolor the sneaker to deep navy blue suede. Keep the silhouette, laces, sole, stitching, and shadow exactly as they are.',
     ),
     _GuideExampleData(
       title: 'Swap the model, keep the product',
       caption: 'Same product. Different person.',
       before: AppAssets.stepModel,
       after: AppAssets.stepGenerate,
-      prompt:
-          'Replace the model with the person from Image 2. Keep the watch on the wrist, the pose, the hand position, the framing, and the lighting identical to the original.',
+      prompt: 'Replace the model with the person from Image 2. Keep the watch on the wrist, the pose, the hand position, the framing, and the lighting identical to the original.',
       note: 'Upload the new model as the second image.',
     ),
     _GuideExampleData(
@@ -53,8 +50,7 @@ class _WorkshopGuideContent extends StatelessWidget {
       caption: 'Same model. Different product.',
       before: AppAssets.showcaseBagBefore,
       after: AppAssets.showcaseBagAfter,
-      prompt:
-          "Replace the coffee cup in the model's hand with the wine glass from Image 2. Keep the model, hand position, pose, framing, lighting, and background identical.",
+      prompt: "Replace the coffee cup in the model's hand with the wine glass from Image 2. Keep the model, hand position, pose, framing, lighting, and background identical.",
       note: 'Upload the new product as the second image.',
     ),
   ];
@@ -76,15 +72,13 @@ class _WorkshopGuideContent extends StatelessWidget {
           const _GuideModeCard(
             icon: Icons.lock_outline,
             title: 'Lock this image',
-            body:
-                'Keeps your photo exactly as it is. Only the part you describe changes. Best for face swaps, color changes, or replacing one thing in the shot.',
+            body: 'Keeps your photo exactly as it is. Only the part you describe changes. Best for face swaps, color changes, or replacing one thing in the shot.',
           ),
           const SizedBox(height: 12),
           const _GuideModeCard(
             icon: Icons.lightbulb_outline,
             title: 'Use as inspiration',
-            body:
-                "Makes a brand new image inspired by your photo. The output won't match the original. Best for fresh shots in the same style.",
+            body: "Makes a brand new image inspired by your photo. The output won't match the original. Best for fresh shots in the same style.",
           ),
           const SizedBox(height: 24),
           const _GuideSectionHead(),

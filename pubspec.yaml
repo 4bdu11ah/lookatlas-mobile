@@ -26,8 +26,8 @@ dependencies:
   flutter_svg: ^2.3.0 # vector icons/assets
   go_router: ^18.0.0 # declarative routing + auth redirects
   google_sign_in: ^7.2.0 # Google social sign-in
-  image_picker: ^1.2.2
   image: ^4.5.4
+  image_picker: ^1.2.2
   intl: ^0.20.3 # i18n + formatting
   lucide_icons_flutter: ^3.1.15
   native_cutout: ^0.3.0
@@ -40,7 +40,9 @@ dependencies:
   shared_preferences: ^2.5.5 # non-sensitive key/value store
   sign_in_with_apple: ^8.2.0
   supabase_flutter: ^2.16.0
+  video_player: ^2.14.0
 
+  riverpod: any
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -63,6 +65,8 @@ flutter:
     - assets/directors/minimalist/
     - assets/directors/street-energy/
     - assets/images/
+    - assets/images/create_content/
+    - assets/images/calendar/
     - assets/images/calibration/outlines/
     - assets/images/guides/
     - assets/images/onboarding/

@@ -1,4 +1,4 @@
-part of '../../../dashboard/presentation/screens/dashboard_screen.dart';
+part of '../products_feature.dart';
 
 class _ProductFormDialog extends ConsumerStatefulWidget {
   const _ProductFormDialog({
@@ -395,7 +395,7 @@ class _EditableProductGallery extends StatelessWidget {
     );
     final replacement = form.replacementPhotos[photo.id];
     return replacement == null
-        ? _AssetImage(photo.url, fit: fit)
+        ? AppAssetImage(photo.url, fit: fit)
         : AppImage.memory(replacement.bytes, fit: fit);
   }
 

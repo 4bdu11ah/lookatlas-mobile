@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:look_atlas/features/welcome_profile/domain/welcome_profile_draft.dart';
+import 'package:look_atlas/features/studio_school/data/models/welcome_profile_model.dart';
+import 'package:look_atlas/features/studio_school/domain/entities/welcome_profile_draft.dart';
 
 void main() {
   test('normalizeBrandUrl_removesTransportAndPreservesMarketplacePath', () {
@@ -23,7 +24,7 @@ void main() {
       referral: 'other',
     );
 
-    expect(draft.toPayload(), {
+    expect(WelcomeProfileModel.toJson(draft), {
       'brandUrl': 'example.com',
       'primaryUses': ['ads'],
       'dropCadence': 'ongoing_drops',

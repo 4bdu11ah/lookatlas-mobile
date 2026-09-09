@@ -6,8 +6,8 @@ import 'package:go_router/go_router.dart';
 import 'package:look_atlas/core/result/result.dart';
 import 'package:look_atlas/core/router/app_routes.dart';
 import 'package:look_atlas/features/auth/di/auth_providers.dart';
+import 'package:look_atlas/features/onboarding/di/onboarding_flow_providers.dart';
 import 'package:look_atlas/features/onboarding/di/onboarding_providers.dart';
-import 'package:look_atlas/features/onboarding/presentation/providers/generation_controller.dart';
 import 'package:look_atlas/shared/widgets/look_atlas_loader.dart';
 
 /// Branded launch screen: dust particles assemble into the "Look Atlas"
@@ -84,7 +84,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
     if ({'generating', 'enqueued', 'processing', 'completed'}.contains(
       jobStatus,
     )) {
-      ref.read(generationControllerProvider.notifier).start();
+      ref.read(onboardingGenerationStartProvider)();
       context.go(AppRoutes.onboardingSwipe);
       return;
     }

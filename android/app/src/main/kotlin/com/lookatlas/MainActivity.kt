@@ -21,6 +21,22 @@ class MainActivity : FlutterActivity() {
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "com.lookatlas/calendar")
+            .setMethodCallHandler { call, result ->
+                when (call.method) {
+                    "timeZone" -> result.success(java.util.TimeZone.getDefault().id)
+                    "openPublished" -> {
+                        val uri = call.argument<String>("url")?.let(Uri::parse)
+                        if (uri?.scheme != "https") {
+                            result.error("INVALID_URL", "Invalid published post URL.", null)
+                        } else {
+                            try { startActivity(Intent(Intent.ACTION_VIEW, uri)); result.success(null) }
+                            catch (error: Exception) { result.error("OPEN_FAILED", "Could not open published post.", null) }
+                        }
+                    }
+                    else -> result.notImplemented()
+                }
+            }
         MethodChannel(
             flutterEngine.dartExecutor.binaryMessenger,
             DEVICE_INFO_CHANNEL,

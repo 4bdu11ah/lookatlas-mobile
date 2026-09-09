@@ -3,10 +3,10 @@ import 'package:look_atlas/core/config/app_config.dart';
 import 'package:look_atlas/core/providers/core_providers.dart';
 import 'package:look_atlas/features/onboarding/data/data_sources/onboarding_remote_data_source.dart';
 import 'package:look_atlas/features/onboarding/data/repositories/onboarding_repository_impl.dart';
+import 'package:look_atlas/features/onboarding/domain/entities/look_atlas_model.dart';
 import 'package:look_atlas/features/onboarding/domain/entities/onboarding_config.dart';
 import 'package:look_atlas/features/onboarding/domain/entities/onboarding_product.dart';
 import 'package:look_atlas/features/onboarding/domain/entities/onboarding_status.dart';
-import 'package:look_atlas/features/onboarding/domain/look_atlas_model.dart';
 import 'package:look_atlas/features/onboarding/domain/repositories/onboarding_repository.dart';
 import 'package:look_atlas/features/onboarding/domain/use_cases/onboarding_use_cases.dart';
 

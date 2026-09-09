@@ -5,9 +5,10 @@ import 'package:look_atlas/core/error/failure.dart';
 import 'package:look_atlas/core/result/result.dart';
 import 'package:look_atlas/core/storage/key_value_store.dart';
 import 'package:look_atlas/features/dashboard/domain/entities/dashboard_welcome.dart';
-import 'package:look_atlas/features/studio_school/data/studio_school_api.dart';
-import 'package:look_atlas/features/studio_school/data/welcome_repository_impl.dart';
-import 'package:look_atlas/features/studio_school/domain/welcome_lesson.dart';
+import 'package:look_atlas/features/studio_school/data/data_sources/studio_school_api.dart';
+import 'package:look_atlas/features/studio_school/data/repositories/welcome_repository_impl.dart';
+import 'package:look_atlas/features/studio_school/domain/entities/welcome_lesson.dart';
+import 'package:look_atlas/features/studio_school/domain/entities/welcome_profile_draft.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../helpers/fake_welcome_repository.dart';
@@ -103,9 +104,10 @@ void main() {
   test('saveProfile_success_invalidatesWelcomeCache', () async {
     await repository.getState('user-1');
 
-    final result = await repository.saveProfile('user-1', {
-      'brandUrl': 'example.com',
-    });
+    final result = await repository.saveProfile(
+      'user-1',
+      const WelcomeProfileDraft(brandUrl: 'example.com'),
+    );
     await repository.getState('user-1');
 
     expect(result.isOk, isTrue);

@@ -1,4 +1,4 @@
-part of '../../../dashboard/presentation/screens/dashboard_screen.dart';
+part of 'package:look_atlas/features/guides/presentation/guides_feature.dart';
 
 class _GuidesController extends Notifier<_GuidesScreenState> {
   @override

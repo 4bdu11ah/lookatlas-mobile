@@ -1,9 +1,9 @@
-part of '../../../dashboard/presentation/screens/dashboard_screen.dart';
+part of 'package:look_atlas/features/guides/presentation/guides_feature.dart';
 
 class _ProductPhotosGuide extends StatelessWidget {
   const _ProductPhotosGuide({required this.onNavigate});
 
-  final ValueChanged<_DashboardPage> onNavigate;
+  final ValueChanged<String> onNavigate;
 
   @override
   Widget build(BuildContext context) {
@@ -11,8 +11,7 @@ class _ProductPhotosGuide extends StatelessWidget {
       children: [
         const _GuideIntroSection(
           title: 'Taking Great Product Photos',
-          body:
-              'High-quality product photos are essential for generating realistic on-model images. The better your source photos, the better your AI-generated results will be.',
+          body: 'High-quality product photos are essential for generating realistic on-model images. The better your source photos, the better your AI-generated results will be.',
         ),
         const _GuideSection(
           title: 'Why Multiple Angles Matter',
@@ -28,13 +27,11 @@ class _ProductPhotosGuide extends StatelessWidget {
           children: [
             _GuideCheckRow(
               title: 'Use Good Lighting',
-              body:
-                  'Natural daylight or well-lit studio lighting captures true colors and textures.',
+              body: 'Natural daylight or well-lit studio lighting captures true colors and textures.',
             ),
             _GuideCheckRow(
               title: 'Clean, Neutral Background',
-              body:
-                  'Use plain white or light gray so the AI can isolate your product.',
+              body: 'Use plain white or light gray so the AI can isolate your product.',
             ),
             _GuideCheckRow(
               title: 'Capture Logos & Details',
@@ -47,16 +44,14 @@ class _ProductPhotosGuide extends StatelessWidget {
             ),
             _GuideCheckRow(
               title: 'Flat Lay for Apparel',
-              body:
-                  'Flat lay photos show the full garment shape and proportions.',
+              body: 'Flat lay photos show the full garment shape and proportions.',
             ),
           ],
         ),
         const _GuideCallout(
           type: _GuideCalloutType.tip,
           strongPrefix: 'Pro tip: ',
-          text:
-              'Upload up to 5 photos per product. We recommend at least front, back, and one detail shot.',
+          text: 'Upload up to 5 photos per product. We recommend at least front, back, and one detail shot.',
         ),
         const _GuideSection(
           title: 'Creating a Product',
@@ -93,7 +88,7 @@ class _ProductPhotosGuide extends StatelessWidget {
         ),
         _GuideRouteButton(
           label: 'Go to Products',
-          onTap: () => onNavigate(_DashboardPage.products),
+          onTap: () => onNavigate(AppRoutes.dashboardProducts),
         ),
       ],
     );

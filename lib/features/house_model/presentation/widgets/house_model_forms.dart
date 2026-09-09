@@ -1,4 +1,4 @@
-part of '../../../dashboard/presentation/screens/dashboard_screen.dart';
+part of '../house_model_feature.dart';
 
 class _ModelFormData {
   const _ModelFormData({
@@ -594,8 +594,7 @@ class _ModelFormDialogState extends ConsumerState<_ModelFormDialog> {
           const _TipCard(
             icon: Icons.info_outline,
             title: 'Pro Tip',
-            body:
-                'Upload 3-4 photos showing different angles and poses for best AI results.',
+            body: 'Upload 3-4 photos showing different angles and poses for best AI results.',
           ),
         ],
       ),

@@ -10,12 +10,7 @@ class _DashboardOverviewScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(_dashboardOverviewControllerProvider);
-    final welcomeState = ref.watch(studioSchoolControllerProvider);
-    final welcome = switch (welcomeState) {
-      SchoolReady(:final welcome) ||
-      SchoolOfflineCached(:final welcome) => welcome.dashboard,
-      _ => null,
-    };
+    final welcome = ref.watch(studioSchoolWelcomeProvider)?.dashboard;
     final shouldOpenIntro = switch (state) {
       AsyncData(:final value)
           when value.subscription?.accessTier == 'subscriber' &&
@@ -30,10 +25,10 @@ class _DashboardOverviewScreen extends ConsumerWidget {
         if (context.mounted) context.go(AppRoutes.welcome);
       });
     }
-    return _Column(
+    return AppSpacedColumn(
       gap: 32,
       children: [
-        const _PageHeader(
+        const AppPageHeader(
           title: 'Dashboard',
           body: "Welcome back! Here's your Look Atlas overview.",
         ),
@@ -65,27 +60,27 @@ class _DashboardOverviewContent extends StatelessWidget {
 
   final _DashboardOverviewState state;
   final ValueChanged<_DashboardPage> onNavigate;
-  final ValueChanged<_Shoot> onOpenShoot;
+  final ValueChanged<ShootViewModel> onOpenShoot;
 
   @override
   Widget build(BuildContext context) {
-    return _Column(
+    return AppSpacedColumn(
       gap: 32,
       children: [
         if (state.subscription?.needsPaymentUpdate ?? false)
-          const _Alert(
-            kind: _AlertKind.error,
+          const AppAlert(
+            kind: AppAlertKind.error,
             text: 'Your subscription payment needs attention.',
           )
         else if (state.subscription?.cancelAtPeriodEnd ?? false)
-          const _Alert(
-            kind: _AlertKind.warn,
+          const AppAlert(
+            kind: AppAlertKind.warn,
             text: 'Your subscription is set to end after this billing period.',
           )
         else if (state.subscription?.accessTier == 'onetime_download' &&
             (state.subscription?.proUpsellActive ?? false))
-          const _Alert(
-            kind: _AlertKind.info,
+          const AppAlert(
+            kind: AppAlertKind.info,
             text: 'Your limited-time Pro offer is available in Billing.',
           ),
         _DashboardGuidanceAndStats(
@@ -117,7 +112,7 @@ class _DashboardGuidanceAndStats extends ConsumerWidget {
   final DashboardStats? stats;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) => _Column(
+  Widget build(BuildContext context, WidgetRef ref) => AppSpacedColumn(
     gap: 32,
     children: [
       if (subscription != null &&
@@ -188,15 +183,15 @@ class _StatCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(
-      builder: (context, constraints) => _Card(
+      builder: (context, constraints) => AppCard(
         padding: EdgeInsets.all(constraints.maxWidth < 140 ? 16 : 24),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: [
-            _SquareIcon(icon),
+            AppSquareIcon(icon),
             const SizedBox(height: 16),
-            _Eyebrow(label, maxLines: 2),
+            AppEyebrow(label, maxLines: 2),
             const SizedBox(height: 4),
             Text(
               value,
@@ -223,14 +218,14 @@ class _RecentShoots extends StatelessWidget {
     required this.onOpenShoot,
   });
 
-  final List<_Shoot> shoots;
+  final List<ShootViewModel> shoots;
   final bool isLoading;
   final ValueChanged<_DashboardPage> onNavigate;
-  final ValueChanged<_Shoot> onOpenShoot;
+  final ValueChanged<ShootViewModel> onOpenShoot;
 
   @override
   Widget build(BuildContext context) {
-    return _Card(
+    return AppCard(
       padding: EdgeInsets.zero,
       child: Column(
         children: [
@@ -238,7 +233,7 @@ class _RecentShoots extends StatelessWidget {
             padding: const EdgeInsets.all(20),
             child: Row(
               children: [
-                const Expanded(child: _SectionTitle('Recent Shoots')),
+                const Expanded(child: AppSectionTitle('Recent Shoots')),
                 const SizedBox(width: 12),
                 AppOutlinedButton(
                   label: 'View all',
@@ -250,7 +245,7 @@ class _RecentShoots extends StatelessWidget {
               ],
             ),
           ),
-          const _Hairline(),
+          const AppHairline(),
           if (isLoading && shoots.isEmpty)
             const Padding(
               padding: EdgeInsets.all(24),
@@ -259,11 +254,11 @@ class _RecentShoots extends StatelessWidget {
           else if (shoots.isEmpty)
             const Padding(
               padding: EdgeInsets.all(24),
-              child: _BodyText('No recent shoots yet.'),
+              child: AppBodyText('No recent shoots yet.'),
             )
           else
             for (var i = 0; i < shoots.length; i++)
-              _ShootRow(
+              ShootRow(
                 shoot: shoots[i],
                 striped: i.isOdd,
                 onTap: () => onOpenShoot(shoots[i]),
@@ -280,7 +275,7 @@ class _DashboardStatsLoading extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(
-      builder: (context, constraints) => _Column(
+      builder: (context, constraints) => AppSpacedColumn(
         gap: 12,
         children: [
           GridView.builder(
@@ -305,7 +300,7 @@ int _dashboardStatColumns(double width) => width >= 600 ? 3 : 2;
 
 void _ignoreDashboardNavigation(_DashboardPage _) {}
 
-void _ignoreDashboardShoot(_Shoot _) {}
+void _ignoreDashboardShoot(ShootViewModel _) {}
 
 class _QuickActions extends StatelessWidget {
   const _QuickActions({required this.onNavigate});
@@ -314,10 +309,10 @@ class _QuickActions extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return _Column(
+    return AppSpacedColumn(
       gap: 12,
       children: [
-        const _SectionTitle('Quick Actions'),
+        const AppSectionTitle('Quick Actions'),
         _ActionCard(
           icon: Icons.groups_outlined,
           title: 'Manage Models',

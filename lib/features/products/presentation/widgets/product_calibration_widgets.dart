@@ -1,4 +1,4 @@
-part of '../../../dashboard/presentation/screens/dashboard_screen.dart';
+part of '../products_feature.dart';
 
 class _CalibrationCopyStep extends StatelessWidget {
   const _CalibrationCopyStep({
@@ -166,7 +166,7 @@ class _PhotoTile extends StatelessWidget {
                 children: [
                   Padding(
                     padding: const EdgeInsets.all(7),
-                    child: _AssetImage(asset, fit: BoxFit.contain),
+                    child: AppAssetImage(asset, fit: BoxFit.contain),
                   ),
                   Positioned(
                     left: 5,
@@ -281,7 +281,7 @@ class _CheckerBox extends StatelessWidget {
             width: 176,
             height: 210,
             child: upload == null
-                ? _AssetImage(asset)
+                ? AppAssetImage(asset)
                 : AppImage.memory(upload!.bytes),
           ),
         ),
@@ -465,7 +465,7 @@ class _PlacementCanvasState extends State<_PlacementCanvas> {
                               ),
                             ),
                             child: widget.cutout == null
-                                ? _AssetImage(
+                                ? AppAssetImage(
                                     widget.product.asset,
                                     fit: BoxFit.contain,
                                   )
@@ -544,7 +544,7 @@ class _CopyCard extends StatelessWidget {
             SizedBox(
               width: 36,
               height: 36,
-              child: _AssetImage(product.imageUrl),
+              child: AppAssetImage(product.imageUrl),
             ),
             const SizedBox(width: 11),
             Expanded(

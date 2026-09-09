@@ -8,54 +8,54 @@ import 'package:look_atlas/features/auth/di/auth_providers.dart';
 import 'package:look_atlas/features/auth/domain/entities/app_user.dart';
 import 'package:look_atlas/features/billing/di/billing_api_providers.dart';
 import 'package:look_atlas/features/billing/domain/entities/billing_checkout.dart';
+import 'package:look_atlas/features/billing/presentation/billing_feature.dart';
 import 'package:look_atlas/features/dashboard/di/dashboard_providers.dart';
 import 'package:look_atlas/features/dashboard/domain/entities/dashboard_data.dart';
-import 'package:look_atlas/features/dashboard/presentation/screens/dashboard_screen.dart';
 import 'package:look_atlas/features/subscription/di/subscription_providers.dart';
-import 'package:look_atlas/features/subscription/domain/subscription_status.dart';
-import 'package:purchases_flutter/purchases_flutter.dart';
+import 'package:look_atlas/features/subscription/domain/entities/subscription_product.dart';
+import 'package:look_atlas/features/subscription/domain/entities/subscription_status.dart';
 
 import '../../helpers/fake_repositories.dart';
 
 const _monthlyProducts = [
-  StoreProduct(
-    'starter_monthly',
-    '100 photos every month.',
-    'Starter',
-    49,
-    r'$49.00',
-    'USD',
-    productCategory: ProductCategory.subscription,
+  SubscriptionProduct(
+    id: 'starter_monthly',
+    description: '100 photos every month.',
+    title: 'Starter',
+    price: 49,
+    priceString: r'$49.00',
+    currencyCode: 'USD',
+    type: SubscriptionProductType.subscription,
     subscriptionPeriod: 'P1M',
   ),
-  StoreProduct(
-    'pro_monthly',
-    '200 photos every month.',
-    'Pro',
-    99,
-    r'$99.00',
-    'USD',
-    productCategory: ProductCategory.subscription,
+  SubscriptionProduct(
+    id: 'pro_monthly',
+    description: '200 photos every month.',
+    title: 'Pro',
+    price: 99,
+    priceString: r'$99.00',
+    currencyCode: 'USD',
+    type: SubscriptionProductType.subscription,
     subscriptionPeriod: 'P1M',
   ),
-  StoreProduct(
-    'studio_monthly',
-    '600 photos every month.',
-    'Studio',
-    199,
-    r'$199.00',
-    'USD',
-    productCategory: ProductCategory.subscription,
+  SubscriptionProduct(
+    id: 'studio_monthly',
+    description: '600 photos every month.',
+    title: 'Studio',
+    price: 199,
+    priceString: r'$199.00',
+    currencyCode: 'USD',
+    type: SubscriptionProductType.subscription,
     subscriptionPeriod: 'P1M',
   ),
-  StoreProduct(
-    'annual',
-    'Annual subscription.',
-    'Annual',
-    499,
-    r'$499.00',
-    'USD',
-    productCategory: ProductCategory.subscription,
+  SubscriptionProduct(
+    id: 'annual',
+    description: 'Annual subscription.',
+    title: 'Annual',
+    price: 499,
+    priceString: r'$499.00',
+    currencyCode: 'USD',
+    type: SubscriptionProductType.subscription,
     subscriptionPeriod: 'P1Y',
   ),
 ];
@@ -93,17 +93,17 @@ class _RecordingSubscriptionRepository extends FakeSubscriptionRepository {
   _RecordingSubscriptionRepository({SubscriptionStatus? status})
     : super(products: _monthlyProducts, status: status ?? _proStatus);
 
-  StoreProduct? purchasedProduct;
-  Result<List<StoreProduct>>? productsResult;
+  String? purchasedProductId;
+  Result<List<SubscriptionProduct>>? productsResult;
 
   @override
-  Future<Result<List<StoreProduct>>> fetchProducts() async =>
+  Future<Result<List<SubscriptionProduct>>> fetchProducts() async =>
       productsResult ?? super.fetchProducts();
 
   @override
-  Future<Result<SubscriptionStatus>> purchase(StoreProduct product) {
-    purchasedProduct = product;
-    return super.purchase(product);
+  Future<Result<SubscriptionStatus>> purchase(String productId) {
+    purchasedProductId = productId;
+    return super.purchase(productId);
   }
 }
 
@@ -260,7 +260,7 @@ void main() {
       find.descendant(of: studioPlan, matching: find.text('Switch plan')),
     );
     await tester.pumpAndSettle();
-    expect(subscriptions.purchasedProduct?.identifier, 'studio_monthly');
+    expect(subscriptions.purchasedProductId, 'studio_monthly');
     expect(find.text('Subscription updated.'), findsOneWidget);
     expect(find.text('Studio'), findsOneWidget);
     expect(find.text(r'$199.00/month'), findsOneWidget);

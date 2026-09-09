@@ -1,4 +1,4 @@
-part of '../../../dashboard/presentation/screens/dashboard_screen.dart';
+part of 'package:look_atlas/features/guides/presentation/guides_feature.dart';
 
 class GuidesScreen extends ConsumerWidget {
   const GuidesScreen({this.initialTab, super.key});
@@ -12,7 +12,7 @@ class GuidesScreen extends ConsumerWidget {
       title: 'Guides',
       child: _GuidesPage(
         initialTab: initialTab,
-        onNavigate: (page) => _navigateDashboard(context, ref, page),
+        onNavigate: (route) => unawaited(context.push<void>(route)),
       ),
     );
   }
@@ -21,7 +21,7 @@ class GuidesScreen extends ConsumerWidget {
 class _GuidesPage extends ConsumerStatefulWidget {
   const _GuidesPage({required this.onNavigate, this.initialTab});
 
-  final ValueChanged<_DashboardPage> onNavigate;
+  final ValueChanged<String> onNavigate;
   final String? initialTab;
 
   @override
@@ -185,7 +185,7 @@ class _GuideTabButton extends StatelessWidget {
 class _GuideTabContent extends ConsumerWidget {
   const _GuideTabContent({required this.onNavigate});
 
-  final ValueChanged<_DashboardPage> onNavigate;
+  final ValueChanged<String> onNavigate;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {

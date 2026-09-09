@@ -175,8 +175,7 @@ class _BaseImagePreview extends StatelessWidget {
                 ),
                 const SizedBox(width: 6),
                 const Tooltip(
-                  message:
-                      'Detected automatically from your base image. The output will match this orientation.',
+                  message: 'Detected automatically from your base image. The output will match this orientation.',
                   child: Icon(
                     Icons.info_outline,
                     size: 14,

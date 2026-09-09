@@ -1,6 +1,5 @@
-import 'package:flutter/foundation.dart';
+import 'dart:typed_data';
 
-@immutable
 class ProductPhoto {
   const ProductPhoto({
     required this.id,
@@ -15,7 +14,6 @@ class ProductPhoto {
   final String? viewAngle;
 }
 
-@immutable
 class ProductCatalogItem {
   const ProductCatalogItem({
     required this.id,
@@ -42,7 +40,6 @@ class ProductCatalogItem {
   String get imageUrl => thumbnail ?? (photos.isEmpty ? '' : photos.first.url);
 }
 
-@immutable
 class ProductCatalogPage {
   const ProductCatalogPage({
     required this.products,
@@ -59,7 +56,6 @@ class ProductCatalogPage {
   final int totalPages;
 }
 
-@immutable
 class ProductQuery {
   const ProductQuery({
     this.page = 1,
@@ -140,7 +136,6 @@ enum ProductCalibrationStatus {
   bool get isCalibrated => this == calibrated || this == changesPending;
 }
 
-@immutable
 class ProductCalibrationStatusSummary {
   const ProductCalibrationStatusSummary({
     required this.productId,
@@ -191,7 +186,6 @@ enum CalibrationReferenceStatus {
   };
 }
 
-@immutable
 class CalibrationRender {
   const CalibrationRender({
     required this.id,
@@ -226,7 +220,6 @@ class CalibrationRender {
       (approvalAllowed ?? true);
 }
 
-@immutable
 class CalibrationMutationFence {
   const CalibrationMutationFence({
     required this.calibrationId,
@@ -245,7 +238,6 @@ class CalibrationMutationFence {
   };
 }
 
-@immutable
 class ProductUpload {
   const ProductUpload({
     required this.bytes,
@@ -269,7 +261,6 @@ class ProductUpload {
   }
 }
 
-@immutable
 class CatalogProductDraft {
   const CatalogProductDraft({
     required this.name,
@@ -308,7 +299,6 @@ class CatalogProductDraft {
       existingPhotoAnglesChanged;
 }
 
-@immutable
 class CalibrationOutline {
   const CalibrationOutline({
     required this.id,
@@ -321,7 +311,6 @@ class CalibrationOutline {
   final String? imageUrl;
 }
 
-@immutable
 class ProductCalibration {
   const ProductCalibration({
     this.id,
@@ -358,7 +347,6 @@ class ProductCalibration {
       hasLegacyShapes && !hasPlacement && wornPhotoUrl == null;
 }
 
-@immutable
 class ProductCalibrationDraft {
   const ProductCalibrationDraft({
     required this.bodyArea,
@@ -383,7 +371,6 @@ class ProductCalibrationDraft {
   };
 }
 
-@immutable
 class ProductCalibrationWorkspace {
   const ProductCalibrationWorkspace({
     required this.outlines,

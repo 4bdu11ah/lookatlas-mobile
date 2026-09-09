@@ -5,6 +5,7 @@ import 'package:look_atlas/features/auth/data/data_sources/auth_local_data_sourc
 import 'package:look_atlas/features/auth/data/data_sources/auth_remote_data_source.dart';
 import 'package:look_atlas/features/auth/data/data_sources/social_auth_data_source.dart';
 import 'package:look_atlas/features/auth/data/repositories/auth_repository_impl.dart';
+import 'package:look_atlas/features/auth/domain/entities/app_user.dart';
 import 'package:look_atlas/features/auth/domain/repositories/auth_repository.dart';
 import 'package:look_atlas/features/auth/domain/use_cases/reset_password_use_case.dart';
 import 'package:look_atlas/features/auth/domain/use_cases/sign_in_use_case.dart';
@@ -57,6 +58,11 @@ final authRepositoryProvider = Provider<AuthRepository>((ref) {
   ref.onDispose(repo.dispose);
   return repo;
 });
+
+/// Current signed-in app identity for routing and cross-feature composition.
+final authStateProvider = StreamProvider<AppUser?>(
+  (ref) => ref.watch(authRepositoryProvider).authStateChanges(),
+);
 
 // --- Domain use cases (one intent each) ----------------------------------
 final signInUseCaseProvider = Provider<SignInUseCase>(

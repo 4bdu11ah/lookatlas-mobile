@@ -1,6 +1,3 @@
-import 'package:flutter/foundation.dart';
-
-@immutable
 class BillingPlan {
   const BillingPlan({
     required this.id,
@@ -29,7 +26,6 @@ class BillingPlan {
   final bool popular;
 }
 
-@immutable
 class CheckoutSession {
   const CheckoutSession({required this.url, this.mode});
 
@@ -39,7 +35,6 @@ class CheckoutSession {
 
 enum OnetimePaymentStatus { pending, paid, failed, refunded }
 
-@immutable
 class OnetimeVerification {
   const OnetimeVerification({
     required this.status,
@@ -52,7 +47,6 @@ class OnetimeVerification {
   final DateTime? offerExpiresAt;
 }
 
-@immutable
 class ProUpsellOffer {
   const ProUpsellOffer({
     required this.active,
@@ -65,7 +59,6 @@ class ProUpsellOffer {
   final DateTime? expiresAt;
 }
 
-@immutable
 class BillingHistoryEntry {
   const BillingHistoryEntry({
     required this.description,

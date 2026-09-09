@@ -12,7 +12,7 @@ class _DashboardOverviewState {
   });
 
   final DashboardStats? stats;
-  final List<_Shoot> shoots;
+  final List<ShootViewModel> shoots;
   final DashboardSubscription? subscription;
   final List<DashboardRecentJob> recentJobs;
   final bool isLoadingStats;
@@ -21,7 +21,7 @@ class _DashboardOverviewState {
 
   _DashboardOverviewState copyWith({
     DashboardStats? stats,
-    List<_Shoot>? shoots,
+    List<ShootViewModel>? shoots,
     DashboardSubscription? subscription,
     List<DashboardRecentJob>? recentJobs,
     bool? isLoadingStats,
@@ -114,7 +114,7 @@ class _DashboardOverviewController
     );
   }
 
-  _Shoot _toShoot(DashboardRecentJob job) => _Shoot(
+  ShootViewModel _toShoot(DashboardRecentJob job) => ShootViewModel(
     id: job.id,
     name: job.name,
     status: job.status,

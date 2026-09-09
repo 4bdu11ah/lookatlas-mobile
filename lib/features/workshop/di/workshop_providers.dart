@@ -3,6 +3,7 @@ import 'package:look_atlas/core/providers/core_providers.dart';
 import 'package:look_atlas/features/workshop/data/data_sources/workshop_remote_data_source.dart';
 import 'package:look_atlas/features/workshop/data/repositories/workshop_repository_impl.dart';
 import 'package:look_atlas/features/workshop/domain/repositories/workshop_repository.dart';
+import 'package:look_atlas/features/workshop/domain/use_cases/generate_workshop_image_use_case.dart';
 
 final workshopRemoteDataSourceProvider = Provider<WorkshopRemoteDataSource>(
   (ref) => WorkshopRemoteDataSourceImpl(
@@ -16,3 +17,10 @@ final workshopRepositoryProvider = Provider<WorkshopRepository>(
     ref.watch(workshopRemoteDataSourceProvider),
   ),
 );
+
+final generateWorkshopImageUseCaseProvider =
+    Provider<GenerateWorkshopImageUseCase>(
+      (ref) => GenerateWorkshopImageUseCase(
+        ref.watch(workshopRepositoryProvider),
+      ),
+    );

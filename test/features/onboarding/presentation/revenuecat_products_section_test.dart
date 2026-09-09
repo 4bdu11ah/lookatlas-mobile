@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:look_atlas/features/onboarding/presentation/widgets/revenuecat_products_section.dart';
-import 'package:purchases_flutter/purchases_flutter.dart';
+import 'package:look_atlas/features/subscription/domain/entities/subscription_product.dart';
 
 void main() {
   testWidgets('shows_revenuecat_subscriptions_and_one_time_product', (
     tester,
   ) async {
-    StoreProduct? selected;
+    SubscriptionProduct? selected;
     await tester.pumpWidget(
       MaterialApp(
         home: Scaffold(
@@ -40,7 +40,7 @@ void main() {
 
     await tester.ensureVisible(find.text('Unlock photos'));
     await tester.tap(find.text('Unlock photos'));
-    expect(selected?.identifier, 'onetime_download_hd');
+    expect(selected?.id, 'onetime_download_hd');
   });
 
   testWidgets('shows_loading_and_retry_states', (tester) async {
@@ -79,52 +79,52 @@ void main() {
   });
 }
 
-const _monthly = StoreProduct(
-  'starter_monthly',
-  '80 images every month.',
-  'Premium Monthly',
-  49,
-  r'$49.00',
-  'USD',
-  productCategory: ProductCategory.subscription,
+const _monthly = SubscriptionProduct(
+  id: 'starter_monthly',
+  description: '80 images every month.',
+  title: 'Premium Monthly',
+  price: 49,
+  priceString: r'$49.00',
+  currencyCode: 'USD',
+  type: SubscriptionProductType.subscription,
   subscriptionPeriod: 'P1M',
 );
-const _proMonthly = StoreProduct(
-  'pro_monthly',
-  '200 images every month.',
-  'Pro Monthly',
-  99,
-  r'$99.00',
-  'USD',
-  productCategory: ProductCategory.subscription,
+const _proMonthly = SubscriptionProduct(
+  id: 'pro_monthly',
+  description: '200 images every month.',
+  title: 'Pro Monthly',
+  price: 99,
+  priceString: r'$99.00',
+  currencyCode: 'USD',
+  type: SubscriptionProductType.subscription,
   subscriptionPeriod: 'P1M',
 );
-const _studioMonthly = StoreProduct(
-  'studio_monthly',
-  '600 images every month.',
-  'Studio Monthly',
-  199,
-  r'$199.00',
-  'USD',
-  productCategory: ProductCategory.subscription,
+const _studioMonthly = SubscriptionProduct(
+  id: 'studio_monthly',
+  description: '600 images every month.',
+  title: 'Studio Monthly',
+  price: 199,
+  priceString: r'$199.00',
+  currencyCode: 'USD',
+  type: SubscriptionProductType.subscription,
   subscriptionPeriod: 'P1M',
 );
-const _annual = StoreProduct(
-  'annual',
-  'Annual subscription.',
-  'Annual',
-  499,
-  r'$499.00',
-  'USD',
-  productCategory: ProductCategory.subscription,
+const _annual = SubscriptionProduct(
+  id: 'annual',
+  description: 'Annual subscription.',
+  title: 'Annual',
+  price: 499,
+  priceString: r'$499.00',
+  currencyCode: 'USD',
+  type: SubscriptionProductType.subscription,
   subscriptionPeriod: 'P1Y',
 );
-const _oneTime = StoreProduct(
-  'onetime_download_hd',
-  'Download this shoot in HD.',
-  'Download 15 photos',
-  8.99,
-  r'$8.99',
-  'USD',
-  productCategory: ProductCategory.nonSubscription,
+const _oneTime = SubscriptionProduct(
+  id: 'onetime_download_hd',
+  description: 'Download this shoot in HD.',
+  title: 'Download 15 photos',
+  price: 8.99,
+  priceString: r'$8.99',
+  currencyCode: 'USD',
+  type: SubscriptionProductType.nonSubscription,
 );

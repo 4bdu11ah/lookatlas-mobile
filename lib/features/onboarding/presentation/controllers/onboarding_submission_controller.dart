@@ -8,7 +8,7 @@ import 'package:look_atlas/features/onboarding/di/onboarding_providers.dart';
 import 'package:look_atlas/features/onboarding/domain/entities/free_shoot.dart';
 import 'package:look_atlas/features/onboarding/domain/entities/onboarding_config.dart';
 import 'package:look_atlas/features/onboarding/domain/entities/onboarding_product.dart';
-import 'package:look_atlas/features/onboarding/presentation/providers/wizard_controller.dart';
+import 'package:look_atlas/features/onboarding/presentation/controllers/wizard_controller.dart';
 import 'package:look_atlas/services/service_providers.dart';
 
 @immutable

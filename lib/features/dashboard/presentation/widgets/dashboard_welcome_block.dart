@@ -6,7 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:look_atlas/core/router/app_routes.dart';
 import 'package:look_atlas/core/theme/app_colors.dart';
 import 'package:look_atlas/core/theme/app_typography.dart';
-import 'package:look_atlas/features/auth/presentation/auth_controller.dart';
+import 'package:look_atlas/features/auth/di/auth_providers.dart';
 import 'package:look_atlas/features/dashboard/domain/entities/dashboard_data.dart';
 import 'package:look_atlas/features/dashboard/domain/entities/dashboard_welcome.dart';
 import 'package:look_atlas/features/dashboard/presentation/controllers/dashboard_campaign_controller.dart';
@@ -14,8 +14,7 @@ import 'package:look_atlas/features/dashboard/presentation/controllers/dashboard
 import 'package:look_atlas/features/dashboard/presentation/widgets/campaign_flip_card.dart';
 import 'package:look_atlas/features/dashboard/presentation/widgets/dashboard_step_guide.dart';
 import 'package:look_atlas/features/dashboard/presentation/widgets/studio_scene_animation.dart';
-import 'package:look_atlas/features/studio_school/presentation/studio_school_controller.dart';
-import 'package:look_atlas/features/studio_school/presentation/studio_school_state.dart';
+import 'package:look_atlas/features/studio_school/di/studio_school_providers.dart';
 import 'package:look_atlas/features/studio_school/presentation/widgets/school_components.dart';
 import 'package:look_atlas/services/service_providers.dart';
 import 'package:look_atlas/shared/widgets/app_bottom_sheet.dart';
@@ -46,12 +45,7 @@ class DashboardWelcomeBlock extends ConsumerWidget {
       return true;
     }
     if (subscription.accessTier != 'subscriber') return false;
-    final school = ref.watch(studioSchoolControllerProvider);
-    final welcome = switch (school) {
-      SchoolReady(:final welcome) ||
-      SchoolOfflineCached(:final welcome) => welcome.dashboard,
-      _ => null,
-    };
+    final welcome = ref.watch(studioSchoolWelcomeProvider)?.dashboard;
     if (welcome == null) return false;
     final preferences = ref.watch(dashboardWelcomeControllerProvider);
     final flipDismissed = welcome.flipDismissed || preferences.flipDismissed;
@@ -77,12 +71,7 @@ class DashboardWelcomeBlock extends ConsumerWidget {
       );
     }
     if (subscription.accessTier != 'subscriber') return const SizedBox.shrink();
-    final school = ref.watch(studioSchoolControllerProvider);
-    final welcome = switch (school) {
-      SchoolReady(:final welcome) ||
-      SchoolOfflineCached(:final welcome) => welcome.dashboard,
-      _ => null,
-    };
+    final welcome = ref.watch(studioSchoolWelcomeProvider)?.dashboard;
     if (welcome == null) return const SizedBox.shrink();
     final preferences = ref.watch(dashboardWelcomeControllerProvider);
     final controller = ref.read(dashboardWelcomeControllerProvider.notifier);

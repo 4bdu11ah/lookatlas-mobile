@@ -1,5 +1,3 @@
-import 'package:flutter/foundation.dart';
-
 enum DashboardWelcomeStepId {
   product,
   calibration,
@@ -29,7 +27,6 @@ enum DashboardWelcomeStepId {
   };
 }
 
-@immutable
 class DashboardWelcomeCampaign {
   const DashboardWelcomeCampaign({
     required this.jobId,
@@ -42,7 +39,6 @@ class DashboardWelcomeCampaign {
   final List<String> images;
 }
 
-@immutable
 class DashboardWelcomeProfile {
   const DashboardWelcomeProfile({
     this.brandUrl = '',
@@ -74,7 +70,6 @@ class DashboardWelcomeProfile {
       referralOther.isEmpty;
 }
 
-@immutable
 class DashboardWelcomeState {
   const DashboardWelcomeState({
     required this.steps,
@@ -132,7 +127,6 @@ class DashboardWelcomeState {
   );
 }
 
-@immutable
 class DashboardChecklistClaim {
   const DashboardChecklistClaim({
     required this.granted,

@@ -1,9 +1,9 @@
-part of '../../../dashboard/presentation/screens/dashboard_screen.dart';
+part of 'package:look_atlas/features/guides/presentation/guides_feature.dart';
 
 class _ShootsGuide extends StatelessWidget {
   const _ShootsGuide({required this.onNavigate});
 
-  final ValueChanged<_DashboardPage> onNavigate;
+  final ValueChanged<String> onNavigate;
 
   @override
   Widget build(BuildContext context) {
@@ -11,8 +11,7 @@ class _ShootsGuide extends StatelessWidget {
       children: [
         const _GuideIntroSection(
           title: 'Mastering Shoots',
-          body:
-              'Shoots are the production powerhouse of Look Atlas. Create full catalog sets with multiple angles, variations, and video in one workflow.',
+          body: 'Shoots are the production powerhouse of Look Atlas. Create full catalog sets with multiple angles, variations, and video in one workflow.',
         ),
         const _GuideSection(
           title: 'When to Use Shoots',
@@ -25,8 +24,7 @@ class _ShootsGuide extends StatelessWidget {
             _GuideStep(
               number: 1,
               title: 'Select Products',
-              body:
-                  'Choose one or more products from your library. Settings and model remain consistent across the batch.',
+              body: 'Choose one or more products from your library. Settings and model remain consistent across the batch.',
               extra: _GuideCallout(
                 type: _GuideCalloutType.tip,
                 text: 'More product photos generally produce better results.',
@@ -35,8 +33,7 @@ class _ShootsGuide extends StatelessWidget {
             _GuideStep(
               number: 2,
               title: 'Select Model',
-              body:
-                  'Choose an uploaded model, the Look Atlas library, or an AI-generated model.',
+              body: 'Choose an uploaded model, the Look Atlas library, or an AI-generated model.',
             ),
           ],
         ),
@@ -167,8 +164,7 @@ class _GuideWorkflowCard extends StatelessWidget {
           _GuideWorkflowHeader(),
           _GuideWorkflowSubsection(
             title: '1. Use Case',
-            body:
-                'Choose where images will be used to set the optimal aspect ratio.',
+            body: 'Choose where images will be used to set the optimal aspect ratio.',
             child: _GuideUseCaseTable(),
           ),
           _GuideWorkflowSubsection(
@@ -178,13 +174,11 @@ class _GuideWorkflowCard extends StatelessWidget {
           ),
           _GuideWorkflowSubsection(
             title: '3. Shots & Angles',
-            body:
-                'Choose Single Shot or a Catalog Set with Front, 3/4, Side, Back, and Detail.',
+            body: 'Choose Single Shot or a Catalog Set with Front, 3/4, Side, Back, and Detail.',
           ),
           _GuideWorkflowSubsection(
             title: '4. Posing',
-            body:
-                'Keep Original, use subtle AI Posing, or describe a Custom pose.',
+            body: 'Keep Original, use subtle AI Posing, or describe a Custom pose.',
           ),
           _GuideWorkflowSubsection(
             title: '5. Accessories',
@@ -192,8 +186,7 @@ class _GuideWorkflowCard extends StatelessWidget {
           ),
           _GuideWorkflowSubsection(
             title: '6. Outfit Completion',
-            body:
-                'Use Product Only, AI Complete, or a Custom complementary outfit.',
+            body: 'Use Product Only, AI Complete, or a Custom complementary outfit.',
           ),
         ],
       ),
@@ -379,8 +372,7 @@ class _GuideVideoCard extends StatelessWidget {
         ),
         _GuideCallout(
           type: _GuideCalloutType.tip,
-          text:
-              'Pick your favorite image variation before requesting video for full control.',
+          text: 'Pick your favorite image variation before requesting video for full control.',
         ),
       ],
     );

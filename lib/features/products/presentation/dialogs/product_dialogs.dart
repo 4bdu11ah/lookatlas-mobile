@@ -1,4 +1,4 @@
-part of '../../../dashboard/presentation/screens/dashboard_screen.dart';
+part of '../products_feature.dart';
 
 Future<void> _showProductDetailSheet(
   BuildContext context,
@@ -131,7 +131,7 @@ class _ProductDetailSheetState extends ConsumerState<_ProductDetailSheet> {
                   width: double.infinity,
                   padding: const EdgeInsets.all(24),
                   color: AppColors.neutral100,
-                  child: _AssetImage(
+                  child: AppAssetImage(
                     photos[_photoIndex],
                     key: const ValueKey('product-detail-main-image'),
                     fit: BoxFit.contain,
@@ -188,7 +188,7 @@ class _ProductDetailSheetState extends ConsumerState<_ProductDetailSheet> {
                                     width: index == _photoIndex ? 2 : 1,
                                   ),
                                 ),
-                                child: _AssetImage(photos[index]),
+                                child: AppAssetImage(photos[index]),
                               ),
                             ),
                             const SizedBox(height: 4),

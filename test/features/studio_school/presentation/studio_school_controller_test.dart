@@ -1,12 +1,12 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:look_atlas/core/error/failure.dart';
+import 'package:look_atlas/features/auth/di/auth_providers.dart';
 import 'package:look_atlas/features/auth/domain/entities/app_user.dart';
-import 'package:look_atlas/features/auth/presentation/auth_controller.dart';
 import 'package:look_atlas/features/studio_school/di/studio_school_providers.dart';
-import 'package:look_atlas/features/studio_school/domain/welcome_lesson.dart';
-import 'package:look_atlas/features/studio_school/presentation/studio_school_controller.dart';
-import 'package:look_atlas/features/studio_school/presentation/studio_school_state.dart';
+import 'package:look_atlas/features/studio_school/domain/entities/welcome_lesson.dart';
+import 'package:look_atlas/features/studio_school/presentation/controllers/studio_school_controller.dart';
+import 'package:look_atlas/features/studio_school/presentation/controllers/studio_school_state.dart';
 import 'package:look_atlas/services/analytics/analytics_service.dart';
 import 'package:look_atlas/services/service_providers.dart';
 

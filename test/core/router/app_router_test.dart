@@ -10,24 +10,35 @@ import 'package:look_atlas/features/auth/domain/entities/app_user.dart';
 import 'package:look_atlas/features/auth/presentation/screens/reset_password_screen.dart';
 import 'package:look_atlas/features/auth/presentation/screens/sign_in_screen.dart';
 import 'package:look_atlas/features/billing/di/billing_api_providers.dart';
+import 'package:look_atlas/features/billing/presentation/billing_feature.dart';
+import 'package:look_atlas/features/calendar/presentation/screens/calendar_screen.dart';
+import 'package:look_atlas/features/create_content/di/content_providers.dart';
+import 'package:look_atlas/features/create_content/presentation/screens/create_content_screen.dart';
 import 'package:look_atlas/features/dashboard/di/dashboard_providers.dart';
 import 'package:look_atlas/features/dashboard/domain/entities/dashboard_welcome.dart';
 import 'package:look_atlas/features/dashboard/presentation/screens/dashboard_screen.dart';
+import 'package:look_atlas/features/guides/presentation/guides_feature.dart';
+import 'package:look_atlas/features/house_model/presentation/house_model_feature.dart';
 import 'package:look_atlas/features/onboarding/di/onboarding_providers.dart';
 import 'package:look_atlas/features/onboarding/presentation/screens/onboarding_wizard_screen.dart';
 import 'package:look_atlas/features/products/di/products_providers.dart';
+import 'package:look_atlas/features/products/presentation/products_feature.dart';
+import 'package:look_atlas/features/settings/presentation/account_settings_feature.dart';
 import 'package:look_atlas/features/shoots/di/shoots_providers.dart';
+import 'package:look_atlas/features/shoots/presentation/shoots_feature.dart';
 import 'package:look_atlas/features/studio_school/di/studio_school_providers.dart';
-import 'package:look_atlas/features/studio_school/presentation/studio_school_screen.dart';
+import 'package:look_atlas/features/studio_school/presentation/screens/studio_school_screen.dart';
 import 'package:look_atlas/features/subscription/di/subscription_providers.dart';
 import 'package:look_atlas/features/subscription/presentation/screens/paywall_screen.dart';
-import 'package:look_atlas/features/welcome_profile/presentation/welcome_profile_screen.dart';
+import 'package:look_atlas/features/support/presentation/support_feature.dart';
+import 'package:look_atlas/features/welcome_profile/presentation/screens/welcome_profile_screen.dart';
 import 'package:look_atlas/features/workshop/di/workshop_providers.dart';
 import 'package:look_atlas/features/workshop/presentation/screens/workshop_screen.dart';
 import 'package:look_atlas/shared/widgets/custom_app_bar.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../features/create_content/content_test_backend.dart';
 import '../../helpers/fake_repositories.dart';
 import '../../helpers/fake_shoots_repository.dart';
 import '../../helpers/fake_welcome_repository.dart';
@@ -41,6 +52,7 @@ void main() {
     AppUser? user,
     FakeWelcomeRepository? welcomeRepository,
     FakeShootsRepository? shootsRepository,
+    ContentTestBackend? contentBackend,
     bool settle = true,
   }) async {
     SharedPreferences.setMockInitialValues({});
@@ -48,6 +60,9 @@ void main() {
     final container = ProviderContainer(
       overrides: [
         sharedPreferencesProvider.overrideWithValue(preferences),
+        contentRepositoryProvider.overrideWithValue(
+          (contentBackend ?? ContentTestBackend()).repository,
+        ),
         authRepositoryProvider.overrideWithValue(
           FakeAuthRepository(user: user),
         ),
@@ -499,5 +514,166 @@ void main() {
       expect(find.byType(DashboardScreen), findsOneWidget);
       expect(find.text('Dashboard'), findsOneWidget);
     });
+
+    testWidgets(
+      'drawer navigates to Create Content and displays CustomAppBar with back button and only title',
+      (tester) async {
+        tester.view.physicalSize = const Size(390, 844);
+        tester.view.devicePixelRatio = 1;
+        addTearDown(tester.view.resetPhysicalSize);
+        addTearDown(tester.view.resetDevicePixelRatio);
+
+        final router = await pumpRouter(tester, user: user, settle: false);
+
+        router.go(AppRoutes.home);
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 300));
+        await tester.tap(find.byIcon(LucideIcons.menu));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 350));
+        await tester.drag(
+          find.byKey(const ValueKey('dashboard-drawer-scroll')),
+          const Offset(0, -300),
+        );
+        await tester.pumpAndSettle();
+        await tester.tap(
+          find.byKey(const ValueKey('dashboard-drawer-create-content')),
+        );
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 300));
+        await tester.pump(const Duration(milliseconds: 300));
+        await tester.pump(const Duration(milliseconds: 300));
+
+        expect(find.byType(Drawer), findsNothing);
+        expect(find.byType(CreateContentScreen), findsOneWidget);
+        final customAppBar = tester.widget<CustomAppBar>(
+          find.byType(CustomAppBar),
+        );
+        expect(customAppBar.title, 'Create Content');
+        expect(customAppBar.showBackButton, isTrue);
+        expect(customAppBar.actions, isEmpty);
+
+        await tester.tap(find.byTooltip('Back'));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 300));
+
+        expect(find.byType(DashboardScreen), findsOneWidget);
+      },
+    );
+
+    testWidgets(
+      'drawer navigates to Calendar and displays CustomAppBar with back button and only title',
+      (tester) async {
+        tester.view.physicalSize = const Size(390, 844);
+        tester.view.devicePixelRatio = 1;
+        addTearDown(tester.view.resetPhysicalSize);
+        addTearDown(tester.view.resetDevicePixelRatio);
+
+        final router = await pumpRouter(tester, user: user, settle: false);
+
+        router.go(AppRoutes.home);
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 300));
+        await tester.tap(find.byIcon(LucideIcons.menu));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 350));
+        await tester.drag(
+          find.byKey(const ValueKey('dashboard-drawer-scroll')),
+          const Offset(0, -300),
+        );
+        await tester.pumpAndSettle();
+        await tester.tap(
+          find.byKey(const ValueKey('dashboard-drawer-calendar')),
+        );
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 300));
+        await tester.pump(const Duration(milliseconds: 300));
+        await tester.pump(const Duration(milliseconds: 300));
+
+        expect(find.byType(Drawer), findsNothing);
+        expect(find.byType(CalendarScreen), findsOneWidget);
+        final customAppBar = tester.widget<CustomAppBar>(
+          find.byType(CustomAppBar),
+        );
+        expect(customAppBar.title, 'Calendar');
+        expect(customAppBar.showBackButton, isTrue);
+        expect(customAppBar.actions, isEmpty);
+
+        await tester.tap(find.byTooltip('Back'));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 300));
+
+        expect(find.byType(DashboardScreen), findsOneWidget);
+      },
+    );
+  });
+
+  testWidgets(
+    'Create Content formats and Calendar generation deep links resolve',
+    (tester) async {
+      final router = await pumpRouter(tester, user: user, settle: false);
+      for (final path in [
+        AppRoutes.createContent,
+        AppRoutes.createContentSingle,
+        AppRoutes.createContentSlideshow,
+        AppRoutes.createContentVideo,
+        '/create-content/item/generation-1',
+      ]) {
+        router.go(path);
+        await tester.pumpAndSettle();
+        expect(find.byType(CreateContentScreen), findsOneWidget);
+        expect(router.routeInformationProvider.value.uri.path, path);
+      }
+      expect(find.text('CAPTION & HASHTAGS'), findsOneWidget);
+      await tester.tap(find.text('Done'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byTooltip('Back to Create Content'));
+      await tester.pumpAndSettle();
+      expect(
+        router.routeInformationProvider.value.uri.path,
+        AppRoutes.createContent,
+      );
+    },
+  );
+
+  testWidgets('leaving Create Content waits for saves and stays on failure', (
+    tester,
+  ) async {
+    final backend = ContentTestBackend();
+    final router = await pumpRouter(
+      tester,
+      user: user,
+      contentBackend: backend,
+      settle: false,
+    );
+    router.go(AppRoutes.createContentSlideshow);
+    await tester.pumpAndSettle();
+    backend.handler = (request) {
+      if (request.method == 'POST' && request.path == '/content/drafts') {
+        throw StateError('Offline');
+      }
+      return backend.respond(request);
+    };
+    await tester.tap(find.text('Brief'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Utility Bomber'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Back to Create Content'));
+    await tester.pumpAndSettle();
+    expect(
+      router.routeInformationProvider.value.uri.path,
+      AppRoutes.createContentSlideshow,
+    );
+    expect(
+      find.text('Your changes are not saved. Retry saving before leaving.'),
+      findsOneWidget,
+    );
+    backend.handler = null;
+    await tester.tap(find.byTooltip('Back to Create Content'));
+    await tester.pumpAndSettle();
+    expect(
+      router.routeInformationProvider.value.uri.path,
+      AppRoutes.createContent,
+    );
   });
 }

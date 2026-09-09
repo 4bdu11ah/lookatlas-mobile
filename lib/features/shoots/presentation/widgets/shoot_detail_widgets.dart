@@ -1,4 +1,4 @@
-part of '../../../dashboard/presentation/screens/dashboard_screen.dart';
+part of '../shoots_feature.dart';
 
 class _ShootProgress extends StatelessWidget {
   const _ShootProgress({
@@ -44,10 +44,10 @@ class _ShootProgress extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 10),
-          _ProgressBar(value: progress),
+          AppProgressBar(value: progress),
           if (estimatedCompletion != null) ...[
             const SizedBox(height: 8),
-            _Caption(
+            AppCaption(
               'Estimated completion ${DateFormat.jm().format(estimatedCompletion!.toLocal())}',
             ),
           ],
@@ -60,12 +60,12 @@ class _ShootProgress extends StatelessWidget {
 class _ShootSummary extends StatelessWidget {
   const _ShootSummary({required this.shoot, this.modelName});
 
-  final _Shoot shoot;
+  final ShootViewModel shoot;
   final String? modelName;
 
   @override
   Widget build(BuildContext context) {
-    return _Column(
+    return AppSpacedColumn(
       gap: 8,
       children: [
         _ShootStat(
@@ -117,20 +117,20 @@ class _ShootStat extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _Eyebrow(label),
+          AppEyebrow(label),
           const SizedBox(height: 9),
           Row(
             children: [
               if (asset != null) ...[
-                _AssetBox(asset!, width: 45, height: 45),
+                AppAssetBox(asset!, width: 45, height: 45),
                 const SizedBox(width: 12),
               ],
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _CardTitle(title),
-                    if (caption.isNotEmpty) _Caption(caption),
+                    AppCardTitle(title),
+                    if (caption.isNotEmpty) AppCaption(caption),
                   ],
                 ),
               ),
@@ -153,7 +153,7 @@ class _ExportActions extends StatelessWidget {
     final publishLabel = approvedCount >= 3
         ? 'Publish approved images'
         : 'Approve at least 3 images ($approvedCount/3)';
-    return _Column(
+    return AppSpacedColumn(
       gap: 8,
       children: [
         Row(
@@ -207,26 +207,26 @@ class _VideoCard extends StatelessWidget {
             padding: EdgeInsets.all(14),
             child: Row(
               children: [
-                _SquareIcon(Icons.video_camera_back_outlined),
+                AppSquareIcon(Icons.video_camera_back_outlined),
                 SizedBox(width: 12),
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _CardTitle('Model Video'),
-                    _Caption('AI-generated motion'),
+                    AppCardTitle('Model Video'),
+                    AppCaption('AI-generated motion'),
                   ],
                 ),
               ],
             ),
           ),
-          const _Hairline(),
+          const AppHairline(),
           Padding(
             padding: const EdgeInsets.all(18),
             child: Column(
               children: [
-                const _SquareIcon(Icons.movie_creation_outlined),
+                const AppSquareIcon(Icons.movie_creation_outlined),
                 const SizedBox(height: 10),
-                const _BodyText(
+                const AppBodyText(
                   'Create an 8-second cinematic video from your best variation.',
                   textAlign: TextAlign.center,
                 ),
@@ -282,33 +282,33 @@ class _GeneratedImages extends StatelessWidget {
         children: [
           const Padding(
             padding: EdgeInsets.all(14),
-            child: _SectionTitle('Generated Images'),
+            child: AppSectionTitle('Generated Images'),
           ),
-          const _Hairline(),
+          const AppHairline(),
           if (isProcessing)
             const Padding(
               padding: EdgeInsets.symmetric(vertical: 48, horizontal: 20),
               child: Column(
                 children: [
-                  _SquareIcon(Icons.schedule),
+                  AppSquareIcon(Icons.schedule),
                   SizedBox(height: 14),
-                  _SectionTitle('Generating images...'),
+                  AppSectionTitle('Generating images...'),
                   SizedBox(height: 6),
-                  _Caption('This may take a few minutes'),
+                  AppCaption('This may take a few minutes'),
                 ],
               ),
             )
           else if (shots.isEmpty)
             const Padding(
               padding: EdgeInsets.symmetric(vertical: 40, horizontal: 20),
-              child: _Caption('No generated images are available yet.'),
+              child: AppCaption('No generated images are available yet.'),
             )
           else
             ListView.separated(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
               itemCount: shots.length,
-              separatorBuilder: (_, _) => const _Hairline(),
+              separatorBuilder: (_, _) => const AppHairline(),
               itemBuilder: (context, index) {
                 final shot = shots[index];
                 return _ShotGroup(
@@ -380,7 +380,7 @@ class _ShotGroup extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 8),
-              Expanded(child: _CardTitle('Shot $number: $title')),
+              Expanded(child: AppCardTitle('Shot $number: $title')),
             ],
           ),
           const SizedBox(height: 12),
@@ -492,11 +492,11 @@ class _ResultTile extends StatelessWidget {
       child: Stack(
         fit: StackFit.expand,
         children: [
-          InkWell(onTap: onPreview, child: _AssetImage(asset)),
+          InkWell(onTap: onPreview, child: AppAssetImage(asset)),
           Positioned(
             left: 7,
             top: 7,
-            child: _SmallOverlayButton(
+            child: AppSmallOverlayButton(
               icon: Icons.download_outlined,
               onTap: onDownload,
             ),
@@ -504,7 +504,7 @@ class _ResultTile extends StatelessWidget {
           Positioned(
             right: 7,
             top: 7,
-            child: _SmallOverlayButton(
+            child: AppSmallOverlayButton(
               icon: approved ? Icons.check : Icons.circle_outlined,
               onTap: onApprove,
             ),
@@ -525,11 +525,11 @@ class _ResultTile extends StatelessWidget {
                   ),
                 ),
                 const Spacer(),
-                _SmallOverlayButton(icon: Icons.auto_fix_high, onTap: onEdit),
+                AppSmallOverlayButton(icon: Icons.auto_fix_high, onTap: onEdit),
                 const SizedBox(width: 5),
-                _SmallOverlayButton(icon: Icons.history, onTap: onVersions),
+                AppSmallOverlayButton(icon: Icons.history, onTap: onVersions),
                 const SizedBox(width: 5),
-                _SmallOverlayButton(icon: Icons.flag_outlined, onTap: onReport),
+                AppSmallOverlayButton(icon: Icons.flag_outlined, onTap: onReport),
               ],
             ),
           ),
@@ -549,15 +549,15 @@ class _ImageReportNotice extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _SquareIcon(Icons.flag_outlined),
+          AppSquareIcon(Icons.flag_outlined),
           SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _CardTitle('Something wrong with an image?'),
+                AppCardTitle('Something wrong with an image?'),
                 SizedBox(height: 4),
-                _Caption(
+                AppCaption(
                   'Tap the flag icon on an image to report it. Our team will review it and refund credits for a deformed product or model.',
                 ),
               ],
@@ -576,30 +576,30 @@ class _FailedShootDetail extends StatelessWidget {
     required this.onToast,
   });
 
-  final _Shoot shoot;
+  final ShootViewModel shoot;
   final VoidCallback onRerun;
   final ValueChanged<String> onToast;
 
   @override
   Widget build(BuildContext context) {
-    return _Column(
+    return AppSpacedColumn(
       gap: 14,
       children: [
-        _PageHeader(
+        AppPageHeader(
           title: shoot.name,
           body: 'Generated images for Mila',
           small: true,
         ),
-        const _Badge('Failed', kind: _BadgeKind.warn),
-        const _Alert(
-          kind: _AlertKind.error,
+        const AppBadge('Failed', kind: AppBadgeKind.warn),
+        const AppAlert(
+          kind: AppAlertKind.error,
           text: 'Job failed while processing. You can rerun it below.',
         ),
-        _Card(
-          child: _Column(
+        AppCard(
+          child: AppSpacedColumn(
             gap: 10,
             children: [
-              const _Eyebrow('Support Ticket ID'),
+              const AppEyebrow('Support Ticket ID'),
               Text(
                 shoot.supportTicketId ?? 'job_unknown',
                 style: AppTypography.mono(fontSize: 12),

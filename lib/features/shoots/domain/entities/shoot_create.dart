@@ -1,6 +1,3 @@
-import 'package:flutter/foundation.dart';
-
-@immutable
 class ShootCatalogItem {
   const ShootCatalogItem({
     required this.id,
@@ -38,7 +35,6 @@ enum ProductMode { pairing, variant }
 
 enum ShootLane { fast, relax }
 
-@immutable
 class ShootAppConfig {
   const ShootAppConfig({
     this.supportedAspectRatios = const [
@@ -58,7 +54,6 @@ class ShootAppConfig {
   final bool relaxEnabled;
 }
 
-@immutable
 class ShootSubscription {
   const ShootSubscription({this.plan = '', this.status = ''});
 
@@ -71,7 +66,6 @@ class ShootSubscription {
       const {'active', 'past_due'}.contains(status);
 }
 
-@immutable
 class ShootLook {
   const ShootLook({
     required this.id,
@@ -162,7 +156,6 @@ const defaultShootDirectors = [
   ),
 ];
 
-@immutable
 class ShootPreset {
   const ShootPreset({
     required this.id,
@@ -179,7 +172,6 @@ class ShootPreset {
   final bool isDefault;
 }
 
-@immutable
 class ShootCreateCatalog {
   const ShootCreateCatalog({
     required this.products,
@@ -238,14 +230,12 @@ class ShootCreateCatalog {
   );
 }
 
-@immutable
 class ShootCreateProducts {
   const ShootCreateProducts(this.products);
 
   final List<ShootCatalogItem> products;
 }
 
-@immutable
 class ShootCreateModels {
   const ShootCreateModels({
     required this.userModels,
@@ -256,7 +246,6 @@ class ShootCreateModels {
   final List<ShootCatalogItem> libraryModels;
 }
 
-@immutable
 class ShootCreateDirectorSetup {
   const ShootCreateDirectorSetup({
     required this.looks,
@@ -281,7 +270,6 @@ class ShootCreateDirectorSetup {
   final bool isUnlimitedEligible;
 }
 
-@immutable
 class PlannedShootShot {
   const PlannedShootShot({
     required this.title,
@@ -300,7 +288,6 @@ class PlannedShootShot {
   };
 }
 
-@immutable
 class ShootSettings {
   const ShootSettings({
     this.useCase = 'pdp',
@@ -355,7 +342,6 @@ class ShootSettings {
   );
 }
 
-@immutable
 class DemoDirectorConfig {
   const DemoDirectorConfig({
     required this.directorId,
@@ -375,7 +361,6 @@ class DemoDirectorConfig {
       );
 }
 
-@immutable
 class ShootSelection {
   const ShootSelection({
     required this.products,
@@ -394,7 +379,6 @@ class ShootSelection {
   String get modelSource => model.source ?? 'user';
 }
 
-@immutable
 class CustomShootShotRequest {
   const CustomShootShotRequest({
     required this.selection,
@@ -411,7 +395,6 @@ class CustomShootShotRequest {
   final List<PlannedShootShot> existingShots;
 }
 
-@immutable
 class CreateShootRequest {
   const CreateShootRequest({
     required this.selection,
@@ -424,7 +407,6 @@ class CreateShootRequest {
   final String? demoGroupId;
 }
 
-@immutable
 class ShootVideoRequest {
   const ShootVideoRequest({
     this.variationIndex = 0,

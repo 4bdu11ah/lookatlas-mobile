@@ -1,8 +1,10 @@
 import 'package:look_atlas/core/error/failure.dart';
 import 'package:look_atlas/core/result/result.dart';
 import 'package:look_atlas/features/dashboard/domain/entities/dashboard_welcome.dart';
-import 'package:look_atlas/features/studio_school/domain/welcome_lesson.dart';
-import 'package:look_atlas/features/studio_school/domain/welcome_repository.dart';
+import 'package:look_atlas/features/studio_school/data/models/welcome_profile_model.dart';
+import 'package:look_atlas/features/studio_school/domain/entities/welcome_lesson.dart';
+import 'package:look_atlas/features/studio_school/domain/entities/welcome_profile_draft.dart';
+import 'package:look_atlas/features/studio_school/domain/repositories/welcome_repository.dart';
 
 class FakeWelcomeRepository implements WelcomeRepository {
   FakeWelcomeRepository({
@@ -123,10 +125,10 @@ class FakeWelcomeRepository implements WelcomeRepository {
   @override
   Future<Result<void>> saveProfile(
     String userId,
-    Map<String, Object> profile,
+    WelcomeProfileDraft profile,
   ) async {
     saveProfileCalls++;
-    savedProfile = profile;
+    savedProfile = WelcomeProfileModel.toJson(profile);
     operations.add('save_profile');
     if (saveProfileFailure case final failure?) return Err(failure);
     return const Result.ok(null);

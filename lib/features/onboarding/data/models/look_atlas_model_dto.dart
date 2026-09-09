@@ -1,5 +1,5 @@
-import 'package:look_atlas/features/onboarding/domain/look_atlas_model.dart';
-import 'package:look_atlas/features/onboarding/domain/onboarding_models.dart';
+import 'package:look_atlas/features/onboarding/domain/entities/look_atlas_model.dart';
+import 'package:look_atlas/features/onboarding/domain/entities/onboarding_models.dart';
 
 class LookAtlasModelDto {
   const LookAtlasModelDto({required this.entity});

@@ -1,9 +1,9 @@
-part of '../../../dashboard/presentation/screens/dashboard_screen.dart';
+part of 'package:look_atlas/features/guides/presentation/guides_feature.dart';
 
 class _ModelsGuide extends StatelessWidget {
   const _ModelsGuide({required this.onNavigate});
 
-  final ValueChanged<_DashboardPage> onNavigate;
+  final ValueChanged<String> onNavigate;
 
   @override
   Widget build(BuildContext context) {
@@ -11,8 +11,7 @@ class _ModelsGuide extends StatelessWidget {
       children: [
         const _GuideIntroSection(
           title: 'Choosing Your Models',
-          body:
-              'Models are the foundation of your on-model product photography. Look Atlas gives you three flexible options.',
+          body: 'Models are the foundation of your on-model product photography. Look Atlas gives you three flexible options.',
         ),
         const _GuideNumberedSection(
           number: 1,
@@ -71,12 +70,11 @@ class _ModelsGuide extends StatelessWidget {
           ),
         ),
         const _GuideScreenshotPlaceholder(
-          label:
-              'Screenshot: House Models page - Your models and Look Atlas library',
+          label: 'Screenshot: House Models page - Your models and Look Atlas library',
         ),
         _GuideRouteButton(
           label: 'Go to Models',
-          onTap: () => onNavigate(_DashboardPage.models),
+          onTap: () => onNavigate(AppRoutes.dashboardModels),
         ),
       ],
     );

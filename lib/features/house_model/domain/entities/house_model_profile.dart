@@ -1,8 +1,7 @@
-import 'package:flutter/foundation.dart';
+import 'dart:typed_data';
 
 enum HouseModelSource { lookAtlas, user }
 
-@immutable
 class HouseModelProfile {
   const HouseModelProfile({
     required this.id,
@@ -36,7 +35,6 @@ class HouseModelProfile {
       coverThumbnail ?? (photos.isNotEmpty ? photos.first : '');
 }
 
-@immutable
 class HouseModelUpload {
   const HouseModelUpload({required this.bytes, required this.fileName});
 
@@ -44,7 +42,6 @@ class HouseModelUpload {
   final String fileName;
 }
 
-@immutable
 class HouseModelDraft {
   const HouseModelDraft({
     required this.name,
@@ -66,7 +63,6 @@ class HouseModelDraft {
   final List<HouseModelUpload> photos;
 }
 
-@immutable
 class AiHouseModelDraft {
   const AiHouseModelDraft({
     required this.gender,
@@ -83,7 +79,6 @@ class AiHouseModelDraft {
 
 enum HouseModelGenerationStatus { pending, processing, completed, failed }
 
-@immutable
 class HouseModelGeneration {
   const HouseModelGeneration({
     required this.id,
@@ -104,7 +99,6 @@ class HouseModelGeneration {
       status == HouseModelGenerationStatus.failed;
 }
 
-@immutable
 class HouseModelCatalog {
   const HouseModelCatalog({
     required this.libraryModels,

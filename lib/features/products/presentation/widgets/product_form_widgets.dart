@@ -1,4 +1,4 @@
-part of '../../../dashboard/presentation/screens/dashboard_screen.dart';
+part of '../products_feature.dart';
 
 class _ProductField extends StatelessWidget {
   const _ProductField({
@@ -714,7 +714,7 @@ class _ProductThumb extends StatelessWidget {
                 fit: StackFit.expand,
                 children: [
                   if (upload == null)
-                    _AssetImage(url ?? '', fit: BoxFit.contain)
+                    AppAssetImage(url ?? '', fit: BoxFit.contain)
                   else
                     AppImage.memory(upload!.bytes),
                   if (isLoading)

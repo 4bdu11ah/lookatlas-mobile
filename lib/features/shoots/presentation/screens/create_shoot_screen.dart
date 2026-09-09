@@ -1,4 +1,4 @@
-part of '../../../dashboard/presentation/screens/dashboard_screen.dart';
+part of '../shoots_feature.dart';
 
 class CreateShootScreen extends ConsumerStatefulWidget {
   const CreateShootScreen({super.key});
@@ -40,7 +40,7 @@ class _CreateShootScreenState extends ConsumerState<CreateShootScreen> {
               padding: const EdgeInsets.fromLTRB(20, 16, 20, 30),
               child: _CreatePage(
                 onComplete: (jobId) => context.go(AppRoutes.shootDetail(jobId)),
-                onOpenModal: (kind) => _openDashboardModal(context, ref, kind),
+                onOpenModal: (kind) => _openShootModal(context, ref, kind),
                 onToast: (text) => AppSnackBar.show(context, text),
               ),
             ),
@@ -76,7 +76,7 @@ class _CreatePage extends ConsumerWidget {
   });
 
   final ValueChanged<String> onComplete;
-  final ValueChanged<_ModalKind> onOpenModal;
+  final ValueChanged<_ShootModalKind> onOpenModal;
   final ValueChanged<String> onToast;
 
   @override
@@ -93,8 +93,8 @@ class _CreatePage extends ConsumerWidget {
       _ => false,
     };
     if (state.failure != null && hasUnloadedStep) {
-      return _Card(
-        child: _Column(
+      return AppCard(
+        child: AppSpacedColumn(
           gap: 12,
           children: [
             Text(state.failure!.message),
@@ -239,7 +239,7 @@ Future<void> _submitCreateShoot(
   WidgetRef ref,
   ValueChanged<String> onComplete,
   ValueChanged<String> onToast,
-  ValueChanged<_ModalKind> onOpenModal,
+  ValueChanged<_ShootModalKind> onOpenModal,
 ) async {
   final state = ref.read(_createShootControllerProvider);
   final controller = ref.read(_createShootControllerProvider.notifier);
@@ -265,7 +265,7 @@ Future<void> _submitCreateShoot(
       if (failure is NetworkFailure &&
           (failure.code == 'RELAX_PLAN_INELIGIBLE' ||
               failure.details['upsell'] == 'pro')) {
-        onOpenModal(_ModalKind.contextPaywall);
+        onOpenModal(_ShootModalKind.contextPaywall);
       }
       AppSnackBar.showError(context, failure.message);
     },
@@ -283,9 +283,9 @@ Future<String?> _selectBagSubCategory(BuildContext context) =>
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const _SectionTitle('What type of bag is this?'),
+              const AppSectionTitle('What type of bag is this?'),
               const SizedBox(height: 6),
-              const _Caption('This helps AI place the product correctly.'),
+              const AppCaption('This helps AI place the product correctly.'),
               const SizedBox(height: 12),
               for (final value in const [
                 'Tote',
@@ -313,7 +313,7 @@ class _CreateStepBody extends StatelessWidget {
 
   final _CreateShootState state;
   final _CreateShootController controller;
-  final ValueChanged<_ModalKind> onOpenModal;
+  final ValueChanged<_ShootModalKind> onOpenModal;
 
   @override
   Widget build(BuildContext context) {
@@ -327,7 +327,7 @@ class _CreateStepBody extends StatelessWidget {
         onSelect: controller.toggleProduct,
         onClear: controller.clearProducts,
         onModeChanged: controller.setProductMode,
-        onAdd: () => onOpenModal(_ModalKind.product),
+        onAdd: () => onOpenModal(_ShootModalKind.product),
         onCalibrate: () => context.push(AppRoutes.dashboardProducts),
       ),
       _CreateStep.model => _ModelStep(
@@ -343,7 +343,7 @@ class _CreateStepBody extends StatelessWidget {
         onClear: controller.clearModels,
         onSourceChanged: (useLibrary) =>
             controller.setModelSource(useLibraryModels: useLibrary),
-        onAdd: () => onOpenModal(_ModalKind.model),
+        onAdd: () => onOpenModal(_ShootModalKind.model),
       ),
       _CreateStep.director => _DirectorStep(
         directors: state.directors,
@@ -358,10 +358,10 @@ class _CreateStepBody extends StatelessWidget {
             : controller.selectDirector,
         onDemoDirectorChanged: controller.updateDemoDirector,
         onSettingsChanged: controller.updateSettings,
-        onUpgrade: () => onOpenModal(_ModalKind.contextPaywall),
+        onUpgrade: () => onOpenModal(_ShootModalKind.contextPaywall),
         onPortfolio: (index) {
           controller.previewDirectorAt(index);
-          onOpenModal(_ModalKind.directorPortfolio);
+          onOpenModal(_ShootModalKind.directorPortfolio);
         },
       ),
       _CreateStep.planning => _PlanningStep(
@@ -382,7 +382,7 @@ class _CreateStepBody extends StatelessWidget {
           }
         },
         onToggle: controller.toggleShot,
-        onCustom: () => onOpenModal(_ModalKind.customShot),
+        onCustom: () => onOpenModal(_ShootModalKind.customShot),
       ),
       _CreateStep.confirm =>
         state.demoMode

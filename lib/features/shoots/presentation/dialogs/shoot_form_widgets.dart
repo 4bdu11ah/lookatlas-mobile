@@ -1,4 +1,4 @@
-part of '../../../dashboard/presentation/screens/dashboard_screen.dart';
+part of '../shoots_feature.dart';
 
 class _DialogUpload extends StatelessWidget {
   const _DialogUpload({required this.label, this.onTap});
@@ -11,7 +11,7 @@ class _DialogUpload extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _FieldLabel(label),
+        AppFieldLabel(label),
         const SizedBox(height: 7),
         InkWell(
           onTap: onTap,
@@ -28,11 +28,11 @@ class _DialogUpload extends StatelessWidget {
               children: [
                 Icon(Icons.upload_outlined, size: 24),
                 SizedBox(height: 6),
-                _CardTitle(
+                AppCardTitle(
                   'Click to upload',
                   color: AppColors.black,
                 ),
-                _Caption('PNG, JPG up to 10MB'),
+                AppCaption('PNG, JPG up to 10MB'),
               ],
             ),
           ),
@@ -113,7 +113,7 @@ class _ImageReportBody extends ConsumerWidget {
                 ref.read(_imageReportCommentProvider.notifier).update(comment),
           ),
           const SizedBox(height: 16),
-          const _FieldLabel('Report reason'),
+          const AppFieldLabel('Report reason'),
           const SizedBox(height: 8),
           _ImageReportReasonTile(
             key: const ValueKey('report-reason-product'),
@@ -170,7 +170,7 @@ class _ImageReportReasonTile extends StatelessWidget {
           children: [
             Icon(icon, size: 20),
             const SizedBox(width: 10),
-            Expanded(child: _CardTitle(label, fontSize: 14)),
+            Expanded(child: AppCardTitle(label, fontSize: 14)),
             Icon(
               selected ? Icons.radio_button_checked : Icons.radio_button_off,
               size: 20,
@@ -287,7 +287,7 @@ class _AiEditDialog extends ConsumerWidget {
               color: AppColors.neutralLight,
               child: Padding(
                 padding: const EdgeInsets.all(12),
-                child: _AssetImage(imageUrl),
+                child: AppAssetImage(imageUrl),
               ),
             ),
           ),
@@ -296,21 +296,20 @@ class _AiEditDialog extends ConsumerWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const _BodyText(
+                const AppBodyText(
                   'Describe what you would like to change. Be specific about the edit you want.',
                 ),
                 const SizedBox(height: 12),
                 AppTextField(
                   labelText: 'Edit prompt',
-                  hintText:
-                      'e.g., Remove the shadow on the left side, make the model smile more, change the background to pure white...',
+                  hintText: 'e.g., Remove the shadow on the left side, make the model smile more, change the background to pure white...',
                   minLines: 5,
                   maxLines: 5,
                   onChanged: (value) =>
                       ref.read(_aiEditPromptProvider.notifier).update(value),
                 ),
                 const SizedBox(height: 8),
-                _Caption('${_aiEditWordCount(prompt)} / 500 words'),
+                AppCaption('${_aiEditWordCount(prompt)} / 500 words'),
               ],
             ),
           ),
@@ -340,7 +339,7 @@ class _AiEditDialogFooter extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const _Caption('Credits will be charged based on image resolution'),
+        const AppCaption('Credits will be charged based on image resolution'),
         const SizedBox(height: 12),
         Row(
           children: [

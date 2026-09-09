@@ -1,4 +1,4 @@
-part of '../../../dashboard/presentation/screens/dashboard_screen.dart';
+part of '../shoots_feature.dart';
 
 class ShootDetailScreen extends ConsumerStatefulWidget {
   const ShootDetailScreen({
@@ -47,7 +47,7 @@ class _ShootDetailScreenState extends ConsumerState<ShootDetailScreen> {
       child: _ShootDetailContent(
         fromDashboard: widget.fromDashboard,
         onBackToDashboard: () => _backToDashboard(context),
-        onOpenModal: (kind) => _openDashboardModal(context, ref, kind),
+        onOpenModal: (kind) => _openShootModal(context, ref, kind),
         onToast: (text) => AppSnackBar.show(context, text),
       ),
     ),
@@ -64,7 +64,7 @@ class _ShootDetailContent extends ConsumerWidget {
 
   final bool fromDashboard;
   final VoidCallback onBackToDashboard;
-  final ValueChanged<_ModalKind> onOpenModal;
+  final ValueChanged<_ShootModalKind> onOpenModal;
   final ValueChanged<String> onToast;
 
   @override
@@ -74,8 +74,8 @@ class _ShootDetailContent extends ConsumerWidget {
     if (state.isLoading) return const _ShootDetailLoading();
     final job = state.job;
     if (job == null) {
-      return _Card(
-        child: _Column(
+      return AppCard(
+        child: AppSpacedColumn(
           gap: 12,
           children: [
             Text(state.failure?.message ?? 'Could not load this shoot.'),
@@ -88,7 +88,7 @@ class _ShootDetailContent extends ConsumerWidget {
         ),
       );
     }
-    final shoot = _Shoot.fromJob(job);
+    final shoot = ShootViewModel.fromJob(job);
     if (shoot.status == 'failed') {
       return _FailedShootDetail(
         shoot: shoot,
@@ -112,7 +112,7 @@ class _ShootDetailContent extends ConsumerWidget {
           ),
           const SizedBox(height: 12),
         ],
-        _PageHeader(
+        AppPageHeader(
           title: shoot.name,
           body: 'Generated images for ${job.modelName ?? 'your model'}',
           small: true,
@@ -120,7 +120,7 @@ class _ShootDetailContent extends ConsumerWidget {
         const SizedBox(height: 8),
         Row(
           children: [
-            _StatusBadge(shoot.status),
+            AppStatusBadge(shoot.status),
             const SizedBox(width: 12),
             Expanded(
               child: AppOutlinedButton(
@@ -173,11 +173,11 @@ class _ShootDetailContent extends ConsumerWidget {
         const SizedBox(height: 10),
         _VideoCard(
           enabled: !isProcessing,
-          onTap: () => onOpenModal(_ModalKind.videoOptions),
+          onTap: () => onOpenModal(_ShootModalKind.videoOptions),
         ),
         if (!isProcessing && state.images.isNotEmpty) ...[
           const SizedBox(height: 10),
-          const _Card(padding: EdgeInsets.zero, child: _ImageReportNotice()),
+          const AppCard(padding: EdgeInsets.zero, child: _ImageReportNotice()),
         ],
         const SizedBox(height: 10),
         _GeneratedImages(
@@ -190,11 +190,11 @@ class _ShootDetailContent extends ConsumerWidget {
           ),
           onPreview: (image) {
             controller.selectImage(image);
-            onOpenModal(_ModalKind.imagePreview);
+            onOpenModal(_ShootModalKind.imagePreview);
           },
           onEdit: (image) {
             controller.selectImage(image);
-            onOpenModal(_ModalKind.editAi);
+            onOpenModal(_ShootModalKind.editAi);
           },
           onVersions: (image) async {
             final failure = await controller.loadVersions(image);
@@ -203,7 +203,7 @@ class _ShootDetailContent extends ConsumerWidget {
               AppSnackBar.showError(context, failure.message);
               return;
             }
-            onOpenModal(_ModalKind.versions);
+            onOpenModal(_ShootModalKind.versions);
           },
           onVariation: (shotIndex) {
             final image = _displayShots(
@@ -212,7 +212,7 @@ class _ShootDetailContent extends ConsumerWidget {
             if (image != null) {
               controller.selectImage(image, shotIndex: shotIndex);
             }
-            onOpenModal(_ModalKind.variation);
+            onOpenModal(_ShootModalKind.variation);
           },
           onDownload: (image) async {
             final result = await controller.download(image);

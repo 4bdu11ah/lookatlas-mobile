@@ -1,4 +1,4 @@
-part of '../../../dashboard/presentation/screens/dashboard_screen.dart';
+part of '../shoots_feature.dart';
 
 class ShootsScreen extends ConsumerWidget {
   const ShootsScreen({super.key});
@@ -16,10 +16,10 @@ class ShootsScreen extends ConsumerWidget {
         icon: Icons.play_arrow_outlined,
         onPressed: !isPremium
             ? () => _openCreateShoot(context)
-            : () => _openDashboardModal(
+            : () => _openShootModal(
                 context,
                 ref,
-                _ModalKind.contextPaywall,
+                _ShootModalKind.contextPaywall,
               ),
       ),
       child: RefreshIndicator(
@@ -28,7 +28,7 @@ class ShootsScreen extends ConsumerWidget {
           physics: const AlwaysScrollableScrollPhysics(),
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 28),
           child: _JobsPage(
-            onOpenModal: (kind) => _openDashboardModal(context, ref, kind),
+            onOpenModal: (kind) => _openShootModal(context, ref, kind),
           ),
         ),
       ),
@@ -39,7 +39,7 @@ class ShootsScreen extends ConsumerWidget {
 class _JobsPage extends ConsumerWidget {
   const _JobsPage({required this.onOpenModal});
 
-  final ValueChanged<_ModalKind> onOpenModal;
+  final ValueChanged<_ShootModalKind> onOpenModal;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -53,7 +53,7 @@ class _JobsPage extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const _BodyText(
+        const AppBodyText(
           'Monitor your photo shoots and generation progress.',
         ),
         const SizedBox(height: 16),
@@ -65,8 +65,8 @@ class _JobsPage extends ConsumerWidget {
           onStatusChanged: controller.setStatus,
         ),
         if (state.failure != null && shoots.isEmpty)
-          _Card(
-            child: _Column(
+          AppCard(
+            child: AppSpacedColumn(
               gap: 12,
               children: [
                 Text(state.failure!.message),
@@ -79,7 +79,7 @@ class _JobsPage extends ConsumerWidget {
             ),
           )
         else if (shoots.isEmpty)
-          _EmptyState(
+          AppEmptyState(
             title: state.query.isEmpty && state.status == 'all'
                 ? 'No shoots yet'
                 : 'No shoots found',
@@ -92,7 +92,7 @@ class _JobsPage extends ConsumerWidget {
             onTap: state.query.isEmpty && state.status == 'all'
                 ? () => isPremium
                       ? _openCreateShoot(context)
-                      : onOpenModal(_ModalKind.contextPaywall)
+                      : onOpenModal(_ShootModalKind.contextPaywall)
                 : () {
                     controller
                       ..setQuery('')

@@ -5,7 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:look_atlas/core/error/failure.dart';
 import 'package:look_atlas/features/shoots/di/shoots_providers.dart';
 import 'package:look_atlas/features/shoots/domain/entities/shoot_job.dart';
-import 'package:look_atlas/features/studio_school/presentation/studio_school_controller.dart';
+import 'package:look_atlas/features/studio_school/di/studio_school_providers.dart';
 
 typedef DashboardCampaignKey = ({String userId, String jobId});
 
@@ -92,7 +92,7 @@ class DashboardCampaignController extends Notifier<DashboardCampaignState> {
     if (failure != null) return failure;
     await Future.wait<void>([
       load(silent: true),
-      ref.read(studioSchoolControllerProvider.notifier).refresh(),
+      ref.read(refreshStudioSchoolProvider)(),
     ]);
     return null;
   }

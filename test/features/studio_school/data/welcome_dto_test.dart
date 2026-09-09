@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:look_atlas/features/dashboard/domain/entities/dashboard_welcome.dart';
-import 'package:look_atlas/features/studio_school/data/welcome_dto.dart';
-import 'package:look_atlas/features/studio_school/domain/welcome_lesson.dart';
+import 'package:look_atlas/features/studio_school/data/models/welcome_dto.dart';
+import 'package:look_atlas/features/studio_school/domain/entities/welcome_lesson.dart';
 
 void main() {
   test('state_eligiblePayload_mapsCanonicalLessonProgress', () {

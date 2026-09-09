@@ -119,12 +119,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
         : 'Your workspace';
     final initials = _accountInitials(accountName);
     final legacyInitial = initials[0];
-    final welcomeState = ref.watch(studioSchoolControllerProvider);
-    final showCompleteProfile = switch (welcomeState) {
-      SchoolReady(:final welcome) || SchoolOfflineCached(:final welcome) =>
-        welcome.eligible && (welcome.dashboard?.profileIncomplete ?? false),
-      _ => false,
-    };
+    final welcome = ref.watch(studioSchoolWelcomeProvider);
+    final showCompleteProfile =
+        welcome?.eligible == true &&
+        (welcome?.dashboard?.profileIncomplete ?? false);
     final content = SafeArea(
       bottom: false,
       child: ResponsiveContent(
@@ -158,9 +156,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                             _dashboardOverviewControllerProvider.notifier,
                           )
                           .refresh(),
-                      ref
-                          .read(studioSchoolControllerProvider.notifier)
-                          .refresh(),
+                      ref.read(refreshStudioSchoolProvider)(),
                     ]),
                     child: SingleChildScrollView(
                       physics: const AlwaysScrollableScrollPhysics(),
@@ -295,7 +291,7 @@ class _WelcomeFocusRefreshState extends ConsumerState<_WelcomeFocusRefresh>
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
-      unawaited(ref.read(studioSchoolControllerProvider.notifier).refresh());
+      unawaited(ref.read(refreshStudioSchoolProvider)());
     }
   }
 
@@ -318,71 +314,6 @@ void _navigateDashboard(
     unawaited(context.push<void>(page.routePath));
   }
 }
-
-Future<void> _openDashboardModal(
-  BuildContext context,
-  WidgetRef ref,
-  _ModalKind kind,
-) {
-  ref.read(_dashboardShellControllerProvider.notifier).closeUserMenu();
-  if (kind == _ModalKind.editAi) {
-    return _showAiEditDialog(
-      context,
-      onToast: (text) => _toastDashboard(context, text),
-    );
-  }
-  if (kind == _ModalKind.directorPortfolio) {
-    final createState = ref.read(_createShootControllerProvider);
-    final shootDirector = _selectedShootDirector(ref);
-    final director = _onboardingDirectorFor(shootDirector);
-    if (director != null) {
-      final selected = createState.demoMode
-          ? createState.demoDirectors.any(
-              (config) => config.directorId == shootDirector?.id,
-            )
-          : createState.selectedDirector == createState.previewDirector;
-      return showDirectorPortfolio(
-        context,
-        director: director,
-        isSelected: selected,
-        onSelect: () {
-          final controller = ref.read(
-            _createShootControllerProvider.notifier,
-          );
-          if (createState.demoMode) {
-            controller.toggleDemoDirector(createState.previewDirector);
-          } else {
-            controller.selectDirector(createState.previewDirector);
-          }
-        },
-      );
-    }
-  }
-  return showAppDialog<void>(
-    context: context,
-    builder: (_) => _DashboardModal(
-      kind: kind,
-      onNavigate: (page) => _navigateDashboard(context, ref, page),
-      onOpenModal: (nextKind) => _openDashboardModal(context, ref, nextKind),
-      onToast: (text) => _toastDashboard(context, text),
-    ),
-  );
-}
-
-Director? _onboardingDirectorFor(ShootLook? shootDirector) {
-  if (shootDirector == null) return null;
-  for (final director in directors) {
-    if (director.apiId == shootDirector.id ||
-        director.id == shootDirector.id ||
-        director.name == shootDirector.name) {
-      return director;
-    }
-  }
-  return null;
-}
-
-void _toastDashboard(BuildContext context, String text) =>
-    AppSnackBar.show(context, text);
 
 Future<void> _logOut(BuildContext context, WidgetRef ref) async {
   final result = await ref.read(authRepositoryProvider).signOut();
@@ -705,14 +636,13 @@ class _DashboardDrawer extends StatelessWidget {
         keyName: 'create-content',
         label: 'Create Content',
         icon: LucideIcons.pencil,
-        route: AppRoutes.createShoot,
+        route: AppRoutes.createContent,
       ),
       _DrawerDestination(
         keyName: 'calendar',
         label: 'Calendar',
         icon: LucideIcons.calendarDays,
-        route: AppRoutes.dashboardShoots,
-        badge: 3,
+        route: AppRoutes.calendar,
       ),
     ]),
     _DrawerGroup('Services', [
@@ -955,7 +885,6 @@ class _DrawerDestination {
     this.route,
     this.disabled = false,
     this.trailingLabel,
-    this.badge,
   });
 
   final String keyName;
@@ -964,7 +893,6 @@ class _DrawerDestination {
   final String? route;
   final bool disabled;
   final String? trailingLabel;
-  final int? badge;
 }
 
 class _UserMenu extends StatelessWidget {
@@ -995,10 +923,10 @@ class _UserMenu extends StatelessWidget {
             padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [_Eyebrow('Credits'), _DashboardCredits()],
+              children: [AppEyebrow('Credits'), _DashboardCredits()],
             ),
           ),
-          const _Hairline(),
+          const AppHairline(),
           _MenuRow(
             icon: LucideIcons.userCircle,
             label: 'Account Settings',
@@ -1135,7 +1063,7 @@ class _DrawerNavGroup extends StatelessWidget {
   );
 }
 
-class _DrawerNavTile extends StatelessWidget {
+class _DrawerNavTile extends ConsumerWidget {
   const _DrawerNavTile({
     required this.destination,
     required this.active,
@@ -1147,7 +1075,11 @@ class _DrawerNavTile extends StatelessWidget {
   final VoidCallback? onTap;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final attention = destination.keyName == 'calendar'
+        ? ref.watch(calendarAttentionProvider).asData?.value
+        : null;
+    final badgeValue = attention == null || attention <= 0 ? null : attention;
     final foreground = active
         ? AppColors.white
         : destination.disabled
@@ -1157,9 +1089,9 @@ class _DrawerNavTile extends StatelessWidget {
       button: true,
       enabled: !destination.disabled,
       selected: active,
-      label: destination.badge == null
+      label: badgeValue == null
           ? destination.label
-          : '${destination.label}, ${destination.badge} posts need attention',
+          : '${destination.label}, $badgeValue posts need attention',
       child: Material(
         color: active ? const Color(0xFF181816) : AppColors.transparent,
         child: InkWell(
@@ -1209,7 +1141,7 @@ class _DrawerNavTile extends StatelessWidget {
                     ),
                   ),
                 ),
-                if (destination.badge case final badge?) ...[
+                if (badgeValue case final badge?) ...[
                   ExcludeSemantics(
                     child: Container(
                       height: 20,
@@ -1221,7 +1153,7 @@ class _DrawerNavTile extends StatelessWidget {
                         borderRadius: BorderRadius.circular(10),
                       ),
                       child: Text(
-                        '$badge',
+                        calendarBadge(badge),
                         style: const TextStyle(
                           color: AppColors.white,
                           fontSize: 10,

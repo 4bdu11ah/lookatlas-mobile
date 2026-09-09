@@ -1,4 +1,4 @@
-import 'package:look_atlas/features/subscription/domain/subscription_status.dart';
+import 'package:look_atlas/features/subscription/domain/entities/subscription_status.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
 
 /// Data-layer representation of [SubscriptionStatus]. Extends the domain

@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:look_atlas/core/router/app_routes.dart';
-import 'package:look_atlas/features/studio_school/domain/studio_school_catalog.dart';
-import 'package:look_atlas/features/studio_school/domain/welcome_lesson.dart';
+import 'package:look_atlas/features/studio_school/domain/entities/welcome_lesson.dart';
+import 'package:look_atlas/features/studio_school/presentation/models/studio_school_catalog.dart';
 
 void main() {
   test('catalog_sixLessons_preservesCanonicalOrderAndCardCounts', () {

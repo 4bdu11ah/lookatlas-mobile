@@ -1,4 +1,4 @@
-part of '../../../dashboard/presentation/screens/dashboard_screen.dart';
+part of '../products_feature.dart';
 
 class _CalibrationWornStep extends StatelessWidget {
   const _CalibrationWornStep({
@@ -297,7 +297,7 @@ class _CalibrationFitStepState extends State<_CalibrationFitStep> {
                                           style: const TextStyle(fontSize: 10),
                                         ),
                                       )
-                                    : _AssetImage(item.imageUrl!),
+                                    : AppAssetImage(item.imageUrl!),
                               ),
                               const SizedBox(height: 6),
                               Text(

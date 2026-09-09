@@ -1,4 +1,4 @@
-part of '../../../dashboard/presentation/screens/dashboard_screen.dart';
+part of '../billing_feature.dart';
 
 Future<void> _openPurchaseDialog(BuildContext context, WidgetRef ref) async {
   ref.read(_billingControllerProvider.notifier).preparePurchase();
@@ -212,7 +212,7 @@ class _BillingPurchaseBody extends ConsumerWidget {
                 value: '${state.purchaseCredits}',
               ),
               const SizedBox(height: 16),
-              const _Hairline(),
+              const AppHairline(),
               const SizedBox(height: 16),
               _BillingTotalRow(
                 label: 'TOTAL DUE',

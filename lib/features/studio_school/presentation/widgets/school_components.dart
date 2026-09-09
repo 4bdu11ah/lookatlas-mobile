@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:look_atlas/core/theme/app_colors.dart';
 import 'package:look_atlas/core/theme/app_typography.dart';
-import 'package:look_atlas/features/studio_school/domain/lesson_definition.dart';
+import 'package:look_atlas/features/studio_school/presentation/models/lesson_definition.dart';
 
 class SchoolHeader extends StatelessWidget {
   const SchoolHeader({super.key});

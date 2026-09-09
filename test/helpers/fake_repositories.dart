@@ -10,11 +10,11 @@ import 'package:look_atlas/features/dashboard/domain/entities/dashboard_data.dar
 import 'package:look_atlas/features/dashboard/domain/repositories/dashboard_repository.dart';
 import 'package:look_atlas/features/products/domain/entities/product_catalog.dart';
 import 'package:look_atlas/features/products/domain/repositories/products_repository.dart';
-import 'package:look_atlas/features/subscription/domain/subscription_repository.dart';
-import 'package:look_atlas/features/subscription/domain/subscription_status.dart';
+import 'package:look_atlas/features/subscription/domain/entities/subscription_product.dart';
+import 'package:look_atlas/features/subscription/domain/entities/subscription_status.dart';
+import 'package:look_atlas/features/subscription/domain/repositories/subscription_repository.dart';
 import 'package:look_atlas/features/workshop/domain/entities/workshop_models.dart';
 import 'package:look_atlas/features/workshop/domain/repositories/workshop_repository.dart';
-import 'package:purchases_flutter/purchases_flutter.dart';
 
 class FakeDashboardRepository implements DashboardRepository {
   const FakeDashboardRepository({
@@ -457,7 +457,7 @@ class FakeSubscriptionRepository implements SubscriptionRepository {
     willRenew: true,
   );
 
-  List<StoreProduct> products;
+  List<SubscriptionProduct> products;
   Result<SubscriptionStatus> purchaseResult = const Result.ok(premiumStatus);
   Result<SubscriptionStatus> restoreResult = const Result.ok(premiumStatus);
 
@@ -477,11 +477,11 @@ class FakeSubscriptionRepository implements SubscriptionRepository {
   Future<SubscriptionStatus> currentStatus() async => _status;
 
   @override
-  Future<Result<List<StoreProduct>>> fetchProducts() async =>
+  Future<Result<List<SubscriptionProduct>>> fetchProducts() async =>
       Result.ok(products);
 
   @override
-  Future<Result<SubscriptionStatus>> purchase(StoreProduct product) async =>
+  Future<Result<SubscriptionStatus>> purchase(String productId) async =>
       _complete(purchaseResult);
 
   @override
@@ -507,13 +507,14 @@ class FakeSubscriptionRepository implements SubscriptionRepository {
 }
 
 /// Builds a purchasable product without platform channels.
-StoreProduct fakeProduct({String id = 'product_monthly'}) => StoreProduct(
-  id,
-  'Full access, billed monthly.',
-  'Premium Monthly',
-  9.99,
-  r'$9.99',
-  'USD',
-  productCategory: ProductCategory.subscription,
-  subscriptionPeriod: 'P1M',
-);
+SubscriptionProduct fakeProduct({String id = 'product_monthly'}) =>
+    SubscriptionProduct(
+      id: id,
+      description: 'Full access, billed monthly.',
+      title: 'Premium Monthly',
+      price: 9.99,
+      priceString: r'$9.99',
+      currencyCode: 'USD',
+      type: SubscriptionProductType.subscription,
+      subscriptionPeriod: 'P1M',
+    );

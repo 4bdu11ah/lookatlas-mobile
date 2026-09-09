@@ -1,4 +1,4 @@
-part of '../../../dashboard/presentation/screens/dashboard_screen.dart';
+part of '../shoots_feature.dart';
 
 typedef _PlanningDetails = ({
   String directorName,
@@ -40,7 +40,7 @@ class _PlanningStep extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (!isPlanned || isPlanning) {
-      return _Column(
+      return AppSpacedColumn(
         gap: 14,
         children: [
           _CreateSectionHeader(
@@ -56,12 +56,12 @@ class _PlanningStep extends StatelessWidget {
               children: [
                 const Icon(Icons.auto_awesome, size: 28),
                 const SizedBox(height: 14),
-                _SectionTitle(
+                AppSectionTitle(
                   '${details.directorName} will plan '
                   '${details.shotCount} unique shots',
                 ),
                 const SizedBox(height: 6),
-                _Caption(
+                AppCaption(
                   'Style: ${details.directorStyle} • For: ${details.useCase}',
                 ),
                 const SizedBox(height: 16),
@@ -80,7 +80,7 @@ class _PlanningStep extends StatelessWidget {
         ],
       );
     }
-    return _Column(
+    return AppSpacedColumn(
       gap: 11,
       children: [
         const _CreateSectionHeader(
@@ -129,7 +129,7 @@ class _ReviewStep extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return _Column(
+    return AppSpacedColumn(
       gap: 12,
       children: [
         const _CreateSectionHeader(
@@ -137,8 +137,8 @@ class _ReviewStep extends StatelessWidget {
           subtitle: 'Confirm your shoot settings',
         ),
         _ReviewGrid(state: state),
-        _Alert(
-          kind: _AlertKind.info,
+        AppAlert(
+          kind: AppAlertKind.info,
           richText: TextSpan(
             children: [
               const TextSpan(
@@ -157,7 +157,7 @@ class _ReviewStep extends StatelessWidget {
           ),
         ),
         if (state.canUseUnlimited) ...[
-          const _FieldLabel('Generation speed'),
+          const AppFieldLabel('Generation speed'),
           _SegmentedChoices(
             choices: const ['Instant · Credits', 'Unlimited · Included'],
             selected: state.settings.lane.index,
@@ -166,8 +166,8 @@ class _ReviewStep extends StatelessWidget {
         ],
         _CreditSummary(state: state),
         if (!state.canGenerate && state.settings.lane == ShootLane.fast)
-          const _Alert(
-            kind: _AlertKind.warn,
+          const AppAlert(
+            kind: AppAlertKind.warn,
             text: 'Not enough credits. Reduce images or choose Unlimited.',
           ),
       ],
@@ -219,7 +219,7 @@ class _PlannedShot extends StatelessWidget {
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                children: [_CardTitle(title), _Caption(body)],
+                children: [AppCardTitle(title), AppCaption(body)],
               ),
             ),
           ],
@@ -312,7 +312,7 @@ class _ReviewSelectionSection extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _Caption(title),
+          AppCaption(title),
           const SizedBox(height: 10),
           ListView.separated(
             shrinkWrap: true,
@@ -323,18 +323,18 @@ class _ReviewSelectionSection extends StatelessWidget {
               final item = items[index];
               return Row(
                 children: [
-                  _AssetBox(item.imageUrl, width: 48, height: 48),
+                  AppAssetBox(item.imageUrl, width: 48, height: 48),
                   const SizedBox(width: 10),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        _CardTitle(
+                        AppCardTitle(
                           item.name,
                           fontSize: 14,
                         ),
                         const SizedBox(height: 2),
-                        _Caption(
+                        AppCaption(
                           roleBuilder(index),
                           fontSize: 11,
                         ),
@@ -375,12 +375,12 @@ class _ReviewMetricCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _Caption(title),
+          AppCaption(title),
           const SizedBox(height: 8),
-          _CardTitle(value),
+          AppCardTitle(value),
           if (subtitle != null) ...[
             const SizedBox(height: 4),
-            _Caption(subtitle!),
+            AppCaption(subtitle!),
           ],
         ],
       ),
@@ -410,10 +410,10 @@ class _CreditSummary extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _CardTitle(
+                AppCardTitle(
                   unlimited ? 'Included with Unlimited' : 'Credits Required',
                 ),
-                _Caption(
+                AppCaption(
                   '${state.chosenShots.length} shots × '
                   '${state.settings.variations} variations × $multiplier',
                 ),

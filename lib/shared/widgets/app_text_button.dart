@@ -4,45 +4,60 @@ import 'package:look_atlas/core/theme/app_typography.dart';
 /// App-wide bordered text action with a leading icon.
 class AppTextButton extends StatelessWidget {
   const AppTextButton({
-    required this.icon,
     required this.label,
     required this.onPressed,
+    this.icon,
     this.fitToContent = false,
+    this.showBorder = true,
+    this.height = 42,
+    this.padding,
+    this.textColor,
+    this.textStyle,
     super.key,
   });
 
-  final IconData icon;
   final String label;
   final VoidCallback? onPressed;
+  final IconData? icon;
   final bool fitToContent;
+  final bool showBorder;
+  final double height;
+  final EdgeInsetsGeometry? padding;
+  final Color? textColor;
+  final TextStyle? textStyle;
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final effectiveColor = textColor ?? scheme.onSurface;
     final buttonLabel = Text(
       label,
       maxLines: 1,
       overflow: TextOverflow.ellipsis,
-      style: Theme.of(context).textTheme.labelMedium?.copyWith(
+      style: (textStyle ?? Theme.of(context).textTheme.labelMedium)?.copyWith(
         fontWeight: AppTypography.bold,
-        color: scheme.onSurface,
+        color: effectiveColor,
       ),
     );
     return InkWell(
       onTap: onPressed,
       child: Container(
         width: fitToContent ? null : double.infinity,
-        height: 42,
-        padding: const EdgeInsets.symmetric(horizontal: 12),
-        decoration: BoxDecoration(
-          color: scheme.surface,
-          border: Border.all(color: scheme.outline),
-        ),
+        height: height,
+        padding: padding ?? const EdgeInsets.symmetric(horizontal: 12),
+        decoration: showBorder
+            ? BoxDecoration(
+                color: scheme.surface,
+                border: Border.all(color: scheme.outline),
+              )
+            : null,
         child: Row(
           mainAxisSize: fitToContent ? MainAxisSize.min : MainAxisSize.max,
           children: [
-            Icon(icon, size: 17, color: scheme.onSurface),
-            const SizedBox(width: 7),
+            if (icon != null) ...[
+              Icon(icon, size: 17, color: effectiveColor),
+              const SizedBox(width: 7),
+            ],
             if (fitToContent)
               buttonLabel
             else

@@ -117,7 +117,7 @@ class LoggingInterceptor extends Interceptor {
     } on FormatException {
       final redacted = data.replaceAllMapped(
         RegExp(
-          r'((?:access_token|api_key|authorization|cookie|password|refresh_token|secret|token)=)[^&\s]*',
+          r'((?:access_?token|api_?key|authorization|cookie|password|refresh_?token|secret|token)=)[^&\s]*',
           caseSensitive: false,
         ),
         (match) => '${match.group(1)}***',
@@ -141,7 +141,13 @@ class LoggingInterceptor extends Interceptor {
   }
 
   bool _isSensitiveField(String field) {
-    final normalized = field.toLowerCase().replaceAll('-', '_');
+    final normalized = field
+        .replaceAllMapped(
+          RegExp('([a-z0-9])([A-Z])'),
+          (match) => '${match.group(1)}_${match.group(2)}',
+        )
+        .toLowerCase()
+        .replaceAll('-', '_');
     return _redactedFields.contains(normalized) ||
         normalized.contains('password') ||
         normalized.endsWith('_token') ||

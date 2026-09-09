@@ -1,4 +1,4 @@
-part of '../../../dashboard/presentation/screens/dashboard_screen.dart';
+part of '../house_model_feature.dart';
 
 class _ModelGrid extends StatelessWidget {
   const _ModelGrid({required this.models});
@@ -265,7 +265,7 @@ class _UserModelCardState extends ConsumerState<_UserModelCard> {
     if (photos.length == 1) {
       return ColoredBox(
         color: const Color(0xFFEEEAE2),
-        child: _AssetImage(photos.single),
+        child: AppAssetImage(photos.single),
       );
     }
     return Stack(
@@ -277,7 +277,7 @@ class _UserModelCardState extends ConsumerState<_UserModelCard> {
           itemBuilder: (context, index) => ColoredBox(
             key: ValueKey('user-model-${model.id}-photo-$index'),
             color: const Color(0xFFEEEAE2),
-            child: _AssetImage(photos[index]),
+            child: AppAssetImage(photos[index]),
           ),
         ),
         Positioned(
@@ -365,7 +365,7 @@ class _ModelPhoto extends StatelessWidget {
         children: [
           ColoredBox(
             color: const Color(0xFFEEEAE2),
-            child: _AssetImage(asset),
+            child: AppAssetImage(asset),
           ),
           Positioned(
             top: 8,

@@ -4,10 +4,10 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:look_atlas/core/theme/app_theme.dart';
 import 'package:look_atlas/features/auth/di/auth_providers.dart';
 import 'package:look_atlas/features/auth/domain/entities/app_user.dart';
-import 'package:look_atlas/features/dashboard/presentation/screens/dashboard_screen.dart';
 import 'package:look_atlas/features/shoots/di/shoots_providers.dart';
 import 'package:look_atlas/features/shoots/domain/entities/shoot_create.dart';
-import 'package:look_atlas/features/subscription/presentation/subscription_controller.dart';
+import 'package:look_atlas/features/shoots/presentation/shoots_feature.dart';
+import 'package:look_atlas/features/subscription/di/subscription_access_providers.dart';
 
 import '../../helpers/fake_repositories.dart';
 import '../../helpers/fake_shoots_repository.dart';

@@ -36,6 +36,8 @@ Everything is **feature-flagged**: drop in your keys to enable a service, or lea
 
 ## Architecture
 
+See the [architecture implementation guide](docs/architecture.md) for the agreed target structure, layer responsibilities, dependency rules, testing strategy, and gradual migration plan.
+
 Feature-first clean architecture. Each feature owns its `domain` (models + repository interfaces), `data` (implementations), and `presentation` (controllers + screens). The UI depends only on domain interfaces, so swapping a backend never touches a screen.
 
 ```

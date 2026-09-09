@@ -1,7 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:look_atlas/core/result/result.dart';
-import 'package:look_atlas/features/account_deletion/presentation/account_deletion_controller.dart';
+import 'package:look_atlas/features/account_deletion/presentation/controllers/account_deletion_controller.dart';
 import 'package:look_atlas/features/auth/di/auth_providers.dart';
 import 'package:look_atlas/features/auth/domain/repositories/auth_repository.dart';
 import 'package:mocktail/mocktail.dart';

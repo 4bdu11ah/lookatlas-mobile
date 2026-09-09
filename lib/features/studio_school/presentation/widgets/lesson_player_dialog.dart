@@ -3,10 +3,10 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:look_atlas/core/theme/app_colors.dart';
-import 'package:look_atlas/features/studio_school/domain/lesson_definition.dart';
-import 'package:look_atlas/features/studio_school/domain/welcome_lesson.dart';
-import 'package:look_atlas/features/studio_school/presentation/studio_school_controller.dart';
-import 'package:look_atlas/features/studio_school/presentation/studio_school_state.dart';
+import 'package:look_atlas/features/studio_school/domain/entities/welcome_lesson.dart';
+import 'package:look_atlas/features/studio_school/presentation/controllers/studio_school_controller.dart';
+import 'package:look_atlas/features/studio_school/presentation/controllers/studio_school_state.dart';
+import 'package:look_atlas/features/studio_school/presentation/models/lesson_definition.dart';
 import 'package:look_atlas/features/studio_school/presentation/widgets/lesson_player_content.dart';
 import 'package:look_atlas/shared/widgets/app_dialog.dart';
 

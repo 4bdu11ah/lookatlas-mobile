@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:look_atlas/core/theme/app_colors.dart';
 import 'package:look_atlas/core/theme/app_typography.dart';
+import 'package:look_atlas/features/subscription/domain/entities/subscription_product.dart';
 import 'package:look_atlas/shared/widgets/bar_spinner.dart';
-import 'package:purchases_flutter/purchases_flutter.dart';
 
 class RevenueCatProductsSection extends StatelessWidget {
   const RevenueCatProductsSection({
@@ -15,9 +15,9 @@ class RevenueCatProductsSection extends StatelessWidget {
     super.key,
   });
 
-  final List<StoreProduct> products;
+  final List<SubscriptionProduct> products;
   final String? purchasingProductId;
-  final ValueChanged<StoreProduct> onPurchase;
+  final ValueChanged<SubscriptionProduct> onPurchase;
   final bool isLoading;
   final String? errorMessage;
   final VoidCallback? onRetry;
@@ -98,11 +98,9 @@ class RevenueCatProductsSection extends StatelessWidget {
     );
   }
 
-  static bool _isOneTime(StoreProduct product) =>
-      product.productCategory == ProductCategory.nonSubscription;
+  static bool _isOneTime(SubscriptionProduct product) => product.isOneTime;
 
-  static bool _isMonthly(StoreProduct product) =>
-      !_isOneTime(product) && product.subscriptionPeriod == 'P1M';
+  static bool _isMonthly(SubscriptionProduct product) => product.isMonthly;
 }
 
 class _ProductsStatus extends StatelessWidget {
@@ -140,9 +138,9 @@ class _ProductList extends StatelessWidget {
     required this.onPurchase,
   });
 
-  final List<StoreProduct> products;
+  final List<SubscriptionProduct> products;
   final String? purchasingProductId;
-  final ValueChanged<StoreProduct> onPurchase;
+  final ValueChanged<SubscriptionProduct> onPurchase;
 
   @override
   Widget build(BuildContext context) {
@@ -159,7 +157,7 @@ class _ProductList extends StatelessWidget {
           child: _RevenueCatProductCard(
             product: product,
             isBusy: purchasingProductId != null,
-            isPurchasing: purchasingProductId == product.identifier,
+            isPurchasing: purchasingProductId == product.id,
             onTap: () => onPurchase(product),
           ),
         );
@@ -176,13 +174,12 @@ class _RevenueCatProductCard extends StatelessWidget {
     required this.onTap,
   });
 
-  final StoreProduct product;
+  final SubscriptionProduct product;
   final bool isBusy;
   final bool isPurchasing;
   final VoidCallback onTap;
 
-  bool get _isOneTime =>
-      product.productCategory == ProductCategory.nonSubscription;
+  bool get _isOneTime => product.isOneTime;
 
   @override
   Widget build(BuildContext context) {
@@ -233,7 +230,7 @@ class _RevenueCatProductCard extends StatelessWidget {
             width: double.infinity,
             height: 44,
             child: FilledButton(
-              key: ValueKey('revenuecat-purchase-${product.identifier}'),
+              key: ValueKey('revenuecat-purchase-${product.id}'),
               onPressed: isBusy ? null : onTap,
               style: FilledButton.styleFrom(
                 backgroundColor: AppColors.white,

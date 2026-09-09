@@ -1,10 +1,9 @@
-part of '../../../dashboard/presentation/screens/dashboard_screen.dart';
+part of '../shoots_feature.dart';
 
 mixin _CreateShootDemoController on Notifier<_CreateShootState> {
   bool get _createInFlight;
   set _createInFlight(bool value);
   bool get _disposed;
-  ShootsRepository get _repository;
 
   void setDemoMode({required bool enabled}) {
     state = state.copyWith(
@@ -72,66 +71,42 @@ mixin _CreateShootDemoController on Notifier<_CreateShootState> {
     _createInFlight = true;
     state = state.copyWith(isSubmitting: true, clearFailure: true);
     final demoGroupId = _newDemoGroupId();
-    final failedDirectors = <String>[];
-    String? firstJobId;
-    var createdCount = 0;
+    late final DemoShootOutcome outcome;
     try {
-      for (final config in state.demoDirectors) {
-        final director = state.directors.firstWhere(
-          (item) => item.id == config.directorId,
-        );
-        final selection = _demoSelection(config);
-        final planned = await _repository.planShots(selection);
-        if (planned case Err()) {
-          failedDirectors.add(director.name);
-          continue;
-        }
-        final created = await _repository.createShoot(
-          CreateShootRequest(
-            selection: selection,
-            shots: planned.valueOrNull!.take(config.numberOfShots).toList(),
-            demoGroupId: demoGroupId,
-          ),
-        );
-        if (created case Err()) {
-          failedDirectors.add(director.name);
-          continue;
-        }
-        firstJobId ??= created.valueOrNull!;
-        createdCount++;
-      }
+      outcome = await ref.read(createDemoShootsUseCaseProvider)(
+        directors: [
+          for (final config in state.demoDirectors)
+            DemoShootDirector(
+              name: state.directors
+                  .firstWhere((item) => item.id == config.directorId)
+                  .name,
+              config: config,
+            ),
+        ],
+        products: state.selectedProducts,
+        models: state.selectedModels,
+        productMode: state.productMode,
+        settings: state.settings,
+        demoGroupId: demoGroupId,
+      );
     } finally {
       _createInFlight = false;
     }
     if (_disposed) {
-      return firstJobId == null
+      return outcome.firstJobId == null
           ? const Err(UnknownFailure('Demo creation failed.'))
-          : Ok(firstJobId);
+          : Ok(outcome.firstJobId!);
     }
-    if (failedDirectors.isNotEmpty) {
+    if (outcome.failedDirectors.isNotEmpty) {
       final failure = UnknownFailure(
-        'Created $createdCount demo '
-        '${createdCount == 1 ? 'shoot' : 'shoots'}. Failed: '
-        '${failedDirectors.join(', ')}.',
+        'Created ${outcome.createdCount} demo '
+        '${outcome.createdCount == 1 ? 'shoot' : 'shoots'}. Failed: '
+        '${outcome.failedDirectors.join(', ')}.',
       );
       state = state.copyWith(isSubmitting: false, failure: failure);
       return Err(failure);
     }
     state = state.copyWith(isSubmitting: false, clearFailure: true);
-    return Ok(firstJobId!);
+    return Ok(outcome.firstJobId!);
   }
-
-  ShootSelection _demoSelection(DemoDirectorConfig config) => ShootSelection(
-    products: state.selectedProducts,
-    models: state.selectedModels,
-    productMode: state.productMode,
-    settings: state.settings.copyWith(
-      directorId: config.directorId,
-      numberOfShots: config.numberOfShots,
-      variations: config.variations,
-      imageSize: '2K',
-      lane: ShootLane.fast,
-      stylingNotes: const {},
-    ),
-  );
 }

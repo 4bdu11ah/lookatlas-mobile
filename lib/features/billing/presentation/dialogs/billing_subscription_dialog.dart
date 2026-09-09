@@ -1,4 +1,4 @@
-part of '../../../dashboard/presentation/screens/dashboard_screen.dart';
+part of '../billing_feature.dart';
 
 Future<void> _openSubscriptionDialog(
   BuildContext context,
@@ -60,7 +60,7 @@ class _BillingSubscriptionDialog extends ConsumerWidget {
 Future<void> _purchaseBillingProduct(
   BuildContext context,
   WidgetRef ref,
-  revenuecat.StoreProduct product,
+  SubscriptionProduct product,
 ) async {
   final purchased = await ref
       .read(subscriptionActionProvider.notifier)
@@ -115,10 +115,10 @@ class _BillingMonthlyPlans extends StatelessWidget {
     required this.onPurchase,
   });
 
-  final List<revenuecat.StoreProduct> products;
+  final List<SubscriptionProduct> products;
   final String? currentProductId;
   final SubscriptionAction action;
-  final ValueChanged<revenuecat.StoreProduct> onPurchase;
+  final ValueChanged<SubscriptionProduct> onPurchase;
 
   @override
   Widget build(BuildContext context) {
@@ -159,21 +159,20 @@ class _BillingMonthlyPlanOption extends StatelessWidget {
     required this.onSelect,
   });
 
-  final revenuecat.StoreProduct product;
+  final SubscriptionProduct product;
   final String? currentProductId;
   final SubscriptionAction action;
   final VoidCallback onSelect;
 
   @override
   Widget build(BuildContext context) {
-    final isCurrent = product.identifier == currentProductId;
+    final isCurrent = product.id == currentProductId;
     final isPurchasing = switch (action) {
-      SubscriptionPurchasing(:final productId) =>
-        productId == product.identifier,
+      SubscriptionPurchasing(:final productId) => productId == product.id,
       _ => false,
     };
     return Container(
-      key: ValueKey('billing-plan-${product.identifier}'),
+      key: ValueKey('billing-plan-${product.id}'),
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: AppColors.white,
@@ -243,7 +242,7 @@ class _BillingPlanPurchaseButton extends StatelessWidget {
 class _BillingProductSummary extends StatelessWidget {
   const _BillingProductSummary({required this.product});
 
-  final revenuecat.StoreProduct product;
+  final SubscriptionProduct product;
 
   @override
   Widget build(BuildContext context) {

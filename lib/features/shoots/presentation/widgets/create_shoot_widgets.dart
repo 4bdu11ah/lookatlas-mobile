@@ -1,4 +1,4 @@
-part of '../../../dashboard/presentation/screens/dashboard_screen.dart';
+part of '../shoots_feature.dart';
 
 class _CreateProductQueryController extends Notifier<String> {
   @override
@@ -82,7 +82,7 @@ class _CreateShootHeader extends StatelessWidget {
                       height: 1.1,
                     ),
                   ),
-                  const _Badge('AI Director', kind: _BadgeKind.dark),
+                  const AppBadge('AI Director', kind: AppBadgeKind.dark),
                 ],
               ),
             ),
@@ -99,7 +99,7 @@ class _CreateShootHeader extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 4),
-        _Caption(
+        AppCaption(
           demoMode
               ? 'Bundle multiple directors into one client demo'
               : 'AI Director handles everything for you',
@@ -131,7 +131,7 @@ class _CreateSectionHeader extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Flexible(child: _SectionTitle(title)),
+            Flexible(child: AppSectionTitle(title)),
             if (onAdd != null) ...[
               const SizedBox(width: 4),
               AppOutlinedButton(
@@ -145,7 +145,7 @@ class _CreateSectionHeader extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 4),
-        _Caption(subtitle),
+        AppCaption(subtitle),
       ],
     );
   }
@@ -206,7 +206,7 @@ class _ProductStepState extends ConsumerState<_ProductStep> {
         : const <(int, ShootCatalogItem)>[];
     final maxProducts = widget.productMode == ProductMode.pairing ? 3 : 6;
 
-    return _Column(
+    return AppSpacedColumn(
       gap: 12,
       children: [
         _CreateSectionHeader(
@@ -305,13 +305,13 @@ class _ProductSelectionPanel extends StatelessWidget {
         color: AppColors.neutral50,
         border: Border.all(color: AppColors.neutral200),
       ),
-      child: _Column(
+      child: AppSpacedColumn(
         gap: 10,
         children: [
           Row(
             children: [
               Expanded(
-                child: _Caption(
+                child: AppCaption(
                   '${products.length}/$maxProducts products'
                   '${hasMultiple ? ' · $modeSummary' : ''}',
                   fontSize: 12,
@@ -345,7 +345,7 @@ class _ProductSelectionPanel extends StatelessWidget {
               ),
             ),
           ),
-          _Caption(
+          AppCaption(
             hasMultiple
                 ? 'Sets real-world size for the primary product (${products.first.name})'
                 : 'Set real-world size so the model renders it to scale',
@@ -408,12 +408,12 @@ Widget _productModeCard({
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        _CardTitle(
+        AppCardTitle(
           title,
           fontSize: 14,
         ),
         const SizedBox(height: 4),
-        _Caption(
+        AppCaption(
           description,
           fontSize: 12,
         ),
@@ -436,7 +436,7 @@ Widget _selectedProductRow({
   ),
   child: Row(
     children: [
-      _AssetBox(
+      AppAssetBox(
         product.imageUrl,
         width: 40,
         height: 40,
@@ -446,9 +446,9 @@ Widget _selectedProductRow({
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _CardTitle(product.name, fontSize: 13),
+            AppCardTitle(product.name, fontSize: 13),
             const SizedBox(height: 2),
-            _Caption(role, fontSize: 12),
+            AppCaption(role, fontSize: 12),
           ],
         ),
       ),
@@ -530,7 +530,7 @@ class _ModelStepState extends ConsumerState<_ModelStep> {
         ? '${widget.selectedModels.length}/3 models · 1 primary + '
               "$secondaryCount secondary · they'll appear together in 1 shot"
         : '${widget.selectedModels.length}/3 models';
-    return _Column(
+    return AppSpacedColumn(
       gap: 12,
       children: [
         _CreateSectionHeader(

@@ -1,4 +1,4 @@
-part of '../../../dashboard/presentation/screens/dashboard_screen.dart';
+part of '../billing_feature.dart';
 
 class BillingScreen extends StatelessWidget {
   const BillingScreen({super.key});
@@ -69,7 +69,7 @@ class _BillingUsageCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final stats = ref.watch(dashboardStatsProvider);
-    return _Card(
+    return AppCard(
       padding: EdgeInsets.zero,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -168,7 +168,7 @@ class _BillingPlanCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final status = ref.watch(subscriptionControllerProvider);
     final products = ref.watch(revenueCatProductsProvider);
-    return _Card(
+    return AppCard(
       padding: EdgeInsets.zero,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -211,7 +211,7 @@ class _BillingCurrentPlan extends StatelessWidget {
   });
 
   final SubscriptionStatus status;
-  final List<revenuecat.StoreProduct> products;
+  final List<SubscriptionProduct> products;
   final VoidCallback onModify;
 
   @override
@@ -317,25 +317,25 @@ class _BillingCurrentPlanError extends StatelessWidget {
   }
 }
 
-List<revenuecat.StoreProduct> _monthlyProducts(
-  List<revenuecat.StoreProduct> products,
+List<SubscriptionProduct> _monthlyProducts(
+  List<SubscriptionProduct> products,
 ) => [
   for (final product in products)
-    if (product.subscriptionPeriod == 'P1M') product,
+    if (product.isMonthly) product,
 ];
 
-revenuecat.StoreProduct? _productForId(
-  List<revenuecat.StoreProduct> products,
+SubscriptionProduct? _productForId(
+  List<SubscriptionProduct> products,
   String? productId,
 ) {
   if (productId == null) return null;
   for (final product in products) {
-    if (product.identifier == productId) return product;
+    if (product.id == productId) return product;
   }
   return null;
 }
 
-String _billingPeriod(revenuecat.StoreProduct product) =>
+String _billingPeriod(SubscriptionProduct product) =>
     switch (product.subscriptionPeriod) {
       'P1Y' => 'year',
       'P1M' => 'month',
@@ -363,27 +363,6 @@ class _BillingStatusBadge extends StatelessWidget {
           color: warning ? AppColors.black : AppColors.white,
           fontSize: 12,
           fontWeight: AppTypography.bold,
-        ),
-      ),
-    );
-  }
-}
-
-class _ProgressBar extends StatelessWidget {
-  const _ProgressBar({required this.value});
-
-  final double value;
-
-  @override
-  Widget build(BuildContext context) {
-    return ClipRect(
-      child: Container(
-        height: 10,
-        color: AppColors.neutral200,
-        alignment: Alignment.centerLeft,
-        child: FractionallySizedBox(
-          widthFactor: value,
-          child: const ColoredBox(color: AppColors.black),
         ),
       ),
     );

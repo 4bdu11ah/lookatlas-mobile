@@ -1,4 +1,5 @@
 import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -15,16 +16,16 @@ import 'package:look_atlas/features/auth/domain/repositories/auth_repository.dar
 import 'package:look_atlas/features/billing/di/billing_api_providers.dart';
 import 'package:look_atlas/features/onboarding/di/onboarding_providers.dart';
 import 'package:look_atlas/features/onboarding/domain/entities/free_shoot.dart';
+import 'package:look_atlas/features/onboarding/domain/entities/look_atlas_model.dart';
 import 'package:look_atlas/features/onboarding/domain/entities/onboarding_config.dart';
+import 'package:look_atlas/features/onboarding/domain/entities/onboarding_models.dart';
 import 'package:look_atlas/features/onboarding/domain/entities/onboarding_product.dart';
 import 'package:look_atlas/features/onboarding/domain/entities/onboarding_status.dart';
-import 'package:look_atlas/features/onboarding/domain/look_atlas_model.dart';
-import 'package:look_atlas/features/onboarding/domain/onboarding_models.dart';
 import 'package:look_atlas/features/onboarding/domain/repositories/onboarding_repository.dart';
+import 'package:look_atlas/features/onboarding/presentation/controllers/generation_controller.dart';
 import 'package:look_atlas/features/onboarding/presentation/controllers/onboarding_submission_controller.dart';
-import 'package:look_atlas/features/onboarding/presentation/providers/generation_controller.dart';
-import 'package:look_atlas/features/onboarding/presentation/providers/swipe_controller.dart';
-import 'package:look_atlas/features/onboarding/presentation/providers/wizard_controller.dart';
+import 'package:look_atlas/features/onboarding/presentation/controllers/swipe_controller.dart';
+import 'package:look_atlas/features/onboarding/presentation/controllers/wizard_controller.dart';
 import 'package:look_atlas/features/onboarding/presentation/screens/activate_paywall_screen.dart';
 import 'package:look_atlas/features/onboarding/presentation/screens/onboarding_wizard_screen.dart';
 import 'package:look_atlas/features/onboarding/presentation/screens/onetime_success_screen.dart';
@@ -32,12 +33,12 @@ import 'package:look_atlas/features/onboarding/presentation/screens/starting_sho
 import 'package:look_atlas/features/onboarding/presentation/screens/swipe_results_screen.dart';
 import 'package:look_atlas/features/onboarding/presentation/screens/swipe_screen.dart';
 import 'package:look_atlas/features/subscription/di/subscription_providers.dart';
-import 'package:look_atlas/features/subscription/domain/subscription_repository.dart';
+import 'package:look_atlas/features/subscription/domain/entities/subscription_product.dart';
+import 'package:look_atlas/features/subscription/domain/repositories/subscription_repository.dart';
 import 'package:look_atlas/services/device/device_token_service.dart';
 import 'package:look_atlas/services/service_providers.dart';
 import 'package:look_atlas/shared/image_picker/image_picker_providers.dart';
 import 'package:mocktail/mocktail.dart';
-import 'package:purchases_flutter/purchases_flutter.dart' as revenuecat;
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../helpers/fake_repositories.dart';
@@ -63,44 +64,44 @@ const _liveShoot = StartShootResponse(
 );
 
 const _onboardingProducts = [
-  revenuecat.StoreProduct(
-    'starter_monthly',
-    '100 photos every month.',
-    'Starter',
-    49,
-    r'$49.00',
-    'USD',
-    productCategory: revenuecat.ProductCategory.subscription,
+  SubscriptionProduct(
+    id: 'starter_monthly',
+    description: '100 photos every month.',
+    title: 'Starter',
+    price: 49,
+    priceString: r'$49.00',
+    currencyCode: 'USD',
+    type: SubscriptionProductType.subscription,
     subscriptionPeriod: 'P1M',
   ),
-  revenuecat.StoreProduct(
-    'pro_monthly',
-    '200 photos every month.',
-    'Pro',
-    99,
-    r'$99.00',
-    'USD',
-    productCategory: revenuecat.ProductCategory.subscription,
+  SubscriptionProduct(
+    id: 'pro_monthly',
+    description: '200 photos every month.',
+    title: 'Pro',
+    price: 99,
+    priceString: r'$99.00',
+    currencyCode: 'USD',
+    type: SubscriptionProductType.subscription,
     subscriptionPeriod: 'P1M',
   ),
-  revenuecat.StoreProduct(
-    'studio_monthly',
-    '600 photos every month.',
-    'Studio',
-    199,
-    r'$199.00',
-    'USD',
-    productCategory: revenuecat.ProductCategory.subscription,
+  SubscriptionProduct(
+    id: 'studio_monthly',
+    description: '600 photos every month.',
+    title: 'Studio',
+    price: 199,
+    priceString: r'$199.00',
+    currencyCode: 'USD',
+    type: SubscriptionProductType.subscription,
     subscriptionPeriod: 'P1M',
   ),
-  revenuecat.StoreProduct(
-    'one_time',
-    'Download this shoot in HD.',
-    'Download 15 photos',
-    8.99,
-    r'$8.99',
-    'USD',
-    productCategory: revenuecat.ProductCategory.nonSubscription,
+  SubscriptionProduct(
+    id: 'one_time',
+    description: 'Download this shoot in HD.',
+    title: 'Download 15 photos',
+    price: 8.99,
+    priceString: r'$8.99',
+    currencyCode: 'USD',
+    type: SubscriptionProductType.nonSubscription,
   ),
 ];
 

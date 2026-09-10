@@ -1,4 +1,21 @@
-part of 'package:look_atlas/features/guides/presentation/guides_feature.dart';
+import 'dart:async';
+
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:look_atlas/core/router/app_routes.dart';
+import 'package:look_atlas/core/theme/app_colors.dart';
+import 'package:look_atlas/core/theme/app_typography.dart';
+import 'package:look_atlas/features/guides/presentation/controllers/guides_controller.dart';
+import 'package:look_atlas/features/guides/presentation/models/guides_screen_state.dart';
+import 'package:look_atlas/shared/widgets/app_dotted_border.dart';
+import 'package:look_atlas/shared/widgets/app_feature_scaffold.dart';
+
+part '../tabs/getting_started_guide.dart';
+part '../tabs/models_guide.dart';
+part '../tabs/product_photos_guide.dart';
+part '../tabs/shoots_guide.dart';
+part '../widgets/guides_widgets.dart';
 
 class GuidesScreen extends ConsumerWidget {
   const GuidesScreen({this.initialTab, super.key});
@@ -34,12 +51,12 @@ class _GuidesPageState extends ConsumerState<_GuidesPage> {
   @override
   void initState() {
     super.initState();
-    final initialTab = _guideTabFromId(widget.initialTab);
+    final initialTab = guideTabFromId(widget.initialTab);
     if (initialTab != null) {
       unawaited(
         Future<void>.microtask(() {
           if (mounted) {
-            ref.read(_guidesControllerProvider.notifier).selectTab(initialTab);
+            ref.read(guidesControllerProvider.notifier).selectTab(initialTab);
           }
         }),
       );
@@ -52,8 +69,8 @@ class _GuidesPageState extends ConsumerState<_GuidesPage> {
     super.dispose();
   }
 
-  void _selectTab(_GuideTab tab) {
-    ref.read(_guidesControllerProvider.notifier).selectTab(tab);
+  void _selectTab(GuideTab tab) {
+    ref.read(guidesControllerProvider.notifier).selectTab(tab);
     if (!_scrollController.hasClients) return;
     _scrollController.animateTo(
       0,
@@ -111,12 +128,12 @@ class _GuidesPageHeader extends StatelessWidget {
 class _GuidesTabs extends ConsumerWidget {
   const _GuidesTabs({required this.onSelected});
 
-  final ValueChanged<_GuideTab> onSelected;
+  final ValueChanged<GuideTab> onSelected;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final selected = ref.watch(
-      _guidesControllerProvider.select((state) => state.selectedTab),
+      guidesControllerProvider.select((state) => state.selectedTab),
     );
     return DecoratedBox(
       decoration: const BoxDecoration(
@@ -124,13 +141,13 @@ class _GuidesTabs extends ConsumerWidget {
       ),
       child: Row(
         children: [
-          for (final tab in _GuideTab.values) ...[
+          for (final tab in GuideTab.values) ...[
             _GuideTabButton(
               tab: tab,
               selected: tab == selected,
               onTap: () => onSelected(tab),
             ),
-            if (tab != _GuideTab.values.last) const SizedBox(width: 4),
+            if (tab != GuideTab.values.last) const SizedBox(width: 4),
           ],
         ],
       ),
@@ -145,7 +162,7 @@ class _GuideTabButton extends StatelessWidget {
     required this.onTap,
   });
 
-  final _GuideTab tab;
+  final GuideTab tab;
   final bool selected;
   final VoidCallback onTap;
 
@@ -190,17 +207,17 @@ class _GuideTabContent extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final tab = ref.watch(
-      _guidesControllerProvider.select((state) => state.selectedTab),
+      guidesControllerProvider.select((state) => state.selectedTab),
     );
     return switch (tab) {
-      _GuideTab.gettingStarted => _GettingStartedGuide(
+      GuideTab.gettingStarted => _GettingStartedGuide(
         onNavigate: onNavigate,
       ),
-      _GuideTab.productPhotos => _ProductPhotosGuide(
+      GuideTab.productPhotos => _ProductPhotosGuide(
         onNavigate: onNavigate,
       ),
-      _GuideTab.models => _ModelsGuide(onNavigate: onNavigate),
-      _GuideTab.shoots => _ShootsGuide(onNavigate: onNavigate),
+      GuideTab.models => _ModelsGuide(onNavigate: onNavigate),
+      GuideTab.shoots => _ShootsGuide(onNavigate: onNavigate),
     };
   }
 }

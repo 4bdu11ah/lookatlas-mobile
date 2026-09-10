@@ -1,4 +1,4 @@
-part of '../house_model_feature.dart';
+part of '../screens/house_model_page.dart';
 
 class _AnglePager extends StatelessWidget {
   const _AnglePager({
@@ -8,7 +8,7 @@ class _AnglePager extends StatelessWidget {
   });
 
   final PageController controller;
-  final _HouseModel model;
+  final HouseModelViewModel model;
   final ValueChanged<int> onChanged;
 
   @override
@@ -16,10 +16,10 @@ class _AnglePager extends StatelessWidget {
     return PageView.builder(
       key: ValueKey('model-${model.id}-angle-pager'),
       controller: controller,
-      itemCount: _ModelAngle.values.length,
+      itemCount: HouseModelAngle.values.length,
       onPageChanged: onChanged,
       itemBuilder: (context, index) {
-        final angle = _ModelAngle.values[index];
+        final angle = HouseModelAngle.values[index];
         return _ModelPhoto(
           key: ValueKey('model-${model.id}-photo-${angle.name}'),
           asset: model.assetForAngle(angle),
@@ -38,8 +38,8 @@ class _AngleSelector extends StatelessWidget {
   });
 
   final String modelId;
-  final _ModelAngle selected;
-  final ValueChanged<_ModelAngle> onChanged;
+  final HouseModelAngle selected;
+  final ValueChanged<HouseModelAngle> onChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -49,7 +49,7 @@ class _AngleSelector extends StatelessWidget {
         child: Wrap(
           spacing: 3,
           children: [
-            for (final angle in _ModelAngle.values)
+            for (final angle in HouseModelAngle.values)
               _AngleButton(
                 key: ValueKey(
                   'model-$modelId-angle-${angle.name}'
@@ -74,7 +74,7 @@ class _AngleButton extends StatelessWidget {
     super.key,
   });
 
-  final _ModelAngle angle;
+  final HouseModelAngle angle;
   final bool active;
   final VoidCallback onTap;
 

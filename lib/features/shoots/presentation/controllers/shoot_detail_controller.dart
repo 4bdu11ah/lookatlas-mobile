@@ -1,7 +1,19 @@
-part of '../shoots_feature.dart';
+import 'dart:async';
 
-class _ShootDetailState {
-  const _ShootDetailState({
+import 'package:flutter/foundation.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:look_atlas/core/error/failure.dart';
+import 'package:look_atlas/core/result/result.dart';
+import 'package:look_atlas/core/router/app_routes.dart';
+import 'package:look_atlas/features/shoots/di/shoots_providers.dart';
+import 'package:look_atlas/features/shoots/domain/entities/shoot_create.dart';
+import 'package:look_atlas/features/shoots/domain/entities/shoot_job.dart';
+import 'package:look_atlas/features/shoots/domain/repositories/shoots_repository.dart';
+import 'package:look_atlas/features/shoots/presentation/services/shoot_export_service.dart';
+import 'package:look_atlas/services/service_providers.dart';
+
+class ShootDetailState {
+  const ShootDetailState({
     this.jobId = '',
     this.job,
     this.isLoading = true,
@@ -34,7 +46,7 @@ class _ShootDetailState {
     return value.images;
   }
 
-  _ShootDetailState copyWith({
+  ShootDetailState copyWith({
     String? jobId,
     ShootJob? job,
     bool? isLoading,
@@ -46,7 +58,7 @@ class _ShootDetailState {
     List<ShootImageVersion>? versions,
     ShootVideoRequest? videoRequest,
     bool clearFailure = false,
-  }) => _ShootDetailState(
+  }) => ShootDetailState(
     jobId: jobId ?? this.jobId,
     job: job ?? this.job,
     isLoading: isLoading ?? this.isLoading,
@@ -60,7 +72,7 @@ class _ShootDetailState {
   );
 }
 
-class _ShootDetailController extends Notifier<_ShootDetailState> {
+class ShootDetailController extends Notifier<ShootDetailState> {
   Timer? _statusTimer;
   Timer? _detailTimer;
   Timer? _editTimer;
@@ -71,19 +83,19 @@ class _ShootDetailController extends Notifier<_ShootDetailState> {
   ShootsRepository get _repository => ref.read(shootsRepositoryProvider);
 
   @override
-  _ShootDetailState build() {
+  ShootDetailState build() {
     ref.onDispose(() {
       _disposed = true;
       _cancelTimers();
     });
-    return const _ShootDetailState();
+    return const ShootDetailState();
   }
 
   Future<void> load(String jobId, {bool silent = false}) async {
     if (_requestInFlight) return;
     _requestInFlight = true;
     if (!silent) {
-      state = _ShootDetailState(jobId: jobId);
+      state = ShootDetailState(jobId: jobId);
     }
     final result = await _repository.getJob(jobId);
     if (_disposed) return;
@@ -417,8 +429,8 @@ class _ShootDetailController extends Notifier<_ShootDetailState> {
   }
 }
 
-final NotifierProvider<_ShootDetailController, _ShootDetailState>
-_shootDetailControllerProvider =
-    NotifierProvider.autoDispose<_ShootDetailController, _ShootDetailState>(
-      _ShootDetailController.new,
+final NotifierProvider<ShootDetailController, ShootDetailState>
+shootDetailControllerProvider =
+    NotifierProvider.autoDispose<ShootDetailController, ShootDetailState>(
+      ShootDetailController.new,
     );

@@ -1,12 +1,13 @@
-part of '../products_feature.dart';
+import 'package:intl/intl.dart';
+import 'package:look_atlas/features/products/domain/entities/product_catalog.dart';
 
-class _Product {
-  const _Product({required this.item, required this.calibrationStatus});
+class ProductViewModel {
+  const ProductViewModel({required this.item, required this.calibrationStatus});
 
-  factory _Product.fromCatalog(
+  factory ProductViewModel.fromCatalog(
     ProductCatalogItem item,
     Map<String, ProductCalibrationStatus> statuses,
-  ) => _Product(
+  ) => ProductViewModel(
     item: item,
     calibrationStatus:
         statuses[item.id] ?? ProductCalibrationStatus.recommended,

@@ -1,4 +1,4 @@
-part of 'package:look_atlas/features/support/presentation/support_feature.dart';
+part of '../screens/support_page.dart';
 
 Future<void> _showSupportSuccessDialog(BuildContext context) {
   return showAppDialog<void>(

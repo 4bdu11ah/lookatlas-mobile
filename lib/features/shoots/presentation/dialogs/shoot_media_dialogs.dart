@@ -1,4 +1,4 @@
-part of '../shoots_feature.dart';
+part of 'shoot_modal.dart';
 
 class _PortfolioIndex extends Notifier<int> {
   @override
@@ -68,7 +68,7 @@ class _DirectorPortfolioDialog extends ConsumerWidget {
           ),
         ),
         const AppFieldLabel('Style characteristics'),
-        const _OptionWrap(
+        const ShootOptionWrap(
           options: [
             'Clean lighting',
             'Crisp detail',
@@ -122,7 +122,7 @@ void _movePortfolio(WidgetRef ref, int direction, int length) {
 }
 
 ShootLook? _selectedShootDirector(WidgetRef ref) {
-  final state = ref.watch(_createShootControllerProvider);
+  final state = ref.watch(createShootControllerProvider);
   if (state.directors.isEmpty) return null;
   return state.directors[state.previewDirector.clamp(
     0,
@@ -141,8 +141,8 @@ class _ImagePreviewDialog extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final state = ref.watch(_shootDetailControllerProvider);
-    final controller = ref.read(_shootDetailControllerProvider.notifier);
+    final state = ref.watch(shootDetailControllerProvider);
+    final controller = ref.read(shootDetailControllerProvider.notifier);
     final image = state.selectedImage;
     return _FullPreview(
       asset: image?.url ?? '',
@@ -290,8 +290,8 @@ class _VariationDialogState extends ConsumerState<_VariationDialog> {
 
   @override
   Widget build(BuildContext context) {
-    final state = ref.watch(_shootDetailControllerProvider);
-    final controller = ref.read(_shootDetailControllerProvider.notifier);
+    final state = ref.watch(shootDetailControllerProvider);
+    final controller = ref.read(shootDetailControllerProvider.notifier);
     return AppModalFrame(
       title: 'Add Variation',
       leading: Icons.add,
@@ -343,8 +343,8 @@ class _VersionHistoryDialog extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final state = ref.watch(_shootDetailControllerProvider);
-    final controller = ref.read(_shootDetailControllerProvider.notifier);
+    final state = ref.watch(shootDetailControllerProvider);
+    final controller = ref.read(shootDetailControllerProvider.notifier);
     return AppModalFrame(
       title: 'Version History',
       leading: Icons.history,
@@ -414,7 +414,8 @@ class _VersionCard extends StatelessWidget {
                 Row(
                   children: [
                     Expanded(child: AppCardTitle(version)),
-                    if (active) const AppBadge('Active', kind: AppBadgeKind.dark),
+                    if (active)
+                      const AppBadge('Active', kind: AppBadgeKind.dark),
                   ],
                 ),
                 const SizedBox(height: 4),

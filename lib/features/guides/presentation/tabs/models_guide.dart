@@ -1,4 +1,4 @@
-part of 'package:look_atlas/features/guides/presentation/guides_feature.dart';
+part of '../screens/guides_page.dart';
 
 class _ModelsGuide extends StatelessWidget {
   const _ModelsGuide({required this.onNavigate});

@@ -1,4 +1,4 @@
-part of 'package:look_atlas/features/settings/presentation/account_settings_feature.dart';
+part of '../screens/account_settings_page.dart';
 
 class _SettingsAccountBody extends ConsumerWidget {
   const _SettingsAccountBody({required this.compact});
@@ -7,15 +7,15 @@ class _SettingsAccountBody extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final state = ref.watch(_accountSettingsControllerProvider);
+    final state = ref.watch(accountSettingsControllerProvider);
     return switch (state.status) {
-      _AccountSettingsStatus.loading => _SettingsSkeletonList(
+      AccountSettingsStatus.loading => _SettingsSkeletonList(
         compact: compact,
       ),
-      _AccountSettingsStatus.error => _SettingsErrorBox(
+      AccountSettingsStatus.error => _SettingsErrorBox(
         message: state.errorMessage ?? 'Failed to load settings',
       ),
-      _AccountSettingsStatus.loaded => _SettingsInfoList(
+      AccountSettingsStatus.loaded => _SettingsInfoList(
         state: state,
         compact: compact,
       ),
@@ -26,7 +26,7 @@ class _SettingsAccountBody extends ConsumerWidget {
 class _SettingsInfoList extends StatelessWidget {
   const _SettingsInfoList({required this.state, required this.compact});
 
-  final _AccountSettingsState state;
+  final AccountSettingsState state;
   final bool compact;
 
   @override
@@ -102,7 +102,7 @@ class _SettingsInfoRow extends StatelessWidget {
 class _SettingsPlanRow extends StatelessWidget {
   const _SettingsPlanRow({required this.state, required this.compact});
 
-  final _AccountSettingsState state;
+  final AccountSettingsState state;
   final bool compact;
 
   @override

@@ -1,6 +1,4 @@
-part of '../products_feature.dart';
-
-const String _productDisplayFontFamily = 'InstrumentSerif';
+part of '../screens/products_page.dart';
 
 class _ProductsLibraryHeader extends StatelessWidget {
   const _ProductsLibraryHeader({required this.onAdd});
@@ -11,12 +9,12 @@ class _ProductsLibraryHeader extends StatelessWidget {
   Widget build(BuildContext context) => Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
-      const _CatalogEyebrow('Product library'),
+      const CatalogEyebrow('Product library'),
       const SizedBox(height: 5),
       const Text(
         'Products',
         style: TextStyle(
-          fontFamily: _productDisplayFontFamily,
+          fontFamily: productDisplayFontFamily,
           fontSize: 48,
           height: 0.98,
           letterSpacing: -1.6,
@@ -130,13 +128,13 @@ class _CatalogMetric extends StatelessWidget {
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _CatalogEyebrow(label, color: AppColors.whiteAlpha60),
+        CatalogEyebrow(label, color: AppColors.whiteAlpha60),
         if (compact) const SizedBox(height: 10) else const Spacer(),
         Text(
           value == null ? '—' : value.toString().padLeft(2, '0'),
           style: const TextStyle(
             color: AppColors.white,
-            fontFamily: _productDisplayFontFamily,
+            fontFamily: productDisplayFontFamily,
             fontSize: 23,
           ),
         ),
@@ -241,35 +239,6 @@ class _ProductEmptyResults extends StatelessWidget {
   }
 }
 
-class _ProductLoadFailure extends StatelessWidget {
-  const _ProductLoadFailure({required this.message, required this.onRetry});
-
-  final String message;
-  final Future<void> Function() onRetry;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(top: 90),
-      child: Column(
-        children: [
-          const Icon(Icons.error_outline, size: 32),
-          const SizedBox(height: 10),
-          Text(message, textAlign: TextAlign.center),
-          const SizedBox(height: 14),
-          PrimaryButton(
-            label: 'Try again',
-            onPressed: onRetry,
-            fitToContent: true,
-            backgroundColor: AppColors.black,
-            foregroundColor: AppColors.white,
-          ),
-        ],
-      ),
-    );
-  }
-}
-
 class _ProductCard extends StatelessWidget {
   const _ProductCard({
     required this.index,
@@ -357,7 +326,7 @@ class _ProductCard extends StatelessWidget {
                         child: Text(
                           product.name,
                           style: const TextStyle(
-                            fontFamily: _productDisplayFontFamily,
+                            fontFamily: productDisplayFontFamily,
                             fontSize: 19,
                             height: 1,
                           ),
@@ -461,7 +430,7 @@ class _CatalogBadge extends StatelessWidget {
       maxLines: 1,
       style: TextStyle(
         color: dark ? AppColors.white : AppColors.black,
-        fontFamily: editorialNumber ? _productDisplayFontFamily : null,
+        fontFamily: editorialNumber ? productDisplayFontFamily : null,
         fontStyle: editorialNumber ? FontStyle.italic : null,
         fontSize: 8,
         fontWeight: FontWeight.w900,
@@ -489,164 +458,4 @@ class _CardKicker extends StatelessWidget {
       letterSpacing: 0.8,
     ),
   );
-}
-
-class _ProductPill extends StatelessWidget {
-  const _ProductPill._({
-    required this.label,
-    required this.color,
-    required this.borderColor,
-    required this.textColor,
-    this.icon,
-  });
-
-  // const _ProductPill.status(String status)
-  //   : this._(
-  //       label: status,
-  //       color: status == 'Calibrated'
-  //           ? AppColors.successLight
-  //           : AppColors.warningLight,
-  //       borderColor: status == 'Calibrated'
-  //           ? AppColors.successBorder
-  //           : AppColors.warningBorder,
-  //       textColor: status == 'Calibrated'
-  //           ? AppColors.successDarker
-  //           : AppColors.warningDark,
-  //     );
-
-  const _ProductPill.neutral(String label, {IconData? icon})
-    : this._(
-        label: label,
-        color: AppColors.white,
-        borderColor: AppColors.neutral200,
-        textColor: AppColors.neutral800,
-        icon: icon,
-      );
-
-  final String label;
-  final Color color;
-  final Color borderColor;
-  final Color textColor;
-  final IconData? icon;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      height: 28,
-      padding: const EdgeInsets.symmetric(horizontal: 7),
-      decoration: BoxDecoration(
-        color: color,
-        border: Border.all(color: borderColor),
-      ),
-      child: Row(
-        children: [
-          if (icon != null) ...[
-            Transform.rotate(
-              angle: -0.785398,
-              child: Icon(icon, size: 10, color: textColor),
-            ),
-            const SizedBox(width: 4),
-          ],
-          Flexible(
-            child: Text(
-              label,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                fontSize: 10,
-                height: 1,
-                fontWeight: AppTypography.bold,
-                color: textColor,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-Future<ProductUpload?> _pickProductPhoto(
-  BuildContext context,
-  WidgetRef ref, {
-  required String title,
-}) async {
-  final photos = await _pickProductPhotos(
-    context,
-    ref,
-    remaining: 1,
-    title: title,
-  );
-  return photos.firstOrNull;
-}
-
-Future<List<ProductUpload>> _pickProductPhotos(
-  BuildContext context,
-  WidgetRef ref, {
-  required int remaining,
-  required String title,
-}) async {
-  if (remaining <= 0) {
-    AppSnackBar.show(
-      context,
-      'You can upload up to $PRODUCT_PHOTO_UPLOAD_MAX_COUNT photos.',
-    );
-    return const [];
-  }
-  final source = await showImageSourceSheet(context, title: title);
-  if (source == null || !context.mounted) return const [];
-  try {
-    final picker = ref.read(imagePickerProvider);
-    final files = source == ImageSource.camera || remaining == 1
-        ? [
-            ?await picker.pickImage(
-              source: source,
-              maxWidth: 1600,
-              imageQuality: 85,
-            ),
-          ]
-        : await picker.pickMultiImage(
-            maxWidth: 1600,
-            imageQuality: 85,
-            limit: remaining,
-          );
-    final uploads = <ProductUpload>[];
-    for (final file in files.take(remaining)) {
-      final extension = file.name.split('.').last.toLowerCase();
-      if (!const {'jpg', 'jpeg', 'png', 'webp'}.contains(extension)) {
-        if (context.mounted) {
-          AppSnackBar.showError(
-            context,
-            '${file.name} must be a JPG, PNG, or WebP image.',
-          );
-        }
-        continue;
-      }
-      final bytes = await file.readAsBytes();
-      if (bytes.lengthInBytes > PRODUCT_PHOTO_UPLOAD_MAX_BYTES) {
-        if (context.mounted) {
-          AppSnackBar.showError(context, '${file.name} is larger than 20MB.');
-        }
-        continue;
-      }
-      uploads.add(
-        ProductUpload(
-          bytes: bytes,
-          fileName: file.name,
-          path: file.path,
-          localKey:
-              '${DateTime.now().microsecondsSinceEpoch}-${uploads.length}-${file.name}',
-        ),
-      );
-    }
-    return uploads;
-  } on Exception {
-    if (context.mounted) {
-      AppSnackBar.showError(
-        context,
-        'Could not open your camera or photo library.',
-      );
-    }
-    return const [];
-  }
 }

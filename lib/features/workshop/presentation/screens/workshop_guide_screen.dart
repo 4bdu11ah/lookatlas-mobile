@@ -1,4 +1,12 @@
-part of 'workshop_screen.dart';
+import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+import 'package:look_atlas/core/constants/app_assets.dart';
+import 'package:look_atlas/core/router/app_routes.dart';
+import 'package:look_atlas/core/theme/app_colors.dart';
+import 'package:look_atlas/core/theme/app_typography.dart';
+import 'package:look_atlas/shared/widgets/app_image.dart';
+import 'package:look_atlas/shared/widgets/custom_app_bar.dart';
+import 'package:look_atlas/shared/widgets/primary_button.dart';
 
 class WorkshopGuideScreen extends StatelessWidget {
   const WorkshopGuideScreen({super.key});

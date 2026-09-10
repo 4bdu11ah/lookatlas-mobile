@@ -1,4 +1,4 @@
-part of '../products_feature.dart';
+part of 'product_dialogs.dart';
 
 class _ProductFormDialog extends ConsumerStatefulWidget {
   const _ProductFormDialog({
@@ -29,8 +29,8 @@ class _ProductFormDialogState extends ConsumerState<_ProductFormDialog> {
   late final TextEditingController _descriptionController;
   var _galleryPhotoIndex = 0;
 
-  NotifierProvider<_ProductFormController, _ProductFormState>
-  get _formProvider => _productFormProvider(widget.product);
+  NotifierProvider<ProductFormController, ProductFormState> get _formProvider =>
+      productFormProvider(widget.product);
 
   @override
   void initState() {
@@ -53,7 +53,7 @@ class _ProductFormDialogState extends ConsumerState<_ProductFormDialog> {
   }
 
   Future<void> _pickPhotos() async {
-    final uploads = await _pickProductPhotos(
+    final uploads = await pickProductPhotos(
       context,
       ref,
       remaining:
@@ -100,7 +100,7 @@ class _ProductFormDialogState extends ConsumerState<_ProductFormDialog> {
     final form = ref.read(_formProvider);
     if (index < 0 || index >= form.newPhotos.length) return;
     final source = form.newPhotos[index];
-    await _showProductReferenceCrop(
+    await showProductReferenceCrop(
       context,
       source: source,
       isReplacement: false,
@@ -232,7 +232,7 @@ class _ProductFormDialogState extends ConsumerState<_ProductFormDialog> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 if (widget.showGallery) ...[
-                  const _CatalogEyebrow('Product record'),
+                  const CatalogEyebrow('Product record'),
                   const SizedBox(height: 18),
                 ],
                 _ProductField(
@@ -378,7 +378,7 @@ class _EditableProductGallery extends StatelessWidget {
     required this.onClose,
   });
 
-  final _ProductFormState form;
+  final ProductFormState form;
   final int selectedIndex;
   final ValueChanged<int> onSelected;
   final VoidCallback onClose;

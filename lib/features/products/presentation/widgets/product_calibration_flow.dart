@@ -1,4 +1,4 @@
-part of '../products_feature.dart';
+part of '../screens/product_calibration_screens.dart';
 
 enum _CalibrationStep {
   method,

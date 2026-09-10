@@ -1,9 +1,54 @@
-part of '../shoots_feature.dart';
+library;
 
-Future<void> _openShootModal(
+import 'dart:async';
+
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:look_atlas/core/result/result.dart';
+import 'package:look_atlas/core/router/app_routes.dart';
+import 'package:look_atlas/core/theme/app_colors.dart';
+import 'package:look_atlas/core/theme/app_typography.dart';
+import 'package:look_atlas/features/house_model/di/house_model_providers.dart';
+import 'package:look_atlas/features/house_model/domain/entities/house_model_profile.dart';
+import 'package:look_atlas/features/onboarding/di/onboarding_providers.dart';
+import 'package:look_atlas/features/onboarding/domain/entities/onboarding_models.dart';
+import 'package:look_atlas/features/onboarding/domain/entities/onboarding_product.dart';
+import 'package:look_atlas/features/onboarding/presentation/widgets/director_portfolio_modal.dart';
+import 'package:look_atlas/features/shoots/domain/entities/shoot_create.dart';
+import 'package:look_atlas/features/shoots/domain/entities/shoot_job.dart';
+import 'package:look_atlas/features/shoots/presentation/controllers/create_shoot_controller.dart';
+import 'package:look_atlas/features/shoots/presentation/controllers/shoot_detail_controller.dart';
+import 'package:look_atlas/features/shoots/presentation/models/shoot_modal_kind.dart';
+import 'package:look_atlas/features/shoots/presentation/widgets/shoot_option_wrap.dart';
+import 'package:look_atlas/shared/image_picker/image_picker_providers.dart';
+import 'package:look_atlas/shared/image_picker/image_source_sheet.dart';
+import 'package:look_atlas/shared/widgets/app_asset_image.dart';
+import 'package:look_atlas/shared/widgets/app_card.dart';
+import 'package:look_atlas/shared/widgets/app_dialog.dart';
+import 'package:look_atlas/shared/widgets/app_feedback.dart';
+import 'package:look_atlas/shared/widgets/app_media_widgets.dart';
+import 'package:look_atlas/shared/widgets/app_modal_frame.dart';
+import 'package:look_atlas/shared/widgets/app_outlined_button.dart';
+import 'package:look_atlas/shared/widgets/app_snack_bar.dart';
+import 'package:look_atlas/shared/widgets/app_tap_icon_button.dart';
+import 'package:look_atlas/shared/widgets/app_text.dart';
+import 'package:look_atlas/shared/widgets/app_text_field.dart';
+import 'package:look_atlas/shared/widgets/primary_button.dart';
+
+part 'shoot_catalog_dialogs.dart';
+part 'shoot_dialogs.dart';
+part 'shoot_form_widgets.dart';
+part 'shoot_media_dialogs.dart';
+part 'shoot_video_dialogs.dart';
+
+typedef _ShootModalKind = ShootModalKind;
+
+Future<void> openShootModal(
   BuildContext context,
   WidgetRef ref,
-  _ShootModalKind kind,
+  ShootModalKind kind,
 ) {
   if (kind == _ShootModalKind.editAi) {
     return _showAiEditDialog(
@@ -12,7 +57,7 @@ Future<void> _openShootModal(
     );
   }
   if (kind == _ShootModalKind.directorPortfolio) {
-    final createState = ref.read(_createShootControllerProvider);
+    final createState = ref.read(createShootControllerProvider);
     final shootDirector = _selectedShootDirector(ref);
     final director = _onboardingDirectorFor(shootDirector);
     if (director != null) {
@@ -26,7 +71,7 @@ Future<void> _openShootModal(
         director: director,
         isSelected: selected,
         onSelect: () {
-          final controller = ref.read(_createShootControllerProvider.notifier);
+          final controller = ref.read(createShootControllerProvider.notifier);
           if (createState.demoMode) {
             controller.toggleDemoDirector(createState.previewDirector);
           } else {
@@ -43,7 +88,7 @@ Future<void> _openShootModal(
       onOpenBilling: () => unawaited(
         context.push<void>(AppRoutes.dashboardBilling),
       ),
-      onOpenModal: (nextKind) => _openShootModal(context, ref, nextKind),
+      onOpenModal: (nextKind) => openShootModal(context, ref, nextKind),
       onToast: (text) => AppSnackBar.show(context, text),
     ),
   );

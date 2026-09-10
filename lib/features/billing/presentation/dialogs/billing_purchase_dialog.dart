@@ -1,7 +1,7 @@
-part of '../billing_feature.dart';
+part of '../screens/billing_page.dart';
 
 Future<void> _openPurchaseDialog(BuildContext context, WidgetRef ref) async {
-  ref.read(_billingControllerProvider.notifier).preparePurchase();
+  ref.read(billingControllerProvider.notifier).preparePurchase();
   await _showBillingDialog<void>(
     context: context,
     builder: (_) => const _BillingPurchaseDialog(),
@@ -13,9 +13,9 @@ class _BillingPurchaseDialog extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final state = ref.watch(_billingControllerProvider);
-    final controller = ref.read(_billingControllerProvider.notifier);
-    if (state.action == _BillingAction.purchaseSuccess) {
+    final state = ref.watch(billingControllerProvider);
+    final controller = ref.read(billingControllerProvider.notifier);
+    if (state.action == BillingAction.purchaseSuccess) {
       return _BillingPurchaseSuccess(
         credits: state.purchaseCredits,
         charge: state.purchaseTotal,
@@ -48,11 +48,11 @@ class _BillingPurchaseDialog extends ConsumerWidget {
           const SizedBox(width: 12),
           Expanded(
             child: _BillingActionButton(
-              label: state.action == _BillingAction.purchasing
+              label: state.action == BillingAction.purchasing
                   ? 'Processing...'
                   : 'Complete Purchase',
               icon: Icons.credit_card_outlined,
-              isLoading: state.action == _BillingAction.purchasing,
+              isLoading: state.action == BillingAction.purchasing,
               onPressed: controller.completePurchase,
             ),
           ),
@@ -65,11 +65,11 @@ class _BillingPurchaseDialog extends ConsumerWidget {
 class _BillingPurchaseBody extends ConsumerWidget {
   const _BillingPurchaseBody({required this.state});
 
-  final _BillingScreenState state;
+  final BillingScreenState state;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final controller = ref.read(_billingControllerProvider.notifier);
+    final controller = ref.read(billingControllerProvider.notifier);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [

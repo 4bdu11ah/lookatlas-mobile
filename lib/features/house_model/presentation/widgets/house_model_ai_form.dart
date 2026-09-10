@@ -1,22 +1,22 @@
-part of '../house_model_feature.dart';
+part of '../screens/house_model_page.dart';
 
 class _AiModelFormState {
   const _AiModelFormState({
-    this.gender = _ModelGender.female,
+    this.gender = HouseModelGender.female,
     this.submitted = false,
     this.generating = false,
     this.generated = false,
     this.errorMessage,
   });
 
-  final _ModelGender gender;
+  final HouseModelGender gender;
   final bool submitted;
   final bool generating;
   final bool generated;
   final String? errorMessage;
 
   _AiModelFormState copyWith({
-    _ModelGender? gender,
+    HouseModelGender? gender,
     bool? submitted,
     bool? generating,
     bool? generated,
@@ -37,7 +37,7 @@ class _AiModelFormNotifier extends Notifier<_AiModelFormState> {
   @override
   _AiModelFormState build() => const _AiModelFormState();
 
-  void setGender(_ModelGender value) =>
+  void setGender(HouseModelGender value) =>
       state = state.copyWith(gender: value, clearError: true);
 
   void setSubmitted() => state = state.copyWith(submitted: true);
@@ -69,7 +69,7 @@ class _AiModelSheet extends ConsumerStatefulWidget {
   const _AiModelSheet({required this.onGenerated, this.dialog = false});
 
   final Future<String?> Function(
-    _ModelGender gender,
+    HouseModelGender gender,
     int age,
     String description,
   )
@@ -169,13 +169,13 @@ class _AiModelSheetState extends ConsumerState<_AiModelSheet> {
               title: 'Create your own model',
               body: 'Describe your ideal talent and we will generate four consistent, studio-ready poses for 20 credits.',
             ),
-          _SelectBlock<_ModelGender>(
+          _SelectBlock<HouseModelGender>(
             label: 'Gender',
             value: formState.gender,
             values: const [
-              _ModelGender.female,
-              _ModelGender.male,
-              _ModelGender.nonBinary,
+              HouseModelGender.female,
+              HouseModelGender.male,
+              HouseModelGender.nonBinary,
             ],
             labelFor: (value) => value.label,
             onChanged: ref.read(_aiModelFormProvider.notifier).setGender,

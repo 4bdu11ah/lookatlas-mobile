@@ -1,7 +1,14 @@
-part of '../products_feature.dart';
+import 'dart:math';
 
-class _ProductFormState {
-  const _ProductFormState({
+import 'package:flutter/foundation.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:look_atlas/core/result/result.dart';
+import 'package:look_atlas/features/products/domain/entities/product_catalog.dart';
+import 'package:look_atlas/features/products/presentation/controllers/products_controller.dart';
+import 'package:look_atlas/features/products/presentation/models/product_view_model.dart';
+
+class ProductFormState {
+  const ProductFormState({
     this.productId,
     this.name = '',
     this.sku = '',
@@ -57,7 +64,7 @@ class _ProductFormState {
       (!const {'Bags', 'Jewelry'}.contains(category) ||
           subtype.trim().isNotEmpty);
 
-  _ProductFormState copyWith({
+  ProductFormState copyWith({
     String? name,
     String? sku,
     String? description,
@@ -73,7 +80,7 @@ class _ProductFormState {
     Map<int, String?>? newAngles,
     List<String>? photoOrder,
     bool? isSubmitting,
-  }) => _ProductFormState(
+  }) => ProductFormState(
     productId: productId,
     name: name ?? this.name,
     sku: sku ?? this.sku,
@@ -94,13 +101,13 @@ class _ProductFormState {
   );
 }
 
-class _ProductFormController extends Notifier<_ProductFormState> {
-  _ProductFormController(this.product);
+class ProductFormController extends Notifier<ProductFormState> {
+  ProductFormController(this.product);
 
-  final _Product? product;
+  final ProductViewModel? product;
 
   @override
-  _ProductFormState build() => _ProductFormState(
+  ProductFormState build() => ProductFormState(
     productId: product?.id,
     name: product?.name ?? '',
     sku: product?.sku ?? '',
@@ -227,7 +234,7 @@ class _ProductFormController extends Notifier<_ProductFormState> {
     return cleaned.substring(0, min(cleaned.length, 40));
   }
 
-  Future<Result<void>?> submit(_Product? product) async {
+  Future<Result<void>?> submit(ProductViewModel? product) async {
     if (state.isSubmitting || !state.isValid) return null;
     state = state.copyWith(isSubmitting: true);
     final existing = state.visibleExistingPhotos;
@@ -300,7 +307,7 @@ class _ProductFormController extends Notifier<_ProductFormState> {
           !listEquals(existingPhotoOrder, originalPhotoOrder),
       existingPhotoAnglesChanged: existingPhotoAnglesChanged,
     );
-    final products = ref.read(_productsControllerProvider.notifier);
+    final products = ref.read(productsControllerProvider.notifier);
     final result = product == null
         ? await products.createProduct(draft)
         : await products.updateProduct(product, draft);
@@ -311,7 +318,7 @@ class _ProductFormController extends Notifier<_ProductFormState> {
 
 // Riverpod's family provider type is inferred from the factory.
 // ignore: specify_nonobvious_property_types
-final _productFormProvider = NotifierProvider.autoDispose
-    .family<_ProductFormController, _ProductFormState, _Product?>(
-      _ProductFormController.new,
+final productFormProvider = NotifierProvider.autoDispose
+    .family<ProductFormController, ProductFormState, ProductViewModel?>(
+      ProductFormController.new,
     );

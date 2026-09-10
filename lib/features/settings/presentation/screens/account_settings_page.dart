@@ -1,4 +1,13 @@
-part of 'package:look_atlas/features/settings/presentation/account_settings_feature.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:look_atlas/core/theme/app_colors.dart';
+import 'package:look_atlas/core/theme/app_typography.dart';
+import 'package:look_atlas/features/account_deletion/presentation/screens/account_deletion_page.dart';
+import 'package:look_atlas/features/settings/presentation/controllers/account_settings_controller.dart';
+import 'package:look_atlas/features/settings/presentation/models/account_settings_state.dart';
+import 'package:look_atlas/shared/widgets/app_feature_scaffold.dart';
+
+part '../widgets/account_settings_content.dart';
 
 class AccountSettingsScreen extends StatelessWidget {
   const AccountSettingsScreen({super.key});

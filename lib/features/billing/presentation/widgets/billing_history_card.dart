@@ -1,4 +1,4 @@
-part of '../billing_feature.dart';
+part of '../screens/billing_page.dart';
 
 class _BillingHistoryCard extends ConsumerWidget {
   const _BillingHistoryCard();

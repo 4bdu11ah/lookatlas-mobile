@@ -1,7 +1,16 @@
-part of '../shoots_feature.dart';
+import 'dart:async';
 
-class _ShootsScreenState {
-  const _ShootsScreenState({
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:look_atlas/core/error/failure.dart';
+import 'package:look_atlas/core/result/result.dart';
+import 'package:look_atlas/core/router/app_routes.dart';
+import 'package:look_atlas/features/shoots/di/shoots_providers.dart';
+import 'package:look_atlas/features/shoots/domain/repositories/shoots_repository.dart';
+import 'package:look_atlas/features/shoots/presentation/models/shoot_view_model.dart';
+import 'package:look_atlas/services/service_providers.dart';
+
+class ShootsScreenState {
+  const ShootsScreenState({
     this.shoots = const [],
     this.query = '',
     this.status = 'all',
@@ -21,7 +30,7 @@ class _ShootsScreenState {
   final bool isRefreshing;
   final Failure? failure;
 
-  _ShootsScreenState copyWith({
+  ShootsScreenState copyWith({
     List<ShootViewModel>? shoots,
     String? query,
     String? status,
@@ -31,7 +40,7 @@ class _ShootsScreenState {
     bool? isRefreshing,
     Failure? failure,
     bool clearFailure = false,
-  }) => _ShootsScreenState(
+  }) => ShootsScreenState(
     shoots: shoots ?? this.shoots,
     query: query ?? this.query,
     status: status ?? this.status,
@@ -43,7 +52,7 @@ class _ShootsScreenState {
   );
 }
 
-class _ShootsController extends Notifier<_ShootsScreenState> {
+class ShootsController extends Notifier<ShootsScreenState> {
   Timer? _pollTimer;
   Timer? _searchTimer;
   bool _requestInFlight = false;
@@ -52,14 +61,14 @@ class _ShootsController extends Notifier<_ShootsScreenState> {
   ShootsRepository get _repository => ref.read(shootsRepositoryProvider);
 
   @override
-  _ShootsScreenState build() {
+  ShootsScreenState build() {
     ref.onDispose(() {
       _disposed = true;
       _pollTimer?.cancel();
       _searchTimer?.cancel();
     });
     unawaited(Future<void>.microtask(load));
-    return const _ShootsScreenState();
+    return const ShootsScreenState();
   }
 
   Future<void> load({bool silent = false}) async {
@@ -148,8 +157,8 @@ class _ShootsController extends Notifier<_ShootsScreenState> {
   }
 }
 
-final NotifierProvider<_ShootsController, _ShootsScreenState>
-_shootsControllerProvider =
-    NotifierProvider<_ShootsController, _ShootsScreenState>(
-      _ShootsController.new,
+final NotifierProvider<ShootsController, ShootsScreenState>
+shootsControllerProvider =
+    NotifierProvider<ShootsController, ShootsScreenState>(
+      ShootsController.new,
     );

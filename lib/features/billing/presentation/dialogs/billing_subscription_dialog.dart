@@ -1,4 +1,4 @@
-part of '../billing_feature.dart';
+part of '../screens/billing_page.dart';
 
 Future<void> _openSubscriptionDialog(
   BuildContext context,

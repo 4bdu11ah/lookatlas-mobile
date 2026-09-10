@@ -1,11 +1,12 @@
-part of '../billing_feature.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:look_atlas/features/billing/presentation/models/billing_screen_state.dart';
 
-class _BillingController extends Notifier<_BillingScreenState> {
+class BillingController extends Notifier<BillingScreenState> {
   @override
-  _BillingScreenState build() => _billingMockState;
+  BillingScreenState build() => billingInitialState;
 
   void preparePurchase() {
-    state = state.copyWith(quantity: 1, action: _BillingAction.idle);
+    state = state.copyWith(quantity: 1, action: BillingAction.idle);
   }
 
   void changeQuantity(int change) {
@@ -14,26 +15,26 @@ class _BillingController extends Notifier<_BillingScreenState> {
   }
 
   Future<void> completePurchase() async {
-    if (state.action == _BillingAction.purchasing) return;
-    state = state.copyWith(action: _BillingAction.purchasing);
+    if (state.action == BillingAction.purchasing) return;
+    state = state.copyWith(action: BillingAction.purchasing);
     await Future<void>.delayed(const Duration(milliseconds: 350));
-    state = state.copyWith(action: _BillingAction.purchaseSuccess);
+    state = state.copyWith(action: BillingAction.purchaseSuccess);
   }
 
   void finishPurchase() {
     state = state.copyWith(
-      action: _BillingAction.idle,
+      action: BillingAction.idle,
       quantity: 1,
     );
   }
 
   void resetAction() {
-    state = state.copyWith(action: _BillingAction.idle);
+    state = state.copyWith(action: BillingAction.idle);
   }
 }
 
-final NotifierProvider<_BillingController, _BillingScreenState>
-_billingControllerProvider =
-    NotifierProvider.autoDispose<_BillingController, _BillingScreenState>(
-      _BillingController.new,
+final NotifierProvider<BillingController, BillingScreenState>
+billingControllerProvider =
+    NotifierProvider.autoDispose<BillingController, BillingScreenState>(
+      BillingController.new,
     );

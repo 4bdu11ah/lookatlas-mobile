@@ -1,6 +1,6 @@
-part of '../shoots_feature.dart';
+part of 'create_shoot_controller.dart';
 
-mixin _CreateShootDemoController on Notifier<_CreateShootState> {
+mixin _CreateShootDemoController on Notifier<CreateShootState> {
   bool get _createInFlight;
   set _createInFlight(bool value);
   bool get _disposed;
@@ -8,8 +8,8 @@ mixin _CreateShootDemoController on Notifier<_CreateShootState> {
   void setDemoMode({required bool enabled}) {
     state = state.copyWith(
       demoMode: enabled,
-      step: state.step == _CreateStep.planning
-          ? _CreateStep.director
+      step: state.step == CreateStep.planning
+          ? CreateStep.director
           : state.step,
       settings: state.settings.copyWith(
         imageSize: '2K',

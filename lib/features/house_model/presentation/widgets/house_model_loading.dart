@@ -1,4 +1,4 @@
-part of '../house_model_feature.dart';
+part of '../screens/house_model_page.dart';
 
 const _houseModelShimmerBase = Color(0xFFEAEAEA);
 

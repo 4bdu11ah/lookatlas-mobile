@@ -1,7 +1,7 @@
-part of '../house_model_feature.dart';
+part of '../screens/house_model_page.dart';
 
 Future<void> _showFilterSheet(BuildContext context, WidgetRef ref) {
-  final state = ref.read(_houseModelControllerProvider);
+  final state = ref.read(houseModelControllerProvider);
   var gender = state.genderFilter;
   var body = state.bodyFilter;
   return showAppBottomSheet<void>(
@@ -17,7 +17,7 @@ Future<void> _showFilterSheet(BuildContext context, WidgetRef ref) {
                 label: 'Clear',
                 onPressed: () {
                   ref
-                      .read(_houseModelControllerProvider.notifier)
+                      .read(houseModelControllerProvider.notifier)
                       .applyFilters();
                   Navigator.pop(context);
                 },
@@ -26,7 +26,7 @@ Future<void> _showFilterSheet(BuildContext context, WidgetRef ref) {
                 label: 'Show models',
                 onPressed: () {
                   ref
-                      .read(_houseModelControllerProvider.notifier)
+                      .read(houseModelControllerProvider.notifier)
                       .applyFilters(gender: gender, body: body);
                   Navigator.pop(context);
                 },
@@ -35,23 +35,23 @@ Future<void> _showFilterSheet(BuildContext context, WidgetRef ref) {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _ChoiceGroup<_ModelGender?>(
+                _ChoiceGroup<HouseModelGender?>(
                   title: 'Gender',
                   value: gender,
                   values: const [
                     null,
-                    _ModelGender.female,
-                    _ModelGender.male,
-                    _ModelGender.nonBinary,
+                    HouseModelGender.female,
+                    HouseModelGender.male,
+                    HouseModelGender.nonBinary,
                   ],
                   labelFor: (value) => value?.label ?? 'All genders',
                   onChanged: (value) => setSheetState(() => gender = value),
                 ),
                 const SizedBox(height: 24),
-                _ChoiceGroup<_ModelBody?>(
+                _ChoiceGroup<HouseModelBody?>(
                   title: 'Body type',
                   value: body,
-                  values: const [null, ..._ModelBody.values],
+                  values: const [null, ...HouseModelBody.values],
                   labelFor: (value) => value?.label ?? 'All body types',
                   onChanged: (value) => setSheetState(() => body = value),
                 ),

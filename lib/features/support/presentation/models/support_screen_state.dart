@@ -1,21 +1,19 @@
-part of 'package:look_atlas/features/support/presentation/support_feature.dart';
-
-enum _SupportPriority {
+enum SupportPriority {
   low('Low - General inquiry'),
   medium('Medium - Feature request'),
   high('High - Bug report'),
   highBilling('High - Billing/Refund'),
   urgent('Urgent - System down');
 
-  const _SupportPriority(this.label);
+  const SupportPriority(this.label);
 
   final String label;
 }
 
-enum _SupportSubmissionStatus { idle, submitting, success }
+enum SupportSubmissionStatus { idle, submitting, success }
 
-class _SupportScreenState {
-  const _SupportScreenState({
+class SupportScreenState {
+  const SupportScreenState({
     required this.fullName,
     required this.email,
     required this.subject,
@@ -28,25 +26,25 @@ class _SupportScreenState {
   final String fullName;
   final String email;
   final String subject;
-  final _SupportPriority priority;
+  final SupportPriority priority;
   final String message;
-  final _SupportSubmissionStatus submissionStatus;
+  final SupportSubmissionStatus submissionStatus;
   final String? errorMessage;
 
   bool get isSubmitting =>
-      submissionStatus == _SupportSubmissionStatus.submitting;
+      submissionStatus == SupportSubmissionStatus.submitting;
 
-  _SupportScreenState copyWith({
+  SupportScreenState copyWith({
     String? fullName,
     String? email,
     String? subject,
-    _SupportPriority? priority,
+    SupportPriority? priority,
     String? message,
-    _SupportSubmissionStatus? submissionStatus,
+    SupportSubmissionStatus? submissionStatus,
     String? errorMessage,
     bool clearError = false,
   }) {
-    return _SupportScreenState(
+    return SupportScreenState(
       fullName: fullName ?? this.fullName,
       email: email ?? this.email,
       subject: subject ?? this.subject,
@@ -56,4 +54,18 @@ class _SupportScreenState {
       errorMessage: clearError ? null : errorMessage ?? this.errorMessage,
     );
   }
+}
+
+SupportScreenState supportInitialState({
+  required String fullName,
+  required String email,
+}) {
+  return SupportScreenState(
+    fullName: fullName,
+    email: email,
+    subject: '',
+    priority: SupportPriority.medium,
+    message: '',
+    submissionStatus: SupportSubmissionStatus.idle,
+  );
 }

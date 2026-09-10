@@ -1,4 +1,36 @@
-part of '../shoots_feature.dart';
+library;
+
+import 'dart:async';
+
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:look_atlas/core/router/app_routes.dart';
+import 'package:look_atlas/core/theme/app_colors.dart';
+import 'package:look_atlas/features/shoots/presentation/controllers/shoots_controller.dart';
+import 'package:look_atlas/features/shoots/presentation/dialogs/shoot_modal.dart';
+import 'package:look_atlas/features/shoots/presentation/models/shoot_modal_kind.dart';
+import 'package:look_atlas/features/shoots/presentation/models/shoot_view_model.dart';
+import 'package:look_atlas/features/subscription/di/subscription_access_providers.dart';
+import 'package:look_atlas/shared/widgets/app_asset_image.dart';
+import 'package:look_atlas/shared/widgets/app_bottom_sheet.dart';
+import 'package:look_atlas/shared/widgets/app_card.dart';
+import 'package:look_atlas/shared/widgets/app_feature_scaffold.dart';
+import 'package:look_atlas/shared/widgets/app_feedback.dart';
+import 'package:look_atlas/shared/widgets/app_floating_action_button.dart';
+import 'package:look_atlas/shared/widgets/app_media_widgets.dart';
+import 'package:look_atlas/shared/widgets/app_outlined_button.dart';
+import 'package:look_atlas/shared/widgets/app_sheet_frame.dart';
+import 'package:look_atlas/shared/widgets/app_spaced_column.dart';
+import 'package:look_atlas/shared/widgets/app_text.dart';
+import 'package:look_atlas/shared/widgets/app_text_field.dart';
+import 'package:look_atlas/shared/widgets/primary_button.dart';
+import 'package:look_atlas/shared/widgets/shimmer_box.dart';
+
+part '../widgets/shoot_cards.dart';
+part '../widgets/shoot_loading.dart';
+
+typedef _ShootModalKind = ShootModalKind;
 
 class ShootsScreen extends ConsumerWidget {
   const ShootsScreen({super.key});
@@ -16,19 +48,19 @@ class ShootsScreen extends ConsumerWidget {
         icon: Icons.play_arrow_outlined,
         onPressed: !isPremium
             ? () => _openCreateShoot(context)
-            : () => _openShootModal(
+            : () => openShootModal(
                 context,
                 ref,
                 _ShootModalKind.contextPaywall,
               ),
       ),
       child: RefreshIndicator(
-        onRefresh: () => ref.read(_shootsControllerProvider.notifier).load(),
+        onRefresh: () => ref.read(shootsControllerProvider.notifier).load(),
         child: SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 28),
           child: _JobsPage(
-            onOpenModal: (kind) => _openShootModal(context, ref, kind),
+            onOpenModal: (kind) => openShootModal(context, ref, kind),
           ),
         ),
       ),
@@ -43,8 +75,8 @@ class _JobsPage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final state = ref.watch(_shootsControllerProvider);
-    final controller = ref.read(_shootsControllerProvider.notifier);
+    final state = ref.watch(shootsControllerProvider);
+    final controller = ref.read(shootsControllerProvider.notifier);
     final isPremium = ref.watch(isPremiumProvider);
     final shoots = state.shoots;
     if (state.isLoading) {

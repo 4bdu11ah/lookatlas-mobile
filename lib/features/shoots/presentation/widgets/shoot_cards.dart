@@ -1,4 +1,4 @@
-part of '../shoots_feature.dart';
+part of '../screens/shoots_page.dart';
 
 class _ShootFilters extends StatelessWidget {
   const _ShootFilters({

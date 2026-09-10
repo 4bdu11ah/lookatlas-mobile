@@ -1,4 +1,4 @@
-part of '../shoots_feature.dart';
+part of '../screens/shoot_detail_screen.dart';
 
 class _ShootDetailLoading extends StatelessWidget {
   const _ShootDetailLoading();

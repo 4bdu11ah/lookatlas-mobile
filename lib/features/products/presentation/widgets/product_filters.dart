@@ -1,4 +1,4 @@
-part of '../products_feature.dart';
+part of '../screens/products_page.dart';
 
 class _ProductFilterBar extends ConsumerWidget {
   const _ProductFilterBar({
@@ -21,7 +21,7 @@ class _ProductFilterBar extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final controller = ref.read(_productsControllerProvider.notifier);
+    final controller = ref.read(productsControllerProvider.notifier);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -52,7 +52,7 @@ class _ProductFilterBar extends ConsumerWidget {
           config: const AppDropdownConfig(height: 46),
         ),
         const SizedBox(height: 10),
-        _CatalogEyebrow(
+        CatalogEyebrow(
           calibrationStatusesAvailable
               ? '$totalCount products, $calibratedCount calibrated'
               : '$totalCount products, — calibrated',
@@ -106,14 +106,14 @@ class _ProductSearchFieldState extends ConsumerState<_ProductSearchField> {
       hintText: 'Search products or SKUs',
       textInputAction: TextInputAction.search,
       onChanged: ref
-          .read(_productsControllerProvider.notifier)
+          .read(productsControllerProvider.notifier)
           .updateSearchQuery,
       leading: const Icon(Icons.search, size: 16, color: AppColors.neutral500),
       trailing: widget.query.isEmpty
           ? const SizedBox(width: 11)
           : InkWell(
               key: const ValueKey('clear-product-search'),
-              onTap: ref.read(_productsControllerProvider.notifier).clearSearch,
+              onTap: ref.read(productsControllerProvider.notifier).clearSearch,
               child: const SizedBox(
                 width: 38,
                 height: 40,

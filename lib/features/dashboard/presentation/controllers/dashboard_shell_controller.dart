@@ -1,7 +1,7 @@
-part of '../screens/dashboard_screen.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class _DashboardShellState {
-  const _DashboardShellState({
+class DashboardShellState {
+  const DashboardShellState({
     this.userMenuOpen = false,
     this.navigationOpen = false,
     this.accountLinksOpen = false,
@@ -11,12 +11,12 @@ class _DashboardShellState {
   final bool navigationOpen;
   final bool accountLinksOpen;
 
-  _DashboardShellState copyWith({
+  DashboardShellState copyWith({
     bool? userMenuOpen,
     bool? navigationOpen,
     bool? accountLinksOpen,
   }) {
-    return _DashboardShellState(
+    return DashboardShellState(
       userMenuOpen: userMenuOpen ?? this.userMenuOpen,
       navigationOpen: navigationOpen ?? this.navigationOpen,
       accountLinksOpen: accountLinksOpen ?? this.accountLinksOpen,
@@ -24,9 +24,9 @@ class _DashboardShellState {
   }
 }
 
-class _DashboardShellController extends Notifier<_DashboardShellState> {
+class DashboardShellController extends Notifier<DashboardShellState> {
   @override
-  _DashboardShellState build() => const _DashboardShellState();
+  DashboardShellState build() => const DashboardShellState();
 
   void toggleUserMenu() {
     state = state.copyWith(userMenuOpen: !state.userMenuOpen);
@@ -53,7 +53,7 @@ class _DashboardShellController extends Notifier<_DashboardShellState> {
   }
 }
 
-final _dashboardShellControllerProvider =
-    NotifierProvider<_DashboardShellController, _DashboardShellState>(
-      _DashboardShellController.new,
+final dashboardShellControllerProvider =
+    NotifierProvider<DashboardShellController, DashboardShellState>(
+      DashboardShellController.new,
     );

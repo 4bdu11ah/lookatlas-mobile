@@ -1,4 +1,46 @@
-part of '../shoots_feature.dart';
+library;
+
+import 'dart:async';
+
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:look_atlas/core/error/failure.dart';
+import 'package:look_atlas/core/layout/app_responsive.dart';
+import 'package:look_atlas/core/router/app_routes.dart';
+import 'package:look_atlas/core/theme/app_colors.dart';
+import 'package:look_atlas/core/theme/app_typography.dart';
+import 'package:look_atlas/features/auth/di/auth_providers.dart';
+import 'package:look_atlas/features/shoots/domain/entities/shoot_create.dart';
+import 'package:look_atlas/features/shoots/presentation/controllers/create_shoot_controller.dart';
+import 'package:look_atlas/features/shoots/presentation/controllers/shoots_controller.dart';
+import 'package:look_atlas/features/shoots/presentation/dialogs/shoot_modal.dart';
+import 'package:look_atlas/features/shoots/presentation/models/create_step.dart';
+import 'package:look_atlas/features/shoots/presentation/models/shoot_modal_kind.dart';
+import 'package:look_atlas/shared/widgets/app_asset_image.dart';
+import 'package:look_atlas/shared/widgets/app_card.dart';
+import 'package:look_atlas/shared/widgets/app_feedback.dart';
+import 'package:look_atlas/shared/widgets/app_media_widgets.dart';
+import 'package:look_atlas/shared/widgets/app_outlined_button.dart';
+import 'package:look_atlas/shared/widgets/app_snack_bar.dart';
+import 'package:look_atlas/shared/widgets/app_spaced_column.dart';
+import 'package:look_atlas/shared/widgets/app_text.dart';
+import 'package:look_atlas/shared/widgets/app_text_field.dart';
+import 'package:look_atlas/shared/widgets/bar_spinner.dart';
+import 'package:look_atlas/shared/widgets/custom_app_bar.dart';
+import 'package:look_atlas/shared/widgets/primary_button.dart';
+import 'package:look_atlas/shared/widgets/shimmer_box.dart';
+
+part '../widgets/create_shoot_director_settings.dart';
+part '../widgets/create_shoot_director_widgets.dart';
+part '../widgets/create_shoot_planning_widgets.dart';
+part '../widgets/create_shoot_selection_widgets.dart';
+part '../widgets/create_shoot_widgets.dart';
+
+typedef _CreateShootState = CreateShootState;
+typedef _CreateShootController = CreateShootController;
+typedef _CreateStep = CreateStep;
+typedef _ShootModalKind = ShootModalKind;
 
 class CreateShootScreen extends ConsumerStatefulWidget {
   const CreateShootScreen({super.key});
@@ -19,7 +61,7 @@ class _CreateShootScreenState extends ConsumerState<CreateShootScreen> {
   @override
   Widget build(BuildContext context) {
     ref.listen(
-      _createShootControllerProvider.select((state) => state.step),
+      createShootControllerProvider.select((state) => state.step),
       _scrollToTop,
     );
     return Scaffold(
@@ -40,7 +82,7 @@ class _CreateShootScreenState extends ConsumerState<CreateShootScreen> {
               padding: const EdgeInsets.fromLTRB(20, 16, 20, 30),
               child: _CreatePage(
                 onComplete: (jobId) => context.go(AppRoutes.shootDetail(jobId)),
-                onOpenModal: (kind) => _openShootModal(context, ref, kind),
+                onOpenModal: (kind) => openShootModal(context, ref, kind),
                 onToast: (text) => AppSnackBar.show(context, text),
               ),
             ),
@@ -81,8 +123,8 @@ class _CreatePage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final state = ref.watch(_createShootControllerProvider);
-    final controller = ref.read(_createShootControllerProvider.notifier);
+    final state = ref.watch(createShootControllerProvider);
+    final controller = ref.read(createShootControllerProvider.notifier);
     final isAdmin =
         ref.watch(authStateProvider).asData?.value?.role.toLowerCase() ==
         'admin';
@@ -220,13 +262,13 @@ Future<void> _submitDemoShoot(
   ValueChanged<String> onComplete,
   ValueChanged<String> onToast,
 ) async {
-  final controller = ref.read(_createShootControllerProvider.notifier);
+  final controller = ref.read(createShootControllerProvider.notifier);
   final result = await controller.createDemoShoot();
   if (!context.mounted) return;
   result.fold(
     (jobId) {
       onToast('Demo shoots created. Generation started.');
-      unawaited(ref.read(_shootsControllerProvider.notifier).load());
+      unawaited(ref.read(shootsControllerProvider.notifier).load());
       controller.reset();
       onComplete(jobId);
     },
@@ -241,8 +283,8 @@ Future<void> _submitCreateShoot(
   ValueChanged<String> onToast,
   ValueChanged<_ShootModalKind> onOpenModal,
 ) async {
-  final state = ref.read(_createShootControllerProvider);
-  final controller = ref.read(_createShootControllerProvider.notifier);
+  final state = ref.read(createShootControllerProvider);
+  final controller = ref.read(createShootControllerProvider.notifier);
   if (state.needsPrimaryProductSubCategory) {
     final subCategory = await _selectBagSubCategory(context);
     if (subCategory == null || !context.mounted) return;
@@ -257,7 +299,7 @@ Future<void> _submitCreateShoot(
   result.fold(
     (jobId) {
       onToast('Shoot created. Generation started.');
-      unawaited(ref.read(_shootsControllerProvider.notifier).load());
+      unawaited(ref.read(shootsControllerProvider.notifier).load());
       controller.reset();
       onComplete(jobId);
     },

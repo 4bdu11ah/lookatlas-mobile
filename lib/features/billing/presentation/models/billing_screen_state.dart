@@ -1,30 +1,36 @@
-part of '../billing_feature.dart';
+const creditPackSize = 80;
+const creditPackPrice = 20.0;
 
-enum _BillingAction {
+enum BillingAction {
   idle,
   purchasing,
   purchaseSuccess,
 }
 
-class _BillingScreenState {
-  const _BillingScreenState({
+class BillingScreenState {
+  const BillingScreenState({
     required this.quantity,
     required this.action,
   });
 
   final int quantity;
-  final _BillingAction action;
+  final BillingAction action;
 
-  int get purchaseCredits => quantity * _creditPackSize;
-  double get purchaseTotal => quantity * _creditPackPrice;
+  int get purchaseCredits => quantity * creditPackSize;
+  double get purchaseTotal => quantity * creditPackPrice;
 
-  _BillingScreenState copyWith({
+  BillingScreenState copyWith({
     int? quantity,
-    _BillingAction? action,
+    BillingAction? action,
   }) {
-    return _BillingScreenState(
+    return BillingScreenState(
       quantity: quantity ?? this.quantity,
       action: action ?? this.action,
     );
   }
 }
+
+const billingInitialState = BillingScreenState(
+  quantity: 1,
+  action: BillingAction.idle,
+);

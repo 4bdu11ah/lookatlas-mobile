@@ -1,18 +1,36 @@
-part of '../products_feature.dart';
+library;
 
-bool _requestProductsManageAccess(BuildContext context, WidgetRef ref) {
-  final hasAccess =
-      ref.read(isPremiumProvider) ||
-      (ref
-              .read(subscriptionControllerProvider)
-              .value
-              ?.activeEntitlements
-              .contains('products_manage') ??
-          false);
-  if (hasAccess) return true;
-  unawaited(context.push(AppRoutes.paywall));
-  return false;
-}
+import 'dart:async';
+
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:look_atlas/core/router/app_routes.dart';
+import 'package:look_atlas/core/theme/app_colors.dart';
+import 'package:look_atlas/core/theme/app_typography.dart';
+import 'package:look_atlas/features/products/domain/entities/product_catalog.dart';
+import 'package:look_atlas/features/products/presentation/controllers/products_controller.dart';
+import 'package:look_atlas/features/products/presentation/dialogs/product_dialogs.dart';
+import 'package:look_atlas/features/products/presentation/models/product_view_model.dart';
+import 'package:look_atlas/features/products/presentation/product_access.dart';
+import 'package:look_atlas/features/products/presentation/screens/product_calibration_screens.dart';
+import 'package:look_atlas/features/products/presentation/widgets/product_shared_widgets.dart';
+import 'package:look_atlas/shared/widgets/app_asset_image.dart';
+import 'package:look_atlas/shared/widgets/app_dropdown.dart';
+import 'package:look_atlas/shared/widgets/app_feature_scaffold.dart';
+import 'package:look_atlas/shared/widgets/app_outlined_button.dart';
+import 'package:look_atlas/shared/widgets/app_snack_bar.dart';
+import 'package:look_atlas/shared/widgets/app_text_field.dart';
+import 'package:look_atlas/shared/widgets/primary_button.dart';
+import 'package:look_atlas/shared/widgets/shimmer_box.dart';
+
+part '../widgets/product_catalog_widgets.dart';
+part '../widgets/product_filters.dart';
+
+typedef _Product = ProductViewModel;
+typedef _ProductCategoryFilter = ProductCategoryFilter;
+typedef _ProductStatusFilter = ProductStatusFilter;
+typedef _ProductSortOrder = ProductSortOrder;
 
 class ProductsScreen extends ConsumerStatefulWidget {
   const ProductsScreen({
@@ -50,8 +68,8 @@ class _ProductsScreenViewState extends ConsumerState<ProductsScreen> {
     if (widget.openCreate) {
       _handledDeepLink = true;
       _consumeCommand('create');
-      if (!_requestProductsManageAccess(context, ref)) return;
-      await _showProductFormDialog(
+      if (!requestProductsManageAccess(context, ref)) return;
+      await showProductFormDialog(
         context,
         ref,
         (text) => AppSnackBar.show(context, text),
@@ -63,10 +81,10 @@ class _ProductsScreenViewState extends ConsumerState<ProductsScreen> {
       _handledDeepLink = true;
       return;
     }
-    if (ref.read(_productsControllerProvider).isLoading) return;
+    if (ref.read(productsControllerProvider).isLoading) return;
     _handledDeepLink = true;
     final product = await ref
-        .read(_productsControllerProvider.notifier)
+        .read(productsControllerProvider.notifier)
         .resolveProduct(targetId);
     if (!mounted) return;
     _consumeCommand(
@@ -83,10 +101,10 @@ class _ProductsScreenViewState extends ConsumerState<ProductsScreen> {
     }
     void onToast(String text) => AppSnackBar.show(context, text);
     if (widget.calibrateProductId != null) {
-      if (!_requestProductsManageAccess(context, ref)) return;
+      if (!requestProductsManageAccess(context, ref)) return;
       await _openDeepLinkedCalibration(product, onToast);
     } else {
-      await _showProductDetailSheet(context, ref, product, onToast);
+      await showProductDetailSheet(context, ref, product, onToast);
     }
   }
 
@@ -105,7 +123,7 @@ class _ProductsScreenViewState extends ConsumerState<ProductsScreen> {
     _Product product,
     ValueChanged<String> onToast,
   ) async {
-    await _openCalibration(
+    await openCalibration(
       context,
       ref,
       product,
@@ -123,7 +141,7 @@ class _ProductsScreenViewState extends ConsumerState<ProductsScreen> {
   @override
   Widget build(BuildContext context) {
     ref.listen(
-      _productsControllerProvider.select((state) => state.products),
+      productsControllerProvider.select((state) => state.products),
       (_, _) => unawaited(_handleDeepLink()),
     );
     return AppFeatureScaffold(
@@ -142,14 +160,14 @@ class _ProductsPage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final state = ref.watch(_productsControllerProvider);
-    final controller = ref.read(_productsControllerProvider.notifier);
+    final state = ref.watch(productsControllerProvider);
+    final controller = ref.read(productsControllerProvider.notifier);
     final uncategorized = state.productsWithoutCategory;
     if (state.isLoading && state.products.isEmpty) {
       return const _ProductsLoadingShimmer();
     }
     if (state.failure != null && state.products.isEmpty) {
-      return _ProductLoadFailure(
+      return ProductLoadFailure(
         message: state.failure!.message,
         onRetry: controller.reload,
       );
@@ -166,9 +184,9 @@ class _ProductsPage extends ConsumerWidget {
                 children: [
                   _ProductsLibraryHeader(
                     onAdd: () {
-                      if (_requestProductsManageAccess(context, ref)) {
+                      if (requestProductsManageAccess(context, ref)) {
                         unawaited(
-                          _showProductFormDialog(context, ref, onToast),
+                          showProductFormDialog(context, ref, onToast),
                         );
                       }
                     },
@@ -192,7 +210,7 @@ class _ProductsPage extends ConsumerWidget {
                       !state.categoryBannerDismissed)
                     _ProductCategoryBanner(
                       count: uncategorized.length,
-                      onSetCategories: () => _showProductFormDialog(
+                      onSetCategories: () => showProductFormDialog(
                         context,
                         ref,
                         onToast,
@@ -232,7 +250,7 @@ class _ProductsPage extends ConsumerWidget {
                           state.statusFilter != _ProductStatusFilter.all ||
                           state.sortOrder != _ProductSortOrder.newest,
                       onClear: controller.clearFilters,
-                      onAdd: () => _showProductFormDialog(
+                      onAdd: () => showProductFormDialog(
                         context,
                         ref,
                         onToast,
@@ -248,17 +266,17 @@ class _ProductsPage extends ConsumerWidget {
               sliver: _ProductCatalogGrid(
                 products: state.products,
                 onAdd: () {
-                  if (_requestProductsManageAccess(context, ref)) {
-                    unawaited(_showProductFormDialog(context, ref, onToast));
+                  if (requestProductsManageAccess(context, ref)) {
+                    unawaited(showProductFormDialog(context, ref, onToast));
                   }
                 },
                 onOpen: (product) => unawaited(
-                  _showProductDetailSheet(context, ref, product, onToast),
+                  showProductDetailSheet(context, ref, product, onToast),
                 ),
                 onCalibrate: (product) {
-                  if (_requestProductsManageAccess(context, ref)) {
+                  if (requestProductsManageAccess(context, ref)) {
                     unawaited(
-                      _openCalibration(context, ref, product, onToast),
+                      openCalibration(context, ref, product, onToast),
                     );
                   }
                 },
@@ -358,7 +376,7 @@ class _ProductsSectionHeading extends StatelessWidget {
           '01',
           style: TextStyle(
             color: AppColors.neutral500,
-            fontFamily: _productDisplayFontFamily,
+            fontFamily: productDisplayFontFamily,
             fontStyle: FontStyle.italic,
             fontSize: 18,
           ),
@@ -368,40 +386,22 @@ class _ProductsSectionHeading extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const _CatalogEyebrow('Your catalog'),
+              const CatalogEyebrow('Your catalog'),
               const SizedBox(height: 3),
               const Text(
                 'The pieces in your studio.',
                 style: TextStyle(
-                  fontFamily: _productDisplayFontFamily,
+                  fontFamily: productDisplayFontFamily,
                   fontSize: 31,
                   height: 1,
                 ),
               ),
               const SizedBox(height: 8),
-              _CatalogEyebrow('$loaded of $total'),
+              CatalogEyebrow('$loaded of $total'),
             ],
           ),
         ),
       ],
-    ),
-  );
-}
-
-class _CatalogEyebrow extends StatelessWidget {
-  const _CatalogEyebrow(this.text, {this.color = AppColors.neutral500});
-
-  final String text;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) => Text(
-    text.toUpperCase(),
-    style: TextStyle(
-      color: color,
-      fontSize: 9,
-      fontWeight: FontWeight.w900,
-      letterSpacing: 1.2,
     ),
   );
 }
@@ -429,7 +429,7 @@ class _ProductAddCard extends StatelessWidget {
             'Add another product',
             textAlign: TextAlign.center,
             style: TextStyle(
-              fontFamily: _productDisplayFontFamily,
+              fontFamily: productDisplayFontFamily,
               fontSize: 24,
               height: 1,
             ),

@@ -1,15 +1,42 @@
-part of 'dashboard_screen.dart';
+import 'dart:async';
 
-class _DashboardOverviewScreen extends ConsumerWidget {
-  const _DashboardOverviewScreen({
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:look_atlas/core/router/app_routes.dart';
+import 'package:look_atlas/core/theme/app_colors.dart';
+import 'package:look_atlas/core/theme/app_typography.dart';
+import 'package:look_atlas/features/dashboard/domain/entities/dashboard_data.dart';
+import 'package:look_atlas/features/dashboard/presentation/controllers/dashboard_overview_controller.dart';
+import 'package:look_atlas/features/dashboard/presentation/controllers/dashboard_welcome_controller.dart';
+import 'package:look_atlas/features/dashboard/presentation/models/dashboard_page.dart';
+import 'package:look_atlas/features/dashboard/presentation/widgets/dashboard_welcome_block.dart';
+import 'package:look_atlas/features/shoots/presentation/shoots_feature.dart';
+import 'package:look_atlas/features/studio_school/di/studio_school_providers.dart';
+import 'package:look_atlas/features/studio_school/presentation/widgets/school_dashboard_helper.dart';
+import 'package:look_atlas/shared/widgets/app_card.dart';
+import 'package:look_atlas/shared/widgets/app_feedback.dart';
+import 'package:look_atlas/shared/widgets/app_hairline.dart';
+import 'package:look_atlas/shared/widgets/app_media_widgets.dart';
+import 'package:look_atlas/shared/widgets/app_outlined_button.dart';
+import 'package:look_atlas/shared/widgets/app_spaced_column.dart';
+import 'package:look_atlas/shared/widgets/app_text.dart';
+import 'package:look_atlas/shared/widgets/bar_spinner.dart';
+import 'package:look_atlas/shared/widgets/shimmer_box.dart';
+
+part '../widgets/dashboard_quick_actions.dart';
+
+class DashboardOverviewScreen extends ConsumerWidget {
+  const DashboardOverviewScreen({
     required this.onNavigate,
+    super.key,
   });
 
-  final ValueChanged<_DashboardPage> onNavigate;
+  final ValueChanged<DashboardPage> onNavigate;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final state = ref.watch(_dashboardOverviewControllerProvider);
+    final state = ref.watch(dashboardOverviewControllerProvider);
     final welcome = ref.watch(studioSchoolWelcomeProvider)?.dashboard;
     final shouldOpenIntro = switch (state) {
       AsyncData(:final value)
@@ -41,7 +68,7 @@ class _DashboardOverviewScreen extends ConsumerWidget {
             ),
           ),
           _ => const _DashboardOverviewContent(
-            state: _DashboardOverviewState(),
+            state: DashboardOverviewState(),
             onNavigate: _ignoreDashboardNavigation,
             onOpenShoot: _ignoreDashboardShoot,
           ),
@@ -58,8 +85,8 @@ class _DashboardOverviewContent extends StatelessWidget {
     required this.onOpenShoot,
   });
 
-  final _DashboardOverviewState state;
-  final ValueChanged<_DashboardPage> onNavigate;
+  final DashboardOverviewState state;
+  final ValueChanged<DashboardPage> onNavigate;
   final ValueChanged<ShootViewModel> onOpenShoot;
 
   @override
@@ -220,7 +247,7 @@ class _RecentShoots extends StatelessWidget {
 
   final List<ShootViewModel> shoots;
   final bool isLoading;
-  final ValueChanged<_DashboardPage> onNavigate;
+  final ValueChanged<DashboardPage> onNavigate;
   final ValueChanged<ShootViewModel> onOpenShoot;
 
   @override
@@ -240,7 +267,7 @@ class _RecentShoots extends StatelessWidget {
                   icon: Icons.arrow_forward,
                   iconAlignment: IconAlignment.end,
                   fitToContent: true,
-                  onPressed: () => onNavigate(_DashboardPage.jobs),
+                  onPressed: () => onNavigate(DashboardPage.jobs),
                 ),
               ],
             ),
@@ -298,14 +325,14 @@ class _DashboardStatsLoading extends StatelessWidget {
 
 int _dashboardStatColumns(double width) => width >= 600 ? 3 : 2;
 
-void _ignoreDashboardNavigation(_DashboardPage _) {}
+void _ignoreDashboardNavigation(DashboardPage _) {}
 
 void _ignoreDashboardShoot(ShootViewModel _) {}
 
 class _QuickActions extends StatelessWidget {
   const _QuickActions({required this.onNavigate});
 
-  final ValueChanged<_DashboardPage> onNavigate;
+  final ValueChanged<DashboardPage> onNavigate;
 
   @override
   Widget build(BuildContext context) {
@@ -318,21 +345,21 @@ class _QuickActions extends StatelessWidget {
           title: 'Manage Models',
           body: 'Upload and manage house models for consistent photography.',
           subtitle: 'Go to Models',
-          onTap: () => onNavigate(_DashboardPage.models),
+          onTap: () => onNavigate(DashboardPage.models),
         ),
         _ActionCard(
           icon: Icons.inventory_2_outlined,
           title: 'Upload Products',
           body: 'Add products for AI-generated photo shoots.',
           subtitle: 'Manage Products',
-          onTap: () => onNavigate(_DashboardPage.products),
+          onTap: () => onNavigate(DashboardPage.products),
         ),
         _ActionCard(
           icon: Icons.auto_fix_high_outlined,
           title: 'Workshop',
           body: 'Edit a photo with a prompt, references, and AI.',
           subtitle: 'Open Workshop',
-          onTap: () => onNavigate(_DashboardPage.workshop),
+          onTap: () => onNavigate(DashboardPage.workshop),
         ),
         _ActionCard(
           icon: Icons.check_circle_outline,

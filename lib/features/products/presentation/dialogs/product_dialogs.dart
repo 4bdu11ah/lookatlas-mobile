@@ -1,9 +1,45 @@
-part of '../products_feature.dart';
+library;
 
-Future<void> _showProductDetailSheet(
+import 'dart:async';
+import 'dart:math';
+
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:look_atlas/core/router/app_routes.dart';
+import 'package:look_atlas/core/theme/app_colors.dart';
+import 'package:look_atlas/core/theme/app_typography.dart';
+import 'package:look_atlas/features/products/domain/entities/product_catalog.dart';
+import 'package:look_atlas/features/products/presentation/controllers/product_form_controller.dart';
+import 'package:look_atlas/features/products/presentation/controllers/products_controller.dart';
+import 'package:look_atlas/features/products/presentation/models/product_view_model.dart';
+import 'package:look_atlas/features/products/presentation/product_access.dart';
+import 'package:look_atlas/features/products/presentation/screens/product_calibration_screens.dart';
+import 'package:look_atlas/features/products/presentation/screens/product_reference_crop_screen.dart';
+import 'package:look_atlas/features/products/presentation/widgets/product_photo_picker.dart';
+import 'package:look_atlas/features/products/presentation/widgets/product_shared_widgets.dart';
+import 'package:look_atlas/shared/widgets/app_asset_image.dart';
+import 'package:look_atlas/shared/widgets/app_bottom_sheet.dart';
+import 'package:look_atlas/shared/widgets/app_dialog.dart';
+import 'package:look_atlas/shared/widgets/app_dotted_border.dart';
+import 'package:look_atlas/shared/widgets/app_dropdown.dart';
+import 'package:look_atlas/shared/widgets/app_image.dart';
+import 'package:look_atlas/shared/widgets/app_outlined_button.dart';
+import 'package:look_atlas/shared/widgets/app_snack_bar.dart';
+import 'package:look_atlas/shared/widgets/app_text_field.dart';
+import 'package:look_atlas/shared/widgets/bar_spinner.dart';
+import 'package:look_atlas/shared/widgets/primary_button.dart';
+
+part 'product_form_dialog.dart';
+part '../widgets/product_form_widgets.dart';
+
+typedef _Product = ProductViewModel;
+
+Future<void> showProductDetailSheet(
   BuildContext context,
   WidgetRef ref,
-  _Product product,
+  ProductViewModel product,
   ValueChanged<String> onToast,
 ) => showAppBottomSheet<void>(
   context,
@@ -13,7 +49,7 @@ Future<void> _showProductDetailSheet(
     onToast: onToast,
     onCalibrate: () {
       Navigator.pop(context);
-      unawaited(_openCalibration(context, ref, product, onToast));
+      unawaited(openCalibration(context, ref, product, onToast));
     },
     onDelete: () async {
       Navigator.pop(context);
@@ -49,22 +85,22 @@ class _ProductDetailSheetState extends ConsumerState<_ProductDetailSheet> {
     ProductPhoto photo,
     VoidCallback onUploadStart,
   ) async {
-    if (!_requestProductsManageAccess(context, ref)) return null;
-    final replacement = await _pickProductPhoto(
+    if (!requestProductsManageAccess(context, ref)) return null;
+    final replacement = await pickProductPhoto(
       context,
       ref,
       title: 'Replace product photo',
     );
     if (replacement == null || !mounted) return null;
     ProductUpload? savedReplacement;
-    await _showProductReferenceCrop(
+    await showProductReferenceCrop(
       context,
       source: replacement,
       isReplacement: true,
       onSave: (cropped) async {
         onUploadStart();
         final result = await ref
-            .read(_productsControllerProvider.notifier)
+            .read(productsControllerProvider.notifier)
             .replacePhoto(widget.product, photo, cropped);
         if (!mounted) return false;
         final failure = result.failureOrNull;
@@ -215,12 +251,12 @@ class _ProductDetailSheetState extends ConsumerState<_ProductDetailSheet> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  const _CatalogEyebrow('Product record'),
+                  const CatalogEyebrow('Product record'),
                   const SizedBox(height: 5),
                   Text(
                     product.name,
                     style: const TextStyle(
-                      fontFamily: _productDisplayFontFamily,
+                      fontFamily: productDisplayFontFamily,
                       fontSize: 36,
                       height: 1,
                     ),
@@ -248,7 +284,7 @@ class _ProductDetailSheetState extends ConsumerState<_ProductDetailSheet> {
                     alignment: Alignment.centerLeft,
                     child: InkWell(
                       onTap: widget.onCalibrate,
-                      child: _ProductPill.neutral(
+                      child: ProductPill.neutral(
                         product.status,
                         icon: Icons.straighten,
                       ),
@@ -270,7 +306,7 @@ class _ProductDetailSheetState extends ConsumerState<_ProductDetailSheet> {
                     label: 'Edit product',
                     icon: Icons.edit_outlined,
                     onPressed: () {
-                      if (_requestProductsManageAccess(context, ref)) {
+                      if (requestProductsManageAccess(context, ref)) {
                         setState(() => _editing = true);
                       }
                     },
@@ -333,20 +369,20 @@ class _ProductDetailRow extends StatelessWidget {
     ),
     child: Row(
       children: [
-        Expanded(child: _CatalogEyebrow(label)),
+        Expanded(child: CatalogEyebrow(label)),
         Text(value, style: const TextStyle(fontSize: 12)),
       ],
     ),
   );
 }
 
-Future<void> _showProductFormDialog(
+Future<void> showProductFormDialog(
   BuildContext context,
   WidgetRef ref,
   ValueChanged<String> onToast, {
-  _Product? product,
+  ProductViewModel? product,
 }) {
-  if (!_requestProductsManageAccess(context, ref)) return Future.value();
+  if (!requestProductsManageAccess(context, ref)) return Future.value();
   return showAppBottomSheet<void>(
     context,
     isScrollControlled: true,
@@ -372,24 +408,24 @@ Future<void> _showProductFormDialog(
                 onToast,
               ),
               onReplacePhoto: (photo, onUploadStart) async {
-                if (!_requestProductsManageAccess(sheetContext, ref)) {
+                if (!requestProductsManageAccess(sheetContext, ref)) {
                   return null;
                 }
-                final replacement = await _pickProductPhoto(
+                final replacement = await pickProductPhoto(
                   sheetContext,
                   ref,
                   title: 'Replace product photo',
                 );
                 if (replacement == null || !sheetContext.mounted) return null;
                 ProductUpload? savedReplacement;
-                await _showProductReferenceCrop(
+                await showProductReferenceCrop(
                   sheetContext,
                   source: replacement,
                   isReplacement: true,
                   onSave: (cropped) async {
                     onUploadStart();
                     final result = await ref
-                        .read(_productsControllerProvider.notifier)
+                        .read(productsControllerProvider.notifier)
                         .replacePhoto(product!, photo, cropped);
                     if (!sheetContext.mounted) return false;
                     final failure = result.failureOrNull;
@@ -434,14 +470,14 @@ class _ProductFormSheetHeader extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _CatalogEyebrow(
+              CatalogEyebrow(
                 editing ? 'Product record' : 'New catalog object',
               ),
               const SizedBox(height: 9),
               Text(
                 editing ? 'Edit product' : 'Add a product',
                 style: TextStyle(
-                  fontFamily: _productDisplayFontFamily,
+                  fontFamily: productDisplayFontFamily,
                   fontSize: editing ? 30 : 38,
                   height: 0.98,
                   letterSpacing: -1.3,
@@ -492,12 +528,12 @@ class _ProductFormFooter extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final form = ref.watch(_productFormProvider(product));
+    final form = ref.watch(productFormProvider(product));
 
     Future<void> submit() async {
-      if (!_requestProductsManageAccess(context, ref)) return;
+      if (!requestProductsManageAccess(context, ref)) return;
       final result = await ref
-          .read(_productFormProvider(product).notifier)
+          .read(productFormProvider(product).notifier)
           .submit(product);
       if (!context.mounted || result == null) return;
       final failure = result.failureOrNull;
@@ -509,12 +545,12 @@ class _ProductFormFooter extends ConsumerWidget {
       onToast(product == null ? 'Product added' : 'Product updated');
       if (product == null && launchContext.mounted) {
         final created = ref
-            .read(_productsControllerProvider)
+            .read(productsControllerProvider)
             .products
             .where((item) => item.sku == form.sku.trim())
             .firstOrNull;
         if (created != null) {
-          await _showProductDetailSheet(
+          await showProductDetailSheet(
             launchContext,
             ref,
             created,
@@ -606,7 +642,7 @@ Future<void> _showProductDeleteDialog(
   _Product product,
   ValueChanged<String> onToast,
 ) {
-  if (!_requestProductsManageAccess(context, ref)) return Future.value();
+  if (!requestProductsManageAccess(context, ref)) return Future.value();
   return showAppDialog<void>(
     context: context,
     config: AppDialogConfig.standard.copyWith(maxHeightOffset: 80),
@@ -629,7 +665,7 @@ Future<void> _showProductDeleteDialog(
       onCancel: () => Navigator.pop(context),
       onPrimary: () async {
         final result = await ref
-            .read(_productsControllerProvider.notifier)
+            .read(productsControllerProvider.notifier)
             .deleteProduct(product);
         if (!context.mounted) return;
         final failure = result.failureOrNull;
@@ -651,7 +687,7 @@ Future<bool> _showProductDeletePhotoDialog(
   ProductPhoto photo,
   ValueChanged<String> onToast,
 ) async {
-  if (!_requestProductsManageAccess(context, ref)) return false;
+  if (!requestProductsManageAccess(context, ref)) return false;
   final deleted = await showAppDialog<bool>(
     context: context,
     config: AppDialogConfig.standard.copyWith(maxHeightOffset: 80),
@@ -670,7 +706,7 @@ Future<bool> _showProductDeletePhotoDialog(
     footer: Consumer(
       builder: (context, ref, _) {
         final isMutating = ref.watch(
-          _productsControllerProvider.select((state) => state.isMutating),
+          productsControllerProvider.select((state) => state.isMutating),
         );
         return AppDialogActionFooter(
           primaryLabel: 'Delete Photo',
@@ -680,7 +716,7 @@ Future<bool> _showProductDeletePhotoDialog(
           onCancel: () => Navigator.pop(context, false),
           onPrimary: () async {
             final result = await ref
-                .read(_productsControllerProvider.notifier)
+                .read(productsControllerProvider.notifier)
                 .deletePhoto(product, photo.id);
             if (!context.mounted) return;
             final failure = result.failureOrNull;

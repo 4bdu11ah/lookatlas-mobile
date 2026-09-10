@@ -1,4 +1,4 @@
-part of '../shoots_feature.dart';
+part of 'shoot_modal.dart';
 
 class _CustomShotSubmitting extends Notifier<bool> {
   @override
@@ -198,10 +198,10 @@ class _CustomShotDialogState extends ConsumerState<_CustomShotDialog> {
 
   @override
   Widget build(BuildContext context) {
-    final controller = ref.read(_createShootControllerProvider.notifier);
+    final controller = ref.read(createShootControllerProvider.notifier);
     final isSubmitting = ref.watch(_customShotSubmittingProvider);
     final shootContext = ref.watch(
-      _createShootControllerProvider.select((state) {
+      createShootControllerProvider.select((state) {
         final director = state.directors[state.selectedDirector];
         return (
           background: _customShotBackgroundLabel(state.settings.background),

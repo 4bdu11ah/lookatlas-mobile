@@ -1,4 +1,4 @@
-part of '../shoots_feature.dart';
+part of '../screens/create_shoot_screen.dart';
 
 class _DirectorChoiceList extends StatelessWidget {
   const _DirectorChoiceList({
@@ -66,7 +66,10 @@ class _DemoReviewStep extends StatelessWidget {
           subtitle: 'Each director creates a separate shoot in one demo group',
         ),
         AppFieldLabel('${state.demoDirectors.length} directors selected'),
-        AppCaption('$totalImages total images · HD (2K) · metered', fontSize: 12),
+        AppCaption(
+          '$totalImages total images · HD (2K) · metered',
+          fontSize: 12,
+        ),
         AppCaption(
           '${state.demoRequiredCredits} credits required',
           fontSize: 11,

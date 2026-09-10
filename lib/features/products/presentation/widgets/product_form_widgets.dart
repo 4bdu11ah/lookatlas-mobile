@@ -1,4 +1,4 @@
-part of '../products_feature.dart';
+part of '../dialogs/product_dialogs.dart';
 
 class _ProductField extends StatelessWidget {
   const _ProductField({
@@ -103,7 +103,7 @@ class _AddProductUploadStack extends StatelessWidget {
     required this.onRemovePhoto,
   });
 
-  final _ProductFormState form;
+  final ProductFormState form;
   final VoidCallback onPickPhotos;
   final void Function(int index, String? angle) onAngleChanged;
   final void Function(String token, int delta) onMovePhoto;
@@ -194,7 +194,7 @@ class _AddProductUploadBox extends StatelessWidget {
                 textAlign: TextAlign.center,
                 style: const TextStyle(
                   color: Color(0xFF121211),
-                  fontFamily: _productDisplayFontFamily,
+                  fontFamily: productDisplayFontFamily,
                   fontSize: 23,
                   fontWeight: FontWeight.w400,
                 ),

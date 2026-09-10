@@ -1,4 +1,4 @@
-part of '../shoots_feature.dart';
+part of 'shoot_modal.dart';
 
 class _DialogUpload extends StatelessWidget {
   const _DialogUpload({required this.label, this.onTap});
@@ -72,9 +72,9 @@ _imageReportCommentProvider =
       _ImageReportComment.new,
     );
 
-Future<void> _showImageReportDialog(
+Future<void> showImageReportDialog(
   BuildContext context,
-  _ShootDetailController controller,
+  ShootDetailController controller,
   ShootImage image,
 ) async {
   await showAppDialog<void>(
@@ -190,13 +190,13 @@ class _ImageReportFooter extends ConsumerWidget {
   });
 
   final BuildContext pageContext;
-  final _ShootDetailController controller;
+  final ShootDetailController controller;
   final ShootImage image;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final isLoading = ref.watch(
-      _shootDetailControllerProvider.select((state) => state.isActionRunning),
+      shootDetailControllerProvider.select((state) => state.isActionRunning),
     );
     final reason = ref.watch(_imageReportReasonProvider);
     final comment = ref.watch(_imageReportCommentProvider);
@@ -221,7 +221,7 @@ class _ImageReportFooter extends ConsumerWidget {
 Future<void> _submitImageReport({
   required BuildContext context,
   required BuildContext dialogContext,
-  required _ShootDetailController controller,
+  required ShootDetailController controller,
   required ShootImage image,
   required String reason,
   required String comment,
@@ -271,7 +271,7 @@ class _AiEditDialog extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final imageUrl = ref.watch(
-      _shootDetailControllerProvider.select(
+      shootDetailControllerProvider.select(
         (state) => state.selectedImage?.url ?? '',
       ),
     );
@@ -331,9 +331,9 @@ class _AiEditDialogFooter extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final isLoading = ref.watch(
-      _shootDetailControllerProvider.select((state) => state.isActionRunning),
+      shootDetailControllerProvider.select((state) => state.isActionRunning),
     );
-    final controller = ref.read(_shootDetailControllerProvider.notifier);
+    final controller = ref.read(shootDetailControllerProvider.notifier);
     final prompt = ref.watch(_aiEditPromptProvider);
     final isValid = prompt.trim().isNotEmpty && _aiEditWordCount(prompt) <= 500;
     return Column(
@@ -383,7 +383,7 @@ int _aiEditWordCount(String prompt) {
 Future<void> _submitAiEdit({
   required BuildContext pageContext,
   required BuildContext dialogContext,
-  required _ShootDetailController controller,
+  required ShootDetailController controller,
   required String prompt,
   required ValueChanged<String> onToast,
 }) async {

@@ -1,4 +1,16 @@
-part of 'package:look_atlas/features/support/presentation/support_feature.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:look_atlas/core/theme/app_colors.dart';
+import 'package:look_atlas/core/theme/app_typography.dart';
+import 'package:look_atlas/features/support/presentation/controllers/support_controller.dart';
+import 'package:look_atlas/features/support/presentation/models/support_screen_state.dart';
+import 'package:look_atlas/shared/widgets/app_dialog.dart';
+import 'package:look_atlas/shared/widgets/app_dropdown.dart';
+import 'package:look_atlas/shared/widgets/app_feature_scaffold.dart';
+import 'package:look_atlas/shared/widgets/app_text_field.dart';
+
+part '../dialogs/support_success_dialog.dart';
+part '../widgets/support_form.dart';
 
 class SupportScreen extends StatelessWidget {
   const SupportScreen({super.key});

@@ -1,4 +1,4 @@
-part of '../house_model_feature.dart';
+part of '../screens/house_model_page.dart';
 
 class _TextFieldBlock extends StatelessWidget {
   const _TextFieldBlock({

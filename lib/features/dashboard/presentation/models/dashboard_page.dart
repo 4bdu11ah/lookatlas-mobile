@@ -1,6 +1,8 @@
-part of '../screens/dashboard_screen.dart';
+import 'package:flutter/material.dart';
+import 'package:look_atlas/core/router/app_routes.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
-enum _DashboardPage {
+enum DashboardPage {
   dashboard('Dashboard', LucideIcons.layoutDashboard),
   workshop('Workshop', LucideIcons.wand2),
   jobs('Shoots', LucideIcons.play),
@@ -13,24 +15,24 @@ enum _DashboardPage {
   school('Studio School', LucideIcons.graduationCap),
   guides('Guides', LucideIcons.bookOpen);
 
-  const _DashboardPage(this.label, this.icon);
+  const DashboardPage(this.label, this.icon);
 
   final String label;
   final IconData icon;
 
   String get routePath {
     return switch (this) {
-      _DashboardPage.dashboard => AppRoutes.home,
-      _DashboardPage.workshop => AppRoutes.workshop,
-      _DashboardPage.jobs => AppRoutes.dashboardShoots,
-      _DashboardPage.products => AppRoutes.dashboardProducts,
-      _DashboardPage.models => AppRoutes.dashboardModels,
-      _DashboardPage.billing => AppRoutes.dashboardBilling,
-      _DashboardPage.settings => AppRoutes.dashboardAccount,
-      _DashboardPage.support => AppRoutes.dashboardSupport,
-      _DashboardPage.assistant => AppRoutes.assistant,
-      _DashboardPage.school => AppRoutes.studioSchool,
-      _DashboardPage.guides => AppRoutes.dashboardGuides,
+      DashboardPage.dashboard => AppRoutes.home,
+      DashboardPage.workshop => AppRoutes.workshop,
+      DashboardPage.jobs => AppRoutes.dashboardShoots,
+      DashboardPage.products => AppRoutes.dashboardProducts,
+      DashboardPage.models => AppRoutes.dashboardModels,
+      DashboardPage.billing => AppRoutes.dashboardBilling,
+      DashboardPage.settings => AppRoutes.dashboardAccount,
+      DashboardPage.support => AppRoutes.dashboardSupport,
+      DashboardPage.assistant => AppRoutes.assistant,
+      DashboardPage.school => AppRoutes.studioSchool,
+      DashboardPage.guides => AppRoutes.dashboardGuides,
     };
   }
 }

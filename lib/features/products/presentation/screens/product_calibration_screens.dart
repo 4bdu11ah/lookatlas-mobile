@@ -1,13 +1,54 @@
-part of '../products_feature.dart';
+library;
 
-Future<void> _openCalibration(
+import 'dart:async';
+import 'dart:io';
+import 'dart:math';
+
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:look_atlas/core/error/failure.dart';
+import 'package:look_atlas/core/result/result.dart';
+import 'package:look_atlas/core/theme/app_colors.dart';
+import 'package:look_atlas/core/theme/app_typography.dart';
+import 'package:look_atlas/features/products/di/products_providers.dart';
+import 'package:look_atlas/features/products/domain/entities/product_catalog.dart';
+import 'package:look_atlas/features/products/domain/repositories/products_repository.dart';
+import 'package:look_atlas/features/products/presentation/controllers/products_controller.dart';
+import 'package:look_atlas/features/products/presentation/models/product_view_model.dart';
+import 'package:look_atlas/features/products/presentation/product_access.dart';
+import 'package:look_atlas/features/products/presentation/screens/product_reference_crop_screen.dart';
+import 'package:look_atlas/features/products/presentation/widgets/product_photo_picker.dart';
+import 'package:look_atlas/features/products/presentation/widgets/product_shared_widgets.dart';
+import 'package:look_atlas/shared/widgets/app_asset_image.dart';
+import 'package:look_atlas/shared/widgets/app_dialog.dart';
+import 'package:look_atlas/shared/widgets/app_dotted_border.dart';
+import 'package:look_atlas/shared/widgets/app_image.dart';
+import 'package:look_atlas/shared/widgets/app_outlined_button.dart';
+import 'package:look_atlas/shared/widgets/app_snack_bar.dart';
+import 'package:look_atlas/shared/widgets/app_text_field.dart';
+import 'package:look_atlas/shared/widgets/bar_spinner.dart';
+import 'package:look_atlas/shared/widgets/primary_button.dart';
+import 'package:look_atlas/shared/widgets/shimmer_box.dart';
+import 'package:native_cutout/native_cutout.dart';
+
+part 'product_calibration_actions.dart';
+part '../widgets/product_calibration_fit_step.dart';
+part '../widgets/product_calibration_flow.dart';
+part '../widgets/product_calibration_placement_controls.dart';
+part '../widgets/product_calibration_steps.dart';
+part '../widgets/product_calibration_widgets.dart';
+
+typedef _Product = ProductViewModel;
+
+Future<void> openCalibration(
   BuildContext context,
   WidgetRef ref,
-  _Product product,
+  ProductViewModel product,
   ValueChanged<String> onToast, {
   String? initialStage,
 }) {
-  if (!_requestProductsManageAccess(context, ref)) return Future.value();
+  if (!requestProductsManageAccess(context, ref)) return Future.value();
   return Navigator.of(context).push(
     MaterialPageRoute<void>(
       settings: const RouteSettings(name: 'product_size'),
@@ -16,7 +57,7 @@ Future<void> _openCalibration(
         repository: ref.read(productsRepositoryProvider),
         initialStage: initialStage,
         onSaved: () {
-          unawaited(ref.read(_productsControllerProvider.notifier).reload());
+          unawaited(ref.read(productsControllerProvider.notifier).reload());
           onToast('Calibration saved');
         },
       ),
@@ -316,7 +357,7 @@ class _ProductCalibrationScreenState
   }
 
   Future<ProductUpload?> _pickUpload(String title) =>
-      _pickProductPhoto(context, ref, title: title);
+      pickProductPhoto(context, ref, title: title);
 
   bool get _navigationBlocked =>
       _isMutating && _step != _CalibrationStep.removingBackground;
@@ -501,7 +542,7 @@ class _ProductCalibrationScreenState
   Future<void> _cropCutout() async {
     final cutout = _cutout;
     if (cutout == null || _isMutating) return;
-    await _showProductReferenceCrop(
+    await showProductReferenceCrop(
       context,
       source: cutout,
       isReplacement: true,
@@ -594,7 +635,7 @@ class _ProductCalibrationScreenState
     final body = _isLoading
         ? const _ProductCalibrationLoadingShimmer()
         : workspace == null
-        ? _ProductLoadFailure(
+        ? ProductLoadFailure(
             message: _failure?.message ?? 'Could not load calibration.',
             onRetry: _load,
           )

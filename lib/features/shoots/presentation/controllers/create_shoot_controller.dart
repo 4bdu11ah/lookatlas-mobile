@@ -1,8 +1,22 @@
-part of '../shoots_feature.dart';
+library;
 
-class _CreateShootState {
-  const _CreateShootState({
-    this.step = _CreateStep.product,
+import 'dart:async';
+import 'dart:math';
+
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:look_atlas/core/error/failure.dart';
+import 'package:look_atlas/core/result/result.dart';
+import 'package:look_atlas/features/shoots/di/shoots_providers.dart';
+import 'package:look_atlas/features/shoots/domain/entities/shoot_create.dart';
+import 'package:look_atlas/features/shoots/domain/repositories/shoots_repository.dart';
+import 'package:look_atlas/features/shoots/domain/use_cases/create_demo_shoots_use_case.dart';
+import 'package:look_atlas/features/shoots/presentation/models/create_step.dart';
+
+part 'create_shoot_demo_controller.dart';
+
+class CreateShootState {
+  const CreateShootState({
+    this.step = CreateStep.product,
     this.catalog,
     this.productMode = ProductMode.pairing,
     this.selectedProductIds = const [],
@@ -25,7 +39,7 @@ class _CreateShootState {
     this.failure,
   });
 
-  final _CreateStep step;
+  final CreateStep step;
   final ShootCreateCatalog? catalog;
   final ProductMode productMode;
   final List<String> selectedProductIds;
@@ -65,7 +79,7 @@ class _CreateShootState {
     ];
     return [
       for (final key in selectedModelKeys)
-        ...allModels.where((model) => _modelKey(model) == key),
+        ...allModels.where((model) => shootModelKey(model) == key),
     ];
   }
 
@@ -136,17 +150,17 @@ class _CreateShootState {
       (settings.lane == ShootLane.relax ||
           requiredCredits <= (catalog?.availableCredits ?? 0));
 
-  List<_CreateStep> get steps => demoMode
+  List<CreateStep> get steps => demoMode
       ? const [
-          _CreateStep.product,
-          _CreateStep.model,
-          _CreateStep.director,
-          _CreateStep.confirm,
+          CreateStep.product,
+          CreateStep.model,
+          CreateStep.director,
+          CreateStep.confirm,
         ]
-      : _CreateStep.values;
+      : CreateStep.values;
 
-  _CreateShootState copyWith({
-    _CreateStep? step,
+  CreateShootState copyWith({
+    CreateStep? step,
     ShootCreateCatalog? catalog,
     ProductMode? productMode,
     List<String>? selectedProductIds,
@@ -168,7 +182,7 @@ class _CreateShootState {
     bool? isSubmitting,
     Failure? failure,
     bool clearFailure = false,
-  }) => _CreateShootState(
+  }) => CreateShootState(
     step: step ?? this.step,
     catalog: catalog ?? this.catalog,
     productMode: productMode ?? this.productMode,
@@ -195,7 +209,7 @@ class _CreateShootState {
   );
 }
 
-class _CreateShootController extends Notifier<_CreateShootState>
+class CreateShootController extends Notifier<CreateShootState>
     with _CreateShootDemoController {
   @override
   bool _disposed = false;
@@ -205,10 +219,10 @@ class _CreateShootController extends Notifier<_CreateShootState>
   ShootsRepository get _repository => ref.read(shootsRepositoryProvider);
 
   @override
-  _CreateShootState build() {
+  CreateShootState build() {
     ref.onDispose(() => _disposed = true);
     unawaited(Future<void>.microtask(_loadProducts));
-    return const _CreateShootState();
+    return const CreateShootState();
   }
 
   Future<void> load({
@@ -224,9 +238,9 @@ class _CreateShootController extends Notifier<_CreateShootState>
   }
 
   Future<void> retry() => switch (state.step) {
-    _CreateStep.product => _loadProducts(),
-    _CreateStep.model => _loadModels(),
-    _CreateStep.director => _loadDirectorSetup(),
+    CreateStep.product => _loadProducts(),
+    CreateStep.model => _loadModels(),
+    CreateStep.director => _loadDirectorSetup(),
     _ => Future.value(),
   };
 
@@ -302,9 +316,9 @@ class _CreateShootController extends Notifier<_CreateShootState>
           ? state.selectedModelKeys
           : [
               ...state.selectedModelKeys.where(
-                (key) => key != _modelKey(preferredModel),
+                (key) => key != shootModelKey(preferredModel),
               ),
-              _modelKey(preferredModel),
+              shootModelKey(preferredModel),
             ],
       useLibraryModels:
           catalog.userModels.isEmpty && catalog.libraryModels.isNotEmpty,
@@ -355,16 +369,16 @@ class _CreateShootController extends Notifier<_CreateShootState>
     );
   }
 
-  void setStep(_CreateStep step) {
+  void setStep(CreateStep step) {
     state = state.copyWith(step: step);
     switch (step) {
-      case _CreateStep.model:
+      case CreateStep.model:
         unawaited(_loadModels());
-      case _CreateStep.director:
+      case CreateStep.director:
         unawaited(_loadDirectorSetup());
-      case _CreateStep.product:
-      case _CreateStep.planning:
-      case _CreateStep.confirm:
+      case CreateStep.product:
+      case CreateStep.planning:
+      case CreateStep.confirm:
         break;
     }
   }
@@ -411,7 +425,7 @@ class _CreateShootController extends Notifier<_CreateShootState>
 
   void toggleModel(int index) {
     if (index < 0 || index >= state.models.length) return;
-    final key = _modelKey(state.models[index]);
+    final key = shootModelKey(state.models[index]);
     final selected = [...state.selectedModelKeys];
     if (selected.contains(key)) {
       selected.remove(key);
@@ -614,7 +628,7 @@ class _CreateShootController extends Notifier<_CreateShootState>
   }
 
   void reset() {
-    state = _CreateShootState(catalog: state.catalog, isLoading: false);
+    state = CreateShootState(catalog: state.catalog, isLoading: false);
   }
 
   void _applyCreateFailure(NetworkFailure failure) {
@@ -649,14 +663,14 @@ class _CreateShootController extends Notifier<_CreateShootState>
           );
         }
       case 'NOT_FOUND':
-        state = state.copyWith(step: _CreateStep.product);
+        state = state.copyWith(step: CreateStep.product);
       default:
         break;
     }
   }
 }
 
-String _modelKey(ShootCatalogItem model) =>
+String shootModelKey(ShootCatalogItem model) =>
     '${model.source ?? 'user'}:${model.id}';
 
 ShootCatalogItem? _findModel(
@@ -670,10 +684,10 @@ ShootCatalogItem? _findModel(
   return null;
 }
 
-final NotifierProvider<_CreateShootController, _CreateShootState>
-_createShootControllerProvider =
-    NotifierProvider<_CreateShootController, _CreateShootState>(
-      _CreateShootController.new,
+final NotifierProvider<CreateShootController, CreateShootState>
+createShootControllerProvider =
+    NotifierProvider<CreateShootController, CreateShootState>(
+      CreateShootController.new,
     );
 
 String _newDemoGroupId() {

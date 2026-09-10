@@ -1,4 +1,40 @@
-part of '../shoots_feature.dart';
+library;
+
+import 'dart:async';
+
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
+import 'package:look_atlas/core/error/failure.dart';
+import 'package:look_atlas/core/router/app_routes.dart';
+import 'package:look_atlas/core/theme/app_colors.dart';
+import 'package:look_atlas/core/theme/app_typography.dart';
+import 'package:look_atlas/features/shoots/domain/entities/shoot_job.dart';
+import 'package:look_atlas/features/shoots/presentation/controllers/shoot_detail_controller.dart';
+import 'package:look_atlas/features/shoots/presentation/dialogs/shoot_modal.dart';
+import 'package:look_atlas/features/shoots/presentation/models/shoot_modal_kind.dart';
+import 'package:look_atlas/features/shoots/presentation/models/shoot_view_model.dart';
+import 'package:look_atlas/shared/widgets/app_asset_image.dart';
+import 'package:look_atlas/shared/widgets/app_card.dart';
+import 'package:look_atlas/shared/widgets/app_feature_scaffold.dart';
+import 'package:look_atlas/shared/widgets/app_feedback.dart';
+import 'package:look_atlas/shared/widgets/app_hairline.dart';
+import 'package:look_atlas/shared/widgets/app_media_widgets.dart';
+import 'package:look_atlas/shared/widgets/app_outlined_button.dart';
+import 'package:look_atlas/shared/widgets/app_overlay_button.dart';
+import 'package:look_atlas/shared/widgets/app_progress_bar.dart';
+import 'package:look_atlas/shared/widgets/app_snack_bar.dart';
+import 'package:look_atlas/shared/widgets/app_spaced_column.dart';
+import 'package:look_atlas/shared/widgets/app_text.dart';
+import 'package:look_atlas/shared/widgets/primary_button.dart';
+import 'package:look_atlas/shared/widgets/shimmer_box.dart';
+
+part '../widgets/shoot_detail_loading.dart';
+part '../widgets/shoot_detail_widgets.dart';
+
+typedef _ShootModalKind = ShootModalKind;
 
 class ShootDetailScreen extends ConsumerStatefulWidget {
   const ShootDetailScreen({
@@ -20,9 +56,8 @@ class _ShootDetailScreenState extends ConsumerState<ShootDetailScreen> {
     super.initState();
     unawaited(
       Future<void>.microtask(
-        () => ref
-            .read(_shootDetailControllerProvider.notifier)
-            .load(widget.jobId),
+        () =>
+            ref.read(shootDetailControllerProvider.notifier).load(widget.jobId),
       ),
     );
   }
@@ -32,7 +67,7 @@ class _ShootDetailScreenState extends ConsumerState<ShootDetailScreen> {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.jobId != widget.jobId) {
       unawaited(
-        ref.read(_shootDetailControllerProvider.notifier).load(widget.jobId),
+        ref.read(shootDetailControllerProvider.notifier).load(widget.jobId),
       );
     }
   }
@@ -47,7 +82,7 @@ class _ShootDetailScreenState extends ConsumerState<ShootDetailScreen> {
       child: _ShootDetailContent(
         fromDashboard: widget.fromDashboard,
         onBackToDashboard: () => _backToDashboard(context),
-        onOpenModal: (kind) => _openShootModal(context, ref, kind),
+        onOpenModal: (kind) => openShootModal(context, ref, kind),
         onToast: (text) => AppSnackBar.show(context, text),
       ),
     ),
@@ -69,8 +104,8 @@ class _ShootDetailContent extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final state = ref.watch(_shootDetailControllerProvider);
-    final controller = ref.read(_shootDetailControllerProvider.notifier);
+    final state = ref.watch(shootDetailControllerProvider);
+    final controller = ref.read(shootDetailControllerProvider.notifier);
     if (state.isLoading) return const _ShootDetailLoading();
     final job = state.job;
     if (job == null) {
@@ -223,7 +258,7 @@ class _ShootDetailContent extends ConsumerWidget {
             );
           },
           onReport: (image) => unawaited(
-            _showImageReportDialog(context, controller, image),
+            showImageReportDialog(context, controller, image),
           ),
         ),
         if (!isProcessing && state.images.isNotEmpty) ...[

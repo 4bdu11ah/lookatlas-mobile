@@ -1,51 +1,53 @@
-part of '../house_model_feature.dart';
+import 'package:look_atlas/features/house_model/domain/entities/house_model_profile.dart';
 
-enum _ModelGender {
+const houseModelImagePath = 'assets/images/onboarding';
+
+enum HouseModelGender {
   female('Female', 'F'),
   male('Male', 'M'),
   nonBinary('Non-binary', 'NB'),
   preferNotToSay('Prefer not to say', 'NA');
 
-  const _ModelGender(this.label, this.badge);
+  const HouseModelGender(this.label, this.badge);
 
   final String label;
   final String badge;
 }
 
-enum _ModelBody {
+enum HouseModelBody {
   average('Average'),
   petite('Petite'),
   slimAthletic('Slim/Athletic'),
   plusSizeCurvy('Plus-size/Curvy');
 
-  const _ModelBody(this.label);
+  const HouseModelBody(this.label);
 
   final String label;
 }
 
-enum _ModelSource {
+enum HouseModelViewSource {
   lookAtlas('LookAtlas'),
   user('Your model');
 
-  const _ModelSource(this.label);
+  const HouseModelViewSource(this.label);
 
   final String label;
 }
 
-enum _ModelAngle {
+enum HouseModelAngle {
   front('F', 'Front'),
   left('L', 'Left'),
   right('R', 'Right'),
   back('B', 'Back');
 
-  const _ModelAngle(this.shortLabel, this.label);
+  const HouseModelAngle(this.shortLabel, this.label);
 
   final String shortLabel;
   final String label;
 }
 
-class _HouseModel {
-  const _HouseModel({
+class HouseModelViewModel {
+  const HouseModelViewModel({
     required this.id,
     required this.name,
     required this.gender,
@@ -61,11 +63,11 @@ class _HouseModel {
     this.photoIds = const [],
   });
 
-  factory _HouseModel.fromProfile(HouseModelProfile profile) {
+  factory HouseModelViewModel.fromProfile(HouseModelProfile profile) {
     final asset = profile.imageUrl.isEmpty
-        ? '$_houseModelImagePath/angle-example-front.png'
+        ? '$houseModelImagePath/angle-example-front.png'
         : profile.imageUrl;
-    return _HouseModel(
+    return HouseModelViewModel(
       id: profile.id,
       name: profile.name,
       gender: _genderFromWire(profile.gender),
@@ -75,8 +77,8 @@ class _HouseModel {
       heightCm: profile.heightCm ?? 170,
       asset: asset,
       source: profile.source == HouseModelSource.lookAtlas
-          ? _ModelSource.lookAtlas
-          : _ModelSource.user,
+          ? HouseModelViewSource.lookAtlas
+          : HouseModelViewSource.user,
       photoCount: profile.photos.length,
       heightEstimated: profile.heightEstimated,
       photoUrls: profile.photos,
@@ -86,13 +88,13 @@ class _HouseModel {
 
   final String id;
   final String name;
-  final _ModelGender gender;
-  final _ModelBody body;
+  final HouseModelGender gender;
+  final HouseModelBody body;
   final String ethnicity;
   final String ageRange;
   final int heightCm;
   final String asset;
-  final _ModelSource source;
+  final HouseModelViewSource source;
   final int photoCount;
   final bool heightEstimated;
   final List<String> photoUrls;
@@ -102,9 +104,9 @@ class _HouseModel {
 
   String get heightLabel => '$heightCm cm${heightEstimated ? ' est.' : ''}';
 
-  bool get isLibrary => source == _ModelSource.lookAtlas;
+  bool get isLibrary => source == HouseModelViewSource.lookAtlas;
 
-  String assetForAngle(_ModelAngle angle) {
+  String assetForAngle(HouseModelAngle angle) {
     if (photoUrls.isNotEmpty) {
       final index = angle.index < photoUrls.length
           ? angle.index
@@ -112,28 +114,28 @@ class _HouseModel {
       return photoUrls[index];
     }
     return switch (angle) {
-      _ModelAngle.front => asset,
-      _ModelAngle.left => '$_houseModelImagePath/angle-example-side.png',
-      _ModelAngle.right => '$_houseModelImagePath/angle-example-detail.png',
-      _ModelAngle.back => '$_houseModelImagePath/angle-example-back.png',
+      HouseModelAngle.front => asset,
+      HouseModelAngle.left => '$houseModelImagePath/angle-example-side.png',
+      HouseModelAngle.right => '$houseModelImagePath/angle-example-detail.png',
+      HouseModelAngle.back => '$houseModelImagePath/angle-example-back.png',
     };
   }
 
-  _HouseModel copyWith({
+  HouseModelViewModel copyWith({
     String? name,
-    _ModelGender? gender,
-    _ModelBody? body,
+    HouseModelGender? gender,
+    HouseModelBody? body,
     String? ethnicity,
     String? ageRange,
     int? heightCm,
     String? asset,
-    _ModelSource? source,
+    HouseModelViewSource? source,
     int? photoCount,
     bool? heightEstimated,
     List<String>? photoUrls,
     List<String?>? photoIds,
   }) {
-    return _HouseModel(
+    return HouseModelViewModel(
       id: id,
       name: name ?? this.name,
       gender: gender ?? this.gender,
@@ -150,25 +152,26 @@ class _HouseModel {
     );
   }
 
-  static _ModelGender _genderFromWire(String raw) =>
+  static HouseModelGender _genderFromWire(String raw) =>
       switch (raw.toLowerCase().replaceAll('-', '_')) {
-        'female' || 'woman' || 'women' => _ModelGender.female,
-        'male' || 'man' || 'men' => _ModelGender.male,
-        'non_binary' || 'nonbinary' => _ModelGender.nonBinary,
-        _ => _ModelGender.preferNotToSay,
+        'female' || 'woman' || 'women' => HouseModelGender.female,
+        'male' || 'man' || 'men' => HouseModelGender.male,
+        'non_binary' || 'nonbinary' => HouseModelGender.nonBinary,
+        _ => HouseModelGender.preferNotToSay,
       };
 
-  static _ModelBody _bodyFromWire(String? raw) =>
-      switch (raw?.toLowerCase().replaceAll(RegExp('[^a-z]'), '')) {
-        'petite' => _ModelBody.petite,
-        'slimathletic' || 'athletic' || 'slim' => _ModelBody.slimAthletic,
-        'plussizecurvy' || 'plussize' || 'curvy' => _ModelBody.plusSizeCurvy,
-        _ => _ModelBody.average,
-      };
+  static HouseModelBody _bodyFromWire(String? raw) => switch (raw
+      ?.toLowerCase()
+      .replaceAll(RegExp('[^a-z]'), '')) {
+    'petite' => HouseModelBody.petite,
+    'slimathletic' || 'athletic' || 'slim' => HouseModelBody.slimAthletic,
+    'plussizecurvy' || 'plussize' || 'curvy' => HouseModelBody.plusSizeCurvy,
+    _ => HouseModelBody.average,
+  };
 }
 
-class _ModelFormInput {
-  const _ModelFormInput({
+class HouseModelFormInput {
+  const HouseModelFormInput({
     required this.name,
     required this.gender,
     required this.heightCm,
@@ -177,7 +180,7 @@ class _ModelFormInput {
   });
 
   final String name;
-  final _ModelGender gender;
+  final HouseModelGender gender;
   final int heightCm;
   final List<HouseModelUpload> photos;
   final bool heightEstimated;
@@ -185,8 +188,8 @@ class _ModelFormInput {
   HouseModelDraft toDraft() => HouseModelDraft(
     name: name,
     gender: switch (gender) {
-      _ModelGender.nonBinary => 'non_binary',
-      _ModelGender.preferNotToSay => 'unspecified',
+      HouseModelGender.nonBinary => 'non_binary',
+      HouseModelGender.preferNotToSay => 'unspecified',
       _ => gender.name,
     },
     heightCm: heightCm,

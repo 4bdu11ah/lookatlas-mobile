@@ -1,9 +1,9 @@
-part of '../house_model_feature.dart';
+part of '../screens/house_model_page.dart';
 
 class _ModelGrid extends StatelessWidget {
   const _ModelGrid({required this.models});
 
-  final List<_HouseModel> models;
+  final List<HouseModelViewModel> models;
 
   @override
   Widget build(BuildContext context) {
@@ -28,7 +28,7 @@ class _ModelGrid extends StatelessWidget {
 class _LibraryModelCard extends StatefulWidget {
   const _LibraryModelCard({required this.model});
 
-  final _HouseModel model;
+  final HouseModelViewModel model;
 
   @override
   State<_LibraryModelCard> createState() => _LibraryModelCardState();
@@ -36,7 +36,7 @@ class _LibraryModelCard extends StatefulWidget {
 
 class _LibraryModelCardState extends State<_LibraryModelCard> {
   late final PageController _pageController;
-  _ModelAngle _angle = _ModelAngle.front;
+  HouseModelAngle _angle = HouseModelAngle.front;
 
   @override
   void initState() {
@@ -50,7 +50,7 @@ class _LibraryModelCardState extends State<_LibraryModelCard> {
     super.dispose();
   }
 
-  void _selectAngle(_ModelAngle angle) {
+  void _selectAngle(HouseModelAngle angle) {
     if (_angle == angle) return;
     setState(() => _angle = angle);
     _pageController.animateToPage(
@@ -72,7 +72,7 @@ class _LibraryModelCardState extends State<_LibraryModelCard> {
               controller: _pageController,
               model: widget.model,
               onChanged: (index) {
-                setState(() => _angle = _ModelAngle.values[index]);
+                setState(() => _angle = HouseModelAngle.values[index]);
               },
             ),
           ),
@@ -95,7 +95,7 @@ class _UserModelCard extends ConsumerStatefulWidget {
     super.key,
   });
 
-  final _HouseModel model;
+  final HouseModelViewModel model;
   final ValueChanged<String> onToast;
 
   @override
@@ -261,7 +261,7 @@ class _UserModelCardState extends ConsumerState<_UserModelCard> {
     );
   }
 
-  Widget _buildPhotoPager(_HouseModel model, List<String> photos) {
+  Widget _buildPhotoPager(HouseModelViewModel model, List<String> photos) {
     if (photos.length == 1) {
       return ColoredBox(
         color: const Color(0xFFEEEAE2),
@@ -392,7 +392,7 @@ class _ModelPhoto extends StatelessWidget {
 class _CardMeta extends StatelessWidget {
   const _CardMeta({required this.model});
 
-  final _HouseModel model;
+  final HouseModelViewModel model;
 
   @override
   Widget build(BuildContext context) {

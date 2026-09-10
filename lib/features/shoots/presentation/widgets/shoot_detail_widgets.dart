@@ -1,4 +1,4 @@
-part of '../shoots_feature.dart';
+part of '../screens/shoot_detail_screen.dart';
 
 class _ShootProgress extends StatelessWidget {
   const _ShootProgress({
@@ -529,7 +529,10 @@ class _ResultTile extends StatelessWidget {
                 const SizedBox(width: 5),
                 AppSmallOverlayButton(icon: Icons.history, onTap: onVersions),
                 const SizedBox(width: 5),
-                AppSmallOverlayButton(icon: Icons.flag_outlined, onTap: onReport),
+                AppSmallOverlayButton(
+                  icon: Icons.flag_outlined,
+                  onTap: onReport,
+                ),
               ],
             ),
           ),

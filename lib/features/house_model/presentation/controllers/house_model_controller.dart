@@ -1,7 +1,17 @@
-part of '../house_model_feature.dart';
+import 'dart:async';
 
-class _HouseModelScreenState {
-  const _HouseModelScreenState({
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:look_atlas/core/error/failure.dart';
+import 'package:look_atlas/core/result/result.dart';
+import 'package:look_atlas/core/router/app_routes.dart';
+import 'package:look_atlas/features/house_model/di/house_model_providers.dart';
+import 'package:look_atlas/features/house_model/domain/entities/house_model_profile.dart';
+import 'package:look_atlas/features/house_model/domain/repositories/house_models_repository.dart';
+import 'package:look_atlas/features/house_model/presentation/models/house_model_view_model.dart';
+import 'package:look_atlas/services/service_providers.dart';
+
+class HouseModelScreenState {
+  const HouseModelScreenState({
     this.libraryModels = const [],
     this.userModels = const [],
     this.genderFilter,
@@ -13,17 +23,17 @@ class _HouseModelScreenState {
     this.failure,
   });
 
-  final List<_HouseModel> libraryModels;
-  final List<_HouseModel> userModels;
-  final _ModelGender? genderFilter;
-  final _ModelBody? bodyFilter;
+  final List<HouseModelViewModel> libraryModels;
+  final List<HouseModelViewModel> userModels;
+  final HouseModelGender? genderFilter;
+  final HouseModelBody? bodyFilter;
   final bool expanded;
   final bool isLoading;
   final bool isMutating;
   final bool isGeneratingAiModel;
   final Failure? failure;
 
-  List<_HouseModel> get filteredLibraryModels => libraryModels
+  List<HouseModelViewModel> get filteredLibraryModels => libraryModels
       .where(
         (model) =>
             (genderFilter == null || model.gender == genderFilter) &&
@@ -31,18 +41,18 @@ class _HouseModelScreenState {
       )
       .toList(growable: false);
 
-  List<_HouseModel> get visibleLibraryModels {
+  List<HouseModelViewModel> get visibleLibraryModels {
     final models = filteredLibraryModels;
     return expanded ? models : models.take(4).toList(growable: false);
   }
 
   bool get hasActiveFilters => genderFilter != null || bodyFilter != null;
 
-  _HouseModelScreenState copyWith({
-    List<_HouseModel>? libraryModels,
-    List<_HouseModel>? userModels,
-    _ModelGender? genderFilter,
-    _ModelBody? bodyFilter,
+  HouseModelScreenState copyWith({
+    List<HouseModelViewModel>? libraryModels,
+    List<HouseModelViewModel>? userModels,
+    HouseModelGender? genderFilter,
+    HouseModelBody? bodyFilter,
     bool clearGenderFilter = false,
     bool clearBodyFilter = false,
     bool? expanded,
@@ -52,7 +62,7 @@ class _HouseModelScreenState {
     Failure? failure,
     bool clearFailure = false,
   }) {
-    return _HouseModelScreenState(
+    return HouseModelScreenState(
       libraryModels: libraryModels ?? this.libraryModels,
       userModels: userModels ?? this.userModels,
       genderFilter: clearGenderFilter
@@ -68,14 +78,14 @@ class _HouseModelScreenState {
   }
 }
 
-class _HouseModelController extends Notifier<_HouseModelScreenState> {
+class HouseModelController extends Notifier<HouseModelScreenState> {
   HouseModelsRepository get _repository =>
       ref.read(houseModelsRepositoryProvider);
 
   @override
-  _HouseModelScreenState build() {
+  HouseModelScreenState build() {
     unawaited(Future.microtask(reload));
-    return const _HouseModelScreenState();
+    return const HouseModelScreenState();
   }
 
   Future<void> reload() async {
@@ -85,10 +95,11 @@ class _HouseModelController extends Notifier<_HouseModelScreenState> {
       Ok(:final value) => state.copyWith(
         libraryModels: [
           for (final model in value.libraryModels)
-            _HouseModel.fromProfile(model),
+            HouseModelViewModel.fromProfile(model),
         ],
         userModels: [
-          for (final model in value.userModels) _HouseModel.fromProfile(model),
+          for (final model in value.userModels)
+            HouseModelViewModel.fromProfile(model),
         ],
         isLoading: false,
         clearFailure: true,
@@ -100,7 +111,7 @@ class _HouseModelController extends Notifier<_HouseModelScreenState> {
     };
   }
 
-  void applyFilters({_ModelGender? gender, _ModelBody? body}) {
+  void applyFilters({HouseModelGender? gender, HouseModelBody? body}) {
     state = state.copyWith(
       genderFilter: gender,
       bodyFilter: body,
@@ -118,12 +129,12 @@ class _HouseModelController extends Notifier<_HouseModelScreenState> {
 
   void showMore() => state = state.copyWith(expanded: true);
 
-  Future<Result<void>> addModel(_ModelFormInput input) =>
+  Future<Result<void>> addModel(HouseModelFormInput input) =>
       _mutate(() => ref.read(createHouseModelUseCaseProvider)(input.toDraft()));
 
   Future<Result<void>> updateModel(
-    _HouseModel model,
-    _ModelFormInput input,
+    HouseModelViewModel model,
+    HouseModelFormInput input,
   ) async {
     if (state.isMutating) {
       return const Err(ValidationFailure('Another model action is running.'));
@@ -135,10 +146,13 @@ class _HouseModelController extends Notifier<_HouseModelScreenState> {
     );
   }
 
-  Future<Result<void>> deleteModel(_HouseModel model) =>
+  Future<Result<void>> deleteModel(HouseModelViewModel model) =>
       _mutate(() => _repository.deleteModel(model.id));
 
-  Future<Result<void>> deletePhoto(_HouseModel model, String photoId) async {
+  Future<Result<void>> deletePhoto(
+    HouseModelViewModel model,
+    String photoId,
+  ) async {
     final result = await _mutate(
       () => _repository.deletePhoto(model.id, photoId),
       reloadAfter: false,
@@ -148,7 +162,7 @@ class _HouseModelController extends Notifier<_HouseModelScreenState> {
   }
 
   Future<Result<void>> addAiModel({
-    required _ModelGender gender,
+    required HouseModelGender gender,
     required int age,
     required String description,
   }) async {
@@ -159,7 +173,7 @@ class _HouseModelController extends Notifier<_HouseModelScreenState> {
     final started = await _repository.startModelGeneration(
       AiHouseModelDraft(
         gender: switch (gender) {
-          _ModelGender.nonBinary => 'non_binary',
+          HouseModelGender.nonBinary => 'non_binary',
           _ => gender.name,
         },
         age: age,
@@ -189,10 +203,11 @@ class _HouseModelController extends Notifier<_HouseModelScreenState> {
     state = state.copyWith(
       libraryModels: [
         for (final model in catalog.libraryModels)
-          _HouseModel.fromProfile(model),
+          HouseModelViewModel.fromProfile(model),
       ],
       userModels: [
-        for (final model in catalog.userModels) _HouseModel.fromProfile(model),
+        for (final model in catalog.userModels)
+          HouseModelViewModel.fromProfile(model),
       ],
       isGeneratingAiModel: false,
       clearFailure: true,
@@ -241,10 +256,11 @@ class _HouseModelController extends Notifier<_HouseModelScreenState> {
     state = state.copyWith(
       libraryModels: [
         for (final model in catalog.libraryModels)
-          _HouseModel.fromProfile(model),
+          HouseModelViewModel.fromProfile(model),
       ],
       userModels: [
-        for (final model in catalog.userModels) _HouseModel.fromProfile(model),
+        for (final model in catalog.userModels)
+          HouseModelViewModel.fromProfile(model),
       ],
       isLoading: false,
       isMutating: false,
@@ -254,7 +270,7 @@ class _HouseModelController extends Notifier<_HouseModelScreenState> {
   }
 }
 
-final _houseModelControllerProvider =
-    NotifierProvider<_HouseModelController, _HouseModelScreenState>(
-      _HouseModelController.new,
+final houseModelControllerProvider =
+    NotifierProvider<HouseModelController, HouseModelScreenState>(
+      HouseModelController.new,
     );

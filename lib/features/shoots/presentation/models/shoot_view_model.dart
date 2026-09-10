@@ -1,4 +1,5 @@
-part of '../shoots_feature.dart';
+import 'package:intl/intl.dart';
+import 'package:look_atlas/features/shoots/domain/entities/shoot_job.dart';
 
 class ShootViewModel {
   const ShootViewModel({

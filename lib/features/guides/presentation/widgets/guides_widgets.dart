@@ -1,4 +1,4 @@
-part of 'package:look_atlas/features/guides/presentation/guides_feature.dart';
+part of '../screens/guides_page.dart';
 
 enum _GuideCalloutType { info, tip, warning, success }
 

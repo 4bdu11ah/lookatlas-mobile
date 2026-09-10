@@ -1,7 +1,14 @@
-part of '../screens/dashboard_screen.dart';
+import 'dart:async';
 
-class _DashboardOverviewState {
-  const _DashboardOverviewState({
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
+import 'package:look_atlas/features/dashboard/di/dashboard_providers.dart';
+import 'package:look_atlas/features/dashboard/domain/entities/dashboard_data.dart';
+import 'package:look_atlas/features/dashboard/domain/repositories/dashboard_repository.dart';
+import 'package:look_atlas/features/shoots/presentation/models/shoot_view_model.dart';
+
+class DashboardOverviewState {
+  const DashboardOverviewState({
     this.stats,
     this.shoots = const [],
     this.subscription,
@@ -19,7 +26,7 @@ class _DashboardOverviewState {
   final bool isLoadingRecentJobs;
   final bool isLoadingSubscription;
 
-  _DashboardOverviewState copyWith({
+  DashboardOverviewState copyWith({
     DashboardStats? stats,
     List<ShootViewModel>? shoots,
     DashboardSubscription? subscription,
@@ -27,7 +34,7 @@ class _DashboardOverviewState {
     bool? isLoadingStats,
     bool? isLoadingRecentJobs,
     bool? isLoadingSubscription,
-  }) => _DashboardOverviewState(
+  }) => DashboardOverviewState(
     stats: stats ?? this.stats,
     shoots: shoots ?? this.shoots,
     subscription: subscription ?? this.subscription,
@@ -38,15 +45,15 @@ class _DashboardOverviewState {
   );
 }
 
-class _DashboardOverviewController
-    extends AsyncNotifier<_DashboardOverviewState> {
+class DashboardOverviewController
+    extends AsyncNotifier<DashboardOverviewState> {
   int _loadGeneration = 0;
 
   @override
-  _DashboardOverviewState build() {
+  DashboardOverviewState build() {
     final generation = ++_loadGeneration;
     unawaited(Future<void>.microtask(() => _loadAll(generation)));
-    return const _DashboardOverviewState();
+    return const DashboardOverviewState();
   }
 
   Future<void> refresh() => _loadAll(++_loadGeneration);
@@ -67,8 +74,8 @@ class _DashboardOverviewController
     ]);
   }
 
-  _DashboardOverviewState get _current =>
-      state.asData?.value ?? const _DashboardOverviewState();
+  DashboardOverviewState get _current =>
+      state.asData?.value ?? const DashboardOverviewState();
 
   Future<void> _loadStats(
     DashboardRepository repository,
@@ -127,10 +134,7 @@ class _DashboardOverviewController
   );
 }
 
-final _dashboardOverviewControllerProvider =
-    AsyncNotifierProvider<
-      _DashboardOverviewController,
-      _DashboardOverviewState
-    >(
-      _DashboardOverviewController.new,
+final dashboardOverviewControllerProvider =
+    AsyncNotifierProvider<DashboardOverviewController, DashboardOverviewState>(
+      DashboardOverviewController.new,
     );

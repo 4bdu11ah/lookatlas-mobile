@@ -1,4 +1,4 @@
-part of 'package:look_atlas/features/support/presentation/support_feature.dart';
+part of '../screens/support_page.dart';
 
 class _SupportFormCard extends ConsumerStatefulWidget {
   const _SupportFormCard();
@@ -16,7 +16,7 @@ class _SupportFormCardState extends ConsumerState<_SupportFormCard> {
   @override
   void initState() {
     super.initState();
-    final state = ref.read(_supportControllerProvider);
+    final state = ref.read(supportControllerProvider);
     _fullNameController = TextEditingController(text: state.fullName);
     _emailController = TextEditingController(text: state.email);
     _subjectController = TextEditingController(text: state.subject);
@@ -34,20 +34,20 @@ class _SupportFormCardState extends ConsumerState<_SupportFormCard> {
 
   Future<void> _submit() async {
     final submitted = await ref
-        .read(_supportControllerProvider.notifier)
+        .read(supportControllerProvider.notifier)
         .submit();
     if (!mounted || !submitted) return;
     await _showSupportSuccessDialog(context);
     if (!mounted) return;
     _subjectController.clear();
     _messageController.clear();
-    ref.read(_supportControllerProvider.notifier).acknowledgeSuccess();
+    ref.read(supportControllerProvider.notifier).acknowledgeSuccess();
   }
 
   @override
   Widget build(BuildContext context) {
     ref.listen(
-      _supportControllerProvider.select(
+      supportControllerProvider.select(
         (state) => (state.fullName, state.email),
       ),
       (_, identity) {
@@ -59,7 +59,7 @@ class _SupportFormCardState extends ConsumerState<_SupportFormCard> {
         }
       },
     );
-    final controller = ref.read(_supportControllerProvider.notifier);
+    final controller = ref.read(supportControllerProvider.notifier);
     return DecoratedBox(
       decoration: BoxDecoration(
         color: AppColors.white,
@@ -134,7 +134,7 @@ class _SupportErrorBanner extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final error = ref.watch(
-      _supportControllerProvider.select((state) => state.errorMessage),
+      supportControllerProvider.select((state) => state.errorMessage),
     );
     if (error == null) return const SizedBox.shrink();
     return Padding(
@@ -166,18 +166,18 @@ class _SupportPriorityField extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final priority = ref.watch(
-      _supportControllerProvider.select((state) => state.priority),
+      supportControllerProvider.select((state) => state.priority),
     );
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         const _SupportFieldLabel(label: 'Priority Level'),
         const SizedBox(height: 8),
-        AppDropdown<_SupportPriority>(
+        AppDropdown<SupportPriority>(
           value: priority,
-          values: _SupportPriority.values,
+          values: SupportPriority.values,
           labelFor: (value) => value.label,
-          onChanged: ref.read(_supportControllerProvider.notifier).setPriority,
+          onChanged: ref.read(supportControllerProvider.notifier).setPriority,
         ),
       ],
     );
@@ -192,7 +192,7 @@ class _SupportMessageField extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final characterCount = ref.watch(
-      _supportControllerProvider.select((state) => state.message.length),
+      supportControllerProvider.select((state) => state.message.length),
     );
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -208,7 +208,7 @@ class _SupportMessageField extends ConsumerWidget {
                   fieldKey: const ValueKey('support-message-field'),
                   controller: controller,
                   onChanged: ref
-                      .read(_supportControllerProvider.notifier)
+                      .read(supportControllerProvider.notifier)
                       .setMessage,
                   expands: true,
                   minLines: null,
@@ -280,7 +280,7 @@ class _SupportSubmitFooter extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final isSubmitting = ref.watch(
-      _supportControllerProvider.select((state) => state.isSubmitting),
+      supportControllerProvider.select((state) => state.isSubmitting),
     );
     const responseCopy = Text.rich(
       TextSpan(

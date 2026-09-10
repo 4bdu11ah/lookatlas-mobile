@@ -1,4 +1,4 @@
-part of '../house_model_feature.dart';
+part of '../screens/house_model_page.dart';
 
 class _LibraryModelsSection extends ConsumerWidget {
   const _LibraryModelsSection();
@@ -6,20 +6,20 @@ class _LibraryModelsSection extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final visible = ref.watch(
-      _houseModelControllerProvider.select(
+      houseModelControllerProvider.select(
         (state) => state.visibleLibraryModels,
       ),
     );
     final filteredCount = ref.watch(
-      _houseModelControllerProvider.select(
+      houseModelControllerProvider.select(
         (state) => state.filteredLibraryModels.length,
       ),
     );
     final expanded = ref.watch(
-      _houseModelControllerProvider.select((state) => state.expanded),
+      houseModelControllerProvider.select((state) => state.expanded),
     );
     final isLoading = ref.watch(
-      _houseModelControllerProvider.select((state) => state.isLoading),
+      houseModelControllerProvider.select((state) => state.isLoading),
     );
     final showLoading = isLoading && visible.isEmpty;
     return Column(
@@ -47,9 +47,7 @@ class _LibraryModelsSection extends ConsumerWidget {
             label: 'Show more models',
             icon: Icons.keyboard_arrow_down,
             iconAlignment: IconAlignment.end,
-            onPressed: ref
-                .read(_houseModelControllerProvider.notifier)
-                .showMore,
+            onPressed: ref.read(houseModelControllerProvider.notifier).showMore,
           ),
         ],
         if (!showLoading && filteredCount > 0) ...[
@@ -73,13 +71,13 @@ class _UserModelsSection extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final models = ref.watch(
-      _houseModelControllerProvider.select((state) => state.userModels),
+      houseModelControllerProvider.select((state) => state.userModels),
     );
     final isLoading = ref.watch(
-      _houseModelControllerProvider.select((state) => state.isLoading),
+      houseModelControllerProvider.select((state) => state.isLoading),
     );
     final isGeneratingAiModel = ref.watch(
-      _houseModelControllerProvider.select(
+      houseModelControllerProvider.select(
         (state) => state.isGeneratingAiModel,
       ),
     );
@@ -376,7 +374,7 @@ class _FilterButton extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final active = ref.watch(
-      _houseModelControllerProvider.select((state) => state.hasActiveFilters),
+      houseModelControllerProvider.select((state) => state.hasActiveFilters),
     );
     return Stack(
       clipBehavior: Clip.none,
@@ -415,10 +413,10 @@ class _ActiveFilters extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final gender = ref.watch(
-      _houseModelControllerProvider.select((state) => state.genderFilter),
+      houseModelControllerProvider.select((state) => state.genderFilter),
     );
     final body = ref.watch(
-      _houseModelControllerProvider.select((state) => state.bodyFilter),
+      houseModelControllerProvider.select((state) => state.bodyFilter),
     );
     if (gender == null && body == null) return const SizedBox.shrink();
     return Padding(
@@ -431,14 +429,14 @@ class _ActiveFilters extends ConsumerWidget {
               _ActiveChip(
                 label: gender.label,
                 onClear: ref
-                    .read(_houseModelControllerProvider.notifier)
+                    .read(houseModelControllerProvider.notifier)
                     .clearGenderFilter,
               ),
             if (body != null)
               _ActiveChip(
                 label: body.label,
                 onClear: ref
-                    .read(_houseModelControllerProvider.notifier)
+                    .read(houseModelControllerProvider.notifier)
                     .clearBodyFilter,
               ),
           ],

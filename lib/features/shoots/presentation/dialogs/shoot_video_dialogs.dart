@@ -1,4 +1,4 @@
-part of '../shoots_feature.dart';
+part of 'shoot_modal.dart';
 
 class _VideoOptionsDialog extends ConsumerWidget {
   const _VideoOptionsDialog({required this.onNext});
@@ -7,9 +7,9 @@ class _VideoOptionsDialog extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final state = ref.watch(_shootDetailControllerProvider);
+    final state = ref.watch(shootDetailControllerProvider);
     final images = state.images;
-    final controller = ref.read(_shootDetailControllerProvider.notifier);
+    final controller = ref.read(shootDetailControllerProvider.notifier);
     final quality = state.videoRequest.videoTier == 'hd' ? 1 : 0;
     final ratio = state.videoRequest.aspectRatio == '16:9' ? 1 : 0;
     final variation = state.videoRequest.variationIndex;
@@ -100,9 +100,9 @@ class _VideoFrameDialog extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final state = ref.watch(_shootDetailControllerProvider);
+    final state = ref.watch(shootDetailControllerProvider);
     final images = state.images;
-    final controller = ref.read(_shootDetailControllerProvider.notifier);
+    final controller = ref.read(shootDetailControllerProvider.notifier);
     return AppModalFrame(
       title: 'Choose Starting Frame',
       subtitle: 'Pick which image from Variation 1 starts the video',
@@ -155,8 +155,8 @@ class _VideoConfirmDialog extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final state = ref.watch(_shootDetailControllerProvider);
-    final controller = ref.read(_shootDetailControllerProvider.notifier);
+    final state = ref.watch(shootDetailControllerProvider);
+    final controller = ref.read(shootDetailControllerProvider.notifier);
     return AppModalFrame(
       title: 'Almost There',
       subtitle: 'Review and confirm',

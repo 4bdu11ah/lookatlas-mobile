@@ -1,4 +1,4 @@
-part of '../shoots_feature.dart';
+part of '../screens/create_shoot_screen.dart';
 
 const _directorBrands = <String, String>{
   'clean-pro': 'Uniqlo, Everlane',
@@ -550,7 +550,7 @@ class _SelectedRoster extends StatelessWidget {
             _selectedProductRow(
               product: items,
               role: index == 0 ? 'Primary' : 'Secondary $index',
-              onRemove: () => onRemove(_modelKey(items)),
+              onRemove: () => onRemove(shootModelKey(items)),
               margin: const EdgeInsets.only(bottom: 7),
             ),
         ],
@@ -593,43 +593,6 @@ class _SegmentedChoices extends StatelessWidget {
                   fontWeight: AppTypography.bold,
                 ),
               ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _OptionWrap extends StatelessWidget {
-  const _OptionWrap({
-    required this.options,
-    required this.selected,
-  });
-
-  final List<String> options;
-  final int selected;
-
-  @override
-  Widget build(BuildContext context) {
-    return Wrap(
-      spacing: 7,
-      runSpacing: 7,
-      children: List.generate(
-        options.length,
-        (index) => Container(
-          constraints: const BoxConstraints(minHeight: 44),
-          padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 8),
-          decoration: BoxDecoration(
-            color: index == selected ? AppColors.black : AppColors.white,
-            border: Border.all(color: AppColors.black),
-          ),
-          child: Text(
-            options[index],
-            style: TextStyle(
-              color: index == selected ? AppColors.white : AppColors.black,
-              fontSize: 10,
-              fontWeight: AppTypography.bold,
             ),
           ),
         ),

@@ -1,10 +1,10 @@
-part of '../house_model_feature.dart';
+part of '../screens/house_model_page.dart';
 
 class _ModelFormData {
   const _ModelFormData({
     this.name = '',
     this.heightText = '',
-    this.gender = _ModelGender.female,
+    this.gender = HouseModelGender.female,
     this.heightEstimated = false,
     this.existingPhotos = const [],
     this.existingPhotoIds = const [],
@@ -15,7 +15,7 @@ class _ModelFormData {
 
   final String name;
   final String heightText;
-  final _ModelGender gender;
+  final HouseModelGender gender;
   final bool heightEstimated;
   final List<String> existingPhotos;
   final List<String?> existingPhotoIds;
@@ -43,7 +43,7 @@ class _ModelFormData {
   _ModelFormData copyWith({
     String? name,
     String? heightText,
-    _ModelGender? gender,
+    HouseModelGender? gender,
     bool? heightEstimated,
     List<String>? existingPhotos,
     List<String?>? existingPhotoIds,
@@ -71,7 +71,7 @@ class _ModelFormNotifier extends Notifier<_ModelFormData> {
 
   void reset() => state = const _ModelFormData();
 
-  void initialize(_HouseModel? model) {
+  void initialize(HouseModelViewModel? model) {
     if (model == null) return;
     state = state.copyWith(
       name: model.name,
@@ -89,7 +89,8 @@ class _ModelFormNotifier extends Notifier<_ModelFormData> {
 
   void setName(String value) => state = state.copyWith(name: value);
   void setHeightText(String value) => state = state.copyWith(heightText: value);
-  void setGender(_ModelGender value) => state = state.copyWith(gender: value);
+  void setGender(HouseModelGender value) =>
+      state = state.copyWith(gender: value);
   void setHeightEstimated({required bool value}) =>
       state = state.copyWith(heightEstimated: value);
 
@@ -112,7 +113,7 @@ class _ModelFormNotifier extends Notifier<_ModelFormData> {
       state = state.copyWith(submitting: value);
 
   Future<void> submit(
-    Future<void> Function(_ModelFormInput input) onSubmit,
+    Future<void> Function(HouseModelFormInput input) onSubmit,
   ) async {
     state = state.copyWith(submitted: true);
     if (!state.isValid) return;
@@ -120,7 +121,7 @@ class _ModelFormNotifier extends Notifier<_ModelFormData> {
     if (parsedHeight == null) return;
     state = state.copyWith(submitting: true);
     await onSubmit(
-      _ModelFormInput(
+      HouseModelFormInput(
         name: state.name.trim(),
         gender: state.gender,
         heightCm: parsedHeight,
@@ -143,15 +144,15 @@ Future<void> _showModelFormDialog(
   BuildContext context,
   WidgetRef ref,
   ValueChanged<String> onToast, [
-  _HouseModel? model,
+  HouseModelViewModel? model,
 ]) {
   ref.read(_modelFormProvider.notifier).reset();
 
   Future<void> submit(
     BuildContext formContext,
-    _ModelFormInput input,
+    HouseModelFormInput input,
   ) async {
-    final controller = ref.read(_houseModelControllerProvider.notifier);
+    final controller = ref.read(houseModelControllerProvider.notifier);
     final result = model == null
         ? await controller.addModel(input)
         : await controller.updateModel(model, input);
@@ -216,7 +217,7 @@ Future<void> _showAiSheet(
       dialog: true,
       onGenerated: (gender, age, description) async {
         final result = await ref
-            .read(_houseModelControllerProvider.notifier)
+            .read(houseModelControllerProvider.notifier)
             .addAiModel(gender: gender, age: age, description: description);
         if (!context.mounted) return null;
         final failure = result.failureOrNull;
@@ -234,7 +235,7 @@ Future<void> _showAiSheet(
 Future<bool> _showDeleteSheet(
   BuildContext context,
   WidgetRef ref,
-  _HouseModel model,
+  HouseModelViewModel model,
   ValueChanged<String> onToast,
 ) async {
   final deleted = await showAppDialog<bool>(
@@ -257,7 +258,7 @@ Future<bool> _showDeleteSheet(
     footer: Consumer(
       builder: (context, ref, _) {
         final isMutating = ref.watch(
-          _houseModelControllerProvider.select((s) => s.isMutating),
+          houseModelControllerProvider.select((s) => s.isMutating),
         );
         return AppDialogActionFooter(
           primaryLabel: 'Delete Model',
@@ -267,7 +268,7 @@ Future<bool> _showDeleteSheet(
           onCancel: () => Navigator.pop(context, false),
           onPrimary: () async {
             final result = await ref
-                .read(_houseModelControllerProvider.notifier)
+                .read(houseModelControllerProvider.notifier)
                 .deleteModel(model);
             if (!context.mounted) return;
             final failure = result.failureOrNull;
@@ -309,7 +310,7 @@ Future<bool> _showDeletePhotoDialog(
     footer: Consumer(
       builder: (context, ref, _) {
         final isMutating = ref.watch(
-          _houseModelControllerProvider.select((s) => s.isMutating),
+          houseModelControllerProvider.select((s) => s.isMutating),
         );
         return AppDialogActionFooter(
           primaryLabel: 'Delete Photo',
@@ -436,8 +437,8 @@ class _ModelDialogFooter extends StatelessWidget {
 class _ModelFormDialog extends ConsumerStatefulWidget {
   const _ModelFormDialog({required this.onSubmit, this.model});
 
-  final _HouseModel? model;
-  final Future<void> Function(_ModelFormInput input) onSubmit;
+  final HouseModelViewModel? model;
+  final Future<void> Function(HouseModelFormInput input) onSubmit;
 
   @override
   ConsumerState<_ModelFormDialog> createState() => _ModelFormDialogState();
@@ -481,7 +482,7 @@ class _ModelFormDialogState extends ConsumerState<_ModelFormDialog> {
       context,
       ref,
       () => ref
-          .read(_houseModelControllerProvider.notifier)
+          .read(houseModelControllerProvider.notifier)
           .deletePhoto(widget.model!, photoId),
     );
     if (deleted && mounted) {
@@ -566,11 +567,11 @@ class _ModelFormDialogState extends ConsumerState<_ModelFormDialog> {
             invalid: formState.submitted && !formState.nameValid,
             error: 'Enter a model name.',
           ),
-          _SelectBlock<_ModelGender>(
+          _SelectBlock<HouseModelGender>(
             label: 'Gender',
             required: true,
             value: formState.gender,
-            values: _ModelGender.values,
+            values: HouseModelGender.values,
             labelFor: (value) => value.label,
             onChanged: ref.read(_modelFormProvider.notifier).setGender,
           ),

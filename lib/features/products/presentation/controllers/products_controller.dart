@@ -1,12 +1,20 @@
-part of '../products_feature.dart';
+import 'dart:async';
 
-class _ProductsScreenState {
-  const _ProductsScreenState({
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:look_atlas/core/error/failure.dart';
+import 'package:look_atlas/core/result/result.dart';
+import 'package:look_atlas/features/products/di/products_providers.dart';
+import 'package:look_atlas/features/products/domain/entities/product_catalog.dart';
+import 'package:look_atlas/features/products/domain/repositories/products_repository.dart';
+import 'package:look_atlas/features/products/presentation/models/product_view_model.dart';
+
+class ProductsScreenState {
+  const ProductsScreenState({
     this.products = const [],
     this.searchQuery = '',
-    this.categoryFilter = _ProductCategoryFilter.all,
-    this.statusFilter = _ProductStatusFilter.all,
-    this.sortOrder = _ProductSortOrder.newest,
+    this.categoryFilter = ProductCategoryFilter.all,
+    this.statusFilter = ProductStatusFilter.all,
+    this.sortOrder = ProductSortOrder.newest,
     this.totalCount = 0,
     this.currentPage = 1,
     this.totalPages = 1,
@@ -19,11 +27,11 @@ class _ProductsScreenState {
     this.calibrationFailure,
   });
 
-  final List<_Product> products;
+  final List<ProductViewModel> products;
   final String searchQuery;
-  final _ProductCategoryFilter categoryFilter;
-  final _ProductStatusFilter statusFilter;
-  final _ProductSortOrder sortOrder;
+  final ProductCategoryFilter categoryFilter;
+  final ProductStatusFilter statusFilter;
+  final ProductSortOrder sortOrder;
   final int totalCount;
   final int currentPage;
   final int totalPages;
@@ -38,7 +46,7 @@ class _ProductsScreenState {
   int get calibratedCount =>
       products.where((product) => product.calibrated).length;
 
-  List<_Product> get productsWithoutCategory => products
+  List<ProductViewModel> get productsWithoutCategory => products
       .where(
         (product) =>
             product.category.trim().isEmpty ||
@@ -46,12 +54,12 @@ class _ProductsScreenState {
       )
       .toList(growable: false);
 
-  _ProductsScreenState copyWith({
-    List<_Product>? products,
+  ProductsScreenState copyWith({
+    List<ProductViewModel>? products,
     String? searchQuery,
-    _ProductCategoryFilter? categoryFilter,
-    _ProductStatusFilter? statusFilter,
-    _ProductSortOrder? sortOrder,
+    ProductCategoryFilter? categoryFilter,
+    ProductStatusFilter? statusFilter,
+    ProductSortOrder? sortOrder,
     int? totalCount,
     int? currentPage,
     int? totalPages,
@@ -65,7 +73,7 @@ class _ProductsScreenState {
     bool clearFailure = false,
     bool clearCalibrationFailure = false,
   }) {
-    return _ProductsScreenState(
+    return ProductsScreenState(
       products: products ?? this.products,
       searchQuery: searchQuery ?? this.searchQuery,
       categoryFilter: categoryFilter ?? this.categoryFilter,
@@ -89,7 +97,7 @@ class _ProductsScreenState {
   }
 }
 
-class _ProductsController extends Notifier<_ProductsScreenState> {
+class ProductsController extends Notifier<ProductsScreenState> {
   Timer? _searchDebounce;
   Timer? _statusRefreshTimer;
   int _requestGeneration = 0;
@@ -97,13 +105,13 @@ class _ProductsController extends Notifier<_ProductsScreenState> {
   ProductsRepository get _repository => ref.read(productsRepositoryProvider);
 
   @override
-  _ProductsScreenState build() {
+  ProductsScreenState build() {
     ref.onDispose(() {
       _searchDebounce?.cancel();
       _statusRefreshTimer?.cancel();
     });
     unawaited(Future.microtask(reload));
-    return const _ProductsScreenState();
+    return const ProductsScreenState();
   }
 
   Future<void> reload() async {
@@ -121,7 +129,7 @@ class _ProductsController extends Notifier<_ProductsScreenState> {
     final calibrationFailure = calibratedResult.failureOrNull;
     if (calibrationFailure != null) {
       state = state.copyWith(
-        statusFilter: _ProductStatusFilter.all,
+        statusFilter: ProductStatusFilter.all,
         calibrationStatusesAvailable: false,
         calibrationFailure: calibrationFailure,
       );
@@ -140,7 +148,7 @@ class _ProductsController extends Notifier<_ProductsScreenState> {
       Ok(:final value) => state.copyWith(
         products: [
           for (final product in value.products)
-            _Product.fromCatalog(product, statuses),
+            ProductViewModel.fromCatalog(product, statuses),
         ],
         totalCount: value.total,
         currentPage: value.page,
@@ -172,7 +180,7 @@ class _ProductsController extends Notifier<_ProductsScreenState> {
     final calibrationFailure = calibratedResult.failureOrNull;
     if (calibrationFailure != null) {
       state = state.copyWith(
-        statusFilter: _ProductStatusFilter.all,
+        statusFilter: ProductStatusFilter.all,
         calibrationStatusesAvailable: false,
         calibrationFailure: calibrationFailure,
       );
@@ -204,8 +212,8 @@ class _ProductsController extends Notifier<_ProductsScreenState> {
     _syncStatusPolling();
   }
 
-  List<_Product> _appendUnique(
-    List<_Product> current,
+  List<ProductViewModel> _appendUnique(
+    List<ProductViewModel> current,
     List<ProductCatalogItem> incoming,
     Map<String, ProductCalibrationStatus> statuses,
   ) {
@@ -213,7 +221,8 @@ class _ProductsController extends Notifier<_ProductsScreenState> {
     return [
       ...current,
       for (final product in incoming)
-        if (ids.add(product.id)) _Product.fromCatalog(product, statuses),
+        if (ids.add(product.id))
+          ProductViewModel.fromCatalog(product, statuses),
     ];
   }
 
@@ -240,12 +249,12 @@ class _ProductsController extends Notifier<_ProductsScreenState> {
         clearCalibrationFailure: true,
         products: [
           for (final product in state.products)
-            _Product.fromCatalog(product.item, value),
+            ProductViewModel.fromCatalog(product.item, value),
         ],
       );
     } else if (result case Err(:final failure)) {
       state = state.copyWith(
-        statusFilter: _ProductStatusFilter.all,
+        statusFilter: ProductStatusFilter.all,
         calibrationStatusesAvailable: false,
         calibrationFailure: failure,
       );
@@ -276,29 +285,29 @@ class _ProductsController extends Notifier<_ProductsScreenState> {
     unawaited(reload());
   }
 
-  void updateCategoryFilter(_ProductCategoryFilter value) {
+  void updateCategoryFilter(ProductCategoryFilter value) {
     if (value == state.categoryFilter) return;
     state = state.copyWith(categoryFilter: value);
     unawaited(reload());
   }
 
-  void updateStatusFilter(_ProductStatusFilter value) {
+  void updateStatusFilter(ProductStatusFilter value) {
     if (!state.calibrationStatusesAvailable) return;
     if (value == state.statusFilter) return;
     state = state.copyWith(statusFilter: value);
     unawaited(reload());
   }
 
-  void updateSortOrder(_ProductSortOrder value) {
+  void updateSortOrder(ProductSortOrder value) {
     if (value == state.sortOrder) return;
     state = state.copyWith(sortOrder: value);
     unawaited(reload());
   }
 
   void applyFilters({
-    required _ProductCategoryFilter category,
-    required _ProductStatusFilter status,
-    required _ProductSortOrder sort,
+    required ProductCategoryFilter category,
+    required ProductStatusFilter status,
+    required ProductSortOrder sort,
   }) {
     if (category == state.categoryFilter &&
         status == state.statusFilter &&
@@ -317,9 +326,9 @@ class _ProductsController extends Notifier<_ProductsScreenState> {
     _searchDebounce?.cancel();
     state = state.copyWith(
       searchQuery: '',
-      categoryFilter: _ProductCategoryFilter.all,
-      statusFilter: _ProductStatusFilter.all,
-      sortOrder: _ProductSortOrder.newest,
+      categoryFilter: ProductCategoryFilter.all,
+      statusFilter: ProductStatusFilter.all,
+      sortOrder: ProductSortOrder.newest,
     );
     unawaited(reload());
   }
@@ -328,7 +337,7 @@ class _ProductsController extends Notifier<_ProductsScreenState> {
     state = state.copyWith(categoryBannerDismissed: true);
   }
 
-  Future<_Product?> resolveProduct(String productId) async {
+  Future<ProductViewModel?> resolveProduct(String productId) async {
     final loaded = state.products
         .where((product) => product.id == productId)
         .firstOrNull;
@@ -339,7 +348,7 @@ class _ProductsController extends Notifier<_ProductsScreenState> {
           productId,
         );
     if (resolved == null) return null;
-    return _Product.fromCatalog(resolved.product, resolved.statuses);
+    return ProductViewModel.fromCatalog(resolved.product, resolved.statuses);
   }
 
   Future<Result<void>> createProduct(CatalogProductDraft draft) async {
@@ -357,7 +366,7 @@ class _ProductsController extends Notifier<_ProductsScreenState> {
     final canonical = result.valueOrNull;
     state = state.copyWith(isMutating: false, clearFailure: true);
     if (canonical != null) {
-      final created = _Product.fromCatalog(
+      final created = ProductViewModel.fromCatalog(
         canonical.product,
         canonical.statuses,
       );
@@ -377,17 +386,20 @@ class _ProductsController extends Notifier<_ProductsScreenState> {
   }
 
   Future<Result<void>> updateProduct(
-    _Product product,
+    ProductViewModel product,
     CatalogProductDraft draft,
   ) async {
     if (!draft.hasUpdates) return const Ok(null);
     return _mutate(() => _repository.updateProduct(product.id, draft));
   }
 
-  Future<Result<void>> deleteProduct(_Product product) =>
+  Future<Result<void>> deleteProduct(ProductViewModel product) =>
       _mutate(() => _repository.deleteProduct(product.id));
 
-  Future<Result<void>> deletePhoto(_Product product, String photoId) async {
+  Future<Result<void>> deletePhoto(
+    ProductViewModel product,
+    String photoId,
+  ) async {
     final result = await _mutate(
       () => _repository.deletePhoto(product.id, photoId),
       reloadAfter: false,
@@ -397,7 +409,7 @@ class _ProductsController extends Notifier<_ProductsScreenState> {
   }
 
   Future<Result<void>> replacePhoto(
-    _Product product,
+    ProductViewModel product,
     ProductPhoto photo,
     ProductUpload replacement,
   ) => _mutate(
@@ -425,13 +437,13 @@ class _ProductsController extends Notifier<_ProductsScreenState> {
   }
 }
 
-final NotifierProvider<_ProductsController, _ProductsScreenState>
-_productsControllerProvider =
-    NotifierProvider<_ProductsController, _ProductsScreenState>(
-      _ProductsController.new,
+final NotifierProvider<ProductsController, ProductsScreenState>
+productsControllerProvider =
+    NotifierProvider<ProductsController, ProductsScreenState>(
+      ProductsController.new,
     );
 
-enum _ProductCategoryFilter {
+enum ProductCategoryFilter {
   all('All categories', ''),
   tops('Tops', 'Tops'),
   dresses('Dresses', 'Dresses'),
@@ -445,30 +457,30 @@ enum _ProductCategoryFilter {
   accessories('Accessories', 'Accessories'),
   other('Other', 'Other');
 
-  const _ProductCategoryFilter(this.label, this.wireValue);
+  const ProductCategoryFilter(this.label, this.wireValue);
 
   final String label;
   final String wireValue;
 }
 
-enum _ProductStatusFilter {
+enum ProductStatusFilter {
   all('All products', ''),
   calibrated('Calibrated', 'calibrated'),
   notCalibrated('Non calibrated', 'uncalibrated');
 
-  const _ProductStatusFilter(this.label, this.wireValue);
+  const ProductStatusFilter(this.label, this.wireValue);
 
   final String label;
   final String wireValue;
 }
 
-enum _ProductSortOrder {
+enum ProductSortOrder {
   newest('Newest first', 'newest'),
   oldest('Oldest first', 'oldest'),
   nameAsc('Name A-Z', 'name_asc'),
   nameDesc('Name Z-A', 'name_desc');
 
-  const _ProductSortOrder(this.label, this.wireValue);
+  const ProductSortOrder(this.label, this.wireValue);
 
   final String label;
   final String wireValue;

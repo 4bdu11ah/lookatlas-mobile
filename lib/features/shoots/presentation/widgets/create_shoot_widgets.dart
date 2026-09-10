@@ -1,4 +1,4 @@
-part of '../shoots_feature.dart';
+part of '../screens/create_shoot_screen.dart';
 
 class _CreateProductQueryController extends Notifier<String> {
   @override
@@ -519,11 +519,11 @@ class _ModelStepState extends ConsumerState<_ModelStep> {
         : const <(int, String, String, String)>[];
     final selectedPositions = {
       for (final (position, model) in widget.selectedModels.indexed)
-        _modelKey(model): position,
+        shootModelKey(model): position,
     };
     final selectedIndices = {
       for (final (index, model) in widget.models.indexed)
-        if (widget.selectedKeys.contains(_modelKey(model))) index,
+        if (widget.selectedKeys.contains(shootModelKey(model))) index,
     };
     final secondaryCount = widget.selectedModels.length - 1;
     final selectionSummary = secondaryCount > 0
@@ -581,7 +581,8 @@ class _ModelStepState extends ConsumerState<_ModelStep> {
                       .toSet(),
             selectedLabels: {
               for (final (index, model) in widget.models.indexed)
-                if (selectedPositions[_modelKey(model)] case final position?)
+                if (selectedPositions[shootModelKey(model)]
+                    case final position?)
                   index: position == 0 ? 'Primary' : 'Secondary $position',
             },
             selectedLabelOnLeft: true,

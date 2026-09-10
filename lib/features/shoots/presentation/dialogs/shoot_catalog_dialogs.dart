@@ -1,4 +1,4 @@
-part of '../shoots_feature.dart';
+part of 'shoot_modal.dart';
 
 class _AddProductPhotos extends Notifier<List<OnboardingUpload>> {
   @override
@@ -129,7 +129,7 @@ class _AddProductDialogState extends ConsumerState<_AddProductDialog> {
       return;
     }
     await ref
-        .read(_createShootControllerProvider.notifier)
+        .read(createShootControllerProvider.notifier)
         .load(preferredProductId: result.valueOrNull);
     if (!mounted) return;
     Navigator.pop(context);
@@ -262,7 +262,7 @@ class _AddModelDialogState extends ConsumerState<_AddModelDialog> {
       return;
     }
     await ref
-        .read(_createShootControllerProvider.notifier)
+        .read(createShootControllerProvider.notifier)
         .load(preferredModelName: _nameController.text.trim());
     if (!mounted) return;
     Navigator.pop(context);

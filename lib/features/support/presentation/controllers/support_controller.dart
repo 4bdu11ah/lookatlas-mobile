@@ -1,12 +1,14 @@
-part of 'package:look_atlas/features/support/presentation/support_feature.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:look_atlas/features/auth/di/auth_providers.dart';
+import 'package:look_atlas/features/support/presentation/models/support_screen_state.dart';
 
-class _SupportController extends Notifier<_SupportScreenState> {
+class SupportController extends Notifier<SupportScreenState> {
   @override
-  _SupportScreenState build() {
+  SupportScreenState build() {
     final user = ref.watch(authStateProvider).value;
     final displayName = user?.displayName?.trim();
     final companyName = user?.companyName?.trim();
-    return _supportInitialState(
+    return supportInitialState(
       fullName: displayName != null && displayName.isNotEmpty
           ? displayName
           : companyName ?? '',
@@ -26,7 +28,7 @@ class _SupportController extends Notifier<_SupportScreenState> {
     state = state.copyWith(subject: value, clearError: true);
   }
 
-  void setPriority(_SupportPriority value) {
+  void setPriority(SupportPriority value) {
     state = state.copyWith(priority: value, clearError: true);
   }
 
@@ -43,12 +45,12 @@ class _SupportController extends Notifier<_SupportScreenState> {
     }
 
     state = state.copyWith(
-      submissionStatus: _SupportSubmissionStatus.submitting,
+      submissionStatus: SupportSubmissionStatus.submitting,
       clearError: true,
     );
     await Future<void>.delayed(const Duration(milliseconds: 700));
     state = state.copyWith(
-      submissionStatus: _SupportSubmissionStatus.success,
+      submissionStatus: SupportSubmissionStatus.success,
     );
     return true;
   }
@@ -57,7 +59,7 @@ class _SupportController extends Notifier<_SupportScreenState> {
     state = state.copyWith(
       subject: '',
       message: '',
-      submissionStatus: _SupportSubmissionStatus.idle,
+      submissionStatus: SupportSubmissionStatus.idle,
       clearError: true,
     );
   }
@@ -77,8 +79,8 @@ class _SupportController extends Notifier<_SupportScreenState> {
   }
 }
 
-final NotifierProvider<_SupportController, _SupportScreenState>
-_supportControllerProvider =
-    NotifierProvider.autoDispose<_SupportController, _SupportScreenState>(
-      _SupportController.new,
+final NotifierProvider<SupportController, SupportScreenState>
+supportControllerProvider =
+    NotifierProvider.autoDispose<SupportController, SupportScreenState>(
+      SupportController.new,
     );

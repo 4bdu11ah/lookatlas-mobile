@@ -1,4 +1,4 @@
-part of '../billing_feature.dart';
+part of '../screens/billing_page.dart';
 
 String _billingMoney(double value, {bool alwaysShowCents = false}) {
   final whole = value == value.roundToDouble();

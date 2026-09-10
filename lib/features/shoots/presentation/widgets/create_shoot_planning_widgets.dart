@@ -1,4 +1,4 @@
-part of '../shoots_feature.dart';
+part of '../screens/create_shoot_screen.dart';
 
 typedef _PlanningDetails = ({
   String directorName,

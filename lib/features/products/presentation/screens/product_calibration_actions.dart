@@ -1,4 +1,4 @@
-part of '../products_feature.dart';
+part of 'product_calibration_screens.dart';
 
 extension _ProductCalibrationActions on _ProductCalibrationScreenState {
   Future<void> _confirmDeleteWornPhoto() async {

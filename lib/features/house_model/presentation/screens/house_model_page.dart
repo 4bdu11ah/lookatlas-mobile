@@ -1,4 +1,42 @@
-part of '../house_model_feature.dart';
+import 'dart:async';
+import 'dart:typed_data';
+
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:look_atlas/core/result/result.dart';
+import 'package:look_atlas/core/theme/app_colors.dart';
+import 'package:look_atlas/core/theme/app_typography.dart';
+import 'package:look_atlas/features/house_model/domain/entities/house_model_profile.dart';
+import 'package:look_atlas/features/house_model/presentation/controllers/house_model_controller.dart';
+import 'package:look_atlas/features/house_model/presentation/models/house_model_view_model.dart';
+import 'package:look_atlas/shared/image_picker/image_picker_providers.dart';
+import 'package:look_atlas/shared/image_picker/image_source_sheet.dart';
+import 'package:look_atlas/shared/widgets/app_asset_image.dart';
+import 'package:look_atlas/shared/widgets/app_bottom_sheet.dart';
+import 'package:look_atlas/shared/widgets/app_dialog.dart';
+import 'package:look_atlas/shared/widgets/app_dotted_border.dart';
+import 'package:look_atlas/shared/widgets/app_dropdown.dart';
+import 'package:look_atlas/shared/widgets/app_feature_scaffold.dart';
+import 'package:look_atlas/shared/widgets/app_floating_action_button.dart';
+import 'package:look_atlas/shared/widgets/app_hairline.dart';
+import 'package:look_atlas/shared/widgets/app_image.dart';
+import 'package:look_atlas/shared/widgets/app_outlined_button.dart';
+import 'package:look_atlas/shared/widgets/app_sheet_frame.dart';
+import 'package:look_atlas/shared/widgets/app_snack_bar.dart';
+import 'package:look_atlas/shared/widgets/app_spaced_column.dart';
+import 'package:look_atlas/shared/widgets/app_tap_icon_button.dart';
+import 'package:look_atlas/shared/widgets/app_text_field.dart';
+import 'package:look_atlas/shared/widgets/primary_button.dart';
+
+part '../widgets/house_model_ai_form.dart';
+part '../widgets/house_model_angle_controls.dart';
+part '../widgets/house_model_cards.dart';
+part '../widgets/house_model_filter_sheet.dart';
+part '../widgets/house_model_form_fields.dart';
+part '../widgets/house_model_forms.dart';
+part '../widgets/house_model_loading.dart';
+part '../widgets/house_model_sections.dart';
+part '../widgets/house_model_sheet_widgets.dart';
 
 class HouseModelsScreen extends ConsumerWidget {
   const HouseModelsScreen({super.key});
@@ -21,7 +59,7 @@ class HouseModelsScreen extends ConsumerWidget {
       ),
 
       child: RefreshIndicator(
-        onRefresh: ref.read(_houseModelControllerProvider.notifier).reload,
+        onRefresh: ref.read(houseModelControllerProvider.notifier).reload,
         child: SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
           padding: const EdgeInsets.fromLTRB(20, 22, 20, 112),
@@ -41,13 +79,13 @@ class _HouseModelPage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final state = ref.watch(_houseModelControllerProvider);
+    final state = ref.watch(houseModelControllerProvider);
     if (state.failure != null &&
         state.libraryModels.isEmpty &&
         state.userModels.isEmpty) {
       return _HouseModelsLoadError(
         message: state.failure!.message,
-        onRetry: ref.read(_houseModelControllerProvider.notifier).reload,
+        onRetry: ref.read(houseModelControllerProvider.notifier).reload,
       );
     }
     return AppSpacedColumn(
@@ -55,7 +93,7 @@ class _HouseModelPage extends ConsumerWidget {
         if (state.failure != null)
           _HouseModelsRefreshError(
             message: state.failure!.message,
-            onRetry: ref.read(_houseModelControllerProvider.notifier).reload,
+            onRetry: ref.read(houseModelControllerProvider.notifier).reload,
           ),
         Text(
           'Manage your brand models for consistent on-model imagery.',

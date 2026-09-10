@@ -1,6 +1,4 @@
-part of '../shoots_feature.dart';
-
-enum _ShootModalKind {
+enum ShootModalKind {
   contextPaywall,
   product,
   model,

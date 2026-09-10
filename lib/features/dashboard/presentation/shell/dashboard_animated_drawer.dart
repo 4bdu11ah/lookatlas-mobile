@@ -1,4 +1,4 @@
-part of '../screens/dashboard_screen.dart';
+part of 'dashboard_shell.dart';
 
 /// Mobile modal-drawer motion from the design handoff: the application stays
 /// in place under a dimmed scrim while the pearl navigation surface slides in.

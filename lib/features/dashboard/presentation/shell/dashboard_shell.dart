@@ -1,4 +1,32 @@
-part of '../screens/dashboard_screen.dart';
+import 'dart:async';
+import 'dart:math';
+import 'dart:ui';
+
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:look_atlas/core/layout/app_responsive.dart';
+import 'package:look_atlas/core/router/app_routes.dart';
+import 'package:look_atlas/core/theme/app_colors.dart';
+import 'package:look_atlas/core/theme/app_typography.dart';
+import 'package:look_atlas/features/auth/di/auth_providers.dart';
+import 'package:look_atlas/features/calendar/di/calendar_providers.dart';
+import 'package:look_atlas/features/dashboard/presentation/controllers/dashboard_overview_controller.dart';
+import 'package:look_atlas/features/dashboard/presentation/controllers/dashboard_shell_controller.dart';
+import 'package:look_atlas/features/dashboard/presentation/models/dashboard_page.dart';
+import 'package:look_atlas/features/dashboard/presentation/screens/dashboard_overview_screen.dart';
+import 'package:look_atlas/features/studio_school/di/studio_school_providers.dart';
+import 'package:look_atlas/shared/widgets/app_hairline.dart';
+import 'package:look_atlas/shared/widgets/app_icon_button.dart';
+import 'package:look_atlas/shared/widgets/app_image.dart';
+import 'package:look_atlas/shared/widgets/app_snack_bar.dart';
+import 'package:look_atlas/shared/widgets/app_text.dart';
+import 'package:look_atlas/shared/widgets/bar_spinner.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
+
+part 'dashboard_animated_drawer.dart';
+part '../widgets/dashboard_navigation_widgets.dart';
 
 class DashboardScreen extends ConsumerStatefulWidget {
   const DashboardScreen({super.key});
@@ -32,7 +60,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
   }
 
   Future<void> _openDrawer() {
-    ref.read(_dashboardShellControllerProvider.notifier).openNavigation();
+    ref.read(dashboardShellControllerProvider.notifier).openNavigation();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) _drawerCloseFocusNode.requestFocus();
     });
@@ -50,7 +78,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
   }
 
   Future<void> _closeDrawer() async {
-    ref.read(_dashboardShellControllerProvider.notifier).closeNavigation();
+    ref.read(dashboardShellControllerProvider.notifier).closeNavigation();
     if (MediaQuery.disableAnimationsOf(context)) {
       _drawerController.value = 0;
     } else {
@@ -94,16 +122,16 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
     }
   }
 
-  Future<void> _selectLegacyDrawerPage(_DashboardPage page) =>
+  Future<void> _selectLegacyDrawerPage(DashboardPage page) =>
       _selectDrawerRoute(page.routePath);
 
   @override
   Widget build(BuildContext context) {
     final mobile =
         MediaQuery.sizeOf(context).width < AppResponsive.compactBreakpoint;
-    final state = ref.watch(_dashboardShellControllerProvider);
-    final controller = ref.read(_dashboardShellControllerProvider.notifier);
-    final screen = _DashboardOverviewScreen(
+    final state = ref.watch(dashboardShellControllerProvider);
+    final controller = ref.read(dashboardShellControllerProvider.notifier);
+    final screen = DashboardOverviewScreen(
       onNavigate: (page) => _navigateDashboard(context, ref, page),
     );
     final user = ref.watch(authStateProvider).value;
@@ -137,7 +165,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                     onOpenBilling: () => _navigateDashboard(
                       context,
                       ref,
-                      _DashboardPage.billing,
+                      DashboardPage.billing,
                     ),
                   )
                 else
@@ -153,7 +181,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                     onRefresh: () => Future.wait([
                       ref
                           .read(
-                            _dashboardOverviewControllerProvider.notifier,
+                            dashboardOverviewControllerProvider.notifier,
                           )
                           .refresh(),
                       ref.read(refreshStudioSchoolProvider)(),
@@ -183,12 +211,12 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                   onSettings: () => _navigateDashboard(
                     context,
                     ref,
-                    _DashboardPage.settings,
+                    DashboardPage.settings,
                   ),
                   onBilling: () => _navigateDashboard(
                     context,
                     ref,
-                    _DashboardPage.billing,
+                    DashboardPage.billing,
                   ),
                   onLogOut: () => _logOut(context, ref),
                 ),
@@ -203,7 +231,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
           ? _DashboardDrawerTransition(
               animation: _drawerController,
               drawer: _DashboardDrawer(
-                selected: _DashboardPage.dashboard,
+                selected: DashboardPage.dashboard,
                 focusScopeNode: _drawerFocusScopeNode,
                 closeFocusNode: _drawerCloseFocusNode,
                 accountName: accountName,
@@ -222,7 +250,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
           : _DashboardLegacyDrawerTransition(
               animation: _drawerController,
               drawer: _LegacyDashboardDrawer(
-                selected: _DashboardPage.dashboard,
+                selected: DashboardPage.dashboard,
                 onClose: () => unawaited(_closeDrawer()),
                 onSelect: (page) => unawaited(_selectLegacyDrawerPage(page)),
               ),
@@ -302,13 +330,13 @@ class _WelcomeFocusRefreshState extends ConsumerState<_WelcomeFocusRefresh>
 void _navigateDashboard(
   BuildContext context,
   WidgetRef ref,
-  _DashboardPage page,
+  DashboardPage page,
 ) {
-  ref.read(_dashboardShellControllerProvider.notifier).closeUserMenu();
+  ref.read(dashboardShellControllerProvider.notifier).closeUserMenu();
   if (Scaffold.maybeOf(context)?.isDrawerOpen ?? false) {
     Navigator.pop(context);
   }
-  if (page == _DashboardPage.dashboard) {
+  if (page == DashboardPage.dashboard) {
     context.go(page.routePath);
   } else {
     unawaited(context.push<void>(page.routePath));
@@ -498,7 +526,7 @@ class _Header extends StatelessWidget {
           ),
           Consumer(
             builder: (context, ref, _) {
-              final dashboard = ref.watch(_dashboardOverviewControllerProvider);
+              final dashboard = ref.watch(dashboardOverviewControllerProvider);
               final label = switch (dashboard) {
                 AsyncData(:final value) when value.stats != null =>
                   '${value.stats!.credits} credits',
@@ -552,7 +580,7 @@ class _DashboardDrawer extends StatelessWidget {
     required this.onNavigate,
   });
 
-  final _DashboardPage selected;
+  final DashboardPage selected;
   final FocusScopeNode focusScopeNode;
   final FocusNode closeFocusNode;
   final String accountName;
@@ -779,21 +807,21 @@ class _LegacyDashboardDrawer extends StatelessWidget {
     required this.onSelect,
   });
 
-  final _DashboardPage selected;
+  final DashboardPage selected;
   final VoidCallback onClose;
-  final ValueChanged<_DashboardPage> onSelect;
+  final ValueChanged<DashboardPage> onSelect;
 
-  static const _items = <_DashboardPage>[
-    _DashboardPage.dashboard,
-    _DashboardPage.workshop,
-    _DashboardPage.models,
-    _DashboardPage.products,
-    _DashboardPage.jobs,
-    _DashboardPage.billing,
-    _DashboardPage.support,
-    _DashboardPage.school,
-    _DashboardPage.assistant,
-    _DashboardPage.settings,
+  static const _items = <DashboardPage>[
+    DashboardPage.dashboard,
+    DashboardPage.workshop,
+    DashboardPage.models,
+    DashboardPage.products,
+    DashboardPage.jobs,
+    DashboardPage.billing,
+    DashboardPage.support,
+    DashboardPage.school,
+    DashboardPage.assistant,
+    DashboardPage.settings,
   ];
 
   @override
@@ -953,7 +981,7 @@ class _DashboardCredits extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final state = ref.watch(_dashboardOverviewControllerProvider);
+    final state = ref.watch(dashboardOverviewControllerProvider);
     return switch (state) {
       AsyncData(:final value) when value.stats != null => Text(
         '${value.stats!.credits}',

@@ -1,12 +1,25 @@
-part of '../products_feature.dart';
+import 'dart:async';
+import 'dart:math';
 
-typedef _SaveCroppedReference = Future<bool> Function(ProductUpload upload);
+import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image/image.dart' as image_lib;
+import 'package:look_atlas/core/theme/app_colors.dart';
+import 'package:look_atlas/features/products/domain/entities/product_catalog.dart';
+import 'package:look_atlas/features/products/presentation/widgets/product_shared_widgets.dart';
+import 'package:look_atlas/shared/widgets/app_outlined_button.dart';
+import 'package:look_atlas/shared/widgets/bar_spinner.dart';
+import 'package:look_atlas/shared/widgets/primary_button.dart';
 
-Future<bool> _showProductReferenceCrop(
+typedef SaveCroppedReference = Future<bool> Function(ProductUpload upload);
+
+Future<bool> showProductReferenceCrop(
   BuildContext context, {
   required ProductUpload source,
   required bool isReplacement,
-  required _SaveCroppedReference onSave,
+  required SaveCroppedReference onSave,
   bool preserveTransparency = false,
 }) async =>
     await Navigator.of(context, rootNavigator: true).push<bool>(
@@ -193,7 +206,7 @@ class _ProductReferenceCropScreen extends ConsumerStatefulWidget {
 
   final ProductUpload source;
   final bool isReplacement;
-  final _SaveCroppedReference onSave;
+  final SaveCroppedReference onSave;
   final bool preserveTransparency;
 
   @override
@@ -375,7 +388,7 @@ class _ProductReferenceCropScreenState
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
-                    fontFamily: _productDisplayFontFamily,
+                    fontFamily: productDisplayFontFamily,
                     fontSize: 27,
                     height: 1,
                     fontWeight: FontWeight.w400,
@@ -577,7 +590,7 @@ class _CropGuideItem extends StatelessWidget {
         child: Text(
           number,
           style: const TextStyle(
-            fontFamily: _productDisplayFontFamily,
+            fontFamily: productDisplayFontFamily,
             fontStyle: FontStyle.italic,
             fontSize: 16,
             color: Color(0xFF121211),

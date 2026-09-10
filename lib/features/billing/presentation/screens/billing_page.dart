@@ -1,4 +1,31 @@
-part of '../billing_feature.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
+import 'package:look_atlas/core/error/failure.dart';
+import 'package:look_atlas/core/theme/app_colors.dart';
+import 'package:look_atlas/core/theme/app_typography.dart';
+import 'package:look_atlas/features/billing/di/billing_api_providers.dart';
+import 'package:look_atlas/features/billing/domain/entities/billing_checkout.dart';
+import 'package:look_atlas/features/billing/presentation/controllers/billing_controller.dart';
+import 'package:look_atlas/features/billing/presentation/models/billing_screen_state.dart';
+import 'package:look_atlas/features/dashboard/di/dashboard_providers.dart';
+import 'package:look_atlas/features/dashboard/domain/entities/dashboard_data.dart';
+import 'package:look_atlas/features/subscription/di/subscription_providers.dart';
+import 'package:look_atlas/features/subscription/domain/entities/subscription_product.dart';
+import 'package:look_atlas/features/subscription/domain/entities/subscription_status.dart';
+import 'package:look_atlas/features/subscription/presentation/controllers/subscription_action.dart';
+import 'package:look_atlas/features/subscription/presentation/controllers/subscription_controller.dart';
+import 'package:look_atlas/shared/widgets/app_card.dart';
+import 'package:look_atlas/shared/widgets/app_dialog.dart';
+import 'package:look_atlas/shared/widgets/app_feature_scaffold.dart';
+import 'package:look_atlas/shared/widgets/app_hairline.dart';
+import 'package:look_atlas/shared/widgets/app_snack_bar.dart';
+import 'package:look_atlas/shared/widgets/bar_spinner.dart';
+
+part '../dialogs/billing_purchase_dialog.dart';
+part '../dialogs/billing_subscription_dialog.dart';
+part '../widgets/billing_history_card.dart';
+part '../widgets/billing_widgets.dart';
 
 class BillingScreen extends StatelessWidget {
   const BillingScreen({super.key});

@@ -1,23 +1,25 @@
-part of 'package:look_atlas/features/settings/presentation/account_settings_feature.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:look_atlas/features/auth/di/auth_providers.dart';
+import 'package:look_atlas/features/settings/presentation/models/account_settings_state.dart';
 
-class _AccountSettingsController extends Notifier<_AccountSettingsState> {
+class AccountSettingsController extends Notifier<AccountSettingsState> {
   @override
-  _AccountSettingsState build() {
+  AccountSettingsState build() {
     final authState = ref.watch(authStateProvider);
     return authState.when(
-      data: (user) => _accountSettingsLoadedState(
+      data: (user) => accountSettingsLoadedState(
         companyName: user?.companyName?.trim(),
         email: user?.email.trim(),
       ),
-      error: (_, _) => _accountSettingsErrorState,
-      loading: () => _accountSettingsLoadingState,
+      error: (_, _) => accountSettingsErrorState,
+      loading: () => accountSettingsLoadingState,
     );
   }
 }
 
-final NotifierProvider<_AccountSettingsController, _AccountSettingsState>
-_accountSettingsControllerProvider =
+final NotifierProvider<AccountSettingsController, AccountSettingsState>
+accountSettingsControllerProvider =
     NotifierProvider.autoDispose<
-      _AccountSettingsController,
-      _AccountSettingsState
-    >(_AccountSettingsController.new);
+      AccountSettingsController,
+      AccountSettingsState
+    >(AccountSettingsController.new);

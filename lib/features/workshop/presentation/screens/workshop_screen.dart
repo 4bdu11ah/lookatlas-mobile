@@ -5,7 +5,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:look_atlas/core/constants/app_assets.dart';
 import 'package:look_atlas/core/layout/app_responsive.dart';
 import 'package:look_atlas/core/router/app_routes.dart';
 import 'package:look_atlas/core/theme/app_colors.dart';
@@ -25,12 +24,13 @@ import 'package:look_atlas/shared/widgets/custom_app_bar.dart';
 import 'package:look_atlas/shared/widgets/primary_button.dart';
 import 'package:look_atlas/shared/widgets/shimmer_box.dart';
 
+export 'workshop_guide_screen.dart' show WorkshopGuideScreen;
+
 part '../widgets/workshop_editor_widgets.dart';
 part '../widgets/workshop_image_widgets.dart';
 part '../widgets/workshop_overlay_widgets.dart';
 part '../widgets/workshop_result_widgets.dart';
 part '../widgets/workshop_shared_widgets.dart';
-part 'workshop_guide_screen.dart';
 
 class WorkshopScreen extends ConsumerStatefulWidget {
   const WorkshopScreen({super.key});

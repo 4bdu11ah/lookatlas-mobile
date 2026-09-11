@@ -33,6 +33,10 @@ migrate_working_dir/
 /build/
 /coverage/
 
+# Golden test output and local baselines
+test/features/**/goldens/
+test/features/**/failures/
+
 # Symbolication related
 app.*.symbols
 

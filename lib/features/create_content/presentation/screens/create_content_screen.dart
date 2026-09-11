@@ -13,16 +13,19 @@ class CreateContentScreen extends StatelessWidget {
     super.key,
     this.initialFormat,
     this.contentId,
+    this.previewImageUrl,
   });
 
   final String? initialFormat;
   final String? contentId;
+  final String? previewImageUrl;
 
   @override
   Widget build(BuildContext context) {
     if (contentId != null && contentId!.isNotEmpty) {
       return ContentReviewScreen(
         contentId: contentId!,
+        previewImageUrl: previewImageUrl,
         format: initialFormat != null
             ? ContentFormat.parse(initialFormat!)
             : null,

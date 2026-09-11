@@ -13,6 +13,9 @@ import 'package:look_atlas/features/create_content/di/content_providers.dart';
 import 'package:look_atlas/features/create_content/domain/entities/content_models.dart';
 import 'package:look_atlas/features/create_content/presentation/controllers/content_session.dart';
 import 'package:look_atlas/features/create_content/presentation/controllers/create_content_controller.dart';
+import 'package:look_atlas/features/create_content/presentation/widgets/content_canvas_controls.dart';
+import 'package:look_atlas/features/create_content/presentation/widgets/content_generation_filmstrip.dart';
+import 'package:look_atlas/features/create_content/presentation/widgets/content_generation_loading_overlay.dart';
 import 'package:look_atlas/features/create_content/presentation/widgets/content_widgets.dart';
 import 'package:look_atlas/shared/image_picker/image_picker_providers.dart';
 import 'package:look_atlas/shared/widgets/app_icon_button.dart';
@@ -58,6 +61,7 @@ class _ContentBriefScreenState extends ConsumerState<ContentBriefScreen>
     WidgetsBinding.instance.addObserver(this);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
+        _controller.setLeaving(leaving: false);
         unawaited(ref.read(contentSessionProvider(_args)).initialize());
       }
     });
@@ -93,6 +97,7 @@ class _ContentBriefScreenState extends ConsumerState<ContentBriefScreen>
       _message('Your changes are not saved. Retry saving before leaving.');
       return;
     }
+    _controller.setLeaving(leaving: false);
     if (target != null) {
       context.go(target);
     } else if (context.canPop()) {
@@ -113,6 +118,15 @@ class _ContentBriefScreenState extends ConsumerState<ContentBriefScreen>
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) _panelFocus.requestFocus();
     });
+  }
+
+  void _openProductPicker(ContentSession session) {
+    if (session.step != 1) {
+      session.updateBrief({
+        'settings': {'lastStep': 1},
+      });
+    }
+    _openPanel();
   }
 
   void _message(String text) {
@@ -288,10 +302,14 @@ class _ContentBriefScreenState extends ConsumerState<ContentBriefScreen>
       await _showPaywall(403);
       return;
     }
-    await session.generate(retry: retry);
-    if (mounted && session.generation?.active == true) {
-      _controller.closePanels();
-    }
+    final generationRequest = session.generate(retry: retry);
+    if (session.submitting) _controller.closePanels();
+    await generationRequest;
+    if (!mounted || session.generation == null || session.error != null) return;
+    context.go(
+      '${AppRoutes.createContent}/item/${Uri.encodeComponent(session.generation!.id)}',
+      extra: session.selectedProduct?.imageUrl ?? session.uploadUrl,
+    );
   }
 
   @override
@@ -470,6 +488,14 @@ class _ContentBriefScreenState extends ConsumerState<ContentBriefScreen>
 
   Widget _buildCanvas(ContentSession session) {
     final textTheme = Theme.of(context).textTheme;
+    final generation = session.generation;
+    final preparing = session.submitting && generation == null;
+    final generating = generation?.active == true;
+    final showGenerationLoading =
+        session.error == null && (preparing || generating);
+    final frameTotal = session.format == ContentFormat.slideshow
+        ? (session.settings['frameCount'] as num? ?? 5).toInt()
+        : 1;
 
     return Column(
       children: [
@@ -482,34 +508,40 @@ class _ContentBriefScreenState extends ConsumerState<ContentBriefScreen>
           ),
           child: Row(
             children: [
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 9,
-                  vertical: 6,
-                ),
-                decoration: BoxDecoration(
-                  color: AppColors.soft,
-                  border: Border.all(color: AppColors.line),
-                ),
-                child: Text(
-                  'LIVE PREVIEW',
-                  style: textTheme.labelSmall?.copyWith(
-                    fontWeight: AppTypography.bold,
-                    color: AppColors.muted,
+              Flexible(
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 9,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppColors.soft,
+                      border: Border.all(color: AppColors.line),
+                    ),
+                    child: Text(
+                      showGenerationLoading
+                          ? contentGenerationPhaseLabel(
+                              generation?.data['phase'] as String?,
+                            )
+                          : 'LIVE PREVIEW',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: textTheme.labelSmall?.copyWith(
+                        fontWeight: AppTypography.bold,
+                        color: AppColors.muted,
+                      ),
+                    ),
                   ),
                 ),
               ),
-              const Spacer(),
-              Text(
-                '${(_canvasZoom * 100).round()}%',
-                style: textTheme.labelSmall?.copyWith(
-                  color: AppColors.muted,
-                ),
-              ),
-              const SizedBox(width: 9),
-              contentSmallTextButton(
-                'Fit',
-                () => _controller.setCanvasZoom(.94),
+              const SizedBox(width: 8),
+              ContentCanvasControls(
+                zoom: _canvasZoom,
+                onZoomOut: _controller.zoomCanvasOut,
+                onFit: _controller.fitCanvas,
+                onZoomIn: _controller.zoomCanvasIn,
               ),
             ],
           ),
@@ -535,22 +567,44 @@ class _ContentBriefScreenState extends ConsumerState<ContentBriefScreen>
                           math.min(box.maxHeight - 18, box.maxWidth / ratio),
                         );
                         return Center(
-                          child: SizedBox(
-                            height: math.max(0, height * _canvasZoom),
-                            width: math.max(0, height * ratio * _canvasZoom),
-                            child: DecoratedBox(
-                              decoration: const BoxDecoration(
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Color(0x331f1c18),
-                                    blurRadius: 38,
-                                    offset: Offset(0, 20),
+                          child: Semantics(
+                            button: true,
+                            label: 'Choose product',
+                            child: GestureDetector(
+                              key: const ValueKey('content-canvas-card'),
+                              behavior: HitTestBehavior.opaque,
+                              onTap: () => _openProductPicker(session),
+                              child: SizedBox(
+                                height: math.max(0, height * _canvasZoom),
+                                width: math.max(
+                                  0,
+                                  height * ratio * _canvasZoom,
+                                ),
+                                child: DecoratedBox(
+                                  decoration: const BoxDecoration(
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Color(0x331f1c18),
+                                        blurRadius: 38,
+                                        offset: Offset(0, 20),
+                                      ),
+                                    ],
                                   ),
-                                ],
-                              ),
-                              child: contentImage(
-                                session.selectedProduct?.imageUrl ??
-                                    session.uploadUrl,
+                                  child: Stack(
+                                    fit: StackFit.expand,
+                                    children: [
+                                      contentImage(
+                                        session.selectedProduct?.imageUrl ??
+                                            session.uploadUrl,
+                                      ),
+                                      if (showGenerationLoading)
+                                        ContentGenerationLoadingOverlay(
+                                          format: session.format,
+                                          generation: generation,
+                                        ),
+                                    ],
+                                  ),
+                                ),
                               ),
                             ),
                           ),
@@ -573,6 +627,15 @@ class _ContentBriefScreenState extends ConsumerState<ContentBriefScreen>
             ),
           ),
         ),
+        if (showGenerationLoading)
+          ContentGenerationFilmstrip(
+            format: session.format,
+            frames: generation?.frames ?? const [],
+            total: frameTotal,
+            generating: true,
+            backgroundImageUrl:
+                session.selectedProduct?.imageUrl ?? session.uploadUrl,
+          ),
       ],
     );
   }
@@ -868,6 +931,7 @@ class _ContentBriefScreenState extends ConsumerState<ContentBriefScreen>
                           children: [
                             Text(
                               product.name,
+                              maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: textTheme.labelMedium?.copyWith(
                                 fontWeight: AppTypography.bold,
@@ -876,6 +940,8 @@ class _ContentBriefScreenState extends ConsumerState<ContentBriefScreen>
                             const SizedBox(height: 4),
                             Text(
                               '${product.sku} · ${product.photos.length.toString().padLeft(2, '0')} photos',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                               style: textTheme.labelSmall?.copyWith(
                                 fontSize: 11,
                                 color: AppColors.muted,

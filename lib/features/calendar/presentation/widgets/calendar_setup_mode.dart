@@ -17,29 +17,37 @@ class CalendarSetupMode extends ConsumerWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         calendarStep(null, null, null, [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: calendarMode(
-                  s,
-                  (value) => setupChange(() => s.setup.mode = value),
-                  'scheduled',
-                  'A scheduled plan',
-                  'We plan the days and post on time',
-                ),
-              ),
-              const SizedBox(width: 5),
-              Expanded(
-                child: calendarMode(
-                  s,
-                  (value) => setupChange(() => s.setup.mode = value),
-                  'batch',
-                  'A batch of posts',
-                  'You pick concepts and schedule them yourself',
-                ),
-              ),
-            ],
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final scheduled = calendarMode(
+                s,
+                (value) => setupChange(() => s.setup.mode = value),
+                'scheduled',
+                'A scheduled plan',
+                'We plan the days and post on time',
+              );
+              final batch = calendarMode(
+                s,
+                (value) => setupChange(() => s.setup.mode = value),
+                'batch',
+                'A batch of posts',
+                'You pick concepts and schedule them yourself',
+              );
+              if (constraints.maxWidth < 520) {
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [scheduled, const SizedBox(height: 6), batch],
+                );
+              }
+              return Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(child: scheduled),
+                  const SizedBox(width: 5),
+                  Expanded(child: batch),
+                ],
+              );
+            },
           ),
         ]),
       ],

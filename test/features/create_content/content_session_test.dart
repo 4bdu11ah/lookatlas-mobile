@@ -104,6 +104,55 @@ void main() {
     expect(session.reviewing, isTrue);
     expect(creditRefreshes, 2);
   });
+  test('completed generation removes its source draft', () async {
+    backend.emptyDeleteResponse = true;
+    session.updateBrief({'productId': 'product-1'});
+
+    await session.generate();
+
+    expect(session.reviewing, isTrue);
+    expect(session.draftId, isNull);
+    expect(backend.draft, isNull);
+    final deleteRequest = backend.requests.singleWhere(
+      (request) =>
+          request.method == 'DELETE' &&
+          request.path == '/content/drafts/draft-1',
+    );
+    expect(deleteRequest.data, isNull);
+    expect(deleteRequest.contentType, isNull);
+  });
+  test('failed generation keeps its source draft', () async {
+    backend.status = 'failed';
+    session.updateBrief({'productId': 'product-1'});
+
+    await session.generate();
+
+    expect(session.draftId, 'draft-1');
+    expect(backend.draft, isNotNull);
+    expect(
+      backend.requests.any((request) => request.method == 'DELETE'),
+      isFalse,
+    );
+  });
+  test(
+    'initialization removes draft already used by completed content',
+    () async {
+      backend
+        ..generationDraftId = 'draft-1'
+        ..draft = {
+          'id': 'draft-1',
+          'format': 'slideshow',
+          'productId': 'product-1',
+          'settings': {'lastStep': 3},
+        };
+
+      await session.initialize();
+
+      expect(session.draftId, isNull);
+      expect(session.step, 1);
+      expect(backend.draft, isNull);
+    },
+  );
   test('402 and 403 retain brief and expose paywall', () async {
     for (final status in [402, 403]) {
       backend.handler = (request) {
@@ -219,6 +268,14 @@ void main() {
     expect(
       backend.requests.any((r) => r.path == '/content/drafts/latest'),
       isFalse,
+    );
+    expect(
+      backend.requests.any(
+        (request) =>
+            request.path == '/content/drafts/completed-draft-1' &&
+            request.method == 'DELETE',
+      ),
+      isTrue,
     );
     expect(session.generation?.data['source'], 'runway');
   });

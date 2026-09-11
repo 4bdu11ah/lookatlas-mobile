@@ -14,6 +14,9 @@ import 'package:look_atlas/features/create_content/di/content_providers.dart';
 import 'package:look_atlas/features/create_content/domain/entities/content_models.dart';
 import 'package:look_atlas/features/create_content/presentation/controllers/content_session.dart';
 import 'package:look_atlas/features/create_content/presentation/controllers/create_content_controller.dart';
+import 'package:look_atlas/features/create_content/presentation/widgets/content_canvas_controls.dart';
+import 'package:look_atlas/features/create_content/presentation/widgets/content_generation_filmstrip.dart';
+import 'package:look_atlas/features/create_content/presentation/widgets/content_generation_loading_overlay.dart';
 import 'package:look_atlas/features/create_content/presentation/widgets/content_widgets.dart';
 import 'package:look_atlas/shared/widgets/app_icon_button.dart';
 import 'package:look_atlas/shared/widgets/app_snack_bar.dart';
@@ -30,10 +33,12 @@ class ContentReviewScreen extends ConsumerStatefulWidget {
     required this.contentId,
     super.key,
     this.format,
+    this.previewImageUrl,
   });
 
   final String contentId;
   final ContentFormat? format;
+  final String? previewImageUrl;
 
   @override
   ConsumerState<ContentReviewScreen> createState() =>
@@ -50,7 +55,6 @@ class _ContentReviewScreenState extends ConsumerState<ContentReviewScreen>
   final FocusScopeNode _panelFocus = FocusScopeNode();
 
   String? _syncedCaptionGenerationId;
-  bool _wasReviewing = false;
   bool _paywallVisible = false;
 
   CreateContentUIState get _ui => ref.watch(createContentControllerProvider);
@@ -79,11 +83,10 @@ class _ContentReviewScreenState extends ConsumerState<ContentReviewScreen>
     );
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
+        _controller
+          ..setLeaving(leaving: false)
+          ..closePanels();
         final session = ref.read(contentSessionProvider(_args));
-        if (session.reviewing && !_wasReviewing) {
-          _wasReviewing = true;
-          _controller.openRightPanel();
-        }
         unawaited(
           session.initialize(generationId: widget.contentId),
         );
@@ -124,6 +127,7 @@ class _ContentReviewScreenState extends ConsumerState<ContentReviewScreen>
       _message('Your changes are not saved. Retry saving before leaving.');
       return;
     }
+    _controller.setLeaving(leaving: false);
     if (target != null) {
       context.go(target);
     } else if (context.canPop()) {
@@ -340,11 +344,6 @@ class _ContentReviewScreenState extends ConsumerState<ContentReviewScreen>
     final session = ref.watch(contentSessionProvider(_args));
 
     ref.listen<ContentSession>(contentSessionProvider(_args), (_, next) {
-      if (next.reviewing && !_wasReviewing) {
-        _controller.openRightPanel();
-      }
-      _wasReviewing = next.reviewing;
-
       if (next.generation?.kit != null &&
           _syncedCaptionGenerationId != next.generation!.id) {
         _syncedCaptionGenerationId = next.generation!.id;
@@ -587,6 +586,9 @@ class _ContentReviewScreenState extends ConsumerState<ContentReviewScreen>
     final current = session.frame;
     final active = generation?.active ?? false;
     final failed = generation?.failed ?? false;
+    final frameTotal = session.format == ContentFormat.slideshow
+        ? (session.settings['frameCount'] as num? ?? 5).toInt()
+        : 1;
 
     return Column(
       children: [
@@ -600,40 +602,44 @@ class _ContentReviewScreenState extends ConsumerState<ContentReviewScreen>
             ),
             child: Row(
               children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 9,
-                    vertical: 6,
-                  ),
-                  decoration: BoxDecoration(
-                    color: session.reviewing
-                        ? const Color(0xffe8eee9)
-                        : AppColors.soft,
-                    border: Border.all(color: AppColors.line),
-                  ),
-                  child: Text(
-                    active
-                        ? 'CREATING'
-                        : session.reviewing
-                        ? 'READY TO REVIEW'
-                        : 'LIVE PREVIEW',
-                    style: textTheme.labelSmall?.copyWith(
-                      fontWeight: AppTypography.bold,
-                      color: AppColors.muted,
+                Flexible(
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 9,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: session.reviewing
+                            ? const Color(0xffe8eee9)
+                            : AppColors.soft,
+                        border: Border.all(color: AppColors.line),
+                      ),
+                      child: Text(
+                        active
+                            ? contentGenerationPhaseLabel(
+                                generation?.data['phase'] as String?,
+                              )
+                            : session.reviewing
+                            ? 'READY TO REVIEW'
+                            : 'LIVE PREVIEW',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: textTheme.labelSmall?.copyWith(
+                          fontWeight: AppTypography.bold,
+                          color: AppColors.muted,
+                        ),
+                      ),
                     ),
                   ),
                 ),
-                const Spacer(),
-                Text(
-                  '${(_canvasZoom * 100).round()}%',
-                  style: textTheme.labelSmall?.copyWith(
-                    color: AppColors.muted,
-                  ),
-                ),
-                const SizedBox(width: 9),
-                contentSmallTextButton(
-                  'Fit',
-                  () => _controller.setCanvasZoom(.94),
+                const SizedBox(width: 8),
+                ContentCanvasControls(
+                  zoom: _canvasZoom,
+                  onZoomOut: _controller.zoomCanvasOut,
+                  onFit: _controller.fitCanvas,
+                  onZoomIn: _controller.zoomCanvasIn,
                 ),
               ],
             ),
@@ -672,17 +678,29 @@ class _ContentReviewScreenState extends ConsumerState<ContentReviewScreen>
                                   ),
                                 ],
                               ),
-                              child:
-                                  generation?.video?['url'] != null && _preview
-                                  ? _ContentVideo(
+                              child: Stack(
+                                fit: StackFit.expand,
+                                children: [
+                                  if (generation?.video?['url'] != null &&
+                                      _preview)
+                                    _ContentVideo(
                                       url: generation!.video!['url'] as String,
                                     )
-                                  : current != null
-                                  ? _frameImage(current)
-                                  : contentImage(
-                                      session.selectedProduct?.imageUrl ??
+                                  else if (current != null)
+                                    _frameImage(current)
+                                  else
+                                    contentImage(
+                                      widget.previewImageUrl ??
+                                          session.selectedProduct?.imageUrl ??
                                           session.uploadUrl,
                                     ),
+                                  if (active)
+                                    ContentGenerationLoadingOverlay(
+                                      format: session.format,
+                                      generation: generation,
+                                    ),
+                                ],
+                              ),
                             ),
                           ),
                         );
@@ -690,7 +708,7 @@ class _ContentReviewScreenState extends ConsumerState<ContentReviewScreen>
                     ),
                   ),
                 ),
-                if (active || failed)
+                if (failed)
                   Positioned.fill(
                     child: Container(
                       color: AppColors.paper.withValues(alpha: .94),
@@ -700,59 +718,27 @@ class _ContentReviewScreenState extends ConsumerState<ContentReviewScreen>
                           child: Column(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Icon(
-                                failed
-                                    ? LucideIcons.circleAlert
-                                    : LucideIcons.sparkles,
-                                size: 32,
-                              ),
+                              const Icon(LucideIcons.circleAlert, size: 32),
                               const SizedBox(height: 20),
-                              contentDisplay(
-                                failed
-                                    ? 'This run needs another try.'
-                                    : 'Creating your ${session.format.label.toLowerCase()}.',
-                                32,
-                              ),
+                              contentDisplay('This run needs another try.', 32),
                               const SizedBox(height: 14),
                               contentBody(
-                                failed
-                                    ? 'We couldn’t finish this content package. Your brief is preserved.'
-                                    : _phase(
-                                        generation?.data['phase'] as String?,
-                                      ),
+                                'We couldn’t finish this content package. Your brief is preserved.',
                               ),
                               const SizedBox(height: 22),
-                              if (active) ...[
-                                LinearProgressIndicator(
-                                  value:
-                                      ((generation!.data['progress'] as num? ??
-                                                  0) /
-                                              100)
-                                          .clamp(0.0, 1.0),
-                                  color: AppColors.ink,
-                                  backgroundColor: AppColors.line,
+                              if (generation!.retryable)
+                                contentAction(
+                                  'Retry generation',
+                                  session.submitting
+                                      ? null
+                                      : () => _generate(retry: true),
                                 ),
-                                const SizedBox(height: 10),
-                                Text(
-                                  '${generation.data['progress'] ?? 0}%',
-                                  style: textTheme.labelMedium,
-                                ),
-                              ],
-                              if (failed) ...[
-                                if (generation!.retryable)
-                                  contentAction(
-                                    'Retry generation',
-                                    session.submitting
-                                        ? null
-                                        : () => _generate(retry: true),
-                                  ),
-                                const SizedBox(height: 8),
-                                contentAction('Adjust brief', () async {
-                                  await session.adjustBrief();
-                                  if (!mounted) return;
-                                  _openPanel(left: true);
-                                }, dark: false),
-                              ],
+                              const SizedBox(height: 8),
+                              contentAction('Adjust brief', () async {
+                                await session.adjustBrief();
+                                if (!mounted) return;
+                                _openPanel(left: true);
+                              }, dark: false),
                             ],
                           ),
                         ),
@@ -841,7 +827,18 @@ class _ContentReviewScreenState extends ConsumerState<ContentReviewScreen>
             ),
           ),
         ),
-        if (!_preview && frames.isNotEmpty)
+        if (!_preview && active)
+          ContentGenerationFilmstrip(
+            format: session.format,
+            frames: frames,
+            total: frameTotal,
+            generating: true,
+            backgroundImageUrl:
+                widget.previewImageUrl ??
+                session.selectedProduct?.imageUrl ??
+                session.uploadUrl,
+          ),
+        if (!_preview && !active && frames.isNotEmpty)
           Container(
             height: 116,
             padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 8),
@@ -1596,16 +1593,6 @@ class _ContentReviewScreenState extends ConsumerState<ContentReviewScreen>
       }
     }
   }
-
-  String _phase(String? phase) => switch (phase) {
-    'reading_product' => 'Reading your product',
-    'directing_story' => 'Directing the story',
-    'building_visuals' =>
-      'Building one connected visual world, frame by frame.',
-    'writing_publishing_kit' => 'Writing your caption and publishing kit',
-    'finishing' => 'Finishing your content package',
-    _ => 'Your generation is queued. We’ll keep this screen updated.',
-  };
 }
 
 class _ContentVideo extends ConsumerStatefulWidget {

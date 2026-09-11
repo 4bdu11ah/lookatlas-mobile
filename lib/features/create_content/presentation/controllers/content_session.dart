@@ -146,6 +146,13 @@ class ContentSession extends ChangeNotifier {
         );
         format = generation!.format;
         brief = defaultContentBrief(format);
+        final completedDraftId = generation!.data['draftId'] as String?;
+        if (generation!.completed && completedDraftId != null) {
+          await _deleteCompletedDraft(
+            completedDraftId,
+            cancellation: _restoreToken,
+          );
+        }
       } else {
         final results = await Future.wait<Object?>([
           repository.active(cancellation: _restoreToken),
@@ -153,13 +160,24 @@ class ContentSession extends ChangeNotifier {
           repository.history(cancellation: _restoreToken),
         ]);
         if (disposed) return;
-        final draft = results[1] as ContentDraft?;
-        latestCompleted = (results[2]! as List<ContentGeneration>)
+        var draft = results[1] as ContentDraft?;
+        final history = results[2]! as List<ContentGeneration>;
+        latestCompleted = history
             .where(
               (item) =>
                   item.format == format && item.data['source'] != 'runway',
             )
             .firstOrNull;
+        if (draft != null &&
+            history.any((item) => item.data['draftId'] == draft!.id)) {
+          final completedDraftId = draft.id;
+          await _deleteCompletedDraft(completedDraftId);
+          if (recovery?['draftId'] == completedDraftId) {
+            recovery = null;
+            await persistRecovery?.call(null);
+          }
+          draft = null;
+        }
         if (draft != null) {
           draftId = draft.id;
           uploadUrl = draft.data['sourceUploadUrl'] as String?;
@@ -441,6 +459,11 @@ class ContentSession extends ChangeNotifier {
         try {
           generation = await repository.generation(e.activeJobId!);
           format = generation!.format;
+          final completedDraftId =
+              generation!.data['draftId'] as String? ?? draftId;
+          if (generation!.completed && completedDraftId != null) {
+            await _deleteCompletedDraft(completedDraftId);
+          }
           refreshCredits();
           _remember();
           if (generation!.active) unawaited(pollGeneration());
@@ -472,6 +495,15 @@ class ContentSession extends ChangeNotifier {
       generation = result;
       format = result.format;
       error = null;
+      if (result.completed) {
+        final completedDraftId = result.data['draftId'] as String? ?? draftId;
+        if (completedDraftId != null) {
+          await _deleteCompletedDraft(
+            completedDraftId,
+            cancellation: token,
+          );
+        }
+      }
       if (!result.active) refreshCredits();
       _remember();
     } on Object catch (e) {
@@ -486,6 +518,25 @@ class ContentSession extends ChangeNotifier {
       }
       changed();
     }
+  }
+
+  Future<void> _deleteCompletedDraft(
+    String completedDraftId, {
+    RequestCancellation? cancellation,
+  }) async {
+    try {
+      await repository.deleteDraft(
+        completedDraftId,
+        cancellation: cancellation,
+      );
+    } on ContentApiException catch (e) {
+      if (e.status != 404) rethrow;
+    }
+    if (draftId != completedDraftId) return;
+    _saveTimer?.cancel();
+    _pendingDraft.clear();
+    draftId = null;
+    saveState = ContentSaveState.saved;
   }
 
   Future<void> adjustBrief() async {

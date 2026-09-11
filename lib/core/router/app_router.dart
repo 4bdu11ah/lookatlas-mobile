@@ -276,6 +276,9 @@ final routerProvider = Provider<GoRouter>((ref) {
               state: state,
               child: CreateContentScreen(
                 contentId: state.pathParameters['contentId'],
+                previewImageUrl: state.extra is String
+                    ? state.extra! as String
+                    : null,
               ),
             ),
           ),

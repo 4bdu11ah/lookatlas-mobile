@@ -73,6 +73,10 @@ class CreateContentUIState {
 }
 
 class CreateContentController extends Notifier<CreateContentUIState> {
+  static const minCanvasZoom = 0.5;
+  static const maxCanvasZoom = 1.5;
+  static const fitCanvasZoom = 0.94;
+
   @override
   CreateContentUIState build() => const CreateContentUIState();
 
@@ -114,8 +118,19 @@ class CreateContentController extends Notifier<CreateContentUIState> {
   }
 
   void setCanvasZoom(double zoom) {
-    state = state.copyWith(canvasZoom: zoom);
+    state = state.copyWith(
+      canvasZoom: zoom.clamp(minCanvasZoom, maxCanvasZoom),
+    );
   }
+
+  void zoomCanvasOut() => setCanvasZoom(_steppedZoom(-1));
+
+  void zoomCanvasIn() => setCanvasZoom(_steppedZoom(1));
+
+  void fitCanvas() => setCanvasZoom(fitCanvasZoom);
+
+  double _steppedZoom(int direction) =>
+      ((state.canvasZoom * 10).round() + direction) / 10;
 
   void setTool(String? tool) {
     state = state.copyWith(tool: () => tool);

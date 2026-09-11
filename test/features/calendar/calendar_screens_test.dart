@@ -110,6 +110,14 @@ void main() {
 
       await mount();
       await shot('setup');
+      expect(
+        find.byWidgetPredicate(
+          (widget) =>
+              widget is Scrollable &&
+              widget.axisDirection == AxisDirection.right,
+        ),
+        findsNothing,
+      );
       await tap('A batch of posts');
       await shot('batch');
       await tap('Launch a product');
@@ -209,6 +217,14 @@ void main() {
       await t.tap(find.bySemanticsLabel('Close').first);
       await settle(t);
       await shot('month');
+      expect(
+        find.byWidgetPredicate(
+          (widget) =>
+              widget is Scrollable &&
+              widget.axisDirection == AxisDirection.right,
+        ),
+        findsNothing,
+      );
       expect(find.text('Month'), findsNothing);
       b
         ..batch = true

@@ -256,7 +256,7 @@ class CalendarOperatingScreen extends ConsumerWidget {
           const SizedBox(height: 18),
         ]),
         if (month)
-          SliverToBoxAdapter(child: CalendarMonthScreen(view: view))
+          CalendarMonthScreen(view: view)
         else
           CalendarAgendaScreen(view: view),
       ],

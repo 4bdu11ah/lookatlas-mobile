@@ -22,6 +22,8 @@ class ContentTestBackend implements HttpClientAdapter {
   FutureOr<ContentJson> Function(RequestOptions)? handler;
   ContentFormat format = ContentFormat.slideshow;
   String status = 'completed';
+  String generationDraftId = 'completed-draft-1';
+  bool emptyDeleteResponse = false;
   ContentJson? draft;
   ContentJson get product => {
     'id': 'product-1',
@@ -39,7 +41,7 @@ class ContentTestBackend implements HttpClientAdapter {
   };
   ContentJson get generation => {
     'id': 'generation-1',
-    'draftId': 'draft-1',
+    'draftId': generationDraftId,
     'format': format.name,
     'status': status,
     'title': 'Emerald launch story',
@@ -115,7 +117,8 @@ class ContentTestBackend implements HttpClientAdapter {
     if (path == '/content/drafts/latest') return {'draft': draft};
     if (path == '/content/generations/active') return {'active': null};
     if (path.startsWith('/content/drafts/') && options.method == 'DELETE') {
-      draft = null;
+      final deletedId = path.substring('/content/drafts/'.length);
+      if (draft?['id'] == deletedId) draft = null;
       return {'ok': true};
     }
     if (path == '/content/drafts' || path.startsWith('/content/drafts/')) {
@@ -137,6 +140,9 @@ class ContentTestBackend implements HttpClientAdapter {
       };
     }
     if (path == '/content/generations' || path.endsWith('/retry')) {
+      if (path == '/content/generations') {
+        generationDraftId = body['draftId'] as String;
+      }
       return {
         'id': 'generation-1',
         'status': 'pending',
@@ -197,6 +203,9 @@ class ContentTestBackend implements HttpClientAdapter {
   ) async {
     requests.add(options);
     final body = await (handler?.call(options) ?? respond(options));
+    if (emptyDeleteResponse && options.method == 'DELETE') {
+      return ResponseBody.fromString('', 204);
+    }
     return ResponseBody.fromString(
       jsonEncode(body),
       200,

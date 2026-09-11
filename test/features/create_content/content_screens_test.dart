@@ -5,15 +5,20 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
 import 'package:look_atlas/core/theme/app_theme.dart';
 import 'package:look_atlas/features/create_content/di/content_providers.dart';
 import 'package:look_atlas/features/create_content/domain/entities/content_models.dart';
 import 'package:look_atlas/features/create_content/domain/errors/content_api_exception.dart';
 import 'package:look_atlas/features/create_content/domain/use_cases/save_content_draft_use_case.dart';
 import 'package:look_atlas/features/create_content/presentation/controllers/content_session.dart';
+import 'package:look_atlas/features/create_content/presentation/controllers/create_content_controller.dart';
 import 'package:look_atlas/features/create_content/presentation/screens/create_content_screen.dart';
+import 'package:look_atlas/features/create_content/presentation/widgets/content_generation_loading_overlay.dart';
 import 'package:look_atlas/features/dashboard/di/dashboard_providers.dart';
 import 'package:look_atlas/features/dashboard/domain/entities/dashboard_data.dart';
+import 'package:look_atlas/features/products/domain/entities/product_catalog.dart';
+import 'package:look_atlas/shared/widgets/bar_spinner.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:mocktail/mocktail.dart';
 
@@ -78,6 +83,27 @@ void main() {
         );
       await georgia.load();
     }
+  });
+
+  test('generation phase labels match the documented design', () {
+    expect(
+      contentGenerationPhaseLabel('reading_product'),
+      'Reading your product',
+    );
+    expect(
+      contentGenerationPhaseLabel('directing_story'),
+      'Directing the story',
+    );
+    expect(
+      contentGenerationPhaseLabel('building_visuals'),
+      'Building the visuals',
+    );
+    expect(
+      contentGenerationPhaseLabel('writing_publishing_kit'),
+      'Writing the publishing kit',
+    );
+    expect(contentGenerationPhaseLabel('finishing'), 'Finishing your content');
+    expect(contentGenerationPhaseLabel('new_phase'), 'Working on your content');
   });
   for (final width in [320, 375, 390, 430]) {
     testWidgets('hub and nested screens at $width logical pixels', (
@@ -146,12 +172,20 @@ void main() {
             ),
           ),
         );
-        await tester.pumpAndSettle();
+        if (review && backend.status == 'processing') {
+          for (var i = 0; i < 20; i++) {
+            await tester.pump(const Duration(milliseconds: 10));
+          }
+        } else {
+          await tester.pumpAndSettle();
+        }
       }
 
       Future<void> capture(String name) async {
         await tester.pump(const Duration(milliseconds: 900));
-        await tester.pumpAndSettle();
+        if (find.byType(BarSpinner).evaluate().isEmpty) {
+          await tester.pumpAndSettle();
+        }
         expect(tester.takeException(), isNull);
         await expectLater(
           find.byKey(const ValueKey('capture')),
@@ -162,8 +196,48 @@ void main() {
       await pump();
       await capture('hub');
       await pump(format: ContentFormat.slideshow);
-      await tester.tap(find.text('Brief'));
+      final canvas = find.byKey(const ValueKey('content-canvas-card'));
+      final fittedSize = tester.getSize(canvas);
+      await tester.tap(find.byTooltip('Zoom in'));
       await tester.pumpAndSettle();
+      expect(tester.getSize(canvas).height, greaterThan(fittedSize.height));
+      await tester.tap(find.byTooltip('Zoom out'));
+      await tester.pumpAndSettle();
+      expect(tester.getSize(canvas).height, lessThan(fittedSize.height));
+      await tester.tap(find.text('Fit'));
+      await tester.pumpAndSettle();
+      expect(tester.getSize(canvas), fittedSize);
+      current!.updateBrief({
+        'settings': {'lastStep': 3},
+      });
+      List<ProductCatalogItem>? originalProducts;
+      if (width == 320) {
+        originalProducts = List.of(current!.products);
+        current!.products = const [
+          ProductCatalogItem(
+            id: 'product-1',
+            name: 'Gun Metal Plated 3D Canyon Pattern Pendant with Box Chain',
+            sku: 'Gun Metal Plated 3D Canyon Pattern Pendant with Box Chain',
+            category: 'Jewelry',
+            photos: [
+              ProductPhoto(id: 'photo-1', url: '', sortOrder: 0),
+              ProductPhoto(id: 'photo-2', url: '', sortOrder: 1),
+              ProductPhoto(id: 'photo-3', url: '', sortOrder: 2),
+            ],
+          ),
+        ];
+        current!.changed();
+      }
+      await tester.pumpAndSettle();
+      await tester.tap(canvas);
+      await tester.pumpAndSettle();
+      if (width == 320) {
+        expect(tester.takeException(), isNull);
+        current!
+          ..products = originalProducts!
+          ..changed();
+        await tester.pumpAndSettle();
+      }
       await capture('product');
       expect(
         tester.getSize(find.text('Choose a product.')).width,
@@ -181,6 +255,8 @@ void main() {
       await tester.pumpAndSettle();
       await capture('output');
       await pump(format: ContentFormat.slideshow, review: true);
+      await tester.tap(find.byTooltip('Open caption and hashtags'));
+      await tester.pumpAndSettle();
       await capture('publishing');
       await tester.tap(find.text('Done'));
       await tester.pumpAndSettle();
@@ -234,7 +310,8 @@ void main() {
       backend.status = 'completed';
       await tester.tap(find.text('Retry generation'));
       await tester.pumpAndSettle();
-      expect(find.text('Caption & hashtags'.toUpperCase()), findsOneWidget);
+      expect(find.text('READY TO REVIEW'), findsOneWidget);
+      expect(find.text('Caption & hashtags'.toUpperCase()), findsNothing);
       backend.status = 'processing';
       await pump(format: ContentFormat.slideshow, review: true);
       await capture('generating');
@@ -416,4 +493,188 @@ void main() {
       expect(find.text('READ THE CASE STUDY'), findsOneWidget);
     },
   );
+
+  testWidgets('brief screen clears stale leaving state on entry', (
+    tester,
+  ) async {
+    final backend = ContentTestBackend();
+    final session = ContentSession(
+      backend.repository,
+      ContentFormat.slideshow,
+      saveDraft: SaveContentDraftUseCase(backend.repository),
+      refreshCredits: () {},
+    );
+    final overrides = [
+      contentRepositoryProvider.overrideWithValue(backend.repository),
+      contentSessionFactoryProvider.overrideWithValue(
+        (format, {generationId}) => session,
+      ),
+    ];
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: overrides,
+        child: const MaterialApp(home: SizedBox()),
+      ),
+    );
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(MaterialApp)),
+    );
+    container
+        .read(createContentControllerProvider.notifier)
+        .setLeaving(leaving: true);
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: overrides,
+        child: MaterialApp(
+          theme: AppTheme.light(),
+          home: const ContentBriefScreen(format: ContentFormat.slideshow),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(container.read(createContentControllerProvider).leaving, isFalse);
+    await tester.pumpWidget(const SizedBox());
+    await tester.pumpAndSettle();
+  });
+
+  testWidgets('generate shows progress then opens the running content', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final startRequest = Completer<ContentJson>();
+    final backend = ContentTestBackend()
+      ..status = 'processing'
+      ..draft = {
+        'id': 'draft-1',
+        'format': 'slideshow',
+        ...defaultContentBrief(ContentFormat.slideshow),
+        'productId': 'product-1',
+        'settings': {
+          ...contentObject(
+            defaultContentBrief(ContentFormat.slideshow)['settings'],
+          ),
+          'lastStep': 3,
+        },
+      };
+    backend.handler = (request) {
+      if (request.path == '/content/generations' && request.method == 'POST') {
+        return startRequest.future;
+      }
+      if (request.path == '/content/generations/generation-1') {
+        return backend.status == 'processing'
+            ? {...backend.generation, 'frames': <dynamic>[]}
+            : backend.generation;
+      }
+      return backend.respond(request);
+    };
+    final router = GoRouter(
+      initialLocation: '/create-content/slideshow',
+      routes: [
+        GoRoute(
+          path: '/create-content/slideshow',
+          builder: (_, _) => const CreateContentScreen(
+            initialFormat: 'slideshow',
+          ),
+        ),
+        GoRoute(
+          path: '/create-content/item/:contentId',
+          builder: (_, state) => CreateContentScreen(
+            contentId: state.pathParameters['contentId'],
+            previewImageUrl: state.extra as String?,
+          ),
+        ),
+      ],
+    );
+    addTearDown(router.dispose);
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          contentRepositoryProvider.overrideWithValue(backend.repository),
+          contentVideoEligibleProvider.overrideWith((ref) async => true),
+          contentSessionFactoryProvider.overrideWithValue(
+            (format, {generationId}) => ContentSession(
+              backend.repository,
+              format,
+              saveDraft: SaveContentDraftUseCase(backend.repository),
+              refreshCredits: () {},
+            ),
+          ),
+        ],
+        child: MaterialApp.router(
+          theme: AppTheme.light(),
+          routerConfig: router,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Generate · 10 credits').first);
+    await tester.pump();
+    await tester.pump();
+
+    expect(find.text('Reading your product'), findsNWidgets(2));
+    expect(
+      find.text('Building one connected visual world, frame by frame.'),
+      findsOneWidget,
+    );
+    expect(find.text('Frames'), findsOneWidget);
+    expect(find.text('5 total'), findsOneWidget);
+    expect(find.text('Building sequence'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('content-frame-background-2')),
+      findsOneWidget,
+    );
+
+    startRequest.complete({
+      'id': 'generation-1',
+      'status': 'pending',
+      'creditCost': 10,
+      'retryOf': null,
+    });
+    for (var i = 0; i < 30; i++) {
+      await tester.pump(const Duration(milliseconds: 10));
+    }
+
+    expect(
+      router.routeInformationProvider.value.uri.path,
+      '/create-content/item/generation-1',
+    );
+    expect(find.text('Building the visuals'), findsNWidgets(2));
+    expect(
+      find.text('Building one connected visual world, frame by frame.'),
+      findsOneWidget,
+    );
+    expect(find.text('Building sequence'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('content-frame-background-2')),
+      findsOneWidget,
+    );
+
+    backend.status = 'completed';
+    await tester.pump(const Duration(seconds: 3));
+    for (var i = 0; i < 20; i++) {
+      await tester.pump(const Duration(milliseconds: 10));
+    }
+
+    expect(
+      router.routeInformationProvider.value.uri.path,
+      '/create-content/item/generation-1',
+    );
+    expect(find.text('READY TO REVIEW'), findsOneWidget);
+    expect(find.text('The hook'), findsOneWidget);
+    expect(find.text('Building the visuals'), findsNothing);
+    expect(find.text('CAPTION & HASHTAGS'), findsNothing);
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(MaterialApp)),
+    );
+    expect(container.read(createContentControllerProvider).rightOpen, isFalse);
+  });
 }

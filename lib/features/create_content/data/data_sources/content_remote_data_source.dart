@@ -29,7 +29,9 @@ class ContentRemoteDataSource {
         cancelToken: binding.token,
         options: Options(
           method: method,
-          contentType: data is FormData
+          contentType: data == null
+              ? null
+              : data is FormData
               ? 'multipart/form-data'
               : Headers.jsonContentType,
         ),
@@ -83,11 +85,15 @@ class ContentRemoteDataSource {
     String draftId, {
     RequestCancellation? cancellation,
   }) async {
-    await _request(
-      'DELETE',
-      '/content/drafts/${_id(draftId)}',
-      cancellation: cancellation,
-    );
+    final binding = DioCancellation(cancellation);
+    try {
+      await _api.raw.delete<void>(
+        '/content/drafts/${_id(draftId)}',
+        cancelToken: binding.token,
+      );
+    } finally {
+      binding.dispose();
+    }
   }
 
   Future<ContentJson> quote(

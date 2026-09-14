@@ -276,6 +276,8 @@ final routerProvider = Provider<GoRouter>((ref) {
               state: state,
               child: CreateContentScreen(
                 contentId: state.pathParameters['contentId'],
+                openCaptionPanel:
+                    state.uri.queryParameters['panel'] == 'caption',
                 previewImageUrl: state.extra is String
                     ? state.extra! as String
                     : null,

@@ -17,7 +17,7 @@ class CalendarSetupGoal extends ConsumerWidget {
     final local = ref.read(calendarViewProvider.notifier);
     final controller = ref.read(calendarControllerProvider.notifier);
     void setupChange(VoidCallback change) =>
-        controller.changeSetup(change, requote: true);
+        controller.changeSetup(change, invalidatesQuote: true);
     final d = s.setup;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,

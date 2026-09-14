@@ -126,13 +126,6 @@ class CalendarSession extends ChangeNotifier {
       _refresh = null;
       completer.complete();
       _schedule();
-      if (isSetup &&
-          quote == null &&
-          quoteError == null &&
-          !_disposed &&
-          !_paused) {
-        unawaited(requote());
-      }
     }());
     return completer.future;
   }
@@ -177,10 +170,17 @@ class CalendarSession extends ChangeNotifier {
     }
   }
 
+  void clearQuote() {
+    _quoteToken?.cancel();
+    _quoteToken = null;
+    quote = null;
+    quoteError = null;
+  }
+
   void changeSetup() {
     setupOverride = true;
+    clearQuote();
     emit();
-    unawaited(requote());
   }
 
   void dismissError() {
@@ -192,9 +192,10 @@ class CalendarSession extends ChangeNotifier {
     String key,
     Future<CalendarMutationResult> Function() action, {
     CalendarMutationEntity? requiredEntity,
+    bool alreadyBusy = false,
   }) async {
-    if (_disposed || busy.contains(key)) return false;
-    busy.add(key);
+    if (_disposed || (!alreadyBusy && busy.contains(key))) return false;
+    if (!alreadyBusy) busy.add(key);
     mutationErrors.remove(key);
     actionError = null;
     emit();
@@ -221,11 +222,22 @@ class CalendarSession extends ChangeNotifier {
   }
 
   Future<bool> createPlan() async {
-    if (planning || setup.validation != null) return false;
+    if (planning || setup.validation != null || busy.contains('plan')) {
+      return false;
+    }
+    busy.add('plan');
+    emit();
+    await requote();
+    if (_disposed || quote == null) {
+      busy.remove('plan');
+      emit();
+      return false;
+    }
     return mutate(
       'plan',
       () => planUseCases.create(setup, quote, _mutations),
       requiredEntity: CalendarMutationEntity.plan,
+      alreadyBusy: true,
     );
   }
 
@@ -341,8 +353,8 @@ class CalendarSession extends ChangeNotifier {
     if (success && !_disposed) {
       setup.prefill(plan, rollover: true);
       setupOverride = true;
+      clearQuote();
       emit();
-      await requote();
     }
     return success;
   }

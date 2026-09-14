@@ -16,123 +16,175 @@ class CalendarPlanRow extends ConsumerWidget {
     required this.batch,
     super.key,
   });
+
   final CalendarViewData view;
   final CalendarItem item;
   final bool batch;
+
   CalendarSession get s => view.session;
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final i = item;
     ref.watch(
       calendarControllerProvider.select(
-        (state) => (state.busy.contains(i.id), state.picked.contains(i.id)),
+        (state) => (
+          state.busy.contains(item.id),
+          state.picked.contains(item.id),
+        ),
       ),
     );
-    final skipped = i.status == 'skipped';
-    final busy = s.busy.contains(i.id) || s.revising;
+    final skipped = item.status == 'skipped';
+    final busy = s.busy.contains(item.id) || s.revising;
     return Opacity(
-      opacity: skipped || (batch && !s.picked.contains(i.id)) ? 0.45 : 1,
+      opacity: skipped || (batch && !s.picked.contains(item.id)) ? 0.45 : 1,
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 10),
-        decoration: const BoxDecoration(
-          border: Border(bottom: BorderSide(color: CALENDAR_LINE)),
+        margin: const EdgeInsets.only(bottom: 10),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          border: Border.all(color: CALENDAR_LINE),
         ),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                if (batch)
-                  SizedBox(
-                    width: 26,
-                    child: Checkbox(
-                      value: s.picked.contains(i.id) && !skipped,
-                      onChanged: skipped
-                          ? null
-                          : (v) => ref
-                                .read(calendarControllerProvider.notifier)
-                                .selectIdea(i.id, selected: v!),
+            _header(ref, skipped),
+            calendarRule(),
+            Padding(
+              padding: const EdgeInsets.all(12),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  calendarPhoto(view.imageFor(item), width: 72, height: 88),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        calendarDisplay(item.hook, 22),
+                        const SizedBox(height: 9),
+                        _metadata(),
+                      ],
                     ),
                   ),
-                SizedBox(
-                  width: 42,
-                  child: Column(
-                    children: [
-                      calendarBody(
-                        i.localTime == null
-                            ? '№${i.position + 1}'
-                            : DateFormat('EEE')
-                                  .format(i.localTime!)
-                                  .toUpperCase(),
-                        size: 9,
-                      ),
-                      if (i.localTime != null)
-                        calendarDisplay('${i.localTime!.day}', 30),
-                    ],
-                  ),
-                ),
-                calendarPhoto(view.imageFor(i), width: 66, height: 78),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      calendarBody(view.productName(i), size: 10),
-                      const SizedBox(height: 5),
-                      calendarDisplay(i.hook, 18),
-                      const SizedBox(height: 6),
-                      calendarBody(
-                        '${calendarFormats[i.format]} · ${i.purpose ?? 'Part of the story'}${i.angle == null ? '' : ' · ${i.angle}'}${i.locked ? ' · Locked in' : ''}',
-                        size: 10,
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 10),
-            Row(
-              children: [
-                const SizedBox(width: 42),
-                calendarPlatformIcons(i.platforms),
-                const Spacer(),
-                if (skipped)
-                  calendarButton(
-                    'Bring back',
-                    busy ? null : () => s.itemAction(i, 'unskip'),
-                    compact: true,
-                  )
-                else ...[
-                  calendarButton(
-                    'Change',
-                    busy ? null : () => view.actions.drawer('idea', item: i),
-                    compact: true,
-                    icon: LucideIcons.pencil,
-                  ),
-                  const SizedBox(width: 5),
-                  calendarButton(
-                    '',
-                    busy ? null : () => s.itemAction(i, 'swap'),
-                    compact: true,
-                    icon: LucideIcons.refreshCw,
-                    label: 'Try another idea',
-                  ),
-                  if (!batch) ...[
-                    const SizedBox(width: 5),
-                    calendarButton(
-                      '',
-                      busy ? null : () => s.itemAction(i, 'skip'),
-                      compact: true,
-                      icon: LucideIcons.x,
-                      label: 'Skip this day',
-                    ),
-                  ],
                 ],
-              ],
+              ),
+            ),
+            calendarRule(),
+            Padding(
+              padding: const EdgeInsets.all(10),
+              child: _actions(busy, skipped),
             ),
           ],
         ),
       ),
     );
+  }
+
+  Widget _header(WidgetRef ref, bool skipped) => Padding(
+    padding: const EdgeInsets.fromLTRB(12, 10, 12, 9),
+    child: Row(
+      children: [
+        Expanded(child: calendarKicker(_dateLabel())),
+        Flexible(child: calendarBody(view.productName(item), size: 10)),
+        if (batch) ...[
+          const SizedBox(width: 8),
+          SizedBox(
+            width: 28,
+            height: 28,
+            child: Checkbox(
+              value: s.picked.contains(item.id) && !skipped,
+              onChanged: skipped
+                  ? null
+                  : (value) => ref
+                        .read(calendarControllerProvider.notifier)
+                        .selectIdea(item.id, selected: value!),
+            ),
+          ),
+        ],
+      ],
+    ),
+  );
+
+  Widget _metadata() => Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Wrap(
+        spacing: 8,
+        runSpacing: 7,
+        crossAxisAlignment: WrapCrossAlignment.center,
+        children: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
+            color: CALENDAR_FIELD,
+            child: calendarBody(calendarFormats[item.format]!, size: 9),
+          ),
+          calendarPlatformIcons(item.platforms),
+          if (item.locked)
+            const Icon(LucideIcons.lock, size: 13, color: CALENDAR_MUTED),
+        ],
+      ),
+      const SizedBox(height: 8),
+      calendarBody(
+        '${item.purpose ?? 'Part of the story'}${item.angle == null ? '' : ' · ${item.angle}'}',
+        size: 10,
+      ),
+    ],
+  );
+
+  Widget _actions(bool busy, bool skipped) {
+    if (skipped) {
+      return SizedBox(
+        width: double.infinity,
+        child: calendarButton(
+          'Bring back',
+          busy ? null : () => s.itemAction(item, 'unskip'),
+          compact: true,
+        ),
+      );
+    }
+    return Row(
+      children: [
+        Expanded(
+          child: calendarButton(
+            'Change',
+            busy ? null : () => view.actions.drawer('idea', item: item),
+            compact: true,
+            icon: LucideIcons.pencil,
+          ),
+        ),
+        const SizedBox(width: 6),
+        SizedBox(
+          width: 42,
+          child: calendarButton(
+            '',
+            busy ? null : () => s.itemAction(item, 'swap'),
+            compact: true,
+            icon: LucideIcons.refreshCw,
+            label: 'Try another idea',
+          ),
+        ),
+        if (!batch) ...[
+          const SizedBox(width: 6),
+          SizedBox(
+            width: 42,
+            child: calendarButton(
+              '',
+              busy ? null : () => s.itemAction(item, 'skip'),
+              compact: true,
+              icon: LucideIcons.x,
+              label: 'Skip this day',
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+
+  String _dateLabel() {
+    final time = item.localTime;
+    if (time == null) {
+      return 'Idea ${(item.position + 1).toString().padLeft(2, '0')}';
+    }
+    return '${DateFormat('EEE d').format(time)} · ${DateFormat('MMM').format(time)}'
+        .toUpperCase();
   }
 }

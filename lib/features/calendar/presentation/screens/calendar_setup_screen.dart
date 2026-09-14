@@ -31,6 +31,7 @@ class CalendarSetupScreen extends ConsumerWidget {
           state.overview?.productCount,
           state.overview?.plan?.status,
           state.setupOverride,
+          state.busy.contains('plan'),
         ),
       ),
     );
@@ -80,16 +81,19 @@ class CalendarSetupScreen extends ConsumerWidget {
             color: Colors.white,
             border: Border.all(color: CALENDAR_LINE),
           ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              CalendarSetupMode(s: s),
-              CalendarSetupGoal(s: s),
-              CalendarSetupCadence(s: s),
-              CalendarSetupChannels(s: s),
-              CalendarProductPriorities(s: s),
-              CalendarSetupEstimate(s: s),
-            ],
+          child: IgnorePointer(
+            ignoring: s.busy.contains('plan'),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                CalendarSetupMode(s: s),
+                CalendarSetupGoal(s: s),
+                CalendarSetupCadence(s: s),
+                CalendarSetupChannels(s: s),
+                CalendarProductPriorities(s: s),
+                CalendarSetupEstimate(s: s),
+              ],
+            ),
           ),
         ),
       ),

@@ -70,7 +70,7 @@ class _CalendarRouteScreenState extends ConsumerState<CalendarRouteScreen>
     if (item.generationId == null) return;
     s.setPaused(value: true);
     await context.push<void>(
-      '${AppRoutes.createContent}/item/${Uri.encodeComponent(item.generationId!)}',
+      '${AppRoutes.createContent}/item/${Uri.encodeComponent(item.generationId!)}?panel=caption',
     );
     if (mounted) s.setPaused(value: false);
   }

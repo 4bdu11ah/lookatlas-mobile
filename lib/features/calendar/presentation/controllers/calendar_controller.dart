@@ -34,10 +34,10 @@ class CalendarController extends Notifier<CalendarState> {
     if (ref.mounted) state = CalendarState.fromSession(session);
   }
 
-  void changeSetup(VoidCallback change, {bool requote = false}) {
+  void changeSetup(VoidCallback change, {bool invalidatesQuote = false}) {
     change();
+    if (invalidatesQuote) session.clearQuote();
     session.emit();
-    if (requote) unawaited(session.requote());
   }
 
   void selectIdea(String id, {required bool selected}) {

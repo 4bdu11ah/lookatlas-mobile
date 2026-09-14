@@ -14,11 +14,13 @@ class CreateContentScreen extends StatelessWidget {
     this.initialFormat,
     this.contentId,
     this.previewImageUrl,
+    this.openCaptionPanel = false,
   });
 
   final String? initialFormat;
   final String? contentId;
   final String? previewImageUrl;
+  final bool openCaptionPanel;
 
   @override
   Widget build(BuildContext context) {
@@ -26,6 +28,7 @@ class CreateContentScreen extends StatelessWidget {
       return ContentReviewScreen(
         contentId: contentId!,
         previewImageUrl: previewImageUrl,
+        openCaptionPanel: openCaptionPanel,
         format: initialFormat != null
             ? ContentFormat.parse(initialFormat!)
             : null,

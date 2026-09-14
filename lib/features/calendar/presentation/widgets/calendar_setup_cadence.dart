@@ -23,7 +23,7 @@ class CalendarSetupCadence extends ConsumerWidget {
     );
     final controller = ref.read(calendarControllerProvider.notifier);
     void setupChange(VoidCallback change) =>
-        controller.changeSetup(change, requote: true);
+        controller.changeSetup(change, invalidatesQuote: true);
     final d = s.setup;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,

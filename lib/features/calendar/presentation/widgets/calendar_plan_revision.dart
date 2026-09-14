@@ -34,12 +34,25 @@ class CalendarPlanRevision extends ConsumerWidget {
               .read(calendarViewProvider.notifier)
               .setRevisionOpen(value: !revisionOpen),
           child: Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(border: Border.all(color: CALENDAR_LINE)),
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              border: Border.all(color: CALENDAR_LINE),
+            ),
             child: Row(
               children: [
-                const Icon(LucideIcons.wandSparkles, size: 18),
-                const SizedBox(width: 12),
+                Container(
+                  width: 42,
+                  height: 42,
+                  color: CALENDAR_INK,
+                  alignment: Alignment.center,
+                  child: const Icon(
+                    LucideIcons.wandSparkles,
+                    size: 18,
+                    color: Colors.white,
+                  ),
+                ),
+                const SizedBox(width: 13),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -47,18 +60,25 @@ class CalendarPlanRevision extends ConsumerWidget {
                       const Text(
                         'Want different ideas?',
                         style: TextStyle(
-                          fontSize: 13,
+                          fontSize: 14,
                           fontWeight: FontWeight.w800,
                         ),
                       ),
+                      const SizedBox(height: 3),
                       calendarBody(
-                        'Tell us once and we’ll update every idea you haven’t changed yourself.',
+                        'Tell us what to shift. Your own edits stay untouched.',
                         size: 11,
                       ),
                     ],
                   ),
                 ),
-                const Icon(LucideIcons.chevronDown, size: 16),
+                const SizedBox(width: 8),
+                Icon(
+                  revisionOpen
+                      ? LucideIcons.chevronUp
+                      : LucideIcons.chevronDown,
+                  size: 16,
+                ),
               ],
             ),
           ),

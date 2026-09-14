@@ -21,57 +21,77 @@ class CalendarPostFooter extends ConsumerWidget {
     final action = controller.action;
 
     final i = item!;
+    final reviewActions = [
+      for (final value in i.actions)
+        calendarButton(
+          calendarActionLabel(value, drafts: s.overview!.drafts),
+          saving || captionSaving || s.busy.contains(i.id)
+              ? null
+              : () => action(value),
+          primary: value == 'looks-good' || value == 'build',
+          compact: true,
+        ),
+    ];
+    final creativeActions = [
+      if (i.downloadable)
+        calendarButton(
+          s.busy.contains('download:${i.id}') ? 'Preparing…' : 'Download',
+          saving || captionSaving || s.busy.contains('download:${i.id}')
+              ? null
+              : () async {
+                  if (await commitTime() && await saveCaption()) {
+                    await args.view.actions.download(i);
+                  }
+                },
+          compact: true,
+          icon: LucideIcons.download,
+        ),
+      if (i.generationId != null)
+        calendarButton(
+          'Open creative',
+          saving || captionSaving
+              ? null
+              : () async {
+                  if (!await commitTime() ||
+                      !await saveCaption() ||
+                      !context.mounted) {
+                    return;
+                  }
+                  Navigator.of(context).pop();
+                  await args.view.actions.editor(i);
+                },
+          primary: true,
+          compact: true,
+          icon: LucideIcons.arrowRight,
+        ),
+    ];
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        for (final a in i.actions)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 4),
-            child: calendarButton(
-              calendarActionLabel(a, drafts: s.overview!.drafts),
-              saving || captionSaving || s.busy.contains(i.id)
-                  ? null
-                  : () => action(a),
-              primary: true,
-              compact: true,
-            ),
-          ),
-        if (i.downloadable)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 4),
-            child: calendarButton(
-              s.busy.contains('download:${i.id}') ? 'Preparing…' : 'Download',
-              saving || captionSaving || s.busy.contains('download:${i.id}')
-                  ? null
-                  : () async {
-                      if (await commitTime() && await saveCaption()) {
-                        await args.view.actions.download(i);
-                      }
-                    },
-              primary: true,
-              icon: LucideIcons.download,
-            ),
-          ),
-        if (i.generationId != null)
-          calendarButton(
-            'Open creative',
-            saving || captionSaving
-                ? null
-                : () async {
-                    if (!await commitTime() ||
-                        !await saveCaption() ||
-                        !context.mounted) {
-                      return;
-                    }
-                    Navigator.of(context).pop();
-                    await args.view.actions.editor(i);
-                  },
-            primary: true,
-            icon: LucideIcons.arrowRight,
-          )
-        else
+        if (reviewActions.isNotEmpty) _CalendarPostButtonRow(reviewActions),
+        if (reviewActions.isNotEmpty && creativeActions.isNotEmpty)
+          const SizedBox(height: 6),
+        if (creativeActions.isNotEmpty)
+          _CalendarPostButtonRow(creativeActions)
+        else if (i.generationId == null)
           calendarBody('This post hasn’t been created yet.'),
       ],
     );
   }
+}
+
+class _CalendarPostButtonRow extends StatelessWidget {
+  const _CalendarPostButtonRow(this.buttons);
+
+  final List<Widget> buttons;
+
+  @override
+  Widget build(BuildContext context) => Row(
+    children: [
+      for (var index = 0; index < buttons.length; index++) ...[
+        if (index > 0) const SizedBox(width: 6),
+        Expanded(child: buttons[index]),
+      ],
+    ],
+  );
 }

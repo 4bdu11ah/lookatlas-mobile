@@ -126,7 +126,11 @@ void main() {
       addTearDown(() => debugNetworkImageHttpClientProvider = null);
       final backend = ContentTestBackend();
       ContentSession? current;
-      Future<void> pump({ContentFormat? format, bool review = false}) async {
+      Future<void> pump({
+        ContentFormat? format,
+        bool review = false,
+        bool openCaptionPanel = false,
+      }) async {
         backend.format = format ?? ContentFormat.slideshow;
         backend.draft = {
           'id': 'draft-1',
@@ -167,6 +171,7 @@ void main() {
                 home: CreateContentScreen(
                   initialFormat: format?.name,
                   contentId: review ? 'generation-1' : null,
+                  openCaptionPanel: openCaptionPanel,
                 ),
               ),
             ),
@@ -261,6 +266,14 @@ void main() {
       await tester.tap(find.text('Done'));
       await tester.pumpAndSettle();
       await capture('review');
+      await pump(
+        format: ContentFormat.slideshow,
+        review: true,
+        openCaptionPanel: true,
+      );
+      expect(find.text('CAPTION & HASHTAGS'), findsOneWidget);
+      await tester.tap(find.text('Done'));
+      await tester.pumpAndSettle();
       await tester.tap(find.text('Tools'));
       await tester.pumpAndSettle();
       await capture('tools');

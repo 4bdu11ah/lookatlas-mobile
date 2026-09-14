@@ -4,6 +4,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:intl/intl.dart';
 import 'package:look_atlas/features/calendar/domain/entities/calendar_models.dart';
 import 'package:look_atlas/features/calendar/presentation/widgets/calendar_theme.dart';
+import 'package:look_atlas/shared/widgets/app_dropdown.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 Widget calendarBody(
@@ -213,22 +214,35 @@ Widget calendarSection(String kicker, String title, String copy) => Padding(
     ],
   ),
 );
-Widget calendarStatus(CalendarItem item, {required bool drafts}) => Container(
-  padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 5),
-  decoration: BoxDecoration(
-    color: switch (item.status) {
-      'ready' => const Color(0xfff5edef),
-      'failed' || 'blocked' => const Color(0xfff8ece9),
-      'published' || 'scheduled' => const Color(0xffedf1ed),
-      _ => CALENDAR_FIELD,
-    },
-    border: Border.all(color: CALENDAR_LINE),
-  ),
-  child: Text(
-    item.label(drafts: drafts),
-    style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700),
-  ),
-);
+Widget calendarStatus(
+  CalendarItem item, {
+  required bool drafts,
+  bool emphasizeApproved = false,
+}) {
+  final label = item.label(drafts: drafts);
+  final approved = emphasizeApproved && label == 'Approved';
+  return Container(
+    padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 5),
+    decoration: BoxDecoration(
+      color: switch (item.status) {
+        'ready' => const Color(0xfff5edef),
+        'failed' || 'blocked' => const Color(0xfff8ece9),
+        'published' || 'scheduled' => const Color(0xffedf1ed),
+        _ => CALENDAR_FIELD,
+      },
+      border: Border.all(color: CALENDAR_LINE),
+    ),
+    child: Text(
+      label,
+      style: TextStyle(
+        color: approved ? const Color(0xff4c725d) : CALENDAR_INK,
+        fontSize: 10,
+        fontWeight: FontWeight.w700,
+      ),
+    ),
+  );
+}
+
 Widget calendarPlatformIcons(List<String> values) => Wrap(
   spacing: 4,
   runSpacing: 4,
@@ -303,30 +317,23 @@ Widget calendarSelect(
     children: [
       calendarKicker(label),
       const SizedBox(height: 8),
-      DropdownButtonFormField<String>(
-        icon: const Icon(LucideIcons.chevronDown, size: 16),
+      AppDropdown<String>(
         key: ValueKey('$label:$value'),
-        initialValue: choices.containsKey(value) ? value : null,
-        isExpanded: true,
-        style: const TextStyle(
-          fontFamily: 'Satoshi',
-          fontSize: 16,
-          fontWeight: FontWeight.w800,
-          color: CALENDAR_INK,
+        value: choices.containsKey(value) ? value : null,
+        values: choices.keys.toList(growable: false),
+        labelFor: (choice) => choices[choice]!,
+        hintText: 'Choose $label',
+        onChanged: change,
+        config: const AppDropdownConfig(
+          menuMaxHeight: 288,
+          borderColor: CALENDAR_LINE,
+          focusedBorderColor: CALENDAR_INK,
+          menuBorderColor: CALENDAR_LINE,
+          selectedItemColor: CALENDAR_FIELD,
+          textColor: CALENDAR_INK,
+          mutedColor: CALENDAR_MUTED,
+          horizontalPadding: 11,
         ),
-        decoration: const InputDecoration(
-          filled: true,
-          fillColor: Colors.white,
-          isDense: true,
-          contentPadding: EdgeInsets.symmetric(horizontal: 11, vertical: 12),
-          border: OutlineInputBorder(borderRadius: BorderRadius.zero),
-        ),
-        items: choices.entries
-            .map((e) => DropdownMenuItem(value: e.key, child: Text(e.value)))
-            .toList(),
-        onChanged: (v) {
-          if (v != null) change(v);
-        },
       ),
     ],
   ),

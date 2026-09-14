@@ -52,7 +52,14 @@ final Provider<TextEditingController> calendarRevisionTextProvider =
       ref.onDispose(controller.dispose);
       return controller;
     });
-final Provider<GlobalKey<State<StatefulWidget>>> calendarBoardKeyProvider =
+final Provider<GlobalKey<State<StatefulWidget>>> calendarReviewKeyProvider =
     Provider.autoDispose<GlobalKey>(
       (ref) => GlobalKey(),
     );
+
+final Provider<ScrollController> calendarScrollControllerProvider =
+    Provider.autoDispose<ScrollController>((ref) {
+      final controller = ScrollController();
+      ref.onDispose(controller.dispose);
+      return controller;
+    });

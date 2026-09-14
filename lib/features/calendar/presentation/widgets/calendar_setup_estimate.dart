@@ -71,7 +71,7 @@ class CalendarSetupEstimate extends ConsumerWidget {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Text(
-                q == null ? 'Estimating…' : '${q.postCount} posts',
+                q == null ? 'Ready to plan' : '${q.postCount} posts',
                 style: const TextStyle(
                   fontWeight: FontWeight.w800,
                   fontSize: 14,
@@ -79,11 +79,11 @@ class CalendarSetupEstimate extends ConsumerWidget {
               ),
               const SizedBox(height: 4),
               calendarBody(
-                '${s.products.where((product) => d.productModes[product.id] != "pause").length} products · ${d.platforms.length} channels · ${q == null ? "Estimating…" : "≈ ${q.totalCredits} credits"}',
+                '${s.products.where((product) => d.productModes[product.id] != "pause").length} products · ${d.platforms.length} channels · ${q == null ? "Final count and credits calculated next" : "≈ ${q.totalCredits} credits"}',
                 size: 11,
               ),
               if (s.quoteError != null)
-                calendarErrorBanner(s.quoteError!, s.requote),
+                calendarErrorBanner(s.quoteError!, s.createPlan),
               const SizedBox(height: 12),
               calendarButton(
                 s.planning || s.busy.contains('plan')

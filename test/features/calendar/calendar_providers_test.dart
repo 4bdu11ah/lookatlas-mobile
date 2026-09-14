@@ -72,6 +72,28 @@ void main() {
     expect(previous.setup.platforms, ['instagram', 'facebook']);
   });
 
+  test('calendarProvider_setupChanges_doNotRequestQuote', () async {
+    final backend = CalendarTestBackend()..stage = 'setup';
+    final container = await mount(backend);
+    await Future<void>.delayed(const Duration(milliseconds: 20));
+    final quotesBefore = backend.requests
+        .where((request) => request.path == '/runway/quote')
+        .length;
+    expect(quotesBefore, 0);
+    final controller = container.read(calendarControllerProvider.notifier);
+
+    controller.changeSetup(
+      () => controller.session.setup.mode = 'batch',
+      invalidatesQuote: true,
+    );
+    await Future<void>.delayed(const Duration(milliseconds: 20));
+
+    expect(
+      backend.requests.where((request) => request.path == '/runway/quote'),
+      hasLength(quotesBefore),
+    );
+  });
+
   test(
     'calendarViewProvider_independentControls_preserveRevisionText',
     () async {

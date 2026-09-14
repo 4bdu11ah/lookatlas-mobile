@@ -34,11 +34,13 @@ class ContentReviewScreen extends ConsumerStatefulWidget {
     super.key,
     this.format,
     this.previewImageUrl,
+    this.openCaptionPanel = false,
   });
 
   final String contentId;
   final ContentFormat? format;
   final String? previewImageUrl;
+  final bool openCaptionPanel;
 
   @override
   ConsumerState<ContentReviewScreen> createState() =>
@@ -86,12 +88,23 @@ class _ContentReviewScreenState extends ConsumerState<ContentReviewScreen>
         _controller
           ..setLeaving(leaving: false)
           ..closePanels();
+        if (widget.openCaptionPanel) _controller.openRightPanel();
         final session = ref.read(contentSessionProvider(_args));
         unawaited(
           session.initialize(generationId: widget.contentId),
         );
       }
     });
+  }
+
+  @override
+  void didUpdateWidget(covariant ContentReviewScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!oldWidget.openCaptionPanel && widget.openCaptionPanel) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _openPanel(left: false);
+      });
+    }
   }
 
   @override
@@ -551,21 +564,15 @@ class _ContentReviewScreenState extends ConsumerState<ContentReviewScreen>
               },
               color: Colors.white70,
             ),
-            Semantics(
-              button: true,
-              label: 'Open caption and hashtags',
-              child: Tooltip(
-                message: 'Open caption and hashtags',
-                child: InkWell(
-                  onTap: () => _openPanel(left: false),
-                  child: Container(
-                    width: 40,
-                    height: 36,
-                    color: _rightOpen && !_exportOpen
-                        ? const Color(0xff2e2e2b)
-                        : Colors.transparent,
-                  ),
-                ),
+            ColoredBox(
+              color: _rightOpen && !_exportOpen
+                  ? const Color(0xff2e2e2b)
+                  : Colors.transparent,
+              child: AppIconButton(
+                icon: LucideIcons.captions,
+                tooltip: 'Open caption and hashtags',
+                onPressed: () => _openPanel(left: false),
+                color: Colors.white70,
               ),
             ),
             contentHeaderAction(

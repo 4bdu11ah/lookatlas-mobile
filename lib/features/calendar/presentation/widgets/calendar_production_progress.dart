@@ -47,13 +47,23 @@ class CalendarProductionProgress extends ConsumerWidget {
             p.paused
                 ? 'Production paused safely'
                 : '$produced of ${items.length} posts ready',
-            27,
+            29,
             color: Colors.white,
           ),
-          const SizedBox(height: 18),
-          calendarBody(
-            '$produced Ready     ${r['producing']} Creating     ${r['queuedForProduction']} Queued',
-            color: Colors.white,
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(child: _ProductionStat('$produced', 'Ready')),
+              Expanded(
+                child: _ProductionStat('${r['producing']}', 'Creating'),
+              ),
+              Expanded(
+                child: _ProductionStat(
+                  '${r['queuedForProduction']}',
+                  'Queued',
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 14),
           LinearProgressIndicator(
@@ -80,4 +90,27 @@ class CalendarProductionProgress extends ConsumerWidget {
       ),
     );
   }
+}
+
+class _ProductionStat extends StatelessWidget {
+  const _ProductionStat(this.value, this.label);
+
+  final String value;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) => Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Text(
+        value,
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 16,
+          fontWeight: FontWeight.w800,
+        ),
+      ),
+      calendarBody(label, size: 10, color: Colors.white54),
+    ],
+  );
 }

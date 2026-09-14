@@ -12,7 +12,7 @@ class CalendarSetupMode extends ConsumerWidget {
     ref.watch(calendarControllerProvider.select((state) => state.setup.mode));
     final controller = ref.read(calendarControllerProvider.notifier);
     void setupChange(VoidCallback change) =>
-        controller.changeSetup(change, requote: true);
+        controller.changeSetup(change, invalidatesQuote: true);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [

@@ -14,6 +14,7 @@ import 'package:look_atlas/features/calendar/presentation/widgets/calendar_conne
 import 'package:look_atlas/features/calendar/presentation/widgets/calendar_metrics.dart';
 import 'package:look_atlas/features/calendar/presentation/widgets/calendar_production_progress.dart';
 import 'package:look_atlas/features/calendar/presentation/widgets/calendar_review_card.dart';
+import 'package:look_atlas/features/calendar/presentation/widgets/calendar_theme.dart';
 import 'package:look_atlas/features/calendar/presentation/widgets/calendar_tray_schedule.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
@@ -32,17 +33,34 @@ class CalendarOperatingScreen extends ConsumerWidget {
     final month = ref.watch(
       calendarViewProvider.select((state) => state.month),
     );
-    final boardKey = ref.watch(calendarBoardKeyProvider);
-    void board() {
+    final reviewKey = ref.watch(calendarReviewKeyProvider);
+    final scrollController = ref.watch(calendarScrollControllerProvider);
+    Future<void> board() async {
       ref.read(calendarViewProvider.notifier).setMonth(value: false);
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (boardKey.currentContext case final target?) {
-          Scrollable.ensureVisible(
+      await WidgetsBinding.instance.endOfFrame;
+      for (var step = 0; step < 8; step++) {
+        if (!context.mounted) return;
+        if (reviewKey.currentContext case final target? when target.mounted) {
+          await Scrollable.ensureVisible(
             target,
             duration: const Duration(milliseconds: 250),
           );
+          return;
         }
-      });
+        if (!scrollController.hasClients) return;
+        final position = scrollController.position;
+        final next = (position.pixels + position.viewportDimension * .75).clamp(
+          0.0,
+          position.maxScrollExtent,
+        );
+        if (next <= position.pixels + 1) return;
+        await scrollController.animateTo(
+          next,
+          duration: const Duration(milliseconds: 100),
+          curve: Curves.easeOut,
+        );
+        await WidgetsBinding.instance.endOfFrame;
+      }
     }
 
     final o = s.overview!;
@@ -50,6 +68,7 @@ class CalendarOperatingScreen extends ConsumerWidget {
     final r = o.rollup;
     final items = o.items.where((i) => i.status != 'skipped').toList();
     final ready = o.items.where((i) => i.status == 'ready').toList();
+    final needsReview = o.count('needsReview');
     final tray = o.items.where((i) => i.publishAt == null).toList();
     final building = o.count('producing') + o.count('queuedForProduction');
     final now = s.now();
@@ -63,8 +82,7 @@ class CalendarOperatingScreen extends ConsumerWidget {
                   (i) => {'published', 'failed'}.contains(i.status),
                 )));
     final first =
-        o.count('needsReview') > 0 &&
-        o.count('scheduled') + o.count('published') == 0;
+        needsReview > 0 && o.count('scheduled') + o.count('published') == 0;
     final next = r['nextPublishAt'] == null
         ? null
         : DateTime.parse(r['nextPublishAt'] as String).toLocal();
@@ -72,8 +90,8 @@ class CalendarOperatingScreen extends ConsumerWidget {
         ? 'This month is wrapped.'
         : first
         ? 'Your first post is ready, take a look.'
-        : o.count('needsReview') > 0
-        ? '${o.count('needsReview')} posts need your approval.'
+        : needsReview > 0
+        ? '$needsReview ${needsReview == 1 ? 'post needs' : 'posts need'} your approval.'
         : building > 0
         ? 'We’re building your month.'
         : 'Your runway is on track.';
@@ -83,7 +101,7 @@ class CalendarOperatingScreen extends ConsumerWidget {
         ? o.drafts
               ? 'One click approves it and it’s yours to download and post. The rest of your month keeps building in the background.'
               : 'One click approves it onto your schedule. The rest of your month keeps building in the background.'
-        : o.count('needsReview') > 0
+        : needsReview > 0
         ? 'Everything else is on track. A quick look and they’re ready ${o.drafts ? 'to download' : 'for the schedule'}.'
         : building > 0
         ? 'You can leave this page, we’ll email you when posts are ready for your approval.'
@@ -100,7 +118,7 @@ class CalendarOperatingScreen extends ConsumerWidget {
                 ? 'Month complete'
                 : first
                 ? 'First post'
-                : o.count('needsReview') > 0
+                : needsReview > 0
                 ? 'Needs you'
                 : building > 0
                 ? 'In production'
@@ -108,11 +126,6 @@ class CalendarOperatingScreen extends ConsumerWidget {
             title,
             copy,
             actions: [
-              calendarButton(
-                'Settings',
-                () => view.actions.drawer('automation'),
-                icon: LucideIcons.settings2,
-              ),
               if (wrapped)
                 calendarButton(
                   s.busy.contains('plan')
@@ -124,11 +137,16 @@ class CalendarOperatingScreen extends ConsumerWidget {
                 )
               else if (ready.isNotEmpty)
                 calendarButton(
-                  'Review ${o.count('needsReview')} posts',
+                  'Review $needsReview ${needsReview == 1 ? 'post' : 'posts'}',
                   board,
                   primary: true,
                   icon: LucideIcons.arrowRight,
                 ),
+              calendarButton(
+                'Settings',
+                () => view.actions.drawer('automation'),
+                icon: LucideIcons.settings2,
+              ),
             ],
           ),
           const SizedBox(height: 18),
@@ -140,15 +158,17 @@ class CalendarOperatingScreen extends ConsumerWidget {
               s.busy.contains('plan') ? null : s.rollover,
             ),
           const SizedBox(height: 18),
+          calendarKicker('Runway snapshot'),
+          const SizedBox(height: 10),
           LayoutBuilder(
             builder: (context, c) => Wrap(
               children: [
                 calendarMetric(
                   'Needs approval',
                   '${r['needsReview']}',
-                  o.count('needsReview') == 0
+                  needsReview == 0
                       ? 'All caught up'
-                      : 'About ${r['needsReview']} minutes',
+                      : 'About $needsReview ${needsReview == 1 ? 'minute' : 'minutes'}',
                   c.maxWidth / 2,
                   onTap: board,
                 ),
@@ -183,10 +203,13 @@ class CalendarOperatingScreen extends ConsumerWidget {
             ),
           if (ready.isNotEmpty) ...[
             const SizedBox(height: 48),
-            calendarSection(
-              'Needs review',
-              '${ready.length} posts are ready to approve.',
-              'Open one for a closer look, or approve it right here.',
+            Container(
+              key: reviewKey,
+              child: calendarSection(
+                'Needs review',
+                '${ready.length} ${ready.length == 1 ? 'post is' : 'posts are'} ready to approve.',
+                'Open one for a closer look, or approve it right here.',
+              ),
             ),
             for (final i in ready.take(3))
               CalendarReviewCard(view: view, item: i),
@@ -210,48 +233,70 @@ class CalendarOperatingScreen extends ConsumerWidget {
           ],
           const SizedBox(height: 48),
           Container(
-            key: boardKey,
-            child: calendarSection(
-              'Your month',
-              p.title ?? 'The calendar',
-              calendarWindow(p),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              border: Border.all(color: CALENDAR_LINE),
             ),
-          ),
-          Row(
-            children: [
-              calendarButton(
-                'Add post',
-                () => view.actions.drawer('add'),
-                compact: true,
-                icon: LucideIcons.plus,
-              ),
-              const SizedBox(width: 9),
-              Expanded(
-                child: calendarButton(
-                  'Agenda',
-                  () => ref
-                      .read(calendarViewProvider.notifier)
-                      .setMonth(value: false),
-                  primary: !month,
-                  compact: true,
-                  icon: LucideIcons.list,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      calendarKicker('Your month'),
+                      const SizedBox(height: 7),
+                      calendarDisplay(p.title ?? 'The calendar', 34),
+                      const SizedBox(height: 7),
+                      calendarBody(calendarWindow(p), size: 11),
+                    ],
+                  ),
                 ),
-              ),
-              if (MediaQuery.sizeOf(context).width > 520) ...[
-                const SizedBox(width: 5),
-                Expanded(
-                  child: calendarButton(
-                    'Month',
-                    () => ref
-                        .read(calendarViewProvider.notifier)
-                        .setMonth(value: true),
-                    primary: month,
-                    compact: true,
-                    icon: LucideIcons.grid3x3,
+                calendarRule(),
+                Padding(
+                  padding: const EdgeInsets.all(10),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: calendarButton(
+                          'Add post',
+                          () => view.actions.drawer('add'),
+                          compact: true,
+                          icon: LucideIcons.plus,
+                        ),
+                      ),
+                      const SizedBox(width: 7),
+                      Expanded(
+                        child: calendarButton(
+                          'Agenda',
+                          () => ref
+                              .read(calendarViewProvider.notifier)
+                              .setMonth(value: false),
+                          primary: !month,
+                          compact: true,
+                          icon: LucideIcons.list,
+                        ),
+                      ),
+                      if (MediaQuery.sizeOf(context).width > 520) ...[
+                        const SizedBox(width: 7),
+                        Expanded(
+                          child: calendarButton(
+                            'Month',
+                            () => ref
+                                .read(calendarViewProvider.notifier)
+                                .setMonth(value: true),
+                            primary: month,
+                            compact: true,
+                            icon: LucideIcons.grid3x3,
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
                 ),
               ],
-            ],
+            ),
           ),
           const SizedBox(height: 18),
         ]),

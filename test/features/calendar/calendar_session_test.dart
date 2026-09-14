@@ -117,6 +117,49 @@ void main() {
     expect(await s.createPlan(), false);
     expect(b.requests.where((r) => r.path == '/runway/plans'), hasLength(1));
   });
+
+  test('createPlan_fetchesOneFinalQuote_beforeCreatingPlan', () async {
+    final backend = CalendarTestBackend()..stage = 'setup';
+    final session = backend.session();
+    addTearDown(session.dispose);
+    await session.initialize();
+
+    expect(
+      backend.requests.where((request) => request.path == '/runway/quote'),
+      isEmpty,
+    );
+    expect(await session.createPlan(), isTrue);
+
+    final submissionRequests = backend.requests
+        .where(
+          (request) =>
+              request.path == '/runway/quote' ||
+              request.path == '/runway/plans',
+        )
+        .map((request) => request.path);
+    expect(submissionRequests, ['/runway/quote', '/runway/plans']);
+  });
+
+  test('createPlan_quoteFailure_doesNotCreatePlan', () async {
+    final backend = CalendarTestBackend()..stage = 'setup';
+    backend.handler = (request) {
+      if (request.path == '/runway/quote') {
+        throw DioException(requestOptions: request);
+      }
+      return backend.respond(request);
+    };
+    final session = backend.session();
+    addTearDown(session.dispose);
+    await session.initialize();
+
+    expect(await session.createPlan(), isFalse);
+    expect(session.quoteError, isNotNull);
+    expect(
+      backend.requests.where((request) => request.path == '/runway/plans'),
+      isEmpty,
+    );
+  });
+
   test(
     'selected batch charges use costs, unlimited images, skip exclusion',
     () {

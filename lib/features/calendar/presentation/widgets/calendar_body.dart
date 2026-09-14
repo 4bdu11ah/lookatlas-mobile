@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:look_atlas/features/calendar/presentation/controllers/calendar_controller.dart';
+import 'package:look_atlas/features/calendar/presentation/controllers/calendar_view_controller.dart';
 import 'package:look_atlas/features/calendar/presentation/models/calendar_actions.dart';
 import 'package:look_atlas/features/calendar/presentation/screens/calendar_loading_screen.dart';
 import 'package:look_atlas/features/calendar/presentation/screens/calendar_operating_screen.dart';
@@ -16,7 +17,9 @@ class CalendarBody extends ConsumerWidget {
     final stage = ref.watch(
       calendarControllerProvider.select((state) => state.stage),
     );
+    final scrollController = ref.watch(calendarScrollControllerProvider);
     return CustomScrollView(
+      controller: scrollController,
       slivers: [
         SliverPadding(
           padding: const EdgeInsets.fromLTRB(14, 14, 14, 58),

@@ -624,6 +624,13 @@ void main() {
         expect(find.byType(CreateContentScreen), findsOneWidget);
         expect(router.routeInformationProvider.value.uri.path, path);
       }
+      expect(find.text('CAPTION & HASHTAGS'), findsNothing);
+      router.go('/create-content/item/generation-1?panel=caption');
+      await tester.pumpAndSettle();
+      expect(
+        router.routeInformationProvider.value.uri.queryParameters['panel'],
+        'caption',
+      );
       expect(find.text('CAPTION & HASHTAGS'), findsOneWidget);
       await tester.tap(find.text('Done'));
       await tester.pumpAndSettle();

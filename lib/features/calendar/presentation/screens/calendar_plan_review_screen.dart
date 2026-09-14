@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 import 'package:look_atlas/features/calendar/domain/entities/calendar_models.dart';
 import 'package:look_atlas/features/calendar/presentation/controllers/calendar_controller.dart';
 import 'package:look_atlas/features/calendar/presentation/controllers/calendar_session.dart';
@@ -58,44 +59,11 @@ class CalendarPlanReviewScreen extends ConsumerWidget {
           _approvalControls(o, included.length, selected),
         ],
       ),
-      calendarFullBleed(
-        Column(
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  flex: 2,
-                  child: calendarSummaryCell(
-                    '${included.length} post ideas',
-                    bold: true,
-                  ),
-                ),
-                Expanded(child: calendarSummaryCell('$count products')),
-              ],
-            ),
-            Row(
-              children: [
-                for (final e in ['slideshow', 'video', 'single'])
-                  Expanded(
-                    child: calendarSummaryCell(
-                      '${included.where((i) => i.format == e).length} ${e == 'single' ? 'single posts' : '${e}s'}',
-                    ),
-                  ),
-              ],
-            ),
-            Row(
-              children: [
-                Expanded(
-                  child: calendarSummaryCell(
-                    '${o.estimate['total'] == 0 ? 'Included in your plan' : '≈ ${o.estimate['total']} credits'}${o.credits == null ? '' : ' · you have ${o.credits}'}',
-                    bold: true,
-                  ),
-                ),
-                const Expanded(flex: 2, child: SizedBox()),
-              ],
-            ),
-          ],
-        ),
+      const SizedBox(height: 18),
+      CalendarPlanSummary(
+        overview: o,
+        items: included,
+        productCount: count,
       ),
       if (p.settings['launchProductMissingPhotos'] == true)
         calendarErrorBanner(
@@ -147,16 +115,16 @@ class CalendarPlanReviewScreen extends ConsumerWidget {
       ),
       const SizedBox(height: 34),
       for (var n = 0; n < groups.length; n++) ...[
-        calendarSection(
-          '0${n + 1} / ${groups[n]['startsOn'] ?? '${o.items.length} concepts'}',
-          groups[n]['title'] as String,
-          groups[n]['description'] as String? ?? '',
+        if (n > 0) const SizedBox(height: 38),
+        _CalendarPlanChapter(
+          number: n + 1,
+          chapter: groups[n],
+          fallbackCount: o.items.length,
         ),
         for (final item in o.items.where(
           (i) => groups[n]['key'] == null || i.chapterKey == groups[n]['key'],
         ))
           CalendarPlanRow(view: view, item: item, batch: p.batch),
-        const SizedBox(height: 48),
       ],
       // Retain any server items without a matching chapter instead of dropping them.
       if (!p.batch && p.chapters.isNotEmpty)
@@ -174,24 +142,10 @@ class CalendarPlanReviewScreen extends ConsumerWidget {
   ) {
     final plan = overview.plan!;
     final busy = s.busy.contains('plan') || s.revising;
-    final change = Container(
-      width: 86.16,
-      height: 43,
-      decoration: const BoxDecoration(
-        border: Border(bottom: BorderSide(color: CALENDAR_LINE)),
-      ),
-      child: TextButton(
-        onPressed: busy ? null : s.changeSetup,
-        style: TextButton.styleFrom(
-          foregroundColor: CALENDAR_MUTED,
-          padding: const EdgeInsets.symmetric(horizontal: 3),
-          shape: const RoundedRectangleBorder(),
-        ),
-        child: const Text(
-          'Change setup',
-          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800),
-        ),
-      ),
+    final change = calendarButton(
+      'Change setup',
+      busy ? null : s.changeSetup,
+      icon: LucideIcons.settings2,
     );
     final approve = calendarButton(
       s.busy.contains('plan')
@@ -205,24 +159,77 @@ class CalendarPlanReviewScreen extends ConsumerWidget {
     );
     return LayoutBuilder(
       builder: (context, constraints) {
-        if (constraints.maxWidth < 330) {
+        if (constraints.maxWidth < 520) {
           return Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Align(alignment: Alignment.centerLeft, child: change),
-              const SizedBox(height: 8),
               approve,
+              const SizedBox(height: 8),
+              change,
             ],
           );
         }
         return Row(
           children: [
-            change,
-            const SizedBox(width: 8),
             Expanded(child: approve),
+            const SizedBox(width: 8),
+            Expanded(child: change),
           ],
         );
       },
     );
+  }
+}
+
+class _CalendarPlanChapter extends StatelessWidget {
+  const _CalendarPlanChapter({
+    required this.number,
+    required this.chapter,
+    required this.fallbackCount,
+  });
+
+  final int number;
+  final Map<String, dynamic> chapter;
+  final int fallbackCount;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.only(bottom: 18),
+    child: Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          width: 46,
+          child: calendarDisplay(
+            number.toString().padLeft(2, '0'),
+            22,
+            color: CALENDAR_MUTED,
+            italic: true,
+          ),
+        ),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              calendarKicker(_range),
+              const SizedBox(height: 7),
+              calendarDisplay(chapter['title'] as String, 34),
+              if (chapter['description'] case final String description)
+                if (description.isNotEmpty) ...[
+                  const SizedBox(height: 10),
+                  calendarBody(description, size: 13),
+                ],
+            ],
+          ),
+        ),
+      ],
+    ),
+  );
+
+  String get _range {
+    final start = DateTime.tryParse(chapter['startsOn'] as String? ?? '');
+    final end = DateTime.tryParse(chapter['endsOn'] as String? ?? '');
+    if (start == null || end == null) return '$fallbackCount concepts';
+    return '${DateFormat('MMM d').format(start)} – ${DateFormat('MMM d').format(end)}';
   }
 }

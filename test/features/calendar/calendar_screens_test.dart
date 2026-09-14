@@ -8,8 +8,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:look_atlas/core/theme/app_theme.dart';
 import 'package:look_atlas/features/calendar/di/calendar_providers.dart';
+import 'package:look_atlas/features/calendar/domain/entities/calendar_models.dart';
 import 'package:look_atlas/features/calendar/presentation/screens/calendar_screen.dart';
+import 'package:look_atlas/features/calendar/presentation/widgets/calendar_agenda_row.dart';
+import 'package:look_atlas/features/calendar/presentation/widgets/calendar_components.dart';
 import 'package:look_atlas/features/create_content/di/content_providers.dart';
+import 'package:look_atlas/shared/widgets/app_dropdown.dart';
 
 import '../create_content/content_test_backend.dart';
 import 'calendar_test_backend.dart';
@@ -49,6 +53,24 @@ void main() {
       await t.pump(const Duration(milliseconds: 25));
     }
   }
+
+  testWidgets('approved calendar status uses subtle green text', (t) async {
+    final item = CalendarItem(CalendarTestBackend().makeItem(0, 'scheduled'));
+    await t.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: calendarStatus(
+            item,
+            drafts: true,
+            emphasizeApproved: true,
+          ),
+        ),
+      ),
+    );
+
+    final label = t.widget<Text>(find.text('Approved'));
+    expect(label.style?.color, const Color(0xff4c725d));
+  });
 
   for (final width in [320, 375, 390, 430]) {
     testWidgets('Calendar states and nested drawers at $width', (t) async {
@@ -129,10 +151,48 @@ void main() {
         ..statuses = ['idea', 'skipped'];
       await mount();
       await shot('plan');
+      await t.scrollUntilVisible(
+        find.text('The reveal'),
+        300,
+        scrollable: find
+            .byWidgetPredicate(
+              (widget) =>
+                  widget is Scrollable &&
+                  widget.axisDirection == AxisDirection.down,
+            )
+            .last,
+      );
+      await shot('plan-items');
+      await t.scrollUntilVisible(
+        find.text('Want different ideas?'),
+        -300,
+        scrollable: find
+            .byWidgetPredicate(
+              (widget) =>
+                  widget is Scrollable &&
+                  widget.axisDirection == AxisDirection.down,
+            )
+            .last,
+      );
       await tap('Want different ideas?');
       await shot('revision');
       await tap('Change');
+      expect(find.byType(AppDropdown<String>), findsNWidgets(2));
+      expect(find.byType(DropdownButtonFormField<String>), findsNothing);
       await shot('idea');
+      await t.ensureVisible(find.byTooltip('Choose posting date and time'));
+      await settle(t);
+      await t.tap(find.byTooltip('Choose posting date and time'));
+      await t.pumpAndSettle();
+      expect(find.byType(DatePickerDialog), findsOneWidget);
+      await t.tap(find.text('Cancel'));
+      await settle(t);
+      await t.ensureVisible(find.byType(AppDropdown<String>).first);
+      await settle(t);
+      await t.tap(find.byType(AppDropdown<String>).first);
+      await settle(t);
+      await t.tap(find.text('Product 2').last);
+      await settle(t);
       await t.enterText(find.byType(TextField).first, 'An edited hook');
       b.handler = (r) {
         if (r.method == 'PATCH') throw DioException(requestOptions: r);
@@ -148,6 +208,7 @@ void main() {
           b.requests.lastWhere((r) => r.method == 'PATCH').data as Map;
       expect(patch.containsKey('publishAt'), false);
       expect(patch['locked'], true);
+      expect(patch['productId'], 'product-2');
       b
         ..stage = 'active'
         ..statuses = [
@@ -162,12 +223,65 @@ void main() {
           'idea',
         ];
       await mount();
+      final operatingScroll = find
+          .byWidgetPredicate(
+            (widget) =>
+                widget is Scrollable &&
+                widget.axisDirection == AxisDirection.down,
+          )
+          .last;
+      t.state<ScrollableState>(operatingScroll).position.jumpTo(0);
+      await settle(t);
       await shot('operating');
+      expect(find.text('Un-approve'), findsNothing);
+      expect(find.text('Take another look'), findsNothing);
+      await t.scrollUntilVisible(
+        find.text('A fresh perspective 2'),
+        300,
+        scrollable: operatingScroll,
+      );
+      final scheduledRow = find.byWidgetPredicate(
+        (widget) =>
+            widget is CalendarAgendaRow && widget.item.status == 'scheduled',
+      );
+      await t.ensureVisible(scheduledRow);
+      await settle(t);
+      final scheduledPreview = find.descendant(
+        of: scheduledRow,
+        matching: find.text('Preview'),
+      );
+      await t.ensureVisible(scheduledPreview);
+      await settle(t);
+      await t.tap(scheduledPreview);
+      await settle(t);
+      expect(find.text('Un-approve'), findsOneWidget);
+      await t.tap(find.bySemanticsLabel('Close').first);
+      await settle(t);
+      t.state<ScrollableState>(operatingScroll).position.jumpTo(0);
+      await settle(t);
+      await t.tap(find.text('Review 1 post'));
+      for (var frame = 0; frame < 48; frame++) {
+        await t.pump(const Duration(milliseconds: 25));
+      }
+      expect(find.text('NEEDS REVIEW').hitTestable(), findsOneWidget);
+      await t.scrollUntilVisible(
+        find.text('YOUR MONTH'),
+        300,
+        scrollable: operatingScroll,
+      );
+      await shot('operating-month');
+      t.state<ScrollableState>(operatingScroll).position.jumpTo(0);
+      await settle(t);
       await tap('Settings');
       await shot('automation');
       await tap('Save settings');
       await tap('Preview');
       await shot('post');
+      await t.tap(find.byTooltip('Choose posting date and time'));
+      await settle(t);
+      expect(find.byType(DatePickerDialog), findsOneWidget);
+      await t.tap(find.text('Cancel'));
+      await settle(t);
       final fields = find.byType(TextField);
       await t.ensureVisible(fields.last);
       await t.enterText(fields.last, 'A new calendar caption');
@@ -184,14 +298,20 @@ void main() {
       final beforeAdd = b.requests
           .where((r) => r.path.endsWith('/items'))
           .length;
-      await t.enterText(find.byType(TextField).first, '2026-09-');
+      await t.enterText(
+        find.byKey(const ValueKey('calendar-post-time-field')),
+        '2026-09-',
+      );
       await tap('Add to the month');
       expect(find.text('2026-09-'), findsOneWidget);
       expect(
         b.requests.where((r) => r.path.endsWith('/items')).length,
         beforeAdd,
       );
-      await t.enterText(find.byType(TextField).first, '2026-09-12T11:00');
+      await t.enterText(
+        find.byKey(const ValueKey('calendar-post-time-field')),
+        '2026-09-12T11:00',
+      );
       b.handler = (r) {
         if (r.path.endsWith('/items')) throw DioException(requestOptions: r);
         return b.respond(r);
@@ -230,7 +350,7 @@ void main() {
         ..batch = true
         ..statuses = ['idea', 'ready', 'failed', 'skipped'];
       await mount();
-      await tap('UNSCHEDULED');
+      await tap('4 posts waiting for a day.');
       await shot('tray');
       b
         ..stage = 'setup'
@@ -280,6 +400,11 @@ void main() {
           ? pending.future
           : b.respond(request);
       await mount();
+      expect(
+        find.byKey(const ValueKey('calendar-loading-skeleton')),
+        findsOneWidget,
+      );
+      expect(find.text('Loading your calendar…'), findsNothing);
       await shot('loading');
       await t.pumpWidget(const SizedBox());
       await t.pump();

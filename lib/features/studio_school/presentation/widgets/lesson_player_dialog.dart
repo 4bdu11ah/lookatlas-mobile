@@ -1,29 +1,51 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:look_atlas/core/theme/app_colors.dart';
+import 'package:look_atlas/core/connectivity/connectivity_provider.dart';
 import 'package:look_atlas/features/studio_school/domain/entities/welcome_lesson.dart';
+import 'package:look_atlas/features/studio_school/presentation/controllers/lesson_player_controller.dart';
 import 'package:look_atlas/features/studio_school/presentation/controllers/studio_school_controller.dart';
 import 'package:look_atlas/features/studio_school/presentation/controllers/studio_school_state.dart';
 import 'package:look_atlas/features/studio_school/presentation/models/lesson_definition.dart';
+import 'package:look_atlas/features/studio_school/presentation/models/studio_school_catalog.dart';
+import 'package:look_atlas/features/studio_school/presentation/widgets/learning_center_style.dart';
 import 'package:look_atlas/features/studio_school/presentation/widgets/lesson_player_content.dart';
+import 'package:look_atlas/features/studio_school/presentation/widgets/school_components.dart';
 import 'package:look_atlas/shared/widgets/app_dialog.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:riverpod/misc.dart';
 
 Future<String?> showStudioLessonPlayer(
   BuildContext context, {
   required LessonDefinition lesson,
   required WelcomeState? welcome,
   required bool online,
-}) => showDialog<String>(
+}) => showAppDialog<String>(
   context: context,
-  barrierColor: AppDialogConfig.standard.barrierColor,
-  builder: (_) => StudioLessonPlayer(
-    lesson: lesson,
-    welcome: welcome,
-    online: online,
-  ),
+  builder: (_) =>
+      StudioLessonPlayer(lesson: lesson, welcome: welcome, online: online),
 );
+
+class _LessonChainController extends Notifier<WelcomeLessonId> {
+  _LessonChainController(this.initial);
+  final WelcomeLessonId initial;
+  @override
+  WelcomeLessonId build() => initial;
+  WelcomeLessonId get lessonId => state;
+  set lessonId(WelcomeLessonId id) => state = id;
+}
+
+final NotifierProviderFamily<
+  _LessonChainController,
+  WelcomeLessonId,
+  WelcomeLessonId
+>
+_lessonChainProvider = NotifierProvider.autoDispose
+    .family<_LessonChainController, WelcomeLessonId, WelcomeLessonId>(
+      _LessonChainController.new,
+    );
 
 class StudioLessonPlayer extends ConsumerStatefulWidget {
   const StudioLessonPlayer({
@@ -32,237 +54,206 @@ class StudioLessonPlayer extends ConsumerStatefulWidget {
     required this.online,
     super.key,
   });
-
   final LessonDefinition lesson;
   final WelcomeState? welcome;
   final bool online;
-
   @override
   ConsumerState<StudioLessonPlayer> createState() => _StudioLessonPlayerState();
 }
 
 class _StudioLessonPlayerState extends ConsumerState<StudioLessonPlayer>
     with WidgetsBindingObserver {
-  static const _serverMinimum = Duration(seconds: 20);
-  static const _safetyMargin = Duration(milliseconds: 1500);
-
-  Timer? _timer;
-  final ValueNotifier<Duration> _countdown = ValueNotifier(
-    _serverMinimum + _safetyMargin,
-  );
-  DateTime? _readyAt;
-  int _cardIndex = 0;
-  bool _saving = false;
-  bool _completed = false;
-  String? _error;
-
-  bool get _trackProgress => widget.welcome?.eligible ?? false;
-  bool get _alreadyCompleted =>
-      widget.welcome?.progressFor(widget.lesson.id).isCompleted ?? false;
-  bool get _isFinal => _cardIndex == widget.lesson.cards.length - 1;
-  Duration get _remaining {
-    final readyAt = _readyAt;
-    if (readyAt == null) return _serverMinimum + _safetyMargin;
-    final remaining = readyAt.difference(DateTime.now());
-    return remaining.isNegative ? Duration.zero : remaining;
-  }
-
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    _setReadyAt(widget.welcome?.progressFor(widget.lesson.id).startedAt);
-    if (_trackProgress && !_alreadyCompleted && !widget.online) {
-      _error = 'Reconnect to save lesson progress.';
-    } else if (_trackProgress && !_alreadyCompleted) {
-      unawaited(_start());
-      _timer = Timer.periodic(
-        const Duration(milliseconds: 250),
-        (_) => _tick(),
-      );
-    }
-  }
-
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed) _tick();
   }
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
-    _timer?.cancel();
-    _countdown.dispose();
     super.dispose();
   }
 
-  Future<void> _start() async {
-    final startedAt = await ref
-        .read(studioSchoolControllerProvider.notifier)
-        .startLesson(widget.lesson.id);
-    if (!mounted || startedAt == null) {
-      if (mounted && _readyAt == null) {
-        setState(
-          () => _error = 'Progress could not start. Check your connection.',
-        );
-      }
-      return;
-    }
-    setState(() {
-      _setReadyAt(startedAt);
-      _error = null;
-    });
-  }
-
-  void _setReadyAt(DateTime? startedAt) {
-    if (startedAt == null) return;
-    _readyAt = startedAt.toLocal().add(_serverMinimum + _safetyMargin);
-    _countdown.value = _remaining;
-  }
-
-  void _tick() {
-    if (_readyAt == null) return;
-    _countdown.value = _remaining;
-  }
-
-  Future<void> _done() async {
-    if (!_trackProgress || _alreadyCompleted) {
-      Navigator.pop(context);
-      return;
-    }
-    setState(() {
-      _saving = true;
-      _error = null;
-    });
-    final result = await ref
-        .read(studioSchoolControllerProvider.notifier)
-        .completeLesson(widget.lesson.id);
-    if (!mounted) return;
-    switch (result.kind) {
-      case LessonActionKind.completed:
-      case LessonActionKind.alreadyCompleted:
-        await _showSuccess();
-      case LessonActionKind.tooFast:
-        setState(() {
-          _saving = false;
-          _readyAt = DateTime.now().add(
-            result.retryAfter ?? const Duration(seconds: 2),
-          );
-          _countdown.value = _remaining;
-          _error = 'Almost. Give it ${_remaining.inSeconds + 1} more seconds.';
-        });
-      case LessonActionKind.notStarted:
-        setState(() {
-          _saving = false;
-          _readyAt = null;
-          _countdown.value = _serverMinimum + _safetyMargin;
-          _error = 'Give it a moment, then hit Done again.';
-        });
-        await _start();
-      case LessonActionKind.failed:
-        setState(() {
-          _saving = false;
-          _error = result.message ?? 'Progress could not be saved. Try again.';
-        });
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      ref.invalidate(
+        lessonRemainingProvider(
+          ref.read(_lessonChainProvider(widget.lesson.id)),
+        ),
+      );
     }
   }
-
-  Future<void> _showSuccess() async {
-    setState(() {
-      _saving = false;
-      _completed = true;
-    });
-    final disableAnimations = MediaQuery.disableAnimationsOf(context);
-    if (!disableAnimations) {
-      await Future<void>.delayed(const Duration(milliseconds: 1200));
-    }
-    if (mounted) Navigator.pop(context);
-  }
-
-  void _previous() => setState(() => _cardIndex--);
-  void _next() => setState(() => _cardIndex++);
 
   @override
   Widget build(BuildContext context) {
-    return AppDialog(
-      config: AppDialogConfig.standard.copyWith(
-        maxWidth: 560,
-        title: widget.lesson.title,
-        subtitle: widget.lesson.tagline,
-        icon: widget.lesson.icon,
-      ),
-      footer: _completed
-          ? null
-          : LessonPlayerFooter(
-              showPrevious: _cardIndex > 0,
-              isFinal: _isFinal,
-              countdown: _countdown,
-              timerRequired: _trackProgress && !_alreadyCompleted,
-              completionAllowed: !_trackProgress || widget.online,
-              saving: _saving,
-              error: _error,
-              onPrevious: _previous,
-              onNext: _next,
-              onDone: _done,
-              onRetryStart: _start,
+    final id = ref.watch(_lessonChainProvider(widget.lesson.id));
+    final lesson = studioSchoolLessons.firstWhere((lesson) => lesson.id == id);
+    final state = ref.watch(lessonPlayerControllerProvider(id));
+    final controller = ref.read(lessonPlayerControllerProvider(id).notifier);
+    final school = ref.watch(studioSchoolControllerProvider);
+    final welcome = switch (school) {
+      SchoolReady(:final welcome) ||
+      SchoolOfflineCached(:final welcome) => welcome,
+      _ => widget.welcome,
+    };
+    final tracked =
+        welcome?.eligible == true &&
+        !(welcome?.progressFor(id).isCompleted ?? false);
+    final isFinal = state.cardIndex == lesson.cards.length - 1;
+    ref.listen(
+      lessonPlayerControllerProvider(id).select((state) => state.completed),
+      (_, completed) {
+        if (completed) unawaited(HapticFeedback.mediumImpact());
+      },
+    );
+    return CallbackShortcuts(
+      bindings: {
+        const SingleActivator(LogicalKeyboardKey.escape): () =>
+            Navigator.pop(context),
+      },
+      child: SafeArea(
+        top: false,
+        child: Column(
+          children: [
+            _ReaderHeader(lesson: lesson, cardIndex: state.cardIndex),
+            _LessonProgress(
+              count: lesson.cards.length,
+              active: state.cardIndex,
             ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          _LessonProgress(
-            count: widget.lesson.cards.length,
-            active: _cardIndex,
-          ),
-          Flexible(
-            child: _completed
-                ? const LessonSuccess()
-                : LessonPlayerCardBody(
-                    card: widget.lesson.cards[_cardIndex],
-                    tryLink: _isFinal ? widget.lesson.tryLink : null,
-                    onTry: (location) => Navigator.pop(context, location),
-                  ),
-          ),
-        ],
+            Expanded(
+              child: state.completed
+                  ? LessonSuccess(
+                      saved: welcome?.eligible == true,
+                      onNext: id == studioSchoolLessons.last.id
+                          ? null
+                          : () => _advance(lesson),
+                      onClose: () => Navigator.pop(context),
+                      tryLink: lesson.tryLink,
+                      onTry: (location) => Navigator.pop(context, location),
+                    )
+                  : LessonPlayerCardBody(
+                      card: lesson.cards[state.cardIndex],
+                      index: state.cardIndex,
+                      count: lesson.cards.length,
+                      tryLink: isFinal ? lesson.tryLink : null,
+                      onTry: (location) => Navigator.pop(context, location),
+                    ),
+            ),
+            if (!state.completed)
+              LessonPlayerFooter(
+                lessonId: id,
+                state: state,
+                isFinal: isFinal,
+                timerRequired:
+                    tracked || (school is SchoolLoading && welcome == null),
+                online: ref.watch(connectionStatusProvider),
+                actions: (
+                  previous: controller.previous,
+                  next: controller.next,
+                  done: () => unawaited(controller.complete(tracked: tracked)),
+                  retry: () => unawaited(controller.start()),
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }
+
+  void _advance(LessonDefinition lesson) {
+    ref.read(_lessonChainProvider(widget.lesson.id).notifier).lessonId =
+        studioSchoolLessons[studioSchoolLessons.indexOf(lesson) + 1].id;
+  }
+}
+
+class _ReaderHeader extends StatelessWidget {
+  const _ReaderHeader({required this.lesson, required this.cardIndex});
+  final LessonDefinition lesson;
+  final int cardIndex;
+  @override
+  Widget build(BuildContext context) => Container(
+    constraints: const BoxConstraints(minHeight: 68),
+    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 11),
+    decoration: const BoxDecoration(
+      border: Border(bottom: BorderSide(color: LearningCenterStyle.line)),
+    ),
+    child: Row(
+      children: [
+        SchoolSquareIcon(icon: lesson.icon, size: 35),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                lesson.title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: LearningCenterStyle.body(
+                  13,
+                  color: LearningCenterStyle.ink,
+                  weight: FontWeight.w700,
+                ),
+              ),
+              Text(
+                'ONE-MINUTE ESSENTIAL',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: LearningCenterStyle.body(
+                  11,
+                  height: 1.2,
+                  weight: FontWeight.w700,
+                ).copyWith(letterSpacing: 1.32),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(width: 10),
+        Text(
+          '${cardIndex + 1} / ${lesson.cards.length}',
+          style: LearningCenterStyle.body(11),
+        ),
+        const SizedBox(width: 9),
+        SizedBox.square(
+          dimension: 34,
+          child: IconButton(
+            tooltip: 'Close lesson',
+            padding: EdgeInsets.zero,
+            onPressed: () => Navigator.pop(context),
+            icon: const Icon(
+              LucideIcons.x,
+              size: 17,
+              color: LearningCenterStyle.muted,
+            ),
+          ),
+        ),
+      ],
+    ),
+  );
 }
 
 class _LessonProgress extends StatelessWidget {
   const _LessonProgress({required this.count, required this.active});
-
   final int count;
   final int active;
-
   @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 14, 20, 0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Text(
-            '${active + 1} / $count',
-            textAlign: TextAlign.right,
-            style: const TextStyle(fontSize: 11, color: AppColors.neutral500),
-          ),
-          const SizedBox(height: 8),
-          Row(
-            children: List.generate(
-              count,
-              (index) => Expanded(
-                child: Container(
-                  height: 2,
-                  margin: EdgeInsets.only(right: index == count - 1 ? 0 : 4),
-                  color: index <= active
-                      ? AppColors.black
-                      : AppColors.neutral200,
-                ),
-              ),
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.fromLTRB(16, 11, 16, 0),
+    child: Row(
+      children: [
+        for (var index = 0; index < count; index++)
+          Expanded(
+            child: Container(
+              height: 2,
+              margin: EdgeInsets.only(right: index == count - 1 ? 0 : 4),
+              color: index <= active
+                  ? LearningCenterStyle.ink
+                  : const Color(0xFFDFDED7),
             ),
           ),
-        ],
-      ),
-    );
-  }
+      ],
+    ),
+  );
 }

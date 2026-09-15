@@ -1,44 +1,108 @@
 import 'package:flutter/material.dart';
-import 'package:look_atlas/core/theme/app_colors.dart';
-import 'package:look_atlas/core/theme/app_typography.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_svg/flutter_svg.dart';
+import 'package:look_atlas/features/studio_school/presentation/controllers/learning_center_search_controller.dart';
 import 'package:look_atlas/features/studio_school/presentation/models/lesson_definition.dart';
+import 'package:look_atlas/features/studio_school/presentation/models/studio_school_catalog.dart';
+import 'package:look_atlas/features/studio_school/presentation/widgets/learning_center_style.dart';
+import 'package:look_atlas/features/studio_school/presentation/widgets/learning_lesson_icons.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 class SchoolHeader extends StatelessWidget {
   const SchoolHeader({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return const Row(
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.only(bottom: 26),
+    decoration: const BoxDecoration(
+      border: Border(bottom: BorderSide(color: LearningCenterStyle.line)),
+    ),
+    child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        SchoolSquareIcon(icon: Icons.school_outlined, size: 48),
-        SizedBox(width: 14),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Studio School',
-                style: TextStyle(
-                  fontSize: 30,
-                  height: 1,
-                  letterSpacing: -1.2,
-                  fontWeight: AppTypography.bold,
+        const LearningKicker('Learning Center', icon: LucideIcons.sparkles),
+        const SizedBox(height: 10),
+        Text(
+          'Make better work, faster.',
+          style: LearningCenterStyle.serif(44, height: 0.98, tracking: -0.045),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          'Short lessons and practical guides for stronger shoots. Find an answer, learn one thing, then get back to creating.',
+          style: LearningCenterStyle.body(13),
+        ),
+        const SizedBox(height: 20),
+        const _LearningSearch(),
+      ],
+    ),
+  );
+}
+
+class _LearningSearch extends ConsumerStatefulWidget {
+  const _LearningSearch();
+  @override
+  ConsumerState<_LearningSearch> createState() => _LearningSearchState();
+}
+
+class _LearningSearchState extends ConsumerState<_LearningSearch> {
+  final _text = TextEditingController();
+  @override
+  void dispose() {
+    _text.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final query = ref.watch(learningCenterSearchProvider);
+    ref.listen(learningCenterSearchProvider, (_, next) {
+      if (next != _text.text) _text.text = next;
+    });
+    return SizedBox(
+      height: 50,
+      child: TextField(
+        key: const ValueKey('learning-center-search'),
+        controller: _text,
+        onChanged: (value) =>
+            ref.read(learningCenterSearchProvider.notifier).query = value,
+        style: LearningCenterStyle.body(13, color: LearningCenterStyle.ink),
+        decoration: InputDecoration(
+          hintText: 'What do you want to learn?',
+          hintStyle: LearningCenterStyle.body(
+            13,
+            color: const Color(0xFF94948D),
+          ),
+          filled: true,
+          fillColor: LearningCenterStyle.paper,
+          contentPadding: const EdgeInsets.symmetric(horizontal: 15),
+          prefixIcon: const Icon(
+            LucideIcons.search,
+            size: 17,
+            color: Color(0xFF81817A),
+          ),
+          suffixIcon: query.isEmpty
+              ? null
+              : IconButton(
+                  tooltip: 'Clear search',
+                  icon: const Icon(LucideIcons.x, size: 15),
+                  onPressed: ref
+                      .read(learningCenterSearchProvider.notifier)
+                      .clear,
                 ),
-              ),
-              SizedBox(height: 7),
-              Text(
-                'Short lessons, each under a minute. Get more out of every credit.',
-                style: TextStyle(
-                  fontSize: 13,
-                  height: 1.45,
-                  color: AppColors.neutral500,
-                ),
-              ),
-            ],
+          border: const OutlineInputBorder(
+            borderRadius: BorderRadius.zero,
+            borderSide: BorderSide(color: LearningCenterStyle.line),
+          ),
+          enabledBorder: const OutlineInputBorder(
+            borderRadius: BorderRadius.zero,
+            borderSide: BorderSide(color: LearningCenterStyle.line),
+          ),
+          focusedBorder: const OutlineInputBorder(
+            borderRadius: BorderRadius.zero,
+            borderSide: BorderSide(color: LearningCenterStyle.ink),
           ),
         ),
-      ],
+      ),
     );
   }
 }
@@ -46,29 +110,37 @@ class SchoolHeader extends StatelessWidget {
 class SchoolSquareIcon extends StatelessWidget {
   const SchoolSquareIcon({
     required this.icon,
-    this.size = 40,
+    this.size = 37,
     this.inverted = true,
     super.key,
   });
-
   final IconData icon;
   final double size;
   final bool inverted;
-
   @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: size,
-      height: size,
-      color: inverted ? AppColors.black : AppColors.neutral100,
-      alignment: Alignment.center,
-      child: Icon(
-        icon,
-        size: size * 0.48,
-        color: inverted ? AppColors.white : AppColors.black,
-      ),
-    );
-  }
+  Widget build(BuildContext context) => Container(
+    width: size,
+    height: size,
+    color: inverted ? LearningCenterStyle.ink : LearningCenterStyle.soft,
+    alignment: Alignment.center,
+    child: learningLessonIconSvgs.containsKey(icon)
+        ? SvgPicture.string(
+            learningLessonIconSvgs[icon]!,
+            width: 16,
+            height: 16,
+            colorFilter: ColorFilter.mode(
+              inverted ? LearningCenterStyle.paper : LearningCenterStyle.ink,
+              BlendMode.srcIn,
+            ),
+          )
+        : Icon(
+            icon,
+            size: 16,
+            color: inverted
+                ? LearningCenterStyle.paper
+                : LearningCenterStyle.ink,
+          ),
+  );
 }
 
 class LessonRewardBanner extends StatelessWidget {
@@ -78,114 +150,170 @@ class LessonRewardBanner extends StatelessWidget {
     required this.canClaim,
     required this.claiming,
     required this.onClaim,
+    this.nextLesson,
+    this.onContinue,
     super.key,
   });
-
   final int completedCount;
   final bool claimed;
   final bool canClaim;
   final bool claiming;
   final VoidCallback onClaim;
-
-  String get _title {
-    if (claimed) return 'All lessons done. 20 free credits earned.';
-    if (completedCount == 6) {
-      return 'All lessons done. Claim your 20 free credits.';
-    }
-    return 'Finish all 6 lessons and get 20 free credits.';
-  }
+  final LessonDefinition? nextLesson;
+  final VoidCallback? onContinue;
 
   @override
   Widget build(BuildContext context) {
     return Semantics(
       label: '$completedCount of 6 lessons completed',
-      child: ColoredBox(
-        color: AppColors.black,
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Icon(
-                    Icons.card_giftcard_outlined,
-                    color: AppColors.white,
-                    size: 19,
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Text(
-                      _title,
-                      style: const TextStyle(
-                        color: AppColors.white,
-                        fontSize: 13,
-                        height: 1.4,
-                        fontWeight: AppTypography.bold,
-                      ),
-                    ),
-                  ),
-                ],
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 25, horizontal: 21),
+        decoration: BoxDecoration(
+          color: claimed || completedCount == 6
+              ? const Color(0xFF343229)
+              : LearningCenterStyle.ink,
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x1C181816),
+              offset: Offset(0, 24),
+              blurRadius: 70,
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const LearningKicker(
+              'Continue learning',
+              size: 13,
+              height: 1.6,
+              icon: LucideIcons.bookText,
+              color: Color(0x8AFFFFFA),
+            ),
+            const SizedBox(height: 10),
+            Text(
+              _title,
+              style: LearningCenterStyle.serif(
+                34,
+                color: LearningCenterStyle.paper,
               ),
-              const SizedBox(height: 14),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text(
-                    'PROGRESS',
-                    style: TextStyle(
-                      color: AppColors.whiteAlpha50,
-                      fontSize: 9,
-                      letterSpacing: 1.8,
-                      fontWeight: AppTypography.bold,
-                    ),
-                  ),
-                  Text(
-                    '$completedCount of 6 lessons',
-                    style: const TextStyle(
-                      color: AppColors.whiteAlpha70,
-                      fontSize: 11,
-                    ),
-                  ),
-                ],
+            ),
+            const SizedBox(height: 6),
+            Text(
+              _description,
+              style: LearningCenterStyle.body(
+                13,
+                color: const Color(0xA6FFFFFA),
               ),
-              const SizedBox(height: 6),
-              LinearProgressIndicator(
-                minHeight: 3,
-                value: completedCount / 6,
-                color: AppColors.white,
-                backgroundColor: AppColors.whiteAlpha20,
-              ),
-              if (completedCount == 6 && !claimed) ...[
-                const SizedBox(height: 16),
-                SizedBox(
-                  height: 44,
-                  child: FilledButton.icon(
-                    key: const ValueKey('studio-school-claim'),
-                    onPressed: canClaim && !claiming ? onClaim : null,
-                    style: FilledButton.styleFrom(
-                      backgroundColor: AppColors.white,
-                      foregroundColor: AppColors.black,
-                      disabledBackgroundColor: AppColors.neutral400,
-                      shape: const RoundedRectangleBorder(),
-                    ),
-                    icon: claiming
-                        ? const SizedBox.square(
-                            dimension: 16,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : const Icon(Icons.card_giftcard_outlined, size: 18),
-                    label: Text(claiming ? 'Claiming' : 'Claim 20 credits'),
-                  ),
-                ),
-              ],
-            ],
-          ),
+            ),
+            const SizedBox(height: 20),
+            _progress(),
+            const SizedBox(height: 18),
+            _action(),
+          ],
         ),
       ),
     );
   }
+
+  String get _title => claimed
+      ? 'Six lessons down. Your reward is claimed.'
+      : completedCount == 6
+      ? 'Six lessons down. Your reward is ready.'
+      : completedCount > 0
+      ? (nextLesson ?? studioSchoolLessons.first).title
+      : 'Start with the essentials.';
+  String get _description => claimed
+      ? '20 credits have been added directly to your balance.'
+      : completedCount == 6
+      ? 'Claim 20 credits now. They will be added directly to your balance.'
+      : completedCount > 0
+      ? (nextLesson ?? studioSchoolLessons.first).tagline
+      : 'Six plain-English lessons cover credits, fixes, direction, refunds, and image rights.';
+
+  Widget _action() => LearningAction(
+    claiming
+        ? 'Claiming'
+        : claimed
+        ? 'Review lessons'
+        : completedCount == 6
+        ? 'Claim 20 credits'
+        : completedCount > 0
+        ? 'Continue lesson'
+        : 'Start first lesson',
+    key: completedCount == 6 && !claimed
+        ? const ValueKey('studio-school-claim')
+        : const ValueKey('studio-school-continue'),
+    height: 48,
+    inverted: true,
+    onPressed: claiming
+        ? null
+        : completedCount == 6 && !claimed
+        ? canClaim
+              ? onClaim
+              : null
+        : onContinue,
+  );
+
+  Widget _progress() => Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      _progressMeta(),
+      const SizedBox(height: 9),
+      LinearProgressIndicator(
+        value: completedCount / 6,
+        minHeight: 3,
+        color: LearningCenterStyle.paper,
+        backgroundColor: const Color(0x2BFFFFFA),
+      ),
+      const SizedBox(height: 9),
+      _progressNote(),
+    ],
+  );
+  Widget _progressMeta() => Row(
+    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    children: [
+      Text(
+        'YOUR PROGRESS',
+        style: LearningCenterStyle.body(
+          11,
+          height: 1.18,
+          color: const Color(0x9EFFFFFA),
+          weight: FontWeight.w700,
+        ).copyWith(letterSpacing: 1.1),
+      ),
+      Text(
+        '$completedCount OF 6',
+        style: LearningCenterStyle.body(
+          11,
+          height: 1.18,
+          color: LearningCenterStyle.paper,
+          weight: FontWeight.w700,
+        ),
+      ),
+    ],
+  );
+
+  Widget _progressNote() => Row(
+    children: [
+      const Icon(
+        LucideIcons.gift,
+        size: 12,
+        color: Color(0x94FFFFFA),
+      ),
+      const SizedBox(width: 7),
+      Flexible(
+        child: Text(
+          claimed ? '20 credits earned.' : 'Finish all six to earn 20 credits.',
+          style: LearningCenterStyle.body(
+            11,
+            height: 1.18,
+            color: const Color(0x94FFFFFA),
+          ),
+        ),
+      ),
+    ],
+  );
 }
 
 class LessonTile extends StatelessWidget {
@@ -196,105 +324,79 @@ class LessonTile extends StatelessWidget {
     required this.onTap,
     super.key,
   });
-
   final LessonDefinition lesson;
   final int position;
   final bool completed;
   final VoidCallback onTap;
-
   @override
-  Widget build(BuildContext context) {
-    final status = completed ? 'Completed' : 'Start';
-    return Semantics(
-      button: true,
-      label: '${lesson.title}, ${lesson.cards.length} cards, $status',
-      child: Material(
-        color: completed ? AppColors.neutral150 : AppColors.white,
-        shape: const RoundedRectangleBorder(
-          side: BorderSide(color: AppColors.neutral200),
-        ),
-        child: InkWell(
-          key: ValueKey('studio-school-${lesson.id.apiValue}'),
-          onTap: onTap,
-          child: Padding(
-            padding: const EdgeInsets.all(19),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    SchoolSquareIcon(icon: lesson.icon),
-                    Row(
-                      children: [
-                        Text(
-                          position.toString().padLeft(2, '0'),
-                          style: const TextStyle(
-                            color: AppColors.neutral400,
-                            fontSize: 10,
-                            letterSpacing: 2,
-                            fontWeight: AppTypography.bold,
-                          ),
-                        ),
-                        if (completed) ...[
-                          const SizedBox(width: 6),
-                          const SchoolSquareIcon(
-                            icon: Icons.check,
-                            size: 24,
-                          ),
-                        ],
-                      ],
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 15),
-                Text(
-                  lesson.title,
-                  style: const TextStyle(
-                    fontSize: 15,
-                    fontWeight: AppTypography.bold,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  lesson.tagline,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: AppColors.neutral500,
-                  ),
-                ),
-                const SizedBox(height: 15),
-                const Divider(height: 1, color: AppColors.neutral200),
-                const SizedBox(height: 12),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+  Widget build(BuildContext context) => Semantics(
+    button: true,
+    label: '${lesson.title}, ${completed ? 'Completed' : 'Start'}',
+    child: Material(
+      color: Colors.transparent,
+      child: InkWell(
+        key: ValueKey('studio-school-${lesson.id.apiValue}'),
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 18),
+          decoration: BoxDecoration(
+            border: Border(
+              bottom: const BorderSide(color: LearningCenterStyle.line),
+              top: position == 1
+                  ? const BorderSide(color: LearningCenterStyle.line)
+                  : BorderSide.none,
+            ),
+          ),
+          child: Row(
+            children: [
+              SchoolSquareIcon(icon: lesson.icon),
+              const SizedBox(width: 15),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      '${lesson.cards.length} CARDS · 1 MIN',
-                      style: _footerStyle,
-                    ),
-                    Text(
-                      completed ? 'COMPLETED' : 'START',
-                      style: _footerStyle.copyWith(
-                        color: completed
-                            ? AppColors.black
-                            : AppColors.neutral500,
+                      lesson.title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: LearningCenterStyle.serif(
+                        21,
+                        height: 1.05,
+                        tracking: -0.025,
                       ),
                     ),
+                    const SizedBox(height: 4),
+                    Text(
+                      lesson.tagline,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: LearningCenterStyle.body(11, height: 1.2),
+                    ),
                   ],
                 ),
-              ],
-            ),
+              ),
+              const SizedBox(width: 13),
+              if (completed)
+                Container(
+                  width: 23,
+                  height: 23,
+                  color: LearningCenterStyle.ink,
+                  child: const Icon(
+                    LucideIcons.check,
+                    size: 13,
+                    color: LearningCenterStyle.paper,
+                  ),
+                )
+              else
+                const Icon(
+                  LucideIcons.chevronRight,
+                  size: 16,
+                  color: LearningCenterStyle.muted,
+                ),
+            ],
           ),
         ),
       ),
-    );
-  }
-
-  static const _footerStyle = TextStyle(
-    color: AppColors.neutral500,
-    fontSize: 9,
-    letterSpacing: 0.8,
-    fontWeight: AppTypography.bold,
+    ),
   );
 }

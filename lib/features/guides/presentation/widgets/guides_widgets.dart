@@ -1,502 +1,314 @@
 part of '../screens/guides_page.dart';
 
-enum _GuideCalloutType { info, tip, warning, success }
-
-class _GuideStack extends StatelessWidget {
-  const _GuideStack({required this.children, this.gap = 32});
-
-  final List<Widget> children;
-  final double gap;
+class _GuideBlock extends StatelessWidget {
+  const _GuideBlock(this.block, {required this.onNavigate});
+  final LearningGuideBlock block;
+  final ValueChanged<String> onNavigate;
 
   @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
+  Widget build(BuildContext context) => switch (block.kind) {
+    GuideBlockKind.heading => _heading(),
+    GuideBlockKind.feature => _feature(),
+    GuideBlockKind.step => _step(),
+    GuideBlockKind.tip => _tip(),
+    GuideBlockKind.checklist => _checklist(),
+    GuideBlockKind.figure => _figure(),
+    GuideBlockKind.actions => _actions(),
+  };
+
+  Widget _heading() => Padding(
+    padding: const EdgeInsets.only(top: 10),
+    child: Text(
+      block.title,
+      style: LearningCenterStyle.body(
+        16,
+        color: LearningCenterStyle.ink,
+        weight: FontWeight.w700,
+      ),
+    ),
+  );
+
+  Widget _feature() => _GuideCard(
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        for (var index = 0; index < children.length; index++) ...[
-          children[index],
-          if (index != children.length - 1) SizedBox(height: gap),
-        ],
-      ],
-    );
-  }
-}
-
-class _GuideSection extends StatelessWidget {
-  const _GuideSection({required this.title, required this.children});
-
-  final String title;
-  final List<Widget> children;
-
-  @override
-  Widget build(BuildContext context) {
-    return _GuideStack(
-      gap: 16,
-      children: [
+        Container(
+          width: 36,
+          height: 36,
+          color: LearningCenterStyle.ink,
+          alignment: Alignment.center,
+          child: _GuideSvg(
+            block.iconSvg,
+            color: LearningCenterStyle.paper,
+          ),
+        ),
+        const SizedBox(height: 14),
         Text(
-          title,
-          style: const TextStyle(
-            fontSize: 20,
-            height: 1.4,
-            fontWeight: AppTypography.bold,
+          block.title,
+          style: LearningCenterStyle.body(
+            14,
+            color: LearningCenterStyle.ink,
+            weight: FontWeight.w700,
           ),
         ),
-        ...children,
+        const SizedBox(height: 6),
+        _GuideParagraphs(block.paragraphs),
       ],
-    );
-  }
-}
+    ),
+  );
 
-class _GuideIntroSection extends StatelessWidget {
-  const _GuideIntroSection({
-    required this.title,
-    required this.body,
-    this.largeBody = false,
-  });
-
-  final String title;
-  final String body;
-  final bool largeBody;
-
-  @override
-  Widget build(BuildContext context) {
-    return _GuideStack(
-      gap: 16,
+  Widget _step() => _GuideCard(
+    child: Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          title,
-          style: const TextStyle(
-            fontSize: 24,
-            height: 1.33,
-            fontWeight: AppTypography.bold,
-          ),
-        ),
-        Text(
-          body,
-          style: TextStyle(
-            fontSize: largeBody ? 16 : 14,
-            height: largeBody ? 1.56 : 1.5,
-            color: AppColors.neutral500,
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _GuideFeatureCard extends StatelessWidget {
-  const _GuideFeatureCard({
-    required this.icon,
-    required this.title,
-    required this.body,
-  });
-
-  final IconData icon;
-  final String title;
-  final String body;
-
-  @override
-  Widget build(BuildContext context) {
-    return _GuideBorderedCard(
-      padding: const EdgeInsets.all(20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _GuideFeatureIcon(icon: icon),
-          const SizedBox(height: 16),
-          _GuideCardTitle(title),
-          const SizedBox(height: 8),
-          _GuideBodyText(body),
-        ],
-      ),
-    );
-  }
-}
-
-class _GuideStep extends StatelessWidget {
-  const _GuideStep({
-    required this.number,
-    required this.title,
-    required this.body,
-    this.extra,
-  });
-
-  final int number;
-  final String title;
-  final String body;
-  final Widget? extra;
-
-  @override
-  Widget build(BuildContext context) {
-    return _GuideBorderedCard(
-      padding: const EdgeInsets.all(24),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _GuideNumberBox(number: '$number'),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: const TextStyle(
-                    fontSize: 18,
-                    height: 1.39,
-                    fontWeight: AppTypography.bold,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                _GuideBodyText(body),
-                if (extra != null) ...[
-                  const SizedBox(height: 12),
-                  extra!,
-                ],
-              ],
+        Container(
+          width: 30,
+          height: 30,
+          color: LearningCenterStyle.ink,
+          alignment: Alignment.center,
+          child: Text(
+            block.number,
+            style: LearningCenterStyle.body(
+              12,
+              color: LearningCenterStyle.paper,
+              weight: FontWeight.w800,
             ),
           ),
-        ],
-      ),
-    );
-  }
-}
-
-class _GuideCallout extends StatelessWidget {
-  const _GuideCallout({
-    required this.type,
-    required this.text,
-    this.strongPrefix,
-  });
-
-  final _GuideCalloutType type;
-  final String? strongPrefix;
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    final dark = type == _GuideCalloutType.success;
-    final warning = type == _GuideCalloutType.warning;
-    final icon = switch (type) {
-      _GuideCalloutType.info => Icons.info_outline,
-      _GuideCalloutType.tip => Icons.lightbulb_outline,
-      _GuideCalloutType.warning => Icons.warning_amber_outlined,
-      _GuideCalloutType.success => Icons.check,
-    };
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: dark
-            ? AppColors.black
-            : warning
-            ? AppColors.white
-            : AppColors.neutral100,
-        border: Border.all(
-          color: warning || dark ? AppColors.black : AppColors.neutral200,
-          width: warning ? 2 : 1,
         ),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(icon, size: 20, color: dark ? AppColors.white : AppColors.black),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text.rich(
-              TextSpan(
-                children: [
-                  if (strongPrefix != null)
-                    TextSpan(
-                      text: strongPrefix,
-                      style: const TextStyle(fontWeight: AppTypography.bold),
-                    ),
-                  TextSpan(text: text),
-                ],
-              ),
-              style: TextStyle(
-                fontSize: 14,
-                height: 1.5,
-                color: dark ? AppColors.white : AppColors.neutral500,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _GuideBorderedCard extends StatelessWidget {
-  const _GuideBorderedCard({required this.child, required this.padding});
-
-  final Widget child;
-  final EdgeInsets padding;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: padding,
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        border: Border.all(color: AppColors.neutral200),
-      ),
-      child: child,
-    );
-  }
-}
-
-class _GuideContentCard extends StatelessWidget {
-  const _GuideContentCard({required this.children});
-
-  final List<Widget> children;
-
-  @override
-  Widget build(BuildContext context) {
-    return _GuideBorderedCard(
-      padding: const EdgeInsets.all(20),
-      child: _GuideStack(gap: 16, children: children),
-    );
-  }
-}
-
-class _GuideFeatureIcon extends StatelessWidget {
-  const _GuideFeatureIcon({required this.icon, this.size = 40});
-
-  final IconData icon;
-  final double size;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: size,
-      height: size,
-      color: AppColors.black,
-      child: Icon(icon, size: 20, color: AppColors.white),
-    );
-  }
-}
-
-class _GuideNumberBox extends StatelessWidget {
-  const _GuideNumberBox({required this.number, this.size = 32});
-
-  final String number;
-  final double size;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: size,
-      height: size,
-      alignment: Alignment.center,
-      color: AppColors.black,
-      child: Text(
-        number,
-        style: const TextStyle(
-          fontSize: 14,
-          fontWeight: AppTypography.bold,
-          color: AppColors.white,
-        ),
-      ),
-    );
-  }
-}
-
-class _GuideCardTitle extends StatelessWidget {
-  const _GuideCardTitle(this.text);
-
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    return Text(
-      text,
-      style: const TextStyle(
-        fontSize: 16,
-        height: 1.5,
-        fontWeight: AppTypography.bold,
-      ),
-    );
-  }
-}
-
-class _GuideBodyText extends StatelessWidget {
-  const _GuideBodyText(this.text);
-
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    return Text(
-      text,
-      style: const TextStyle(
-        fontSize: 14,
-        height: 1.5,
-        color: AppColors.neutral500,
-      ),
-    );
-  }
-}
-
-class _GuideRouteButton extends StatelessWidget {
-  const _GuideRouteButton({
-    required this.label,
-    required this.onTap,
-    this.outlined = false,
-  });
-
-  final String label;
-  final VoidCallback onTap;
-  final bool outlined;
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: outlined ? AppColors.white : AppColors.black,
-      child: InkWell(
-        onTap: onTap,
-        child: Container(
-          height: 40,
-          padding: const EdgeInsets.symmetric(horizontal: 20),
-          decoration: BoxDecoration(
-            border: outlined
-                ? Border.all(color: AppColors.black, width: 2)
-                : null,
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Flexible(
-                child: Text(
-                  label,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: AppTypography.medium,
-                    color: outlined ? AppColors.black : AppColors.white,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Icon(
-                Icons.arrow_forward,
-                size: 16,
-                color: outlined ? AppColors.black : AppColors.white,
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _GuideScreenshotPlaceholder extends StatelessWidget {
-  const _GuideScreenshotPlaceholder({required this.label});
-
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return AppDottedBorder(
-      color: AppColors.neutral200,
-      strokeWidth: 2,
-      child: Container(
-        constraints: const BoxConstraints(minHeight: 200),
-        padding: const EdgeInsets.all(32),
-        color: AppColors.neutral100Alpha68,
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(
-              Icons.image_outlined,
-              size: 40,
-              color: AppColors.neutral500,
-            ),
-            const SizedBox(height: 12),
-            Text(
-              label,
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                fontSize: 14,
-                fontWeight: AppTypography.medium,
-              ),
-            ),
-            const SizedBox(height: 4),
-            const Text(
-              'Screenshot coming soon',
-              style: TextStyle(fontSize: 12, color: AppColors.neutral400),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _GuideCheckRow extends StatelessWidget {
-  const _GuideCheckRow({required this.title, required this.body});
-
-  final String title;
-  final String body;
-
-  @override
-  Widget build(BuildContext context) {
-    return _GuideBorderedCard(
-      padding: const EdgeInsets.all(16),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Icon(Icons.check, size: 20, color: Color(0xFF16A34A)),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: AppTypography.bold,
-                  ),
-                ),
-                _GuideBodyText(body),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _GuideBulletList extends StatelessWidget {
-  const _GuideBulletList({required this.items});
-
-  final List<String> items;
-
-  @override
-  Widget build(BuildContext context) {
-    return _GuideStack(
-      gap: 4,
-      children: [
-        for (final item in items)
-          Row(
+        const SizedBox(width: 14),
+        Expanded(
+          child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Padding(
-                padding: const EdgeInsets.only(top: 8),
-                child: Container(
-                  width: 4,
-                  height: 4,
-                  color: AppColors.neutral500,
+              Text(
+                block.title,
+                style: LearningCenterStyle.body(
+                  15,
+                  color: LearningCenterStyle.ink,
+                  weight: FontWeight.w700,
                 ),
               ),
-              const SizedBox(width: 8),
-              Expanded(child: _GuideBodyText(item)),
+              const SizedBox(height: 8),
+              _GuideParagraphs(block.paragraphs),
             ],
           ),
+        ),
       ],
-    );
+    ),
+  );
+
+  Widget _tip() => _GuideCard(
+    padding: 15,
+    soft: true,
+    child: Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(top: 2),
+          child: _GuideSvg(block.iconSvg, size: 17),
+        ),
+        const SizedBox(width: 12),
+        Expanded(child: _GuideParagraphs(block.paragraphs, size: 12)),
+      ],
+    ),
+  );
+
+  Widget _checklist() => _GuideCard(
+    soft: true,
+    child: Column(
+      children: [
+        for (var i = 0; i < block.paragraphs.length; i++)
+          Padding(
+            padding: EdgeInsets.only(top: i == 0 ? 0 : 10),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Padding(
+                  padding: EdgeInsets.only(top: 2),
+                  child: Icon(
+                    LucideIcons.check,
+                    size: 15,
+                    color: LearningCenterStyle.ink,
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: _GuideRichText(block.paragraphs[i], height: 1.55),
+                ),
+              ],
+            ),
+          ),
+      ],
+    ),
+  );
+
+  Widget _figure() => _GuideCard(
+    soft: true,
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        CustomPaint(
+          foregroundPainter: const _GuideDashedBorder(),
+          child: Container(
+            height: 90,
+            padding: const EdgeInsets.all(8),
+            decoration: const BoxDecoration(
+              color: Colors.white,
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                _GuideSvg(block.iconSvg),
+                const SizedBox(width: 8),
+                Flexible(
+                  child: Text(
+                    block.title,
+                    style: LearningCenterStyle.body(
+                      12,
+                      weight: FontWeight.w600,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 10),
+        Text(
+          block.paragraphs.first.map((run) => run.$1).join().toUpperCase(),
+          style: LearningCenterStyle.body(
+            11,
+            weight: FontWeight.w700,
+          ).copyWith(letterSpacing: 0.55),
+        ),
+      ],
+    ),
+  );
+
+  Widget _actions() => Column(
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    children: [
+      for (var i = 0; i < block.actions.length; i++)
+        Padding(
+          padding: EdgeInsets.only(top: i == 0 ? 0 : 8),
+          child: LearningAction(
+            block.actions[i].$1,
+            onPressed: () => onNavigate(block.actions[i].$2),
+          ),
+        ),
+    ],
+  );
+}
+
+class _GuideCard extends StatelessWidget {
+  const _GuideCard({required this.child, this.padding = 18, this.soft = false});
+  final Widget child;
+  final double padding;
+  final bool soft;
+  @override
+  Widget build(BuildContext context) => Container(
+    padding: EdgeInsets.all(padding),
+    decoration: BoxDecoration(
+      color: soft ? const Color(0xFFF3F2EC) : Colors.white,
+      border: Border.all(color: LearningCenterStyle.line),
+    ),
+    child: child,
+  );
+}
+
+class _GuideSvg extends StatelessWidget {
+  const _GuideSvg(
+    this.svg, {
+    this.color = LearningCenterStyle.ink,
+    this.size = 18,
+  });
+  final String svg;
+  final Color color;
+  final double size;
+  @override
+  Widget build(BuildContext context) => SvgPicture.string(
+    svg,
+    width: size,
+    height: size,
+    colorFilter: ColorFilter.mode(color, BlendMode.srcIn),
+  );
+}
+
+class _GuideParagraphs extends StatelessWidget {
+  const _GuideParagraphs(this.paragraphs, {this.size = 12.5});
+  final List<GuideTextRuns> paragraphs;
+  final double size;
+  @override
+  Widget build(BuildContext context) => Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      for (var i = 0; i < paragraphs.length; i++)
+        Padding(
+          padding: EdgeInsets.only(top: i == 0 ? 0 : 8),
+          child: _GuideRichText(paragraphs[i], size: size),
+        ),
+    ],
+  );
+}
+
+class _GuideRichText extends StatelessWidget {
+  const _GuideRichText(this.runs, {this.size = 12.5, this.height = 1.6});
+  final GuideTextRuns runs;
+  final double size;
+  final double height;
+  @override
+  Widget build(BuildContext context) => Text.rich(
+    TextSpan(
+      children: [
+        for (final (text, bold) in runs)
+          TextSpan(
+            text: text,
+            style: bold
+                ? const TextStyle(
+                    color: LearningCenterStyle.ink,
+                    fontWeight: FontWeight.w700,
+                  )
+                : null,
+          ),
+      ],
+    ),
+    style: LearningCenterStyle.body(
+      size,
+      height: height,
+      color: const Color(0xFF707069),
+    ),
+  );
+}
+
+class _GuideDashedBorder extends CustomPainter {
+  const _GuideDashedBorder();
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = LearningCenterStyle.line
+      ..style = PaintingStyle.stroke;
+    final corners = [
+      Offset.zero,
+      Offset(size.width, 0),
+      Offset(size.width, size.height),
+      Offset(0, size.height),
+    ];
+    for (var edge = 0; edge < corners.length; edge++) {
+      final start = corners[edge];
+      final delta = corners[(edge + 1) % corners.length] - start;
+      final length = delta.distance;
+      for (double position = 0; position < length; position += 8) {
+        canvas.drawLine(
+          start + delta * (position / length),
+          start + delta * ((position + 4).clamp(0, length) / length),
+          paint,
+        );
+      }
+    }
   }
+
+  @override
+  bool shouldRepaint(_GuideDashedBorder oldDelegate) => false;
 }

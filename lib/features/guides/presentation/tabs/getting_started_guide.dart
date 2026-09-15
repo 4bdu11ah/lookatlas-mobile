@@ -1,328 +1,159 @@
-part of '../screens/guides_page.dart';
+part of '../models/learning_guide_content.dart';
 
-class _GettingStartedGuide extends StatelessWidget {
-  const _GettingStartedGuide({required this.onNavigate});
-
-  final ValueChanged<String> onNavigate;
-
-  @override
-  Widget build(BuildContext context) {
-    return _GuideStack(
-      children: [
-        const _GuideIntroSection(
-          title: 'Welcome to Look Atlas',
-          body: 'Look Atlas transforms your product photos into stunning on-model imagery using AI. No expensive photo shoots, no scheduling models, no studio rentals, just upload your products and watch the magic happen.',
-          largeBody: true,
-        ),
-        const _GuideSection(
-          title: 'What You Can Do',
-          children: [
-            _GuideFeatureCard(
-              icon: Icons.image_outlined,
-              title: 'Generate On-Model Photos',
-              body: 'Place your products on professional models with realistic lighting, poses, and backgrounds.',
-            ),
-            _GuideFeatureCard(
-              icon: Icons.videocam_outlined,
-              title: 'Create Product Videos',
-              body: 'Transform your images into 8-second cinematic video clips perfect for social media and ads.',
-            ),
-            _GuideFeatureCard(
-              icon: Icons.auto_fix_high_outlined,
-              title: 'AI-Powered Edits',
-              body: 'Refine generated images with natural language, just describe what you want to change.',
-            ),
-          ],
-        ),
-        const _GuideSection(
-          title: 'Quick Start in 5 Steps',
-          children: [
-            _GuideStep(
-              number: 1,
-              title: 'Upload Your Product',
-              body: 'Go to Products and add your first product. Upload 1-5 photos showing front, back, side, and detail shots.',
-              extra: _GuideCallout(
-                type: _GuideCalloutType.tip,
-                strongPrefix: 'Best results: ',
-                text: 'Use clean, well-lit photos on a neutral background.',
-              ),
-            ),
-            _GuideStep(
-              number: 2,
-              title: 'Choose a Model',
-              body: 'Go to House Models and choose the Look Atlas Library, upload your own model, or create one with AI for 20 credits.',
-            ),
-            _GuideStep(
-              number: 3,
-              title: 'Create Your First Shoot',
-              body: 'Head to Shoots, pick a director, generate shot ideas, choose your model, and submit.',
-              extra: _GuideCallout(
-                type: _GuideCalloutType.info,
-                text: 'Shoots create full catalog sets with multiple angles and variations, plus video generation.',
-              ),
-            ),
-            _GuideStep(
-              number: 4,
-              title: 'Review & Download',
-              body: 'Review the generated image, download it, or use AI Edits to describe refinements.',
-            ),
-            _GuideStep(
-              number: 5,
-              title: 'Add Variations or Resize',
-              body: 'Use Add Variation for alternates, or select Standard / HD / 4K when creating the next shoot.',
-            ),
-          ],
-        ),
-        const _GuideCreditsSection(),
-        _GuideSection(
-          title: 'Jump Right In',
-          children: [
-            _GuideQuickActionCard(
-              icon: Icons.inventory_2_outlined,
-              title: 'Products',
-              body: 'Upload and manage your product photos',
-              buttonLabel: 'Add Products',
-              onTap: () => onNavigate(AppRoutes.dashboardProducts),
-            ),
-            _GuideQuickActionCard(
-              icon: Icons.groups_outlined,
-              title: 'Models',
-              body: 'Browse or create your house models',
-              buttonLabel: 'View Models',
-              onTap: () => onNavigate(AppRoutes.dashboardModels),
-            ),
-            _GuideQuickActionCard(
-              icon: Icons.play_arrow_outlined,
-              title: 'Shoots',
-              body: 'Full production photo shoots',
-              buttonLabel: 'Create Shoot',
-              onTap: () => unawaited(context.push<void>(AppRoutes.createShoot)),
-            ),
-          ],
-        ),
-        _GuideReadyCallout(
-          onSupport: () => onNavigate(AppRoutes.dashboardSupport),
-        ),
+const gettingStartedContent = LearningGuideContent(
+  kicker: 'The Look Atlas workflow',
+  title: 'From reference photos to approved keepers.',
+  intro: 'Build a reusable product library and cast, plan the contact sheet, then review every delivered image in one shoot room.',
+  blocks: [
+    LearningGuideBlock(
+      GuideBlockKind.feature,
+      title: 'Reusable products',
+      paragraphs: [
+        [
+          (
+            'Save clear reference views, required catalog details, crop choices, angle labels, and calibration in one product record.',
+            false,
+          ),
+        ],
       ],
-    );
-  }
-}
-
-class _GuideCreditsSection extends StatelessWidget {
-  const _GuideCreditsSection();
-
-  @override
-  Widget build(BuildContext context) {
-    return const _GuideSection(
-      title: 'Understanding Credits',
-      children: [
-        _GuideContentCard(
-          children: [
-            _GuideBodyText(
-              'Credits are the currency of Look Atlas. Different actions cost different amounts:',
-            ),
-            _GuideCreditItem(
-              number: '1',
-              title: 'Image Generation',
-              body: 'Per image variation',
-            ),
-            _GuideCreditItem(
-              number: '20',
-              title: 'AI Model Creation',
-              body: 'Per custom model',
-            ),
-            _GuideCreditItem(
-              number: '10',
-              title: 'Video Generation',
-              body: '10 Video or 25 Video HD',
-            ),
-            _GuideCreditItem(
-              number: '0',
-              title: 'Look Atlas Models',
-              body: 'Free to use',
-              inverted: true,
-            ),
-            _GuideBodyText(
-              'Check remaining credits anytime on the Dashboard or in Billing.',
-            ),
-          ],
-        ),
+      iconSvg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16.5 9.4 7.55 4.24a1.78 1.78 0 0 0-2.5 1.55v12.42a1.78 1.78 0 0 0 2.5 1.55L16.5 14.6a1.78 1.78 0 0 0 0-3.2z"></path><polyline points="21 16 21 8 16.5 9.4 16.5 14.6 21 16"></polyline><polyline points="3 8 7.55 4.24 7.55 19.76 3 16"></polyline></svg>',
+    ),
+    LearningGuideBlock(
+      GuideBlockKind.feature,
+      title: 'A reusable cast',
+      paragraphs: [
+        [
+          (
+            'Choose the Look Atlas cast or keep uploaded and AI-created talent private in My models.',
+            false,
+          ),
+        ],
       ],
-    );
-  }
-}
-
-class _GuideCreditItem extends StatelessWidget {
-  const _GuideCreditItem({
-    required this.number,
-    required this.title,
-    required this.body,
-    this.inverted = false,
-  });
-
-  final String number;
-  final String title;
-  final String body;
-  final bool inverted;
-
-  @override
-  Widget build(BuildContext context) {
-    final foreground = inverted ? AppColors.white : AppColors.black;
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: inverted ? AppColors.black : AppColors.neutral100Alpha68,
-        border: Border.all(
-          color: inverted ? AppColors.black : AppColors.neutral200,
-        ),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 32,
-            height: 32,
-            alignment: Alignment.center,
-            color: inverted ? AppColors.white : AppColors.black,
-            child: Text(
-              number,
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: AppTypography.bold,
-                color: inverted ? AppColors.black : AppColors.white,
-              ),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: AppTypography.bold,
-                    color: foreground,
-                  ),
-                ),
-                Text(
-                  body,
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: inverted
-                        ? AppColors.whiteAlpha70
-                        : AppColors.neutral500,
-                  ),
-                ),
-              ],
-            ),
+      iconSvg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="5"></circle><path d="M20 21a8 8 0 0 0-16 0"></path></svg>',
+    ),
+    LearningGuideBlock(
+      GuideBlockKind.feature,
+      title: 'A review room',
+      paragraphs: [
+        [
+          (
+            'Approve keepers, download final images, or refine a result with Edit with AI and Add Variation.',
+            false,
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _GuideQuickActionCard extends StatelessWidget {
-  const _GuideQuickActionCard({
-    required this.icon,
-    required this.title,
-    required this.body,
-    required this.buttonLabel,
-    required this.onTap,
-  });
-
-  final IconData icon;
-  final String title;
-  final String body;
-  final String buttonLabel;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return _GuideBorderedCard(
-      padding: const EdgeInsets.all(24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _GuideFeatureIcon(icon: icon, size: 48),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _GuideCardTitle(title),
-                    _GuideBodyText(body),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          _GuideRouteButton(label: buttonLabel, onTap: onTap, outlined: true),
-        ],
-      ),
-    );
-  }
-}
-
-class _GuideReadyCallout extends StatelessWidget {
-  const _GuideReadyCallout({required this.onSupport});
-
-  final VoidCallback onSupport;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      color: AppColors.black,
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Icon(Icons.check, size: 20, color: AppColors.white),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Wrap(
-              crossAxisAlignment: WrapCrossAlignment.center,
-              children: [
-                const Text(
-                  "You're all set! Explore the other tabs for detailed walkthroughs. Visit ",
-                  style: TextStyle(
-                    fontSize: 14,
-                    height: 1.5,
-                    color: AppColors.white,
-                  ),
-                ),
-                GestureDetector(
-                  onTap: onSupport,
-                  child: const Text(
-                    'Support',
-                    style: TextStyle(
-                      fontSize: 14,
-                      height: 1.5,
-                      color: AppColors.white,
-                      fontWeight: AppTypography.bold,
-                      decoration: TextDecoration.underline,
-                      decorationColor: AppColors.white,
-                    ),
-                  ),
-                ),
-                const Text(
-                  ' if you have questions.',
-                  style: TextStyle(
-                    fontSize: 14,
-                    height: 1.5,
-                    color: AppColors.white,
-                  ),
-                ),
-              ],
-            ),
+      ],
+      iconSvg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m15 4-2 2L9 2 7 4l4 4-8 8v4h4l8-8 4 4 2-2-4-4 2-2Z"></path></svg>',
+    ),
+    LearningGuideBlock(
+      GuideBlockKind.heading,
+      title: 'Your first shoot in five steps',
+    ),
+    LearningGuideBlock(
+      GuideBlockKind.step,
+      title: 'Add a product',
+      number: '1',
+      paragraphs: [
+        [
+          ('Open ', false),
+          ('Products', true),
+          (', select ', false),
+          ('Add a product', true),
+          (
+            ', and complete Product name, SKU, and Category. SKU is required.',
+            false,
           ),
         ],
-      ),
-    );
-  }
-}
+        [
+          (
+            'Upload 1–8 reference views, crop them, label their angles, then select ',
+            false,
+          ),
+          ('Add to library', true),
+          ('.', false),
+        ],
+      ],
+    ),
+    LearningGuideBlock(
+      GuideBlockKind.step,
+      title: 'Prepare the reference views',
+      number: '2',
+      paragraphs: [
+        [
+          (
+            "Open the product to review angle labels and reference order. If calibration is recommended, select the calibration status and record the product's true scale. For a placed setup, including one copied from another Product, approve its Fit photo before saving.",
+            false,
+          ),
+        ],
+      ],
+    ),
+    LearningGuideBlock(
+      GuideBlockKind.step,
+      title: 'Choose or create a model',
+      number: '3',
+      paragraphs: [
+        [
+          ('Open ', false),
+          ('House Models', true),
+          ('. Browse the Look Atlas cast, switch to ', false),
+          ('My models', true),
+          (', upload private talent, or create an original AI model.', false),
+        ],
+      ],
+    ),
+    LearningGuideBlock(
+      GuideBlockKind.step,
+      title: 'Build the shoot',
+      number: '4',
+      paragraphs: [
+        [
+          ('Move through ', false),
+          ('Product', true),
+          (', ', false),
+          ('Model', true),
+          (', ', false),
+          ('Director', true),
+          (', ', false),
+          ('Shot Planning', true),
+          (', and ', false),
+          ('Generate', true),
+          ('.', false),
+        ],
+      ],
+    ),
+    LearningGuideBlock(
+      GuideBlockKind.step,
+      title: 'Review the delivery',
+      number: '5',
+      paragraphs: [
+        [
+          ('When the shoot moves to Ready for you, select ', false),
+          ('Review shoot', true),
+          (
+            '. Approve keepers, refine individual images, and download the work you need.',
+            false,
+          ),
+        ],
+      ],
+    ),
+    LearningGuideBlock(
+      GuideBlockKind.tip,
+      paragraphs: [
+        [
+          (
+            'You can leave while a shoot or AI model is processing. Work continues safely and appears in its library when ready.',
+            false,
+          ),
+        ],
+      ],
+      iconSvg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"></path><path d="M9 18h6"></path><path d="M10 22h4"></path></svg>',
+    ),
+    LearningGuideBlock(
+      GuideBlockKind.actions,
+      actions: [
+        ('Open Products', AppRoutes.dashboardProducts),
+        ('Open House Models', AppRoutes.dashboardModels),
+        ('Create a shoot', AppRoutes.createShoot),
+      ],
+    ),
+  ],
+);

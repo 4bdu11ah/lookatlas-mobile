@@ -44,10 +44,12 @@ class DeepGuideDefinition {
     required this.description,
     required this.icon,
     required this.tabId,
+    this.kicker = '',
   });
 
   final String title;
   final String description;
   final IconData icon;
   final String tabId;
+  final String kicker;
 }

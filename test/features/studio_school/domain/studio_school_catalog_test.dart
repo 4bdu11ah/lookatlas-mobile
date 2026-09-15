@@ -22,7 +22,7 @@ void main() {
         AppRoutes.dashboardBilling,
         AppRoutes.workshop,
         AppRoutes.dashboardShoots,
-        AppRoutes.dashboardSupport,
+        AppRoutes.dashboardShoots,
         null,
         AppRoutes.dashboardBilling,
       ],

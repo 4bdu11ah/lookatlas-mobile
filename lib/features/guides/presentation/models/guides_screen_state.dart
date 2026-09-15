@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 enum GuideTab {
-  gettingStarted('Getting Started', Icons.rocket_launch_outlined),
-  productPhotos('Product Photos', Icons.camera_alt_outlined),
-  models('Models', Icons.groups_outlined),
-  shoots('Shoots', Icons.play_arrow_outlined);
+  gettingStarted('Getting Started', LucideIcons.rocket),
+  productPhotos('Product Photos', LucideIcons.camera),
+  models('Models', LucideIcons.users),
+  shoots('Shoots', LucideIcons.play);
 
   const GuideTab(this.label, this.icon);
 

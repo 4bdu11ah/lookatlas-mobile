@@ -6,6 +6,8 @@
 /// `AppConfig` (`apiBaseUrl` for the Look Atlas backend, `aiBaseUrl` for the
 /// AI proxy).
 abstract final class ApiEndpoints {
+  static const supportTickets = '/support/tickets';
+
   // --- Auth (Look Atlas backend, see the Postman collection) --------------
   static const String authRegister = '/auth/register';
   static const String authLogin = '/auth/login';

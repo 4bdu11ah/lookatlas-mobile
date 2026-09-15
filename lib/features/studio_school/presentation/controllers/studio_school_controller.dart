@@ -8,6 +8,7 @@ import 'package:look_atlas/features/auth/di/auth_providers.dart';
 import 'package:look_atlas/features/dashboard/di/dashboard_providers.dart';
 import 'package:look_atlas/features/studio_school/di/studio_school_providers.dart';
 import 'package:look_atlas/features/studio_school/domain/entities/welcome_lesson.dart';
+import 'package:look_atlas/features/studio_school/presentation/controllers/learning_credit_balance_controller.dart';
 import 'package:look_atlas/features/studio_school/presentation/controllers/studio_school_state.dart';
 import 'package:look_atlas/services/service_providers.dart';
 
@@ -52,6 +53,7 @@ class StudioSchoolController extends Notifier<StudioSchoolLoadState> {
     final result = await ref
         .read(welcomeRepositoryProvider)
         .startLesson(userId, lessonId);
+    if (!ref.mounted || userId != _userId) return null;
     if (result.valueOrNull case final startedAt?) {
       unawaited(
         ref
@@ -79,6 +81,12 @@ class StudioSchoolController extends Notifier<StudioSchoolLoadState> {
     final result = await ref
         .read(welcomeRepositoryProvider)
         .completeLesson(userId, lessonId);
+    if (!ref.mounted || userId != _userId) {
+      return const LessonActionResult(
+        LessonActionKind.failed,
+        message: 'Your session changed. Reopen the lesson.',
+      );
+    }
     if (result.isOk) {
       unawaited(
         ref
@@ -135,6 +143,12 @@ class StudioSchoolController extends Notifier<StudioSchoolLoadState> {
         .read(welcomeRepositoryProvider)
         .claimLessons(userId);
     _claiming = false;
+    if (!ref.mounted || userId != _userId) {
+      return const RewardActionResult(
+        succeeded: false,
+        message: 'Your session changed. Refresh to check your credits.',
+      );
+    }
     if (result.valueOrNull case final claim?) {
       if (claim.granted > 0) {
         unawaited(
@@ -146,6 +160,9 @@ class StudioSchoolController extends Notifier<StudioSchoolLoadState> {
               ),
         );
       }
+      ref
+          .read(learningCreditBalanceProvider.notifier)
+          .applyReward(claim.granted);
       ref.invalidate(dashboardStatsProvider);
       await refresh();
       return RewardActionResult(
@@ -188,7 +205,9 @@ class StudioSchoolController extends Notifier<StudioSchoolLoadState> {
   }) async {
     final userId = _userId;
     if (userId == null) {
-      if (generation == _loadGeneration) state = const SchoolReadOnly();
+      if (ref.mounted && generation == _loadGeneration) {
+        state = const SchoolReadOnly();
+      }
       return;
     }
     late final Result<WelcomeState> result;
@@ -197,7 +216,7 @@ class StudioSchoolController extends Notifier<StudioSchoolLoadState> {
           .read(welcomeRepositoryProvider)
           .getState(userId, forceRefresh: forceRefresh);
     } on Object catch (error, stackTrace) {
-      if (generation == _loadGeneration) {
+      if (ref.mounted && generation == _loadGeneration) {
         state = SchoolFailure(
           UnknownFailure(
             'Progress could not load. Please try again.',
@@ -208,7 +227,7 @@ class StudioSchoolController extends Notifier<StudioSchoolLoadState> {
       }
       return;
     }
-    if (generation != _loadGeneration) return;
+    if (!ref.mounted || generation != _loadGeneration) return;
     state = result.fold(
       (welcome) {
         if (!welcome.eligible) return const SchoolReadOnly();
@@ -221,7 +240,10 @@ class StudioSchoolController extends Notifier<StudioSchoolLoadState> {
 
   LessonActionResult _lessonFailure(Failure failure) {
     if (failure case NetworkFailure(code: 'TOO_FAST', :final details)) {
-      final retryMs = (details['retryInMs'] as num?)?.toInt() ?? 1500;
+      final retryMs = switch (details['retryInMs']) {
+        final num value => value.toInt().clamp(0, 60000),
+        _ => 1500,
+      };
       return LessonActionResult(
         LessonActionKind.tooFast,
         retryAfter: Duration(milliseconds: retryMs),

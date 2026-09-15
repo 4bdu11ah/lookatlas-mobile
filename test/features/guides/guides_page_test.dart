@@ -1,90 +1,111 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:look_atlas/core/theme/app_theme.dart';
-import 'package:look_atlas/features/guides/presentation/guides_feature.dart';
+import 'package:look_atlas/shared/widgets/custom_app_bar.dart';
+
+import '../../helpers/fake_welcome_repository.dart';
+import '../../helpers/learning_center_test_app.dart';
+import '../../helpers/learning_center_test_fonts.dart';
 
 void main() {
-  Future<void> pumpGuides(
-    WidgetTester tester, {
-    Size size = const Size(390, 844),
-    String? initialTab,
-  }) async {
-    await tester.binding.setSurfaceSize(size);
-    addTearDown(() => tester.binding.setSurfaceSize(null));
-    await tester.pumpWidget(
-      ProviderScope(
-        child: MaterialApp(
-          theme: AppTheme.light(),
-          home: GuidesScreen(initialTab: initialTab),
-        ),
-      ),
+  TestWidgetsFlutterBinding.ensureInitialized();
+  setUpAll(loadLearningCenterTestFonts);
+  testWidgets('guides_defaultTab_rendersHtmlWorkflow', (tester) async {
+    await pumpLearningCenter(
+      tester,
+      repository: FakeWelcomeRepository(),
+      initialLocation: '/guides',
     );
-    await tester.pumpAndSettle();
-  }
-
-  testWidgets('guides page renders the reference default tab', (tester) async {
-    await pumpGuides(tester);
-
-    expect(find.byIcon(Icons.arrow_back), findsOneWidget);
-    expect(find.byIcon(Icons.menu), findsNothing);
-    expect(find.byType(Drawer), findsNothing);
     expect(find.text('Guides'), findsNWidgets(2));
+    expect(find.byType(CustomAppBar), findsOneWidget);
+    expect(find.byTooltip('Open navigation'), findsNothing);
+    expect(find.byTooltip('Back'), findsOneWidget);
     expect(
-      find.text(
-        'Everything you need to master Look Atlas and create stunning on-model product photography.',
-      ),
+      find.text('From reference photos to approved keepers.'),
       findsOneWidget,
     );
-    expect(find.text('Welcome to Look Atlas'), findsOneWidget);
-    expect(find.text('What You Can Do'), findsOneWidget);
-    expect(find.text('Generate On-Model Photos'), findsOneWidget);
-    expect(find.text('Create Product Videos'), findsOneWidget);
-    expect(find.text('AI-Powered Edits'), findsOneWidget);
+    expect(find.text('Reusable products'), findsOneWidget);
   });
-
-  testWidgets('guide tabs switch to each reference section', (tester) async {
-    await pumpGuides(tester);
-
-    await tester.tap(
-      find.byKey(const ValueKey('guide-tab-productPhotos')),
+  testWidgets('guides_tabs_switchAllFourWalkthroughs', (tester) async {
+    await pumpLearningCenter(
+      tester,
+      repository: FakeWelcomeRepository(),
+      initialLocation: '/guides',
     );
-    await tester.pumpAndSettle();
-    expect(find.text('Taking Great Product Photos'), findsOneWidget);
-    expect(find.text('Why Multiple Angles Matter'), findsOneWidget);
-
-    await tester.tap(find.byKey(const ValueKey('guide-tab-models')));
-    await tester.pumpAndSettle();
-    expect(find.text('Choosing Your Models'), findsOneWidget);
-    expect(find.text('Upload Your Own Models'), findsOneWidget);
-
-    await tester.tap(find.byKey(const ValueKey('guide-tab-shoots')));
-    await tester.pumpAndSettle();
-    expect(find.text('Mastering Shoots'), findsOneWidget);
-    expect(find.text('Complete Job Workflow'), findsOneWidget);
+    for (final (tab, title) in [
+      ('productPhotos', 'Give the planner a clean, truthful reference set.'),
+      ('models', 'Choose the Look Atlas cast or build your own roster.'),
+      ('shoots', 'Plan the contact sheet before generation starts.'),
+    ]) {
+      final button = find.byKey(ValueKey('guide-tab-$tab'));
+      await tester.ensureVisible(button);
+      await tester.tap(button);
+      await tester.pumpAndSettle();
+      expect(find.text(title), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    }
   });
-
-  testWidgets('deep link selects the requested guide tab', (tester) async {
-    await pumpGuides(tester, initialTab: 'product-photos');
-
-    expect(find.text('Taking Great Product Photos'), findsOneWidget);
-    expect(find.text('Welcome to Look Atlas'), findsNothing);
+  testWidgets('guides_deepLink_selectsProductPhotos', (tester) async {
+    await pumpLearningCenter(
+      tester,
+      repository: FakeWelcomeRepository(),
+      initialLocation: '/guides?tab=product-photos',
+    );
+    expect(
+      find.text('Give the planner a clean, truthful reference set.'),
+      findsOneWidget,
+    );
+    expect(
+      find.text('From reference photos to approved keepers.'),
+      findsNothing,
+    );
   });
-
-  testWidgets('guide tab controls expose accessible labels', (tester) async {
-    await pumpGuides(tester);
-
-    expect(find.bySemanticsLabel('Getting Started'), findsOneWidget);
-    expect(find.bySemanticsLabel('Product Photos'), findsOneWidget);
-    expect(find.bySemanticsLabel('Models'), findsOneWidget);
-    expect(find.bySemanticsLabel('Shoots'), findsOneWidget);
+  testWidgets('guides_action_opensProducts', (tester) async {
+    await pumpLearningCenter(
+      tester,
+      repository: FakeWelcomeRepository(),
+      initialLocation: '/guides?tab=product-photos',
+    );
+    final action = find.text('Open Products');
+    await tester.scrollUntilVisible(
+      action,
+      500,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.tap(action);
+    await tester.pumpAndSettle();
+    expect(find.text('Destination /products'), findsOneWidget);
   });
-
-  testWidgets('guides fit the 320px audit width across tabs', (tester) async {
-    await pumpGuides(tester, size: const Size(320, 720));
-
+  testWidgets('guides_back_returnsToHub', (tester) async {
+    await pumpLearningCenter(
+      tester,
+      repository: FakeWelcomeRepository(),
+      initialLocation: '/guides',
+    );
+    await tester.tap(find.text('Studio School'));
+    await tester.pumpAndSettle();
+    expect(find.text('Make better work, faster.'), findsOneWidget);
+  });
+  testWidgets('guides_appBarBack_returnsToHub', (tester) async {
+    await pumpLearningCenter(
+      tester,
+      repository: FakeWelcomeRepository(),
+      initialLocation: '/guides',
+    );
+    await tester.tap(find.byTooltip('Back'));
+    await tester.pumpAndSettle();
+    expect(find.text('Make better work, faster.'), findsOneWidget);
+  });
+  testWidgets('guides_320px_allTabsFit', (tester) async {
+    await pumpLearningCenter(
+      tester,
+      repository: FakeWelcomeRepository(),
+      initialLocation: '/guides',
+      size: const Size(320, 720),
+    );
     for (final tab in ['productPhotos', 'models', 'shoots', 'gettingStarted']) {
-      await tester.tap(find.byKey(ValueKey('guide-tab-$tab')));
+      final button = find.byKey(ValueKey('guide-tab-$tab'));
+      await tester.ensureVisible(button);
+      await tester.tap(button);
       await tester.pumpAndSettle();
       expect(tester.takeException(), isNull);
     }

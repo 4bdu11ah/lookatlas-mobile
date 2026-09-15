@@ -258,6 +258,9 @@ void main() {
   testWidgets('shows the signed-in user initial in the avatar', (
     tester,
   ) async {
+    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = const Size(1200, 900);
+    addTearDown(tester.view.reset);
     await pumpDashboard(
       tester,
       user: const AppUser(id: 'user-1', email: 'jane@example.com'),
@@ -267,6 +270,9 @@ void main() {
   });
 
   testWidgets('avatar initial prefers the company name', (tester) async {
+    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = const Size(1200, 900);
+    addTearDown(tester.view.reset);
     await pumpDashboard(
       tester,
       user: const AppUser(
@@ -282,6 +288,9 @@ void main() {
   testWidgets('avatar opens the profile menu with credits and actions', (
     tester,
   ) async {
+    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = const Size(1200, 900);
+    addTearDown(tester.view.reset);
     await pumpDashboard(tester);
 
     await tester.tap(find.text('J'));
@@ -301,6 +310,9 @@ void main() {
   testWidgets('log out signs the user out via the profile menu', (
     tester,
   ) async {
+    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = const Size(1200, 900);
+    addTearDown(tester.view.reset);
     final auth = FakeAuthRepository(
       user: const AppUser(id: 'user-1', email: 'jane@example.com'),
     );
@@ -343,55 +355,24 @@ void main() {
   testWidgets('opens the navigation drawer from the menu button', (
     tester,
   ) async {
+    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = const Size(1200, 900);
+    addTearDown(tester.view.reset);
     await pumpDashboard(tester);
 
     await tester.tap(find.byIcon(LucideIcons.menu));
     await tester.pumpAndSettle();
 
     expect(find.text('Look Atlas'), findsWidgets);
-    expect(find.text('Workshop'), findsWidgets);
-    expect(find.text('Settings'), findsOneWidget);
+    expect(find.text('Workspace'), findsOneWidget);
+    expect(find.text('Account Settings'), findsOneWidget);
     expect(
       find.byKey(const ValueKey('dashboard-drawer-create')),
-      findsNothing,
-    );
-    final support = find.byKey(
-      const ValueKey('dashboard-drawer-support'),
-    );
-    final assistant = find.byKey(
-      const ValueKey('dashboard-drawer-assistant'),
-    );
-    final school = find.byKey(const ValueKey('dashboard-drawer-school'));
-    final settings = find.byKey(
-      const ValueKey('dashboard-drawer-settings'),
-    );
-    expect(school, findsOneWidget);
-    expect(assistant, findsOneWidget);
-    expect(
-      tester.getTopLeft(support).dy,
-      lessThan(tester.getTopLeft(school).dy),
-    );
-    expect(
-      tester.getTopLeft(school).dy,
-      lessThan(tester.getTopLeft(assistant).dy),
-    );
-    expect(
-      tester.getTopLeft(assistant).dy,
-      lessThan(tester.getTopLeft(settings).dy),
+      findsOneWidget,
     );
     expect(
       find.byKey(const ValueKey('dashboard-drawer-surface')),
       findsOneWidget,
-    );
-    expect(
-      tester
-          .widget<Transform>(
-            find.byKey(const ValueKey('dashboard-drawer-content')),
-          )
-          .transform
-          .getTranslation()
-          .x,
-      greaterThan(0),
     );
 
     await tester.tap(
@@ -443,6 +424,25 @@ void main() {
     );
 
     await tester.tap(find.byKey(const ValueKey('dashboard-open-navigation')));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+    final reveal = find.descendant(
+      of: find.byKey(const ValueKey('dashboard-drawer-surface')),
+      matching: find.byType(ClipPath),
+    );
+    expect(reveal, findsOneWidget);
+    final revealWidget = tester.widget<ClipPath>(reveal);
+    final surfaceSize = tester.getSize(
+      find.byKey(const ValueKey('dashboard-drawer-surface')),
+    );
+    expect(
+      revealWidget.clipper!
+          .getClip(surfaceSize)
+          .contains(
+            surfaceSize.bottomRight(Offset.zero),
+          ),
+      isFalse,
+    );
     await tester.pumpAndSettle();
 
     expect(
@@ -451,7 +451,7 @@ void main() {
             find.byKey(const ValueKey('dashboard-drawer-surface')),
           )
           .width,
-      closeTo(343.2, 0.01),
+      closeTo(330, 0.01),
     );
     expect(find.text('Workspace'), findsOneWidget);
     expect(find.text('Library'), findsOneWidget);
@@ -461,8 +461,7 @@ void main() {
       find.byKey(const ValueKey('dashboard-drawer-video-editor')),
       findsOne,
     );
-    expect(find.text('SOON'), findsOneWidget);
-    expect(find.text('RA'), findsOneWidget);
+    expect(find.text('SOON'), findsNWidgets(5));
     expect(
       tester
           .widget<IconButton>(
@@ -473,15 +472,32 @@ void main() {
       isTrue,
     );
 
-    await tester.tap(
-      find.byKey(const ValueKey('dashboard-drawer-account')),
+    expect(find.text('Profile & brand'), findsOneWidget);
+    expect(find.text('Account Settings'), findsOneWidget);
+    expect(find.text('Billing & credits'), findsOneWidget);
+    expect(find.text('Learning Center'), findsOneWidget);
+    expect(find.text('Help & support'), findsOneWidget);
+    expect(find.text('Sign out'), findsOneWidget);
+    await tester.drag(
+      find.byKey(const ValueKey('dashboard-drawer-scroll')),
+      const Offset(0, -150),
     );
     await tester.pumpAndSettle();
-
-    expect(find.text('Profile & brand'), findsOneWidget);
-    expect(find.text('Settings'), findsOneWidget);
-    expect(find.text('Billing'), findsOneWidget);
-    expect(find.text('Help'), findsOneWidget);
+    for (final key in [
+      'brand-studio',
+      'design-boards',
+      'lookbooks',
+      'image-editor',
+      'video-editor',
+      'touch-ups',
+    ]) {
+      expect(
+        tester
+            .widget<InkWell>(find.byKey(ValueKey('dashboard-drawer-$key')))
+            .onTap,
+        isNull,
+      );
+    }
 
     await tester.sendKeyEvent(LogicalKeyboardKey.escape);
     await tester.pumpAndSettle();
@@ -918,6 +934,9 @@ void main() {
   });
 
   testWidgets('incompleteProfile_showsHeaderAction', (tester) async {
+    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = const Size(1200, 900);
+    addTearDown(tester.view.reset);
     await pumpDashboard(
       tester,
       welcomeRepository: FakeWelcomeRepository(
@@ -978,6 +997,7 @@ void main() {
     );
 
     expect(find.text('WORKSPACE'), findsOneWidget);
+    expect(find.text('Overview'), findsOneWidget);
     expect(
       find.byKey(const ValueKey('dashboard-header-credits')),
       findsOneWidget,

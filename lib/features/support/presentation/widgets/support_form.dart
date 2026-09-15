@@ -1,393 +1,136 @@
 part of '../screens/support_page.dart';
 
-class _SupportFormCard extends ConsumerStatefulWidget {
-  const _SupportFormCard();
-
+class _SupportForm extends ConsumerWidget {
+  const _SupportForm();
   @override
-  ConsumerState<_SupportFormCard> createState() => _SupportFormCardState();
+  Widget build(BuildContext context, WidgetRef ref) {
+    final state = ref.watch(supportControllerProvider);
+    final controller = ref.read(supportControllerProvider.notifier);
+    final remaining =
+        ref.watch(supportRetryRemainingProvider).asData?.value ?? Duration.zero;
+    if (state.submissionStatus == SupportSubmissionStatus.success) {
+      return _SupportSuccess(receipt: state.receipt!);
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const LearningKicker('Subject'),
+        const SizedBox(height: 6),
+        _SupportField(
+          fieldKey: const ValueKey('support-subject-field'),
+          value: state.subject,
+          hint: 'Summary of what you need',
+          onChanged: controller.setSubject,
+          enabled: !state.isSubmitting,
+        ),
+        const SizedBox(height: 16),
+        const LearningKicker('Message'),
+        const SizedBox(height: 6),
+        _SupportField(
+          fieldKey: const ValueKey('support-message-field'),
+          value: state.message,
+          hint: 'Tell us what you are trying to do so we can help directly...',
+          onChanged: controller.setMessage,
+          lines: 4,
+          enabled: !state.isSubmitting,
+        ),
+        const SizedBox(height: 16),
+        if (state.errorMessage != null)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: Text(
+              state.errorMessage!,
+              style: LearningCenterStyle.body(
+                12,
+                color: const Color(0xFFB42318),
+              ),
+            ),
+          ),
+        if (remaining > Duration.zero)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: Text(
+              'Try again in ${(remaining.inMilliseconds / 1000).ceil()} seconds.',
+              style: LearningCenterStyle.body(12),
+            ),
+          ),
+        Padding(
+          padding: const EdgeInsets.only(top: 6),
+          child: LearningAction(
+            state.isSubmitting ? 'SENDING...' : 'SEND REQUEST',
+            key: const ValueKey('support-submit-button'),
+            height: 46,
+            icon: LucideIcons.send,
+            onPressed: state.isSubmitting || remaining > Duration.zero
+                ? null
+                : () => unawaited(controller.submit()),
+          ),
+        ),
+      ],
+    );
+  }
 }
 
-class _SupportFormCardState extends ConsumerState<_SupportFormCard> {
-  late final TextEditingController _fullNameController;
-  late final TextEditingController _emailController;
-  late final TextEditingController _subjectController;
-  late final TextEditingController _messageController;
-
+class _SupportField extends StatefulWidget {
+  const _SupportField({
+    required this.fieldKey,
+    required this.value,
+    required this.hint,
+    required this.onChanged,
+    required this.enabled,
+    this.lines = 1,
+  });
+  final Key fieldKey;
+  final String value;
+  final String hint;
+  final ValueChanged<String> onChanged;
+  final bool enabled;
+  final int lines;
   @override
-  void initState() {
-    super.initState();
-    final state = ref.read(supportControllerProvider);
-    _fullNameController = TextEditingController(text: state.fullName);
-    _emailController = TextEditingController(text: state.email);
-    _subjectController = TextEditingController(text: state.subject);
-    _messageController = TextEditingController(text: state.message);
+  State<_SupportField> createState() => _SupportFieldState();
+}
+
+class _SupportFieldState extends State<_SupportField> {
+  late final _text = TextEditingController(text: widget.value);
+  @override
+  void didUpdateWidget(_SupportField oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (_text.text != widget.value) _text.text = widget.value;
   }
 
   @override
   void dispose() {
-    _fullNameController.dispose();
-    _emailController.dispose();
-    _subjectController.dispose();
-    _messageController.dispose();
+    _text.dispose();
     super.dispose();
   }
 
-  Future<void> _submit() async {
-    final submitted = await ref
-        .read(supportControllerProvider.notifier)
-        .submit();
-    if (!mounted || !submitted) return;
-    await _showSupportSuccessDialog(context);
-    if (!mounted) return;
-    _subjectController.clear();
-    _messageController.clear();
-    ref.read(supportControllerProvider.notifier).acknowledgeSuccess();
-  }
-
   @override
-  Widget build(BuildContext context) {
-    ref.listen(
-      supportControllerProvider.select(
-        (state) => (state.fullName, state.email),
+  Widget build(BuildContext context) => TextField(
+    key: widget.fieldKey,
+    controller: _text,
+    onChanged: widget.onChanged,
+    enabled: widget.enabled,
+    minLines: widget.lines,
+    maxLines: widget.lines,
+    style: LearningCenterStyle.body(13, color: LearningCenterStyle.ink),
+    decoration: InputDecoration(
+      hintText: widget.hint,
+      hintStyle: LearningCenterStyle.body(13),
+      filled: true,
+      fillColor: Colors.white,
+      contentPadding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+      border: const OutlineInputBorder(
+        borderRadius: BorderRadius.zero,
+        borderSide: BorderSide(color: LearningCenterStyle.line),
       ),
-      (_, identity) {
-        if (_fullNameController.text.isEmpty && identity.$1.isNotEmpty) {
-          _fullNameController.text = identity.$1;
-        }
-        if (_emailController.text.isEmpty && identity.$2.isNotEmpty) {
-          _emailController.text = identity.$2;
-        }
-      },
-    );
-    final controller = ref.read(supportControllerProvider.notifier);
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        border: Border.all(color: AppColors.neutral200),
+      enabledBorder: const OutlineInputBorder(
+        borderRadius: BorderRadius.zero,
+        borderSide: BorderSide(color: LearningCenterStyle.line),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          const Padding(
-            padding: EdgeInsets.all(24),
-            child: Text(
-              'Send us a Message',
-              style: TextStyle(
-                fontSize: 20,
-                height: 1.4,
-                fontWeight: AppTypography.bold,
-              ),
-            ),
-          ),
-          const Divider(height: 1, color: AppColors.neutral200),
-          Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                const _SupportErrorBanner(),
-                AppTextField(
-                  fieldKey: const ValueKey('support-name-field'),
-                  labelText: 'Full Name *',
-                  controller: _fullNameController,
-                  hintText: 'Enter your full name',
-                  textInputAction: TextInputAction.next,
-                  onChanged: controller.setFullName,
-                ),
-                const SizedBox(height: 24),
-                AppTextField(
-                  fieldKey: const ValueKey('support-email-field'),
-                  labelText: 'Email Address *',
-                  controller: _emailController,
-                  hintText: 'you@company.com',
-                  keyboardType: TextInputType.emailAddress,
-                  textInputAction: TextInputAction.next,
-                  onChanged: controller.setEmail,
-                ),
-                const SizedBox(height: 24),
-                AppTextField(
-                  fieldKey: const ValueKey('support-subject-field'),
-                  labelText: 'Subject *',
-                  controller: _subjectController,
-                  hintText: 'How can we help?',
-                  textInputAction: TextInputAction.next,
-                  onChanged: controller.setSubject,
-                ),
-                const SizedBox(height: 24),
-                const _SupportPriorityField(),
-                const SizedBox(height: 24),
-                _SupportMessageField(controller: _messageController),
-                const SizedBox(height: 24),
-                _SupportSubmitFooter(onSubmit: _submit),
-              ],
-            ),
-          ),
-        ],
+      focusedBorder: const OutlineInputBorder(
+        borderRadius: BorderRadius.zero,
+        borderSide: BorderSide(color: LearningCenterStyle.ink),
       ),
-    );
-  }
-}
-
-class _SupportErrorBanner extends ConsumerWidget {
-  const _SupportErrorBanner();
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final error = ref.watch(
-      supportControllerProvider.select((state) => state.errorMessage),
-    );
-    if (error == null) return const SizedBox.shrink();
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 24),
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          color: AppColors.danger.withValues(alpha: 0.1),
-          border: Border.all(color: AppColors.danger.withValues(alpha: 0.2)),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Text(
-            error,
-            style: const TextStyle(
-              fontSize: 14,
-              height: 1.43,
-              color: AppColors.danger,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _SupportPriorityField extends ConsumerWidget {
-  const _SupportPriorityField();
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final priority = ref.watch(
-      supportControllerProvider.select((state) => state.priority),
-    );
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        const _SupportFieldLabel(label: 'Priority Level'),
-        const SizedBox(height: 8),
-        AppDropdown<SupportPriority>(
-          value: priority,
-          values: SupportPriority.values,
-          labelFor: (value) => value.label,
-          onChanged: ref.read(supportControllerProvider.notifier).setPriority,
-        ),
-      ],
-    );
-  }
-}
-
-class _SupportMessageField extends ConsumerWidget {
-  const _SupportMessageField({required this.controller});
-
-  final TextEditingController controller;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final characterCount = ref.watch(
-      supportControllerProvider.select((state) => state.message.length),
-    );
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        const _SupportFieldLabel(label: 'Message', required: true),
-        const SizedBox(height: 8),
-        SizedBox(
-          height: 184,
-          child: Stack(
-            children: [
-              Positioned.fill(
-                child: AppTextField(
-                  fieldKey: const ValueKey('support-message-field'),
-                  controller: controller,
-                  onChanged: ref
-                      .read(supportControllerProvider.notifier)
-                      .setMessage,
-                  expands: true,
-                  minLines: null,
-                  maxLines: null,
-                  keyboardType: TextInputType.multiline,
-                  textStyle: const TextStyle(fontSize: 16, height: 1.5),
-                  hintText: 'Please provide detailed information about your issue or question...',
-                  hintStyle: const TextStyle(
-                    fontSize: 16,
-                    color: AppColors.neutral500,
-                  ),
-                  contentPadding: const EdgeInsets.fromLTRB(16, 12, 16, 36),
-                ),
-              ),
-              Positioned(
-                right: 12,
-                bottom: 12,
-                child: IgnorePointer(
-                  child: Text(
-                    '$characterCount characters',
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: AppColors.neutral500,
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _SupportFieldLabel extends StatelessWidget {
-  const _SupportFieldLabel({required this.label, this.required = false});
-
-  final String label;
-  final bool required;
-
-  @override
-  Widget build(BuildContext context) {
-    return Text.rich(
-      TextSpan(
-        text: label,
-        children: required
-            ? const [
-                TextSpan(
-                  text: ' *',
-                  style: TextStyle(color: AppColors.danger),
-                ),
-              ]
-            : const [],
-      ),
-      style: const TextStyle(
-        fontSize: 14,
-        fontWeight: AppTypography.medium,
-      ),
-    );
-  }
-}
-
-class _SupportSubmitFooter extends ConsumerWidget {
-  const _SupportSubmitFooter({required this.onSubmit});
-
-  final Future<void> Function() onSubmit;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final isSubmitting = ref.watch(
-      supportControllerProvider.select((state) => state.isSubmitting),
-    );
-    const responseCopy = Text.rich(
-      TextSpan(
-        text: "We'll respond within ",
-        children: [
-          TextSpan(
-            text: '24 hours',
-            style: TextStyle(
-              color: AppColors.black,
-              fontWeight: AppTypography.bold,
-            ),
-          ),
-        ],
-      ),
-      style: TextStyle(fontSize: 12, color: AppColors.neutral500),
-    );
-    final button = _SupportSubmitButton(
-      isSubmitting: isSubmitting,
-      onSubmit: onSubmit,
-    );
-    return DecoratedBox(
-      decoration: const BoxDecoration(
-        border: Border(top: BorderSide(color: AppColors.neutral200)),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.only(top: 16),
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            if (constraints.maxWidth < 280) {
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  responseCopy,
-                  const SizedBox(height: 12),
-                  Align(alignment: Alignment.centerRight, child: button),
-                ],
-              );
-            }
-            return Row(
-              children: [
-                const Expanded(child: responseCopy),
-                const SizedBox(width: 12),
-                button,
-              ],
-            );
-          },
-        ),
-      ),
-    );
-  }
-}
-
-class _SupportSubmitButton extends StatelessWidget {
-  const _SupportSubmitButton({
-    required this.isSubmitting,
-    required this.onSubmit,
-  });
-
-  final bool isSubmitting;
-  final Future<void> Function() onSubmit;
-
-  @override
-  Widget build(BuildContext context) {
-    return Semantics(
-      button: true,
-      enabled: !isSubmitting,
-      child: Material(
-        color: AppColors.black,
-        child: InkWell(
-          key: const ValueKey('support-submit-button'),
-          onTap: isSubmitting ? null : onSubmit,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 18),
-            child: SizedBox(
-              height: 40,
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (isSubmitting)
-                    const SizedBox.square(
-                      dimension: 16,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: AppColors.white,
-                      ),
-                    )
-                  else
-                    const Icon(
-                      Icons.send_outlined,
-                      size: 16,
-                      color: AppColors.white,
-                    ),
-                  const SizedBox(width: 8),
-                  Text(
-                    isSubmitting ? 'Sending...' : 'Send Message',
-                    style: const TextStyle(
-                      fontSize: 14,
-                      fontWeight: AppTypography.medium,
-                      color: AppColors.white,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
+    ),
+  );
 }

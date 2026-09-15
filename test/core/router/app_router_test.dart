@@ -489,6 +489,9 @@ void main() {
     testWidgets('drawer pushes the selected feature over the dashboard', (
       tester,
     ) async {
+      tester.view.physicalSize = const Size(390, 844);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
       final router = await pumpRouter(tester, user: user, settle: false);
 
       router.go(AppRoutes.home);
@@ -497,12 +500,23 @@ void main() {
       await tester.tap(find.byIcon(LucideIcons.menu));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 350));
+      await tester.pump(const Duration(milliseconds: 100));
+      await tester.scrollUntilVisible(
+        find.byKey(const ValueKey('dashboard-drawer-models')).hitTestable(),
+        100,
+        scrollable: find.descendant(
+          of: find.byKey(const ValueKey('dashboard-drawer-scroll')),
+          matching: find.byType(Scrollable),
+        ),
+      );
       await tester.tap(find.byKey(const ValueKey('dashboard-drawer-models')));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 300));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 300));
 
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
       expect(find.byType(Drawer), findsNothing);
       expect(find.byType(HouseModelsScreen), findsOneWidget);
       expect(find.text('House Models'), findsOneWidget);

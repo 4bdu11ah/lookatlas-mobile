@@ -34,8 +34,12 @@ migrate_working_dir/
 /coverage/
 
 # Golden test output and local baselines
-test/features/**/goldens/
-test/features/**/failures/
+**/goldens/
+**/failures/
+test/**/*.png
+test/**/*.jpg
+test/**/*.jpeg
+test/**/*.webp
 
 # Symbolication related
 app.*.symbols
@@ -71,3 +75,4 @@ graphify-out/
 
 # FVM Version Cache
 .fvm/
+

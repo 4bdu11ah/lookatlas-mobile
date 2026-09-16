@@ -1,32 +1,20 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:look_atlas/core/error/failure.dart';
 import 'package:look_atlas/core/theme/app_colors.dart';
 import 'package:look_atlas/core/theme/app_typography.dart';
+import 'package:look_atlas/features/dashboard/presentation/controllers/campaign_selection_controller.dart';
+import 'package:look_atlas/features/dashboard/presentation/models/campaign_shot.dart';
+import 'package:look_atlas/features/dashboard/presentation/widgets/overview_style.dart';
 import 'package:look_atlas/shared/widgets/app_image.dart';
 import 'package:look_atlas/shared/widgets/app_outlined_button.dart';
 import 'package:look_atlas/shared/widgets/app_snack_bar.dart';
 import 'package:look_atlas/shared/widgets/primary_button.dart';
 import 'package:look_atlas/shared/widgets/shimmer_box.dart';
 
-@immutable
-class CampaignShot {
-  const CampaignShot({
-    required this.id,
-    required this.url,
-    required this.approved,
-  });
+export 'package:look_atlas/features/dashboard/presentation/models/campaign_shot.dart';
 
-  final String id;
-  final String? url;
-  final bool approved;
-}
-
-typedef ToggleCampaignShot = Future<Failure?> Function(
-  CampaignShot shot, {
-  required bool approved,
-});
-
-class CampaignFlipCard extends StatefulWidget {
+class CampaignFlipCard extends ConsumerWidget {
   const CampaignFlipCard({
     required this.jobId,
     required this.images,
@@ -59,121 +47,135 @@ class CampaignFlipCard extends StatefulWidget {
   final Widget? showRescue;
 
   @override
-  State<CampaignFlipCard> createState() => CampaignFlipCardState();
-}
-
-@visibleForTesting
-class CampaignFlipCardState extends State<CampaignFlipCard> {
-  final Set<String> _inflight = {};
-  final Map<String, bool> _approvedOverrides = {};
-
-  bool _approved(CampaignShot shot) =>
-      _approvedOverrides[shot.id] ?? shot.approved;
-
-  int get keptCount => widget.images.where(_approved).length;
-
-  Future<void> _toggle(CampaignShot shot) async {
-    if (_inflight.contains(shot.id)) return;
-    final next = !_approved(shot);
-    setState(() {
-      _inflight.add(shot.id);
-      _approvedOverrides[shot.id] = next;
-    });
-    final failure = await widget.onToggleKeep(shot, approved: next);
-    if (!mounted) return;
-    if (failure != null) {
-      setState(() => _approvedOverrides[shot.id] = !next);
-      AppSnackBar.showError(context, "Couldn't save that. Try again.");
-    }
-    setState(() => _inflight.remove(shot.id));
-  }
-
-  @override
-  void didUpdateWidget(covariant CampaignFlipCard oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    final currentIds = widget.images.map((shot) => shot.id).toSet();
-    _approvedOverrides.removeWhere((id, _) => !currentIds.contains(id));
-    for (final shot in widget.images) {
-      final local = _approvedOverrides[shot.id];
-      if (!_inflight.contains(shot.id) && local == shot.approved) {
-        _approvedOverrides.remove(shot.id);
+  Widget build(BuildContext context, WidgetRef ref) {
+    final selection = ref.watch(campaignSelectionControllerProvider(jobId));
+    final controller = ref.read(
+      campaignSelectionControllerProvider(jobId).notifier,
+    );
+    bool approved(CampaignShot shot) =>
+        selection.overrides[shot.id] ?? shot.approved;
+    final keptCount = images.where(approved).length;
+    Future<void> toggle(CampaignShot shot) async {
+      final failure = await controller.toggle(shot, images, onToggleKeep);
+      if (failure != null && context.mounted) {
+        AppSnackBar.showError(
+          context,
+          failure is ValidationFailure
+              ? failure.message
+              : "Couldn't save that. Try again.",
+        );
       }
     }
+
+    return Semantics(
+      container: true,
+      label: 'First campaign for shoot $jobId',
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _CampaignHeading(onOpenWorkshop: onOpenWorkshop),
+          if (!checklistClaimed) ...[
+            const SizedBox(height: 18),
+            PrimaryButton(
+              label: 'Studio built. Claim your 20 free credits',
+              height: 38,
+              iconSize: 14,
+              textStyle: OverviewStyle.body(12, bold: true),
+              icon: Icons.card_giftcard,
+              backgroundColor: AppColors.white,
+              foregroundColor: AppColors.black,
+              isLoading: claiming,
+              onPressed: claiming ? null : onClaim,
+            ),
+          ],
+          const SizedBox(height: 16),
+          _CampaignImages(
+            images: images.take(10).toList(growable: false),
+            loading: imagesLoading,
+            failure: imageFailure,
+            approved: approved,
+            inflight: selection.inflight,
+            onToggle: toggle,
+            onRetry: onRetryImages,
+          ),
+          const SizedBox(height: 16),
+          _CampaignActions(
+            keptCount: keptCount,
+            checklistClaimed: checklistClaimed,
+            onOpenShoot: onOpenShoot,
+            onOpenWorkshop: onOpenWorkshop,
+            onDone: onDone,
+          ),
+          if (showRescue case final rescue?) ...[
+            const SizedBox(height: 20),
+            rescue,
+          ],
+        ],
+      ),
+    );
   }
+}
+
+class _CampaignActions extends StatelessWidget {
+  const _CampaignActions({
+    required this.keptCount,
+    required this.checklistClaimed,
+    required this.onOpenShoot,
+    required this.onOpenWorkshop,
+    required this.onDone,
+  });
+  final int keptCount;
+  final bool checklistClaimed;
+  final VoidCallback onOpenShoot;
+  final VoidCallback onOpenWorkshop;
+  final VoidCallback onDone;
 
   @override
-  Widget build(BuildContext context) => Semantics(
-    container: true,
-    label: 'First campaign for shoot ${widget.jobId}',
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        _CampaignHeading(onOpenWorkshop: widget.onOpenWorkshop),
-        if (!widget.checklistClaimed) ...[
-          const SizedBox(height: 18),
-          PrimaryButton(
-            label: 'Studio built. Claim your 20 free credits',
-            icon: Icons.card_giftcard,
-            backgroundColor: AppColors.white,
-            foregroundColor: AppColors.black,
-            isLoading: widget.claiming,
-            onPressed: widget.claiming ? null : widget.onClaim,
-          ),
-        ],
+  Widget build(BuildContext context) => Column(
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    children: [
+      PrimaryButton(
+        label: keptCount > 0
+            ? 'Open shoot ($keptCount kept)'
+            : 'Open shoot (0 kept)',
+        height: 38,
+        iconSize: 14,
+        textStyle: OverviewStyle.body(12, bold: true),
+        icon: Icons.download_outlined,
+        backgroundColor: AppColors.white,
+        foregroundColor: AppColors.black,
+        onPressed: onOpenShoot,
+      ),
+      const SizedBox(height: 8),
+      AppOutlinedButton(
+        label: 'Fix a small flaw in Workshop →',
+        height: 34,
+        textStyle: OverviewStyle.body(11, bold: true),
+        foregroundColor: AppColors.white,
+        borderColor: AppColors.whiteAlpha40,
+        backgroundColor: AppColors.transparent,
+        onPressed: onOpenWorkshop,
+      ),
+      if (checklistClaimed) ...[
         const SizedBox(height: 24),
-        _CampaignImages(
-          images: widget.images.take(10).toList(growable: false),
-          loading: widget.imagesLoading,
-          failure: widget.imageFailure,
-          approved: _approved,
-          inflight: _inflight,
-          onToggle: _toggle,
-          onRetry: widget.onRetryImages,
-        ),
-        const SizedBox(height: 18),
-        PrimaryButton(
-          label: keptCount > 0
-              ? 'Open shoot ($keptCount kept)'
-              : 'Open the shoot',
-          icon: Icons.download_outlined,
-          backgroundColor: AppColors.white,
-          foregroundColor: AppColors.black,
-          onPressed: widget.onOpenShoot,
-        ),
-        const SizedBox(height: 10),
-        AppOutlinedButton(
-          label: 'Fix a small flaw',
-          icon: Icons.auto_fix_high,
-          foregroundColor: AppColors.white,
-          borderColor: AppColors.whiteAlpha40,
-          backgroundColor: AppColors.transparent,
-          onPressed: widget.onOpenWorkshop,
-        ),
-        if (widget.checklistClaimed) ...[
-          const SizedBox(height: 24),
-          const Divider(color: AppColors.whiteAlpha15, height: 1),
-          const SizedBox(height: 12),
-          Align(
-            alignment: Alignment.centerLeft,
-            child: TextButton(
-              onPressed: widget.onDone,
-              child: const Text(
-                "I'm all set, hide this",
-                style: TextStyle(
-                  color: AppColors.whiteAlpha50,
-                  decoration: TextDecoration.underline,
-                  decorationColor: AppColors.whiteAlpha50,
-                ),
+        const Divider(color: AppColors.whiteAlpha15, height: 1),
+        const SizedBox(height: 12),
+        Align(
+          alignment: Alignment.centerLeft,
+          child: TextButton(
+            onPressed: onDone,
+            child: const Text(
+              "I'm all set, hide this",
+              style: TextStyle(
+                color: AppColors.whiteAlpha50,
+                decoration: TextDecoration.underline,
+                decorationColor: AppColors.whiteAlpha50,
               ),
             ),
           ),
-        ],
-        if (widget.showRescue case final rescue?) ...[
-          const SizedBox(height: 20),
-          rescue,
-        ],
+        ),
       ],
-    ),
+    ],
   );
 }
 
@@ -195,7 +197,7 @@ class _CampaignHeading extends StatelessWidget {
           letterSpacing: 2,
         ),
       ),
-      const SizedBox(height: 12),
+      const SizedBox(height: 6),
       const Text.rich(
         TextSpan(
           text: 'Your first shoot is done. Pick your ',
@@ -203,7 +205,7 @@ class _CampaignHeading extends StatelessWidget {
             TextSpan(
               text: 'heroes',
               style: TextStyle(
-                fontFamily: 'Georgia',
+                fontFamily: 'InstrumentSerif',
                 fontStyle: FontStyle.italic,
                 fontWeight: AppTypography.regular,
               ),
@@ -213,19 +215,24 @@ class _CampaignHeading extends StatelessWidget {
         ),
         style: TextStyle(
           color: AppColors.white,
-          fontSize: 32,
+          fontFamily: 'InstrumentSerif',
+          fontSize: 34,
           height: 1.05,
           letterSpacing: -1,
-          fontWeight: AppTypography.bold,
+          fontWeight: AppTypography.regular,
         ),
       ),
-      const SizedBox(height: 10),
+      const SizedBox(height: 6),
       Wrap(
         crossAxisAlignment: WrapCrossAlignment.center,
         children: [
           const Text(
             'Keep your 3 favorite shots. If one is almost right, ',
-            style: TextStyle(color: AppColors.whiteAlpha70, height: 1.5),
+            style: TextStyle(
+              color: AppColors.whiteAlpha70,
+              fontSize: 12,
+              height: 1.5,
+            ),
           ),
           Semantics(
             button: true,
@@ -246,7 +253,11 @@ class _CampaignHeading extends StatelessWidget {
           ),
           const Text(
             ' instead of reshooting.',
-            style: TextStyle(color: AppColors.whiteAlpha70, height: 1.5),
+            style: TextStyle(
+              color: AppColors.whiteAlpha70,
+              fontSize: 12,
+              height: 1.5,
+            ),
           ),
         ],
       ),
@@ -276,7 +287,7 @@ class _CampaignImages extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final kept = images.where(approved).length;
-    final itemSize = MediaQuery.sizeOf(context).width >= 400 ? 112.0 : 96.0;
+    const itemSize = 96.0;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -296,7 +307,10 @@ class _CampaignImages extends StatelessWidget {
             ),
             Text(
               '$kept of 3 picked',
-              style: const TextStyle(color: AppColors.whiteAlpha60),
+              style: const TextStyle(
+                color: AppColors.whiteAlpha60,
+                fontSize: 11,
+              ),
             ),
           ],
         ),
@@ -307,9 +321,9 @@ class _CampaignImages extends StatelessWidget {
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
               itemCount: 3,
-              itemBuilder: (_, _) => SizedBox.square(
+              itemBuilder: (_, _) => const SizedBox.square(
                 dimension: itemSize,
-                child: const ShimmerBox(),
+                child: ShimmerBox(),
               ),
               separatorBuilder: (_, _) => const SizedBox(width: 8),
             ),
@@ -402,16 +416,16 @@ class _CampaignImageTile extends StatelessWidget {
                   const ColoredBox(color: AppColors.whiteAlpha10),
                 if (selected)
                   const Positioned(
-                    right: 6,
-                    top: 6,
+                    right: 4,
+                    top: 4,
                     child: ColoredBox(
                       color: AppColors.white,
                       child: SizedBox.square(
-                        dimension: 22,
+                        dimension: 18,
                         child: Icon(
                           Icons.check,
                           color: AppColors.black,
-                          size: 17,
+                          size: 12,
                         ),
                       ),
                     ),

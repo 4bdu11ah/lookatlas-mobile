@@ -4,318 +4,238 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:look_atlas/core/router/app_routes.dart';
-import 'package:look_atlas/core/theme/app_colors.dart';
-import 'package:look_atlas/core/theme/app_typography.dart';
-import 'package:look_atlas/features/dashboard/domain/entities/dashboard_data.dart';
+import 'package:look_atlas/features/dashboard/domain/entities/dashboard_overview.dart';
 import 'package:look_atlas/features/dashboard/presentation/controllers/dashboard_overview_controller.dart';
 import 'package:look_atlas/features/dashboard/presentation/controllers/dashboard_welcome_controller.dart';
 import 'package:look_atlas/features/dashboard/presentation/models/dashboard_page.dart';
 import 'package:look_atlas/features/dashboard/presentation/widgets/dashboard_welcome_block.dart';
-import 'package:look_atlas/features/shoots/presentation/shoots_feature.dart';
+import 'package:look_atlas/features/dashboard/presentation/widgets/overview_activity.dart';
+import 'package:look_atlas/features/dashboard/presentation/widgets/overview_collection.dart';
+import 'package:look_atlas/features/dashboard/presentation/widgets/overview_recent_work.dart';
+import 'package:look_atlas/features/dashboard/presentation/widgets/overview_rooms.dart';
+import 'package:look_atlas/features/dashboard/presentation/widgets/overview_style.dart';
 import 'package:look_atlas/features/studio_school/di/studio_school_providers.dart';
 import 'package:look_atlas/features/studio_school/presentation/widgets/school_dashboard_helper.dart';
-import 'package:look_atlas/shared/widgets/app_card.dart';
-import 'package:look_atlas/shared/widgets/app_feedback.dart';
-import 'package:look_atlas/shared/widgets/app_hairline.dart';
-import 'package:look_atlas/shared/widgets/app_media_widgets.dart';
-import 'package:look_atlas/shared/widgets/app_outlined_button.dart';
-import 'package:look_atlas/shared/widgets/app_spaced_column.dart';
-import 'package:look_atlas/shared/widgets/app_text.dart';
-import 'package:look_atlas/shared/widgets/bar_spinner.dart';
-import 'package:look_atlas/shared/widgets/shimmer_box.dart';
-
-part '../widgets/dashboard_quick_actions.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 class DashboardOverviewScreen extends ConsumerWidget {
-  const DashboardOverviewScreen({
-    required this.onNavigate,
-    super.key,
-  });
-
+  const DashboardOverviewScreen({required this.onNavigate, super.key});
   final ValueChanged<DashboardPage> onNavigate;
+
+  static const _sections = <Widget>[
+    _OverviewGuidance(),
+    _OverviewStaleWarning(),
+    _OverviewPageHeader(),
+    OverviewActivity(),
+    OverviewRecentWork(),
+    OverviewBrandRoom(),
+    OverviewCollection(),
+    OverviewCreativeRooms(),
+    OverviewLearningStrip(),
+  ];
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final state = ref.watch(dashboardOverviewControllerProvider);
+    final failed = ref.watch(
+      dashboardOverviewControllerProvider.select(
+        (state) =>
+            state.hasError ||
+            (state.value?.overview == null && state.value?.failure != null),
+      ),
+    );
+    return CustomScrollView(
+      key: const ValueKey('dashboard-overview-scroll'),
+      physics: const AlwaysScrollableScrollPhysics(),
+      slivers: [
+        SliverPadding(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 80),
+          sliver: failed
+              ? const SliverToBoxAdapter(child: _OverviewLoadError())
+              : SliverList(
+                  delegate: SliverChildBuilderDelegate(
+                    (context, index) =>
+                        index >= 3 && index < _sections.length - 1
+                        ? Padding(
+                            padding: const EdgeInsets.only(bottom: 24),
+                            child: _sections[index],
+                          )
+                        : _sections[index],
+                    childCount: _sections.length,
+                  ),
+                ),
+        ),
+      ],
+    );
+  }
+}
+
+class _OverviewGuidance extends ConsumerStatefulWidget {
+  const _OverviewGuidance();
+  @override
+  ConsumerState<_OverviewGuidance> createState() => _OverviewGuidanceState();
+}
+
+class _OverviewGuidanceState extends ConsumerState<_OverviewGuidance>
+    with AutomaticKeepAliveClientMixin {
+  @override
+  bool get wantKeepAlive => true;
+  @override
+  Widget build(BuildContext context) {
+    super.build(context);
+    final guidance = ref.watch(
+      dashboardOverviewControllerProvider.select(
+        (state) => (
+          subscription: state.value?.subscription,
+          ownedShoot: state.value?.overview?.ownedShoot,
+        ),
+      ),
+    );
+    final subscription = guidance.subscription;
+    if (subscription == null) return const SizedBox.shrink();
     final welcome = ref.watch(studioSchoolWelcomeProvider)?.dashboard;
-    final shouldOpenIntro = switch (state) {
-      AsyncData(:final value)
-          when value.subscription?.accessTier == 'subscriber' &&
-              welcome != null =>
+    if (subscription.accessTier == 'subscriber' &&
+        welcome != null &&
         ref
             .read(dashboardWelcomeControllerProvider.notifier)
-            .shouldOpenIntro(welcome),
-      _ => false,
-    };
-    if (shouldOpenIntro) {
+            .shouldOpenIntro(welcome)) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (context.mounted) context.go(AppRoutes.welcome);
       });
     }
-    return AppSpacedColumn(
-      gap: 32,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const AppPageHeader(
-          title: 'Dashboard',
-          body: "Welcome back! Here's your Look Atlas overview.",
-        ),
-        switch (state) {
-          AsyncData(:final value) => _DashboardOverviewContent(
-            state: value,
-            onNavigate: onNavigate,
-            onOpenShoot: (shoot) => unawaited(
-              context.push<void>(AppRoutes.shootDetail(shoot.id)),
-            ),
-          ),
-          _ => const _DashboardOverviewContent(
-            state: DashboardOverviewState(),
-            onNavigate: _ignoreDashboardNavigation,
-            onOpenShoot: _ignoreDashboardShoot,
-          ),
-        },
-      ],
-    );
-  }
-}
-
-class _DashboardOverviewContent extends StatelessWidget {
-  const _DashboardOverviewContent({
-    required this.state,
-    required this.onNavigate,
-    required this.onOpenShoot,
-  });
-
-  final DashboardOverviewState state;
-  final ValueChanged<DashboardPage> onNavigate;
-  final ValueChanged<ShootViewModel> onOpenShoot;
-
-  @override
-  Widget build(BuildContext context) {
-    return AppSpacedColumn(
-      gap: 32,
-      children: [
-        if (state.subscription?.needsPaymentUpdate ?? false)
-          const AppAlert(
-            kind: AppAlertKind.error,
-            text: 'Your subscription payment needs attention.',
+        if (subscription.needsPaymentUpdate)
+          const _OverviewAlert(
+            text: 'Your subscription payment needs attention. Update your payment method in Billing.',
+            error: true,
           )
-        else if (state.subscription?.cancelAtPeriodEnd ?? false)
-          const AppAlert(
-            kind: AppAlertKind.warn,
-            text: 'Your subscription is set to end after this billing period.',
+        else if (subscription.cancelAtPeriodEnd)
+          const _OverviewAlert(
+            text: 'Your subscription is set to end after this billing period. You can manage your plan in Billing.',
+            warn: true,
           )
-        else if (state.subscription?.accessTier == 'onetime_download' &&
-            (state.subscription?.proUpsellActive ?? false))
-          const AppAlert(
-            kind: AppAlertKind.info,
+        else if (subscription.accessTier == 'onetime_download' &&
+            subscription.proUpsellActive)
+          const _OverviewAlert(
             text: 'Your limited-time Pro offer is available in Billing.',
           ),
-        _DashboardGuidanceAndStats(
-          subscription: state.subscription,
-          focusJob: state.recentJobs.firstOrNull,
-          stats: state.stats,
-        ),
-        _RecentShoots(
-          shoots: state.shoots,
-          isLoading: state.isLoadingRecentJobs,
-          onNavigate: onNavigate,
-          onOpenShoot: onOpenShoot,
-        ),
-        _QuickActions(onNavigate: onNavigate),
+        if (DashboardWelcomeBlock.isVisible(
+          ref,
+          subscription: subscription,
+          focusJob: guidance.ownedShoot,
+        ))
+          Padding(
+            padding: const EdgeInsets.only(bottom: 24),
+            child: DashboardWelcomeBlock(
+              subscription: subscription,
+              focusJob: guidance.ownedShoot,
+            ),
+          ),
+        if (subscription.accessTier == 'subscriber' &&
+            SchoolDashboardHelper.isVisible(ref))
+          const Padding(
+            padding: EdgeInsets.only(bottom: 24),
+            child: SchoolDashboardHelper(),
+          ),
       ],
     );
   }
 }
 
-class _DashboardGuidanceAndStats extends ConsumerWidget {
-  const _DashboardGuidanceAndStats({
-    required this.subscription,
-    required this.focusJob,
-    required this.stats,
+class _OverviewAlert extends StatelessWidget {
+  const _OverviewAlert({
+    required this.text,
+    this.error = false,
+    this.warn = false,
   });
-
-  final DashboardSubscription? subscription;
-  final DashboardRecentJob? focusJob;
-  final DashboardStats? stats;
-
+  final String text;
+  final bool error;
+  final bool warn;
   @override
-  Widget build(BuildContext context, WidgetRef ref) => AppSpacedColumn(
-    gap: 32,
-    children: [
-      if (subscription != null &&
-          DashboardWelcomeBlock.isVisible(
-            ref,
-            subscription: subscription!,
-            focusJob: focusJob,
-          ))
-        DashboardWelcomeBlock(
-          subscription: subscription!,
-          focusJob: focusJob,
+  Widget build(BuildContext context) => InkWell(
+    onTap: () => context.push(AppRoutes.dashboardBilling),
+    child: Container(
+      margin: const EdgeInsets.only(bottom: 24),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: error
+            ? const Color(0xFFFDF2F2)
+            : warn
+            ? const Color(0xFFFFFBEB)
+            : OverviewStyle.soft,
+        border: Border.all(
+          color: error
+              ? const Color(0xFFF87171)
+              : warn
+              ? const Color(0xFFFCD34D)
+              : OverviewStyle.line,
         ),
-      if (SchoolDashboardHelper.isVisible(ref)) const SchoolDashboardHelper(),
-      if (stats case final stats?)
-        _StatsList(stats: stats)
-      else
-        const _DashboardStatsLoading(),
-    ],
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(
+            error
+                ? LucideIcons.circleAlert
+                : warn
+                ? Icons.warning_amber
+                : Icons.info_outline,
+            size: 16,
+            color: error
+                ? const Color(0xFF991B1B)
+                : warn
+                ? const Color(0xFF92400E)
+                : OverviewStyle.ink,
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              text,
+              style: OverviewStyle.body(
+                11.5,
+                height: 1.4,
+                color: error
+                    ? const Color(0xFF991B1B)
+                    : warn
+                    ? const Color(0xFF92400E)
+                    : OverviewStyle.ink,
+              ),
+            ),
+          ),
+        ],
+      ),
+    ),
   );
 }
 
-class _StatsList extends StatelessWidget {
-  const _StatsList({required this.stats});
-
-  final DashboardStats stats;
-
+class _OverviewStaleWarning extends ConsumerWidget {
+  const _OverviewStaleWarning();
   @override
-  Widget build(BuildContext context) {
-    final cards = [
-      _StatCard(Icons.trending_up, 'Credits Remaining', '${stats.credits}'),
-      _StatCard(
-        Icons.inventory_2_outlined,
-        'Total Renders',
-        '${stats.totalRenders}',
-      ),
-      _StatCard(Icons.schedule, 'Active Shoots', '${stats.activeJobs}'),
-      _StatCard(
-        Icons.check_circle_outline,
-        'Completed Shoots',
-        '${stats.completedJobs}',
-      ),
-    ];
-
-    return LayoutBuilder(
-      builder: (context, constraints) => GridView.builder(
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
-        itemCount: cards.length,
-        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: _dashboardStatColumns(constraints.maxWidth),
-          mainAxisExtent: 192,
-          mainAxisSpacing: 12,
-          crossAxisSpacing: 12,
-        ),
-        itemBuilder: (context, index) => cards[index],
+  Widget build(BuildContext context, WidgetRef ref) {
+    final stale = ref.watch(
+      dashboardOverviewControllerProvider.select(
+        (state) => state.value?.isStale ?? false,
       ),
     );
-  }
-}
-
-class _StatCard extends StatelessWidget {
-  const _StatCard(this.icon, this.label, this.value);
-
-  final IconData icon;
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) => AppCard(
-        padding: EdgeInsets.all(constraints.maxWidth < 140 ? 16 : 24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
-          children: [
-            AppSquareIcon(icon),
-            const SizedBox(height: 16),
-            AppEyebrow(label, maxLines: 2),
-            const SizedBox(height: 4),
-            Text(
-              value,
-              style: const TextStyle(
-                fontSize: 32,
-                height: 1.1,
-                fontWeight: AppTypography.bold,
-                letterSpacing: -0.64,
-                color: AppColors.black,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _RecentShoots extends StatelessWidget {
-  const _RecentShoots({
-    required this.shoots,
-    required this.isLoading,
-    required this.onNavigate,
-    required this.onOpenShoot,
-  });
-
-  final List<ShootViewModel> shoots;
-  final bool isLoading;
-  final ValueChanged<DashboardPage> onNavigate;
-  final ValueChanged<ShootViewModel> onOpenShoot;
-
-  @override
-  Widget build(BuildContext context) {
-    return AppCard(
-      padding: EdgeInsets.zero,
+    if (!stale) return const SizedBox.shrink();
+    return Container(
+      margin: const EdgeInsets.only(bottom: 24),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(border: Border.all(color: OverviewStyle.line)),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Padding(
-            padding: const EdgeInsets.all(20),
-            child: Row(
-              children: [
-                const Expanded(child: AppSectionTitle('Recent Shoots')),
-                const SizedBox(width: 12),
-                AppOutlinedButton(
-                  label: 'View all',
-                  icon: Icons.arrow_forward,
-                  iconAlignment: IconAlignment.end,
-                  fitToContent: true,
-                  onPressed: () => onNavigate(DashboardPage.jobs),
-                ),
-              ],
-            ),
+          Text(
+            'Some dashboard information may be out of date. Network latency detected.',
+            style: OverviewStyle.body(11),
           ),
-          const AppHairline(),
-          if (isLoading && shoots.isEmpty)
-            const Padding(
-              padding: EdgeInsets.all(24),
-              child: BarSpinner(),
-            )
-          else if (shoots.isEmpty)
-            const Padding(
-              padding: EdgeInsets.all(24),
-              child: AppBodyText('No recent shoots yet.'),
-            )
-          else
-            for (var i = 0; i < shoots.length; i++)
-              ShootRow(
-                shoot: shoots[i],
-                striped: i.isOdd,
-                onTap: () => onOpenShoot(shoots[i]),
-              ),
-        ],
-      ),
-    );
-  }
-}
-
-class _DashboardStatsLoading extends StatelessWidget {
-  const _DashboardStatsLoading();
-
-  @override
-  Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) => AppSpacedColumn(
-        gap: 12,
-        children: [
-          GridView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            itemCount: 4,
-            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: _dashboardStatColumns(constraints.maxWidth),
-              mainAxisExtent: 192,
-              mainAxisSpacing: 12,
-              crossAxisSpacing: 12,
-            ),
-            itemBuilder: (_, _) => const ShimmerBox(),
+          const SizedBox(height: 6),
+          OverviewLink(
+            'Reload',
+            onTap: () => ref
+                .read(dashboardOverviewControllerProvider.notifier)
+                .refresh(),
           ),
         ],
       ),
@@ -323,52 +243,77 @@ class _DashboardStatsLoading extends StatelessWidget {
   }
 }
 
-int _dashboardStatColumns(double width) => width >= 600 ? 3 : 2;
-
-void _ignoreDashboardNavigation(DashboardPage _) {}
-
-void _ignoreDashboardShoot(ShootViewModel _) {}
-
-class _QuickActions extends StatelessWidget {
-  const _QuickActions({required this.onNavigate});
-
-  final ValueChanged<DashboardPage> onNavigate;
-
+class _OverviewPageHeader extends ConsumerWidget {
+  const _OverviewPageHeader();
   @override
-  Widget build(BuildContext context) {
-    return AppSpacedColumn(
-      gap: 12,
-      children: [
-        const AppSectionTitle('Quick Actions'),
-        _ActionCard(
-          icon: Icons.groups_outlined,
-          title: 'Manage Models',
-          body: 'Upload and manage house models for consistent photography.',
-          subtitle: 'Go to Models',
-          onTap: () => onNavigate(DashboardPage.models),
-        ),
-        _ActionCard(
-          icon: Icons.inventory_2_outlined,
-          title: 'Upload Products',
-          body: 'Add products for AI-generated photo shoots.',
-          subtitle: 'Manage Products',
-          onTap: () => onNavigate(DashboardPage.products),
-        ),
-        _ActionCard(
-          icon: Icons.auto_fix_high_outlined,
-          title: 'Workshop',
-          body: 'Edit a photo with a prompt, references, and AI.',
-          subtitle: 'Open Workshop',
-          onTap: () => onNavigate(DashboardPage.workshop),
-        ),
-        _ActionCard(
-          icon: Icons.check_circle_outline,
-          title: 'New Shoot',
-          subtitle: 'Create Shoot',
-          body: 'Generate new on-model product photos with AI.',
-          onTap: () => unawaited(context.push<void>(AppRoutes.createShoot)),
-        ),
-      ],
+  Widget build(BuildContext context, WidgetRef ref) {
+    final activation = ref.watch(
+      dashboardOverviewControllerProvider.select(
+        (state) => state.value?.overview?.activation,
+      ),
+    );
+    final config = activation ?? const DashboardActivation();
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const OverviewLabel('Workspace overview'),
+          const SizedBox(height: 4),
+          Text(
+            'Overview',
+            style: OverviewStyle.serif(44, height: .98, spacing: -1.54),
+          ),
+          const SizedBox(height: 8),
+          Text(config.intro, style: OverviewStyle.body(13, height: 1.6)),
+          const SizedBox(height: 16),
+          OverviewButton(
+            config.actionLabel,
+            icon: switch (config.stage) {
+              DashboardActivationStage.setup => LucideIcons.package,
+              DashboardActivationStage.generating => LucideIcons.camera,
+              DashboardActivationStage.ready => LucideIcons.arrowRight,
+              DashboardActivationStage.active => LucideIcons.plus,
+            },
+            onPressed: activation == null
+                ? null
+                : () => unawaited(
+                    context.push<void>(switch (config.stage) {
+                      DashboardActivationStage.setup =>
+                        '${AppRoutes.dashboardProducts}?create=1',
+                      DashboardActivationStage.generating ||
+                      DashboardActivationStage.ready =>
+                        config.firstShootId == null
+                            ? AppRoutes.dashboardShoots
+                            : AppRoutes.shootDetail(
+                                config.firstShootId!,
+                                fromDashboard: true,
+                              ),
+                      DashboardActivationStage.active => AppRoutes.createShoot,
+                    }),
+                  ),
+          ),
+        ],
+      ),
     );
   }
+}
+
+class _OverviewLoadError extends ConsumerWidget {
+  const _OverviewLoadError();
+  @override
+  Widget build(BuildContext context, WidgetRef ref) => Container(
+    decoration: BoxDecoration(border: Border.all(color: OverviewStyle.line)),
+    child: OverviewPanelState(
+      title: 'Your workspace did not load.',
+      serif: true,
+      error: true,
+      body: 'We could not load your workspace overview due to a temporary network issue.',
+      action: OverviewButton(
+        'Try again',
+        onPressed: () =>
+            ref.read(dashboardOverviewControllerProvider.notifier).refresh(),
+      ),
+    ),
+  );
 }

@@ -3,75 +3,97 @@ import Photos
 import UIKit
 
 @main
-@objc class AppDelegate: FlutterAppDelegate {
-  override func application(
-    _ application: UIApplication,
-    didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
-  ) -> Bool {
-    GeneratedPluginRegistrant.register(with: self)
-    if let registrar = registrar(forPlugin: "NativeDeviceInfoChannel") {
+@objc class AppDelegate: FlutterAppDelegate, FlutterImplicitEngineDelegate {
+  func didInitializeImplicitFlutterEngine(_ engineBridge: FlutterImplicitEngineBridge) {
+    GeneratedPluginRegistrant.register(with: engineBridge.pluginRegistry)
+    if let registrar = engineBridge.pluginRegistry.registrar(
+      forPlugin: "NativeDeviceInfoChannel"
+    ) {
       NativeDeviceInfoChannel.register(with: registrar.messenger())
     }
-    if let controller = window?.rootViewController as? FlutterViewController {
-      let calendarChannel = FlutterMethodChannel(name: "com.lookatlas/calendar", binaryMessenger: controller.binaryMessenger)
-      calendarChannel.setMethodCallHandler { call, result in
-        if call.method == "timeZone" { result(TimeZone.current.identifier); return }
-        if call.method == "openPublished", let args = call.arguments as? [String: Any],
-           let raw = args["url"] as? String, let url = URL(string: raw), url.scheme == "https" {
-          UIApplication.shared.open(url) { opened in
-            opened ? result(nil) : result(FlutterError(code: "OPEN_FAILED", message: "Could not open published post.", details: nil))
-          }
-          return
-        }
-        result(FlutterMethodNotImplemented)
+    let messenger = engineBridge.applicationRegistrar.messenger()
+    registerCalendarChannel(with: messenger)
+    registerExternalUrlChannel(with: messenger)
+    registerImageSaveChannel(with: messenger)
+  }
+
+  private func registerCalendarChannel(with messenger: FlutterBinaryMessenger) {
+    let channel = FlutterMethodChannel(
+      name: "com.lookatlas/calendar",
+      binaryMessenger: messenger
+    )
+    channel.setMethodCallHandler { call, result in
+      if call.method == "timeZone" {
+        result(TimeZone.current.identifier)
+        return
       }
-      let channel = FlutterMethodChannel(
-        name: "com.lookatlas/external_url",
-        binaryMessenger: controller.binaryMessenger
-      )
-      channel.setMethodCallHandler { call, result in
-        guard call.method == "open" else {
-          result(FlutterMethodNotImplemented)
-          return
-        }
-        let arguments = call.arguments as? [String: Any]
-        guard
-          let rawUrl = arguments?["url"] as? String,
-          let url = URL(string: rawUrl),
-          (url.scheme == "https" && url.host == "checkout.stripe.com") ||
-            (url.scheme == "lookatlas" && [
-              "/onboarding/success",
-              "/onboarding/activate"
-            ].contains(url.path))
-        else {
-          result(FlutterError(
-            code: "UNTRUSTED_URL",
-            message: "Checkout URL is not trusted.",
-            details: nil
-          ))
-          return
-        }
+      if call.method == "openPublished",
+         let arguments = call.arguments as? [String: Any],
+         let rawUrl = arguments["url"] as? String,
+         let url = URL(string: rawUrl),
+         url.scheme == "https" {
         UIApplication.shared.open(url) { opened in
           opened ? result(nil) : result(FlutterError(
             code: "OPEN_FAILED",
-            message: "Could not open checkout.",
+            message: "Could not open published post.",
             details: nil
           ))
         }
+        return
       }
-      let imageSaveChannel = FlutterMethodChannel(
-        name: "com.lookatlas/image_save",
-        binaryMessenger: controller.binaryMessenger
-      )
-      imageSaveChannel.setMethodCallHandler { [weak self] call, result in
-        guard call.method == "save" else {
-          result(FlutterMethodNotImplemented)
-          return
-        }
-        self?.saveImage(call: call, result: result)
+      result(FlutterMethodNotImplemented)
+    }
+  }
+
+  private func registerExternalUrlChannel(with messenger: FlutterBinaryMessenger) {
+    let channel = FlutterMethodChannel(
+      name: "com.lookatlas/external_url",
+      binaryMessenger: messenger
+    )
+    channel.setMethodCallHandler { call, result in
+      guard call.method == "open" else {
+        result(FlutterMethodNotImplemented)
+        return
+      }
+      let arguments = call.arguments as? [String: Any]
+      guard
+        let rawUrl = arguments?["url"] as? String,
+        let url = URL(string: rawUrl),
+        (url.scheme == "https" && url.host == "checkout.stripe.com") ||
+          (url.scheme == "lookatlas" && [
+            "/onboarding/success",
+            "/onboarding/activate"
+          ].contains(url.path))
+      else {
+        result(FlutterError(
+          code: "UNTRUSTED_URL",
+          message: "Checkout URL is not trusted.",
+          details: nil
+        ))
+        return
+      }
+      UIApplication.shared.open(url) { opened in
+        opened ? result(nil) : result(FlutterError(
+          code: "OPEN_FAILED",
+          message: "Could not open checkout.",
+          details: nil
+        ))
       }
     }
-    return super.application(application, didFinishLaunchingWithOptions: launchOptions)
+  }
+
+  private func registerImageSaveChannel(with messenger: FlutterBinaryMessenger) {
+    let channel = FlutterMethodChannel(
+      name: "com.lookatlas/image_save",
+      binaryMessenger: messenger
+    )
+    channel.setMethodCallHandler { [weak self] call, result in
+      guard call.method == "save" else {
+        result(FlutterMethodNotImplemented)
+        return
+      }
+      self?.saveImage(call: call, result: result)
+    }
   }
 
   private func saveImage(call: FlutterMethodCall, result: @escaping FlutterResult) {

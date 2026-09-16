@@ -65,6 +65,7 @@ flutter:
     - assets/directors/minimalist/
     - assets/directors/street-energy/
     - assets/images/
+    - assets/images/dashboard/
     - assets/images/create_content/
     - assets/images/calendar/
     - assets/images/calibration/outlines/

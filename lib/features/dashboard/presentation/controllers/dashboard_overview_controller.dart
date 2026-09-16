@@ -1,137 +1,147 @@
 import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:intl/intl.dart';
+import 'package:look_atlas/core/error/failure.dart';
+import 'package:look_atlas/features/auth/di/auth_providers.dart';
 import 'package:look_atlas/features/dashboard/di/dashboard_providers.dart';
 import 'package:look_atlas/features/dashboard/domain/entities/dashboard_data.dart';
+import 'package:look_atlas/features/dashboard/domain/entities/dashboard_overview.dart';
 import 'package:look_atlas/features/dashboard/domain/repositories/dashboard_repository.dart';
-import 'package:look_atlas/features/shoots/presentation/models/shoot_view_model.dart';
 
 class DashboardOverviewState {
   const DashboardOverviewState({
-    this.stats,
-    this.shoots = const [],
+    this.overview,
     this.subscription,
-    this.recentJobs = const [],
-    this.isLoadingStats = true,
-    this.isLoadingRecentJobs = true,
-    this.isLoadingSubscription = true,
+    this.isLoading = true,
+    this.isStale = false,
+    this.failure,
   });
 
-  final DashboardStats? stats;
-  final List<ShootViewModel> shoots;
+  final DashboardOverview? overview;
   final DashboardSubscription? subscription;
-  final List<DashboardRecentJob> recentJobs;
-  final bool isLoadingStats;
-  final bool isLoadingRecentJobs;
-  final bool isLoadingSubscription;
+  final bool isLoading;
+  final bool isStale;
+  final Failure? failure;
 
-  DashboardOverviewState copyWith({
-    DashboardStats? stats,
-    List<ShootViewModel>? shoots,
-    DashboardSubscription? subscription,
-    List<DashboardRecentJob>? recentJobs,
-    bool? isLoadingStats,
-    bool? isLoadingRecentJobs,
-    bool? isLoadingSubscription,
-  }) => DashboardOverviewState(
-    stats: stats ?? this.stats,
-    shoots: shoots ?? this.shoots,
-    subscription: subscription ?? this.subscription,
-    recentJobs: recentJobs ?? this.recentJobs,
-    isLoadingStats: isLoadingStats ?? this.isLoadingStats,
-    isLoadingRecentJobs: isLoadingRecentJobs ?? this.isLoadingRecentJobs,
-    isLoadingSubscription: isLoadingSubscription ?? this.isLoadingSubscription,
-  );
+  DashboardStats? get stats => overview?.credits;
 }
 
 class DashboardOverviewController
     extends AsyncNotifier<DashboardOverviewState> {
-  int _loadGeneration = 0;
+  Timer? _pollTimer;
+  bool _visible = false;
+  bool _hasBeenVisible = false;
+  bool _foreground = true;
+  int _generation = 0;
+  Future<void>? _pending;
+  DashboardRepository? _repository;
 
   @override
   DashboardOverviewState build() {
-    final generation = ++_loadGeneration;
-    unawaited(Future<void>.microtask(() => _loadAll(generation)));
+    ref.watch(authStateProvider.select((auth) => auth.value?.id));
+    _repository = ref.read(dashboardRepositoryProvider);
+    final generation = ++_generation;
+    _pending = null;
+    ref.onDispose(() {
+      ++_generation;
+      _pollTimer?.cancel();
+      _repository?.cancelOverviewRequest();
+    });
+    unawaited(
+      Future<void>.microtask(() {
+        if (generation == _generation) return refresh();
+      }),
+    );
     return const DashboardOverviewState();
   }
 
-  Future<void> refresh() => _loadAll(++_loadGeneration);
-
-  Future<void> _loadAll(int generation) async {
-    state = AsyncData(
-      _current.copyWith(
-        isLoadingStats: true,
-        isLoadingRecentJobs: true,
-        isLoadingSubscription: true,
-      ),
-    );
-    final repository = ref.read(dashboardRepositoryProvider);
-    await Future.wait([
-      _loadStats(repository, generation),
-      _loadRecentJobs(repository, generation),
-      _loadSubscription(repository, generation),
-    ]);
+  Future<void> refresh({bool background = true}) {
+    final pending = _pending;
+    if (pending != null) return pending;
+    final request = _load(++_generation);
+    _pending = request;
+    return request.whenComplete(() {
+      if (identical(_pending, request)) _pending = null;
+    });
   }
 
   DashboardOverviewState get _current =>
       state.asData?.value ?? const DashboardOverviewState();
 
-  Future<void> _loadStats(
-    DashboardRepository repository,
-    int generation,
-  ) async {
-    final result = await repository.getStats();
-    if (generation != _loadGeneration) return;
+  Future<void> _load(int generation) async {
+    final repository = ref.read(dashboardRepositoryProvider);
+    final subscription = _loadSubscription(generation);
+    final result = await repository.getOverview();
+    if (generation != _generation) return;
+    if (result.failureOrNull is CancelledFailure) {
+      await subscription;
+      return;
+    }
+    final overview = result.valueOrNull;
     state = AsyncData(
-      _current.copyWith(
-        stats: result.valueOrNull,
-        isLoadingStats: false,
+      DashboardOverviewState(
+        overview: overview ?? _current.overview,
+        subscription: _current.subscription,
+        isLoading: false,
+        isStale: overview == null && _current.overview != null,
+        failure: result.failureOrNull,
+      ),
+    );
+    _syncPolling();
+    await subscription;
+  }
+
+  Future<void> _loadSubscription(int generation) async {
+    final result = await ref
+        .read(dashboardRepositoryProvider)
+        .getSubscription();
+    if (generation != _generation) return;
+    state = AsyncData(
+      DashboardOverviewState(
+        overview: _current.overview,
+        subscription: result.valueOrNull ?? _current.subscription,
+        isLoading: _current.isLoading,
+        isStale: _current.isStale,
+        failure: _current.failure,
       ),
     );
   }
 
-  Future<void> _loadRecentJobs(
-    DashboardRepository repository,
-    int generation,
-  ) async {
-    final result = await repository.getRecentJobs();
-    if (generation != _loadGeneration) return;
-    final jobs = result.valueOrNull;
-    state = AsyncData(
-      _current.copyWith(
-        shoots: jobs?.map(_toShoot).toList(growable: false),
-        recentJobs: jobs,
-        isLoadingRecentJobs: false,
-      ),
-    );
+  void setVisible({required bool visible}) {
+    if (!ref.mounted || visible == _visible) return;
+    _visible = visible;
+    if (!visible) {
+      ++_generation;
+      _pending = null;
+      _pollTimer?.cancel();
+      _repository?.cancelOverviewRequest();
+      return;
+    }
+    _syncPolling();
+    if (_hasBeenVisible) unawaited(refresh());
+    _hasBeenVisible = true;
   }
 
-  Future<void> _loadSubscription(
-    DashboardRepository repository,
-    int generation,
-  ) async {
-    final result = await repository.getSubscription();
-    if (generation != _loadGeneration) return;
-    state = AsyncData(
-      _current.copyWith(
-        subscription: result.valueOrNull,
-        isLoadingSubscription: false,
-      ),
-    );
+  void setForeground({required bool foreground}) {
+    if (!ref.mounted) return;
+    _foreground = foreground;
+    _syncPolling();
+    if (foreground && _visible && _current.overview != null) {
+      unawaited(refresh());
+    }
   }
 
-  ShootViewModel _toShoot(DashboardRecentJob job) => ShootViewModel(
-    id: job.id,
-    name: job.name,
-    status: job.status,
-    renders: job.renders,
-    date: job.date == null
-        ? 'Date unavailable'
-        : DateFormat.yMMMd().format(job.date!.toLocal()),
-    productAsset: job.productThumbnail,
-    modelAsset: job.modelThumbnail,
-  );
+  void _syncPolling() {
+    _pollTimer?.cancel();
+    if (!_visible ||
+        !_foreground ||
+        (_current.overview?.activity.activeCount ?? 0) == 0) {
+      return;
+    }
+    _pollTimer = Timer.periodic(const Duration(seconds: 20), (_) {
+      unawaited(refresh());
+    });
+  }
 }
 
 final dashboardOverviewControllerProvider =

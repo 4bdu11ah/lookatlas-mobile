@@ -47,6 +47,7 @@ abstract final class ApiEndpoints {
 
   // --- Dashboard ----------------------------------------------------------
   static const String dashboardStats = '/dashboard/stats';
+  static const String dashboardOverview = '/dashboard/overview';
   static const String dashboardRecentJobs = '/dashboard/recent-jobs';
 
   // --- Assistant ----------------------------------------------------------

@@ -11,17 +11,19 @@ import 'package:look_atlas/features/dashboard/domain/entities/dashboard_data.dar
 import 'package:look_atlas/features/dashboard/domain/entities/dashboard_welcome.dart';
 import 'package:look_atlas/features/dashboard/presentation/controllers/dashboard_campaign_controller.dart';
 import 'package:look_atlas/features/dashboard/presentation/controllers/dashboard_welcome_controller.dart';
+import 'package:look_atlas/features/dashboard/presentation/controllers/retention_countdown_controller.dart';
 import 'package:look_atlas/features/dashboard/presentation/widgets/campaign_flip_card.dart';
 import 'package:look_atlas/features/dashboard/presentation/widgets/dashboard_step_guide.dart';
-import 'package:look_atlas/features/dashboard/presentation/widgets/studio_scene_animation.dart';
+import 'package:look_atlas/features/dashboard/presentation/widgets/overview_helper_card.dart';
+import 'package:look_atlas/features/dashboard/presentation/widgets/overview_studio_scene.dart';
+import 'package:look_atlas/features/dashboard/presentation/widgets/overview_style.dart';
 import 'package:look_atlas/features/studio_school/di/studio_school_providers.dart';
-import 'package:look_atlas/features/studio_school/presentation/widgets/school_components.dart';
 import 'package:look_atlas/services/service_providers.dart';
 import 'package:look_atlas/shared/widgets/app_bottom_sheet.dart';
-import 'package:look_atlas/shared/widgets/app_image.dart';
 import 'package:look_atlas/shared/widgets/app_outlined_button.dart';
 import 'package:look_atlas/shared/widgets/app_snack_bar.dart';
 import 'package:look_atlas/shared/widgets/primary_button.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 part 'dashboard_welcome_hero.dart';
 part 'dashboard_welcome_helpers.dart';
@@ -137,8 +139,8 @@ class _CollapsedSetup extends StatelessWidget {
         onTap: onExpand,
         child: Container(
           constraints: const BoxConstraints(minHeight: 48),
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          color: AppColors.black,
+          padding: const EdgeInsets.symmetric(horizontal: 14),
+          color: OverviewStyle.ink,
           child: Row(
             children: [
               Row(
@@ -161,10 +163,11 @@ class _CollapsedSetup extends StatelessWidget {
                   style: const TextStyle(
                     color: AppColors.white,
                     fontWeight: AppTypography.bold,
+                    fontSize: 12,
                   ),
                 ),
               ),
-              const Icon(Icons.keyboard_arrow_down, color: AppColors.white),
+              const Icon(LucideIcons.chevronDown, color: AppColors.white),
             ],
           ),
         ),

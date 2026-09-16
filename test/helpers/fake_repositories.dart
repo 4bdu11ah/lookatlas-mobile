@@ -7,6 +7,7 @@ import 'package:look_atlas/features/auth/domain/entities/app_user.dart';
 import 'package:look_atlas/features/auth/domain/entities/register_attribution.dart';
 import 'package:look_atlas/features/auth/domain/repositories/auth_repository.dart';
 import 'package:look_atlas/features/dashboard/domain/entities/dashboard_data.dart';
+import 'package:look_atlas/features/dashboard/domain/entities/dashboard_overview.dart';
 import 'package:look_atlas/features/dashboard/domain/repositories/dashboard_repository.dart';
 import 'package:look_atlas/features/products/domain/entities/product_catalog.dart';
 import 'package:look_atlas/features/products/domain/repositories/products_repository.dart';
@@ -18,6 +19,7 @@ import 'package:look_atlas/features/workshop/domain/repositories/workshop_reposi
 
 class FakeDashboardRepository implements DashboardRepository {
   const FakeDashboardRepository({
+    this.overview,
     this.stats = const DashboardStats(
       credits: 142,
       creditsTotal: 200,
@@ -60,9 +62,36 @@ class FakeDashboardRepository implements DashboardRepository {
     ),
   });
 
+  final DashboardOverview? overview;
   final DashboardStats stats;
   final List<DashboardRecentJob> jobs;
   final DashboardSubscription subscription;
+
+  @override
+  void cancelOverviewRequest() {}
+
+  @override
+  Future<Result<DashboardOverview>> getOverview() async => Result.ok(
+    overview ??
+        DashboardOverview(
+          credits: stats,
+          activity: DashboardActivity(
+            activeCount: jobs.where((job) => job.status == 'processing').length,
+            readyCount: jobs.where((job) => job.status == 'completed').length,
+            active: jobs.where((job) => job.status == 'processing').toList(),
+            ready: jobs.where((job) => job.status == 'completed').toList(),
+            recentCompleted: jobs
+                .where((job) => job.status == 'completed')
+                .toList(),
+          ),
+          activation: const DashboardActivation(
+            stage: DashboardActivationStage.active,
+          ),
+          ownedShootId: subscription.accessTier == 'onetime_download'
+              ? jobs.firstOrNull?.id
+              : null,
+        ),
+  );
 
   @override
   Future<Result<List<DashboardRecentJob>>> getRecentJobs() async =>

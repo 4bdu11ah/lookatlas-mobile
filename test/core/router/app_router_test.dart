@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -70,7 +72,7 @@ void main() {
           FakeSubscriptionRepository(),
         ),
         dashboardRepositoryProvider.overrideWithValue(
-          const FakeDashboardRepository(),
+          const FakeDashboardRepository(jobs: []),
         ),
         welcomeRepositoryProvider.overrideWithValue(
           welcomeRepository ?? FakeWelcomeRepository(),
@@ -349,7 +351,7 @@ void main() {
         findsOneWidget,
       );
 
-      final workshop = find.text('Fix a small flaw');
+      final workshop = find.text('Fix a small flaw in Workshop →');
       await tester.ensureVisible(workshop);
       await tester.pump(const Duration(milliseconds: 300));
       tester
@@ -451,12 +453,9 @@ void main() {
 
       router.go(AppRoutes.home);
       await tester.pumpAndSettle();
-      final modelsButton = find.text('Go to Models');
-      await tester.ensureVisible(modelsButton);
+      await tester.tap(find.byKey(const ValueKey('dashboard-open-navigation')));
       await tester.pumpAndSettle();
-      await tester.tap(
-        find.ancestor(of: modelsButton, matching: find.byType(InkWell)),
-      );
+      await tester.tap(find.byKey(const ValueKey('dashboard-drawer-models')));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 300));
 
@@ -526,11 +525,11 @@ void main() {
       await tester.pump(const Duration(milliseconds: 300));
 
       expect(find.byType(DashboardScreen), findsOneWidget);
-      expect(find.text('Dashboard'), findsOneWidget);
+      expect(find.text('Overview'), findsWidgets);
     });
 
     testWidgets(
-      'drawer navigates to Create Content and displays CustomAppBar with back button and only title',
+      'social studio opens Create Content with standalone app bar',
       (tester) async {
         tester.view.physicalSize = const Size(390, 844);
         tester.view.devicePixelRatio = 1;
@@ -542,17 +541,14 @@ void main() {
         router.go(AppRoutes.home);
         await tester.pump();
         await tester.pump(const Duration(milliseconds: 300));
-        await tester.tap(find.byIcon(LucideIcons.menu));
-        await tester.pump();
-        await tester.pump(const Duration(milliseconds: 350));
-        await tester.drag(
-          find.byKey(const ValueKey('dashboard-drawer-scroll')),
-          const Offset(0, -300),
+        await tester.scrollUntilVisible(
+          find.text('Create content'),
+          400,
+          scrollable: find.byType(Scrollable).first,
         );
+        await tester.ensureVisible(find.text('Create content'));
         await tester.pumpAndSettle();
-        await tester.tap(
-          find.byKey(const ValueKey('dashboard-drawer-create-content')),
-        );
+        await tester.tap(find.text('Create content'));
         await tester.pump();
         await tester.pump(const Duration(milliseconds: 300));
         await tester.pump(const Duration(milliseconds: 300));
@@ -576,7 +572,7 @@ void main() {
     );
 
     testWidgets(
-      'drawer navigates to Calendar and displays CustomAppBar with back button and only title',
+      'calendar route displays standalone app bar',
       (tester) async {
         tester.view.physicalSize = const Size(390, 844);
         tester.view.devicePixelRatio = 1;
@@ -588,17 +584,7 @@ void main() {
         router.go(AppRoutes.home);
         await tester.pump();
         await tester.pump(const Duration(milliseconds: 300));
-        await tester.tap(find.byIcon(LucideIcons.menu));
-        await tester.pump();
-        await tester.pump(const Duration(milliseconds: 350));
-        await tester.drag(
-          find.byKey(const ValueKey('dashboard-drawer-scroll')),
-          const Offset(0, -300),
-        );
-        await tester.pumpAndSettle();
-        await tester.tap(
-          find.byKey(const ValueKey('dashboard-drawer-calendar')),
-        );
+        unawaited(router.push(AppRoutes.calendar));
         await tester.pump();
         await tester.pump(const Duration(milliseconds: 300));
         await tester.pump(const Duration(milliseconds: 300));

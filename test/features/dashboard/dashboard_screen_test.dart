@@ -11,17 +11,17 @@ import 'package:look_atlas/features/auth/di/auth_providers.dart';
 import 'package:look_atlas/features/auth/domain/entities/app_user.dart';
 import 'package:look_atlas/features/dashboard/di/dashboard_providers.dart';
 import 'package:look_atlas/features/dashboard/domain/entities/dashboard_data.dart';
+import 'package:look_atlas/features/dashboard/domain/entities/dashboard_overview.dart';
 import 'package:look_atlas/features/dashboard/domain/entities/dashboard_welcome.dart';
 import 'package:look_atlas/features/dashboard/domain/repositories/dashboard_repository.dart';
 import 'package:look_atlas/features/dashboard/presentation/screens/dashboard_screen.dart';
+import 'package:look_atlas/features/dashboard/presentation/widgets/campaign_flip_card.dart';
 import 'package:look_atlas/features/dashboard/presentation/widgets/dashboard_step_guide.dart';
-import 'package:look_atlas/features/dashboard/presentation/widgets/studio_scene_animation.dart';
 import 'package:look_atlas/features/shoots/di/shoots_providers.dart';
 import 'package:look_atlas/features/shoots/domain/repositories/shoots_repository.dart';
 import 'package:look_atlas/features/studio_school/di/studio_school_providers.dart';
 import 'package:look_atlas/features/subscription/di/subscription_providers.dart';
 import 'package:look_atlas/shared/widgets/bar_spinner.dart';
-import 'package:look_atlas/shared/widgets/shimmer_box.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -36,6 +36,28 @@ class _ConcurrentDashboardRepository implements DashboardRepository {
   int statsCalls = 0;
   int jobsCalls = 0;
   int subscriptionCalls = 0;
+
+  @override
+  void cancelOverviewRequest() {}
+
+  @override
+  Future<Result<DashboardOverview>> getOverview() async {
+    final statsFuture = getStats();
+    final jobsFuture = getRecentJobs();
+    final statsResult = await statsFuture;
+    final jobsResult = await jobsFuture;
+    return Result.ok(
+      DashboardOverview(
+        credits: statsResult.valueOrNull!,
+        activity: DashboardActivity(
+          recentCompleted: jobsResult.valueOrNull ?? const [],
+        ),
+        activation: const DashboardActivation(
+          stage: DashboardActivationStage.active,
+        ),
+      ),
+    );
+  }
 
   @override
   Future<Result<DashboardStats>> getStats() {
@@ -88,6 +110,10 @@ void main() {
         ],
         child: MaterialApp(
           theme: AppTheme.light(),
+          builder: (context, child) => MediaQuery(
+            data: MediaQuery.of(context).copyWith(disableAnimations: true),
+            child: child!,
+          ),
           home: const DashboardScreen(),
         ),
       ),
@@ -96,127 +122,92 @@ void main() {
     await tester.pump();
   }
 
-  testWidgets('renders the page header and all four stat cards', (
+  testWidgets('overview_activeStudio_rendersGalleryHeaderAndActivity', (
     tester,
   ) async {
     await pumpDashboard(tester);
+    expect(find.text('Overview'), findsNWidgets(2));
+    expect(find.text('WORKSPACE OVERVIEW'), findsOneWidget);
+    expect(find.text('142 credits'), findsOneWidget);
+    expect(find.text('Create a shoot'), findsOneWidget);
+    expect(find.text('STUDIO ACTIVITY'), findsOneWidget);
+    expect(find.text('Ready to review'), findsOneWidget);
+    expect(find.text('Generating'), findsOneWidget);
+  });
 
-    expect(find.text('Dashboard'), findsOneWidget);
+  testWidgets('overview_mobileHeader_matchesPrototypeDimensions', (
+    tester,
+  ) async {
+    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = const Size(390, 844);
+    addTearDown(tester.view.reset);
+    await pumpDashboard(tester);
     expect(
-      find.text("Welcome back! Here's your Look Atlas overview."),
-      findsOneWidget,
+      tester.getSize(find.byKey(const ValueKey('dashboard-open-navigation'))),
+      const Size(36, 36),
     );
-    expect(find.text('CREDITS REMAINING'), findsOneWidget);
-    expect(find.text('142'), findsOneWidget);
-    expect(find.text('TOTAL RENDERS'), findsOneWidget);
-    expect(find.text('386'), findsOneWidget);
-    expect(find.text('ACTIVE SHOOTS'), findsOneWidget);
-    expect(find.text('COMPLETED SHOOTS'), findsOneWidget);
-  });
-
-  testWidgets('mobile stats use the previous two-column grid', (tester) async {
-    tester.view.devicePixelRatio = 1;
-    tester.view.physicalSize = const Size(390, 844);
-    addTearDown(tester.view.reset);
-
-    await pumpDashboard(tester);
-
-    final credits = tester.getTopLeft(find.text('CREDITS REMAINING'));
-    final renders = tester.getTopLeft(find.text('TOTAL RENDERS'));
-    final active = tester.getTopLeft(find.text('ACTIVE SHOOTS'));
-
-    expect(credits.dy, renders.dy);
-    expect(credits.dx, lessThan(renders.dx));
-    expect(active.dy, greaterThan(credits.dy));
-  });
-
-  testWidgets('mobile loading stats use the same two-column grid', (
-    tester,
-  ) async {
-    tester.view.devicePixelRatio = 1;
-    tester.view.physicalSize = const Size(390, 844);
-    addTearDown(tester.view.reset);
-    final repository = _ConcurrentDashboardRepository();
-
-    await pumpDashboard(tester, dashboardRepository: repository);
-
-    final shimmerCards = find.descendant(
-      of: find.byType(GridView).first,
-      matching: find.byType(ShimmerBox),
+    expect(tester.getTopLeft(find.text('WORKSPACE OVERVIEW')).dx, 16);
+    expect(
+      tester
+          .getSize(find.byKey(const ValueKey('dashboard-header-credits')))
+          .height,
+      28,
     );
-    expect(shimmerCards, findsNWidgets(4));
-    final first = tester.getTopLeft(shimmerCards.at(0));
-    final second = tester.getTopLeft(shimmerCards.at(1));
-    final third = tester.getTopLeft(shimmerCards.at(2));
-
-    expect(first.dy, second.dy);
-    expect(first.dx, lessThan(second.dx));
-    expect(third.dy, greaterThan(first.dy));
+    expect(tester.takeException(), isNull);
   });
 
-  testWidgets('renders recent shoots with status chips and quick actions', (
+  testWidgets(
+    'overview_initialLoading_showsActivitySpinnerAndUnavailableCredits',
+    (tester) async {
+      final repository = _ConcurrentDashboardRepository();
+      await pumpDashboard(tester, dashboardRepository: repository);
+      expect(find.text('… credits'), findsOneWidget);
+      expect(find.byType(BarSpinner), findsOneWidget);
+    },
+  );
+
+  testWidgets('overview_galleryScroll_reachesCreativeRoomsAndLearningStrip', (
     tester,
   ) async {
     await pumpDashboard(tester);
-    await tester.drag(
-      find.byType(SingleChildScrollView),
-      const Offset(0, -900),
+    await tester.scrollUntilVisible(
+      find.text('CREATIVE ROOMS'),
+      300,
+      scrollable: find.byType(Scrollable).first,
     );
-    await tester.pumpAndSettle();
-
-    expect(find.text('Recent Shoots'), findsOneWidget);
-    expect(find.text('Tan Leather Bag'), findsOneWidget);
-    expect(find.text('Completed'), findsOneWidget);
-    expect(find.text('Processing'), findsOneWidget);
-    expect(find.text('Failed'), findsOneWidget);
-    expect(find.text('Manage Models'), findsOneWidget);
-    expect(find.text('Upload Products'), findsOneWidget);
-    expect(find.text('Workshop'), findsOneWidget);
-    expect(find.text('New Shoot'), findsOneWidget);
+    expect(find.text('Give every shoot a point of view.'), findsOneWidget);
+    expect(find.text('Turn a shoot into a story.'), findsOneWidget);
+    await tester.scrollUntilVisible(
+      find.text('Explore learning'),
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
+    expect(find.text('Explore learning'), findsOneWidget);
+    expect(tester.takeException(), isNull);
   });
 
-  testWidgets('renders stats recent jobs and subscription state from APIs', (
-    tester,
-  ) async {
-    await pumpDashboard(
-      tester,
-      dashboardRepository: const FakeDashboardRepository(
-        stats: DashboardStats(
-          credits: 80,
-          creditsTotal: 100,
-          creditsUsed: 20,
-          totalRenders: 35,
-          activeJobs: 2,
-          completedJobs: 5,
-        ),
-        jobs: [
-          DashboardRecentJob(
-            id: 'job-api',
-            name: 'API Product Shoot',
-            status: 'completed',
-            renders: 8,
-            productThumbnail:
-                'assets/images/onboarding/showcase-bag-before.jpg',
-            modelThumbnail: 'assets/images/onboarding/showcase-dress-after.jpg',
+  testWidgets(
+    'overview_oneTimeSubscriberOffer_rendersIndependentBillingAlert',
+    (tester) async {
+      await pumpDashboard(
+        tester,
+        dashboardRepository: const FakeDashboardRepository(
+          subscription: DashboardSubscription(
+            status: 'active',
+            cancelAtPeriodEnd: false,
+            accessTier: 'onetime_download',
+            proUpsellActive: true,
           ),
-        ],
-        subscription: DashboardSubscription(
-          status: 'active',
-          cancelAtPeriodEnd: false,
-          accessTier: 'onetime_download',
-          proUpsellActive: true,
         ),
-      ),
-    );
-
-    expect(find.text('80'), findsOneWidget);
-    expect(find.text('35'), findsOneWidget);
-    expect(find.text('API Product Shoot'), findsOneWidget);
-    expect(
-      find.text('Your limited-time Pro offer is available in Billing.'),
-      findsOneWidget,
-    );
-  });
+      );
+      expect(
+        find.text('Your limited-time Pro offer is available in Billing.'),
+        findsOneWidget,
+      );
+      expect(find.text('Your photos. Yours forever.'), findsOneWidget);
+      expect(find.textContaining('15 bonus credits'), findsOneWidget);
+    },
+  );
 
   testWidgets('starts all dashboard API requests in parallel', (tester) async {
     final repository = _ConcurrentDashboardRepository();
@@ -252,7 +243,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('80'), findsOneWidget);
+    expect(find.text('80 credits'), findsOneWidget);
   });
 
   testWidgets('shows the signed-in user initial in the avatar', (
@@ -337,6 +328,10 @@ void main() {
         ],
         child: MaterialApp(
           theme: AppTheme.light(),
+          builder: (context, child) => MediaQuery(
+            data: MediaQuery.of(context).copyWith(disableAnimations: true),
+            child: child!,
+          ),
           home: const DashboardScreen(),
         ),
       ),
@@ -405,103 +400,40 @@ void main() {
     expect(find.byType(Drawer), findsNothing);
   });
 
-  testWidgets('mobile drawer matches the grouped modal navigation design', (
+  testWidgets('overview_mobileDrawer_matchesSixPrototypeDestinations', (
     tester,
   ) async {
     tester.view.devicePixelRatio = 1;
     tester.view.physicalSize = const Size(390, 844);
-    addTearDown(() {
-      tester.view.resetDevicePixelRatio();
-      tester.view.resetPhysicalSize();
-    });
-    await pumpDashboard(
-      tester,
-      user: const AppUser(
-        id: 'user-1',
-        email: 'rina@example.com',
-        companyName: 'Rina Atelier',
-      ),
-    );
-
+    addTearDown(tester.view.reset);
+    await pumpDashboard(tester);
     await tester.tap(find.byKey(const ValueKey('dashboard-open-navigation')));
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 100));
-    final reveal = find.descendant(
-      of: find.byKey(const ValueKey('dashboard-drawer-surface')),
-      matching: find.byType(ClipPath),
-    );
-    expect(reveal, findsOneWidget);
-    final revealWidget = tester.widget<ClipPath>(reveal);
-    final surfaceSize = tester.getSize(
-      find.byKey(const ValueKey('dashboard-drawer-surface')),
-    );
-    expect(
-      revealWidget.clipper!
-          .getClip(surfaceSize)
-          .contains(
-            surfaceSize.bottomRight(Offset.zero),
-          ),
-      isFalse,
-    );
     await tester.pumpAndSettle();
-
     expect(
       tester
-          .getSize(
-            find.byKey(const ValueKey('dashboard-drawer-surface')),
-          )
+          .getSize(find.byKey(const ValueKey('dashboard-drawer-surface')))
           .width,
-      closeTo(330, 0.01),
+      320,
     );
-    expect(find.text('Workspace'), findsOneWidget);
-    expect(find.text('Library'), findsOneWidget);
-    expect(find.text('Tools'), findsOneWidget);
-    expect(find.byKey(const ValueKey('dashboard-drawer-create')), findsOne);
-    expect(
-      find.byKey(const ValueKey('dashboard-drawer-video-editor')),
-      findsOne,
-    );
-    expect(find.text('SOON'), findsNWidgets(5));
+    for (final name in [
+      'Shoots',
+      'Products',
+      'House Models',
+      'Brand Studio',
+      'Learning Center',
+    ]) {
+      expect(find.text(name), findsOneWidget);
+    }
     expect(
       tester
-          .widget<IconButton>(
-            find.byKey(const ValueKey('dashboard-close-navigation')),
+          .widget<InkWell>(
+            find.byKey(const ValueKey('dashboard-drawer-brand-studio')),
           )
-          .focusNode!
-          .hasFocus,
-      isTrue,
+          .onTap,
+      isNull,
     );
-
-    expect(find.text('Profile & brand'), findsOneWidget);
-    expect(find.text('Account Settings'), findsOneWidget);
-    expect(find.text('Billing & credits'), findsOneWidget);
-    expect(find.text('Learning Center'), findsOneWidget);
-    expect(find.text('Help & support'), findsOneWidget);
-    expect(find.text('Sign out'), findsOneWidget);
-    await tester.drag(
-      find.byKey(const ValueKey('dashboard-drawer-scroll')),
-      const Offset(0, -150),
-    );
-    await tester.pumpAndSettle();
-    for (final key in [
-      'brand-studio',
-      'design-boards',
-      'lookbooks',
-      'image-editor',
-      'video-editor',
-      'touch-ups',
-    ]) {
-      expect(
-        tester
-            .widget<InkWell>(find.byKey(ValueKey('dashboard-drawer-$key')))
-            .onTap,
-        isNull,
-      );
-    }
-
     await tester.sendKeyEvent(LogicalKeyboardKey.escape);
     await tester.pumpAndSettle();
-
     expect(find.byType(Drawer), findsNothing);
     expect(
       tester
@@ -514,12 +446,11 @@ void main() {
     );
   });
 
-  testWidgets('shows stats before slower dashboard sections complete', (
+  testWidgets('overview_responseLoadedBeforeSubscription_keepsCreditsVisible', (
     tester,
   ) async {
     final repository = _ConcurrentDashboardRepository();
     await pumpDashboard(tester, dashboardRepository: repository);
-
     repository.stats.complete(
       const Result.ok(
         DashboardStats(
@@ -527,17 +458,14 @@ void main() {
           creditsTotal: 100,
           creditsUsed: 20,
           totalRenders: 35,
-          activeJobs: 2,
-          completedJobs: 5,
+          activeJobs: 0,
+          completedJobs: 0,
         ),
       ),
     );
-    await tester.pump();
-
-    expect(find.text('80'), findsOneWidget);
-    expect(find.byType(BarSpinner), findsOneWidget);
-
     repository.jobs.complete(const Result.ok([]));
+    await tester.pump();
+    expect(find.text('80 credits'), findsOneWidget);
     repository.subscription.complete(
       const Result.ok(
         DashboardSubscription(
@@ -588,10 +516,11 @@ void main() {
     );
 
     final hero = find.byKey(const ValueKey('dashboard-studio-setup'));
-    final stats = find.text('CREDITS REMAINING');
+    final stats = find.text('WORKSPACE OVERVIEW');
     expect(hero, findsOneWidget);
     expect(find.text('Studio setup: 3 of 6'), findsNothing);
-    expect(tester.getTopLeft(hero).dy, lessThan(tester.getTopLeft(stats).dy));
+    expect(stats, findsNothing);
+    expect(tester.getTopLeft(hero).dy, greaterThan(0));
 
     await tester.tap(find.byTooltip('Collapse studio setup'));
     await tester.pump();
@@ -695,11 +624,12 @@ void main() {
     await tester.pump();
 
     expect(find.byKey(const ValueKey('dashboard-campaign-hero')), findsNothing);
-    final welcomeBottom = tester.getBottomLeft(
-      find.text("Welcome back! Here's your Look Atlas overview."),
+    await tester.scrollUntilVisible(
+      find.text('WORKSPACE OVERVIEW'),
+      -200,
+      scrollable: find.byType(Scrollable).first,
     );
-    final statsTop = tester.getTopLeft(find.byType(GridView).first);
-    expect(statsTop.dy - welcomeBottom.dy, lessThan(40));
+    expect(find.text('WORKSPACE OVERVIEW'), findsOneWidget);
     expect(repository.events, contains('welcome.flip_dismissed'));
     final preferences = await SharedPreferences.getInstance();
     expect(
@@ -720,8 +650,11 @@ void main() {
       ),
     );
 
-    expect(find.text('Your studio is built.'), findsOneWidget);
-    expect(find.text('Claim 20 credits'), findsOneWidget);
+    expect(
+      find.text('Finish all 6 steps for 20 free credits.'),
+      findsOneWidget,
+    );
+    expect(find.text('Claim reward'), findsOneWidget);
     expect(
       find.byKey(const ValueKey('dashboard-campaign-hero')),
       findsNothing,
@@ -751,7 +684,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 300));
 
     expect(shoots.lastJobId, 'job-bag');
-    expect(find.byType(StudioSceneAnimation), findsOneWidget);
+    expect(find.byType(CampaignFlipCard), findsOneWidget);
     expect(
       find.text('Studio built. Claim your 20 free credits'),
       findsOneWidget,
@@ -780,6 +713,7 @@ void main() {
     expect(find.text("I'm all set, hide this"), findsNothing);
     final claim = find.text('Studio built. Claim your 20 free credits');
     await tester.ensureVisible(claim);
+    await tester.pumpAndSettle();
     await tester.tap(claim);
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 300));
@@ -810,7 +744,9 @@ void main() {
       ),
     );
     await tester.pump(const Duration(milliseconds: 300));
-    final animationState = tester.state(find.byType(StudioSceneAnimation));
+    final campaignJob = tester
+        .widget<CampaignFlipCard>(find.byType(CampaignFlipCard))
+        .jobId;
 
     final image = find.byKey(const ValueKey('image-2'));
     await tester.ensureVisible(image);
@@ -820,12 +756,10 @@ void main() {
 
     expect(shoots.approvalCalls, contains(('job-bag', 'image-2', true)));
     expect(
-      identical(
-        animationState,
-        tester.state(find.byType(StudioSceneAnimation)),
-      ),
-      isTrue,
+      tester.widget<CampaignFlipCard>(find.byType(CampaignFlipCard)).jobId,
+      campaignJob,
     );
+    expect(find.text('Open shoot (2 kept)'), findsOneWidget);
   });
 
   testWidgets('oneTimeBuyer_showsDownloadAndUpsellHero', (tester) async {
@@ -846,7 +780,7 @@ void main() {
       findsOneWidget,
     );
     expect(find.text('Your photos. Yours forever.'), findsOneWidget);
-    expect(find.text('Claim 20% off'), findsOneWidget);
+    expect(find.text('Claim 20% off any plan →'), findsOneWidget);
   });
 
   testWidgets('returningSubscriber_startsWithCollapsedSetup', (tester) async {
@@ -925,8 +859,9 @@ void main() {
     );
     await pumpDashboard(tester, welcomeRepository: repository);
 
-    final claim = find.text('Claim 20 credits');
+    final claim = find.text('Claim reward');
     await tester.ensureVisible(claim);
+    await tester.pumpAndSettle();
     await tester.tap(claim);
     await tester.pump();
 
@@ -996,8 +931,8 @@ void main() {
       ),
     );
 
-    expect(find.text('WORKSPACE'), findsOneWidget);
-    expect(find.text('Overview'), findsOneWidget);
+    expect(find.text('WORKSPACE'), findsNothing);
+    expect(find.text('Overview'), findsWidgets);
     expect(
       find.byKey(const ValueKey('dashboard-header-credits')),
       findsOneWidget,

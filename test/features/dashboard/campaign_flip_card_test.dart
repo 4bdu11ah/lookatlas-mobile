@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:look_atlas/core/error/failure.dart';
 import 'package:look_atlas/features/dashboard/presentation/widgets/campaign_flip_card.dart';
@@ -19,24 +20,27 @@ void main() {
     ToggleCampaignShot? onToggle,
     VoidCallback? onWorkshop,
   }) => tester.pumpWidget(
-    MaterialApp(
-      home: MediaQuery(
-        data: MediaQueryData(disableAnimations: reduceMotion),
-        child: Scaffold(
-          backgroundColor: Colors.black,
-          body: SingleChildScrollView(
-            padding: const EdgeInsets.all(24),
-            child: CampaignFlipCard(
-              jobId: 'job-1',
-              images: images,
-              checklistClaimed: claimed,
-              claiming: false,
-              imagesLoading: false,
-              onClaim: () {},
-              onToggleKeep: onToggle ?? (_, {required approved}) async => null,
-              onOpenShoot: () {},
-              onOpenWorkshop: onWorkshop ?? () {},
-              onDone: () {},
+    ProviderScope(
+      child: MaterialApp(
+        home: MediaQuery(
+          data: MediaQueryData(disableAnimations: reduceMotion),
+          child: Scaffold(
+            backgroundColor: Colors.black,
+            body: SingleChildScrollView(
+              padding: const EdgeInsets.all(24),
+              child: CampaignFlipCard(
+                jobId: 'job-1',
+                images: images,
+                checklistClaimed: claimed,
+                claiming: false,
+                imagesLoading: false,
+                onClaim: () {},
+                onToggleKeep:
+                    onToggle ?? (_, {required approved}) async => null,
+                onOpenShoot: () {},
+                onOpenWorkshop: onWorkshop ?? () {},
+                onDone: () {},
+              ),
             ),
           ),
         ),
@@ -110,7 +114,7 @@ void main() {
     result.complete(const NetworkFailure('Approval failed'));
     await tester.pump();
 
-    expect(find.text('Open the shoot'), findsOneWidget);
+    expect(find.text('Open shoot (0 kept)'), findsOneWidget);
     expect(find.text("Couldn't save that. Try again."), findsOneWidget);
   });
 
@@ -121,7 +125,7 @@ void main() {
     await pumpCard(tester, onWorkshop: () => opens++);
 
     await tester.tap(find.text('fix it in Workshop'));
-    await tester.tap(find.text('Fix a small flaw'));
+    await tester.tap(find.text('Fix a small flaw in Workshop →'));
 
     expect(opens, 2);
   });

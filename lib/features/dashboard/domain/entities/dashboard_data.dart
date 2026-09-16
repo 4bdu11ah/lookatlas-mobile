@@ -25,6 +25,13 @@ class DashboardRecentJob {
     required this.productThumbnail,
     required this.modelThumbnail,
     this.date,
+    this.heroImage = '',
+    this.progress = 0,
+    this.currentStep,
+    this.updatedAt,
+    this.completedAt,
+    this.reviewedAt,
+    this.estimatedCompletion,
   });
 
   final String id;
@@ -34,6 +41,13 @@ class DashboardRecentJob {
   final DateTime? date;
   final String productThumbnail;
   final String modelThumbnail;
+  final String heroImage;
+  final int progress;
+  final String? currentStep;
+  final DateTime? updatedAt;
+  final DateTime? completedAt;
+  final DateTime? reviewedAt;
+  final DateTime? estimatedCompletion;
 }
 
 class DashboardSubscription {

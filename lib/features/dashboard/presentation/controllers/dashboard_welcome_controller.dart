@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:look_atlas/core/providers/core_providers.dart';
 import 'package:look_atlas/features/auth/di/auth_providers.dart';
 import 'package:look_atlas/features/dashboard/domain/entities/dashboard_welcome.dart';
+import 'package:look_atlas/features/dashboard/presentation/controllers/dashboard_overview_controller.dart';
 import 'package:look_atlas/features/studio_school/di/studio_school_providers.dart';
 import 'package:look_atlas/services/service_providers.dart';
 
@@ -198,7 +199,10 @@ class DashboardWelcomeController extends Notifier<DashboardWelcomePreferences> {
           .claimChecklist(userId);
       if (result.isErr) return false;
       _track('welcome.reward_claimed', {'kind': 'checklist'});
-      await ref.read(refreshStudioSchoolProvider)();
+      await Future.wait<void>([
+        ref.read(refreshStudioSchoolProvider)(),
+        ref.read(dashboardOverviewControllerProvider.notifier).refresh(),
+      ]);
       return true;
     } finally {
       _claiming = false;

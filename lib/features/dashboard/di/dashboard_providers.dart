@@ -3,6 +3,7 @@ import 'package:look_atlas/core/providers/core_providers.dart';
 import 'package:look_atlas/core/result/result.dart';
 import 'package:look_atlas/features/dashboard/data/data_sources/dashboard_remote_data_source.dart';
 import 'package:look_atlas/features/dashboard/domain/entities/dashboard_data.dart';
+import 'package:look_atlas/features/dashboard/domain/entities/dashboard_overview.dart';
 import 'package:look_atlas/features/dashboard/domain/repositories/dashboard_repository.dart';
 
 final dashboardRemoteDataSourceProvider = Provider<DashboardRemoteDataSource>(
@@ -27,6 +28,12 @@ class _DashboardRepository implements DashboardRepository {
   const _DashboardRepository(this._remote);
 
   final DashboardRemoteDataSource _remote;
+
+  @override
+  void cancelOverviewRequest() => _remote.cancelOverviewRequest();
+
+  @override
+  Future<Result<DashboardOverview>> getOverview() => _remote.getOverview();
 
   @override
   Future<Result<DashboardStats>> getStats() => _remote.getStats();

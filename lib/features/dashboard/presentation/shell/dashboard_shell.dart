@@ -18,6 +18,9 @@ import 'package:look_atlas/features/dashboard/presentation/controllers/dashboard
 import 'package:look_atlas/features/dashboard/presentation/controllers/dashboard_shell_controller.dart';
 import 'package:look_atlas/features/dashboard/presentation/models/dashboard_page.dart';
 import 'package:look_atlas/features/dashboard/presentation/screens/dashboard_overview_screen.dart';
+import 'package:look_atlas/features/dashboard/presentation/widgets/overview_navigation_drawer.dart';
+import 'package:look_atlas/features/dashboard/presentation/widgets/overview_shell_header.dart';
+import 'package:look_atlas/features/dashboard/presentation/widgets/overview_style.dart';
 import 'package:look_atlas/features/studio_school/di/studio_school_providers.dart';
 import 'package:look_atlas/features/studio_school/presentation/controllers/learning_credit_balance_controller.dart';
 import 'package:look_atlas/shared/widgets/app_hairline.dart';
@@ -164,7 +167,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
             Column(
               children: [
                 if (mobile)
-                  _Header(
+                  OverviewShellHeader(
                     menuFocusNode: _menuFocusNode,
                     onOpenNavigation: () => unawaited(_openDrawer()),
                     onOpenBilling: () => _navigateDashboard(
@@ -191,11 +194,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                           .refresh(),
                       ref.read(refreshStudioSchoolProvider)(),
                     ]),
-                    child: SingleChildScrollView(
-                      physics: const AlwaysScrollableScrollPhysics(),
-                      padding: const EdgeInsets.fromLTRB(16, 16, 16, 40),
-                      child: screen,
-                    ),
+                    child: screen,
                   ),
                 ),
               ],
@@ -231,7 +230,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
       ),
     );
     final scaffold = Scaffold(
-      backgroundColor: AppColors.neutral50,
+      backgroundColor: OverviewStyle.paper,
       body: _DashboardDrawerTransition(
         animation: _drawerController,
         drawer: _DashboardDrawer(
@@ -291,6 +290,18 @@ class _WelcomeFocusRefresh extends ConsumerStatefulWidget {
 
 class _WelcomeFocusRefreshState extends ConsumerState<_WelcomeFocusRefresh>
     with WidgetsBindingObserver {
+  DashboardOverviewController? _overview;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final route = ModalRoute.of(context);
+    _overview = ref.read(dashboardOverviewControllerProvider.notifier);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _overview?.setVisible(visible: route?.isCurrent ?? true);
+    });
+  }
+
   @override
   void initState() {
     super.initState();
@@ -300,11 +311,13 @@ class _WelcomeFocusRefreshState extends ConsumerState<_WelcomeFocusRefresh>
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _overview?.setVisible(visible: false);
     super.dispose();
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
+    _overview?.setForeground(foreground: state == AppLifecycleState.resumed);
     if (state == AppLifecycleState.resumed) {
       unawaited(ref.read(refreshStudioSchoolProvider)());
     }
@@ -438,119 +451,6 @@ class _CompactProfileButton extends StatelessWidget {
       ),
     ),
   );
-}
-
-class _Header extends StatelessWidget {
-  const _Header({
-    required this.menuFocusNode,
-    required this.onOpenNavigation,
-    required this.onOpenBilling,
-  });
-
-  final FocusNode menuFocusNode;
-  final VoidCallback onOpenNavigation;
-  final VoidCallback onOpenBilling;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      constraints: const BoxConstraints(minHeight: 68),
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      decoration: const BoxDecoration(
-        color: AppColors.white,
-        border: Border(bottom: BorderSide(color: AppColors.neutral200)),
-      ),
-      child: Row(
-        children: [
-          Semantics(
-            button: true,
-            label: 'Open navigation',
-            child: SizedBox.square(
-              dimension: 44,
-              child: IconButton(
-                key: const ValueKey('dashboard-open-navigation'),
-                focusNode: menuFocusNode,
-                tooltip: 'Open navigation',
-                onPressed: onOpenNavigation,
-                style: IconButton.styleFrom(
-                  backgroundColor: AppColors.white,
-                  foregroundColor: const Color(0xFF181816),
-                  side: const BorderSide(color: Color(0xFFDCDCD5)),
-                  shape: const RoundedRectangleBorder(),
-                ),
-                icon: const Icon(LucideIcons.menu, size: 20),
-              ),
-            ),
-          ),
-          const SizedBox(width: 12),
-          const Expanded(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'WORKSPACE',
-                  style: TextStyle(
-                    color: Color(0xFF6F6F68),
-                    fontSize: 10,
-                    height: 1.2,
-                    letterSpacing: 1.2,
-                  ),
-                ),
-                SizedBox(height: 3),
-                Text(
-                  'Overview',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: Color(0xFF181816),
-                    fontSize: 15,
-                    fontWeight: AppTypography.bold,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Consumer(
-            builder: (context, ref, _) {
-              final dashboard = ref.watch(dashboardOverviewControllerProvider);
-              final label = switch (dashboard) {
-                AsyncData(:final value) when value.stats != null =>
-                  '${value.stats!.credits} credits',
-                AsyncError() => 'Credits',
-                _ => '… credits',
-              };
-              return Semantics(
-                button: true,
-                label: '$label, open billing and credits',
-                child: InkWell(
-                  key: const ValueKey('dashboard-header-credits'),
-                  onTap: onOpenBilling,
-                  child: Container(
-                    constraints: const BoxConstraints(minHeight: 44),
-                    padding: const EdgeInsets.symmetric(horizontal: 11),
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFFAFAF8),
-                      border: Border.all(color: const Color(0xFFDCDCD5)),
-                    ),
-                    child: Text(
-                      label,
-                      style: const TextStyle(
-                        color: Color(0xFF181816),
-                        fontSize: 11,
-                        fontWeight: AppTypography.bold,
-                      ),
-                    ),
-                  ),
-                ),
-              );
-            },
-          ),
-        ],
-      ),
-    );
-  }
 }
 
 class _DrawerDestination {

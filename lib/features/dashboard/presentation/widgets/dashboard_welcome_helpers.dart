@@ -6,8 +6,8 @@ class _DarkHero extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.all(24),
-    color: AppColors.black,
+    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+    color: OverviewStyle.ink,
     child: IconTheme(
       data: const IconThemeData(color: AppColors.whiteAlpha60),
       child: DefaultTextStyle(
@@ -39,82 +39,21 @@ class _ConsultHelper extends ConsumerWidget {
   final bool showRescue;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) => Container(
+  Widget build(BuildContext context, WidgetRef ref) => OverviewHelperCard(
     key: const ValueKey('dashboard-consult-helper'),
-    padding: const EdgeInsets.all(16),
-    decoration: BoxDecoration(
-      color: AppColors.white,
-      border: Border.all(color: AppColors.neutral200),
+    content: (
+      label: 'Guided setup',
+      title: showRescue
+          ? "Stuck? We'll set it up with you."
+          : 'Want a hand with your setup?',
+      body: 'Free 30 minutes with an Onboarding Specialist. We handle the setup and walk you through your first shoot.',
+      photo: 'assets/images/dashboard/guided_setup.jpg',
+      action: 'Book a free call →',
     ),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SchoolSquareIcon(
-              icon: Icons.phone_outlined,
-              size: 44,
-              inverted: false,
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    showRescue
-                        ? "Stuck? We'll set it up with you."
-                        : 'Want a hand with your setup?',
-                    style: const TextStyle(
-                      fontSize: 16,
-                      height: 1.25,
-                      fontWeight: AppTypography.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 5),
-                  const Text(
-                    'Free 30 minutes with an Onboarding Specialist. We handle '
-                    'the setup and walk you through your first shoot.',
-                    style: TextStyle(color: AppColors.neutral500, fontSize: 14),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 14),
-        Padding(
-          padding: const EdgeInsets.only(left: 58),
-          child: Row(
-            children: [
-              Expanded(
-                child: AppOutlinedButton(
-                  label: 'Book a free call',
-                  height: 40,
-                  onPressed: () => _showCalendly(context, ref),
-                ),
-              ),
-              IconButton(
-                tooltip: 'Dismiss onboarding call suggestion',
-                constraints: const BoxConstraints.tightFor(
-                  width: 40,
-                  height: 40,
-                ),
-                onPressed: () => ref
-                    .read(dashboardWelcomeControllerProvider.notifier)
-                    .dismissConsult(),
-                icon: const Icon(
-                  Icons.close,
-                  size: 18,
-                  color: AppColors.neutral400,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
-    ),
+    dismissTooltip: 'Dismiss onboarding call suggestion',
+    onDismiss: () =>
+        ref.read(dashboardWelcomeControllerProvider.notifier).dismissConsult(),
+    onOpen: () => _showCalendly(context, ref),
   );
 }
 
@@ -144,7 +83,7 @@ Future<void> _showCalendly(BuildContext context, WidgetRef ref) async {
                 IconButton(
                   tooltip: 'Close booking',
                   onPressed: () => Navigator.pop(sheetContext),
-                  icon: const Icon(Icons.close),
+                  icon: const Icon(LucideIcons.x),
                 ),
               ],
             ),
@@ -260,7 +199,6 @@ class _CampaignHeroState extends ConsumerState<_CampaignHero> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _DashboardStudioScene(welcome: widget.welcome),
           CampaignFlipCard(
             jobId: campaign.jobId,
             images: images,
@@ -343,7 +281,7 @@ class _CampaignRescue extends StatelessWidget {
   );
 }
 
-class _OneTimeHero extends ConsumerStatefulWidget {
+class _OneTimeHero extends ConsumerWidget {
   const _OneTimeHero({
     required this.job,
     required this.offerActive,
@@ -354,125 +292,172 @@ class _OneTimeHero extends ConsumerStatefulWidget {
   final DateTime? offerExpiresAt;
 
   @override
-  ConsumerState<_OneTimeHero> createState() => _OneTimeHeroState();
-}
-
-class _OneTimeHeroState extends ConsumerState<_OneTimeHero> {
-  Timer? _timer;
-
-  @override
-  void initState() {
-    super.initState();
-    if (widget.offerExpiresAt != null) {
-      _timer = Timer.periodic(const Duration(seconds: 1), (_) {
-        if (mounted) setState(() {});
-      });
-    }
-  }
-
-  @override
-  void dispose() {
-    _timer?.cancel();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) => _DarkHero(
+  Widget build(BuildContext context, WidgetRef ref) => Container(
     key: const ValueKey('dashboard-onetime-hero'),
+    padding: const EdgeInsets.all(20),
+    color: OverviewStyle.ink,
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Row(
           children: [
-            for (final source in [
-              widget.job.productThumbnail,
-              widget.job.modelThumbnail,
-            ])
-              if (source.isNotEmpty)
-                Container(
-                  width: 82,
-                  height: 82,
-                  decoration: BoxDecoration(
-                    border: Border.all(color: AppColors.white, width: 2),
+            _RetentionThumbnails(job: job),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const _WelcomeEyebrow('Your owned shoot'),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Your photos. Yours forever.',
+                    style: OverviewStyle.serif(24, color: OverviewStyle.paper),
                   ),
-                  child: AppImage(source, fit: BoxFit.cover),
-                ),
+                ],
+              ),
+            ),
           ],
         ),
-        const SizedBox(height: 18),
-        const _WelcomeEyebrow('Your shoot'),
-        const Text(
-          'Your photos. Yours forever.',
-          style: TextStyle(
-            color: AppColors.white,
-            fontSize: 32,
-            height: 1.02,
-            fontWeight: AppTypography.bold,
-          ),
-        ),
-        const SizedBox(height: 8),
-        const Text(
+        const SizedBox(height: 14),
+        Text(
           'Full-resolution, no watermarks, full commercial rights. Open the shoot to download.',
-          style: TextStyle(color: AppColors.whiteAlpha70),
-        ),
-        if (widget.offerActive) ...[
-          const SizedBox(height: 10),
-          Text(
-            _offerCopy(),
-            style: const TextStyle(
-              color: AppColors.white,
-              fontWeight: AppTypography.bold,
-            ),
+          style: OverviewStyle.body(
+            12,
+            color: OverviewStyle.paper.withValues(alpha: .75),
           ),
+        ),
+        if (offerActive) ...[
+          const SizedBox(height: 8),
+          _RetentionOffer(expiresAt: offerExpiresAt),
         ],
         const SizedBox(height: 18),
-        PrimaryButton(
-          label: 'Open shoot',
-          icon: Icons.download_outlined,
-          backgroundColor: AppColors.white,
-          foregroundColor: AppColors.black,
-          onPressed: () => unawaited(
-            context.push<void>(AppRoutes.shootDetail(widget.job.id)),
-          ),
+        OverviewButton(
+          'Open shoot to download',
+          light: true,
+          height: 38,
+          icon: LucideIcons.download,
+          onPressed: () =>
+              context.push(AppRoutes.shootDetail(job.id, fromDashboard: true)),
         ),
-        if (widget.offerActive) ...[
-          const SizedBox(height: 10),
-          AppOutlinedButton(
-            label: 'Claim 20% off',
-            icon: Icons.arrow_forward,
-            iconAlignment: IconAlignment.end,
-            foregroundColor: AppColors.white,
-            borderColor: AppColors.whiteAlpha40,
-            backgroundColor: AppColors.transparent,
-            onPressed: () {
-              unawaited(
-                ref
-                    .read(analyticsServiceProvider)
-                    .track('upsell.dashboard_hero_clicked'),
-              );
-              unawaited(
-                context.push<void>(
-                  '${AppRoutes.selectPlan}?upsell=onetime20&from=dashboard_hero',
-                ),
-              );
-            },
-          ),
+        if (offerActive) ...[
+          const SizedBox(height: 8),
+          _RetentionUpsell(expiresAt: offerExpiresAt),
         ],
       ],
     ),
   );
+}
 
-  String _offerCopy() {
-    final expiresAt = widget.offerExpiresAt;
-    if (expiresAt == null) {
-      return 'Your 20% off any plan is open, with 100 bonus credits.';
+class _RetentionOffer extends ConsumerWidget {
+  const _RetentionOffer({required this.expiresAt});
+  final DateTime? expiresAt;
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final remaining = expiresAt == null
+        ? null
+        : ref.watch(retentionCountdownProvider(expiresAt!));
+    final timer = remaining == null
+        ? ''
+        : ' for ${remaining.inMinutes.toString().padLeft(2, '0')}:${(remaining.inSeconds % 60).toString().padLeft(2, '0')}';
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        color: OverviewStyle.paper.withValues(alpha: .08),
+        border: const Border(
+          left: BorderSide(color: OverviewStyle.paper, width: 2),
+        ),
+      ),
+      child: Text(
+        remaining != null && remaining <= Duration.zero
+            ? 'Your plan offer has ended.'
+            : 'Your 20% off any plan is open$timer and includes 15 bonus credits.',
+        style: OverviewStyle.body(
+          11.5,
+          color: OverviewStyle.paper.withValues(alpha: .95),
+        ),
+      ),
+    );
+  }
+}
+
+class _RetentionUpsell extends ConsumerWidget {
+  const _RetentionUpsell({required this.expiresAt});
+  final DateTime? expiresAt;
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final remaining = expiresAt == null
+        ? null
+        : ref.watch(retentionCountdownProvider(expiresAt!));
+    if (remaining != null && remaining <= Duration.zero) {
+      return const SizedBox.shrink();
     }
-    final remaining = expiresAt.difference(DateTime.now());
-    if (remaining <= Duration.zero) return 'Your plan offer has ended.';
-    final hours = remaining.inHours.toString().padLeft(2, '0');
-    final minutes = (remaining.inMinutes % 60).toString().padLeft(2, '0');
-    final seconds = (remaining.inSeconds % 60).toString().padLeft(2, '0');
-    return 'Your 20% off any plan is open. $hours:$minutes:$seconds left '
-        '(+100 bonus credits).';
+    return OverviewButton(
+      'Claim 20% off any plan →',
+      outlined: true,
+      height: 34,
+      onPressed: () {
+        unawaited(
+          ref
+              .read(analyticsServiceProvider)
+              .track('upsell.dashboard_hero_clicked'),
+        );
+        unawaited(
+          context.push<void>(
+            '${AppRoutes.selectPlan}?upsell=onetime20&from=dashboard_hero',
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _RetentionThumbnails extends ConsumerWidget {
+  const _RetentionThumbnails({required this.job});
+  final DashboardRecentJob job;
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    var product = job.productThumbnail;
+    var model = job.modelThumbnail;
+    if (product.isEmpty || model.isEmpty) {
+      final userId = ref.watch(
+        authStateProvider.select((auth) => auth.value?.id),
+      );
+      if (userId != null) {
+        final shoot = ref
+            .watch(
+              dashboardCampaignControllerProvider((
+                userId: userId,
+                jobId: job.id,
+              )),
+            )
+            .job;
+        product = product.isEmpty ? shoot?.productThumbnail ?? '' : product;
+        model = model.isEmpty ? shoot?.modelThumbnail ?? '' : model;
+      }
+    }
+    return SizedBox(
+      width: 88,
+      height: 48,
+      child: Stack(
+        children: [
+          for (var index = 0; index < 2; index++)
+            Positioned(
+              left: index * 36,
+              top: 0,
+              child: Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  border: Border.all(color: OverviewStyle.paper, width: 2),
+                ),
+                child: OverviewImage(
+                  index == 0 ? product : model,
+                  label: index == 0 ? 'Your product' : 'Your model',
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
   }
 }

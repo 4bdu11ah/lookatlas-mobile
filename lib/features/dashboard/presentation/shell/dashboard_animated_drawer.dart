@@ -12,7 +12,7 @@ class _DashboardDrawerTransition extends StatelessWidget {
     required this.child,
   });
 
-  static const double _maximumDrawerWidth = 330;
+  static const double _maximumDrawerWidth = 320;
   static const double _edgeDragWidth = 24;
 
   final Animation<double> animation;
@@ -28,7 +28,7 @@ class _DashboardDrawerTransition extends StatelessWidget {
       builder: (context, constraints) {
         final drawerWidth = min(
           _maximumDrawerWidth,
-          constraints.maxWidth * 0.86,
+          constraints.maxWidth * 0.84,
         );
         return AnimatedBuilder(
           animation: animation,
@@ -38,7 +38,7 @@ class _DashboardDrawerTransition extends StatelessWidget {
             return Stack(
               children: [
                 Transform.translate(
-                  offset: Offset(14 * progress, 0),
+                  offset: Offset.zero,
                   child: ExcludeFocus(
                     excluding: progress > 0,
                     child: Semantics(
@@ -80,31 +80,14 @@ class _DashboardDrawerTransition extends StatelessWidget {
                     bottom: 0,
                     left: 0,
                     width: drawerWidth,
-                    child: ClipPath(
-                      clipper: _CircularDrawerRevealClipper(
-                        progress: progress,
-                        origin: Offset(
-                          38,
-                          MediaQuery.paddingOf(context).top + 34,
-                        ),
-                      ),
-                      child: DecoratedBox(
-                        decoration: const BoxDecoration(
-                          boxShadow: [
-                            BoxShadow(
-                              color: Color(0x2410100E),
-                              blurRadius: 50,
-                              offset: Offset(18, 0),
-                            ),
-                          ],
-                        ),
-                        child: GestureDetector(
-                          onHorizontalDragUpdate: (details) =>
-                              onDragUpdate(details.delta.dx, drawerWidth),
-                          onHorizontalDragEnd: (details) =>
-                              onDragEnd(details.primaryVelocity ?? 0),
-                          child: drawer,
-                        ),
+                    child: Transform.translate(
+                      offset: Offset(-drawerWidth * (1 - progress), 0),
+                      child: GestureDetector(
+                        onHorizontalDragUpdate: (details) =>
+                            onDragUpdate(details.delta.dx, drawerWidth),
+                        onHorizontalDragEnd: (details) =>
+                            onDragEnd(details.primaryVelocity ?? 0),
+                        child: drawer,
                       ),
                     ),
                   ),
@@ -133,30 +116,4 @@ class _DashboardDrawerTransition extends StatelessWidget {
       },
     );
   }
-}
-
-class _CircularDrawerRevealClipper extends CustomClipper<Path> {
-  const _CircularDrawerRevealClipper({
-    required this.progress,
-    required this.origin,
-  });
-
-  final double progress;
-  final Offset origin;
-
-  @override
-  Path getClip(Size size) {
-    final farthestX = max(origin.dx, size.width - origin.dx);
-    final farthestY = max(origin.dy, size.height - origin.dy);
-    final maximumRadius = sqrt(
-      (farthestX * farthestX) + (farthestY * farthestY),
-    );
-    return Path()..addOval(
-      Rect.fromCircle(center: origin, radius: maximumRadius * progress),
-    );
-  }
-
-  @override
-  bool shouldReclip(_CircularDrawerRevealClipper oldClipper) =>
-      oldClipper.progress != progress || oldClipper.origin != origin;
 }

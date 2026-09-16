@@ -14,6 +14,7 @@ import 'package:look_atlas/features/auth/di/auth_providers.dart';
 import 'package:look_atlas/features/auth/domain/entities/app_user.dart';
 import 'package:look_atlas/features/auth/domain/repositories/auth_repository.dart';
 import 'package:look_atlas/features/billing/di/billing_api_providers.dart';
+import 'package:look_atlas/features/dashboard/di/dashboard_providers.dart';
 import 'package:look_atlas/features/onboarding/di/onboarding_providers.dart';
 import 'package:look_atlas/features/onboarding/domain/entities/free_shoot.dart';
 import 'package:look_atlas/features/onboarding/domain/entities/look_atlas_model.dart';
@@ -194,6 +195,9 @@ void main() {
     );
     container = ProviderContainer(
       overrides: [
+        dashboardRepositoryProvider.overrideWithValue(
+          const FakeDashboardRepository(jobs: []),
+        ),
         sharedPreferencesProvider.overrideWithValue(sharedPreferences),
         deviceTokenServiceProvider.overrideWithValue(deviceTokenService),
         authRepositoryProvider.overrideWithValue(
@@ -744,14 +748,14 @@ void main() {
     await tester.pump();
     for (
       var attempt = 0;
-      attempt < 20 && find.text('Dashboard').evaluate().isEmpty;
+      attempt < 20 && find.text('Overview').evaluate().isEmpty;
       attempt++
     ) {
       await tester.pump(const Duration(milliseconds: 100));
     }
     await tester.pump(const Duration(milliseconds: 300));
 
-    expect(find.text('Dashboard'), findsOneWidget);
+    expect(find.text('Overview'), findsWidgets);
     expect(find.byType(OnboardingWizardScreen), findsNothing);
 
     await teardownTree(tester);

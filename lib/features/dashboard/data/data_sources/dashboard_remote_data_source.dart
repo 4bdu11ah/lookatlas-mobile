@@ -1,9 +1,15 @@
+import 'package:dio/dio.dart';
 import 'package:look_atlas/core/network/api_endpoints.dart';
 import 'package:look_atlas/core/network/api_service.dart';
 import 'package:look_atlas/core/result/result.dart';
+import 'package:look_atlas/features/dashboard/data/dashboard_overview_decoder.dart';
 import 'package:look_atlas/features/dashboard/domain/entities/dashboard_data.dart';
+import 'package:look_atlas/features/dashboard/domain/entities/dashboard_overview.dart';
 
 abstract interface class DashboardRemoteDataSource {
+  Future<Result<DashboardOverview>> getOverview();
+
+  void cancelOverviewRequest();
   Future<Result<DashboardStats>> getStats();
 
   Future<Result<List<DashboardRecentJob>>> getRecentJobs();
@@ -12,9 +18,31 @@ abstract interface class DashboardRemoteDataSource {
 }
 
 class DashboardRemoteDataSourceImpl implements DashboardRemoteDataSource {
-  const DashboardRemoteDataSourceImpl({required this._api});
+  DashboardRemoteDataSourceImpl({required this._api});
 
   final ApiService _api;
+  CancelToken? _overviewToken;
+
+  @override
+  Future<Result<DashboardOverview>> getOverview() {
+    final token = CancelToken();
+    _overviewToken = token;
+    return _api
+        .get<DashboardOverview>(
+          ApiEndpoints.dashboardOverview,
+          decoder: decodeDashboardOverview,
+          cancelToken: token,
+        )
+        .whenComplete(() {
+          if (identical(_overviewToken, token)) _overviewToken = null;
+        });
+  }
+
+  @override
+  void cancelOverviewRequest() {
+    _overviewToken?.cancel('Dashboard is no longer visible.');
+    _overviewToken = null;
+  }
 
   @override
   Future<Result<DashboardStats>> getStats() => _api.get<DashboardStats>(

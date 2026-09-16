@@ -1,9 +1,11 @@
+import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:look_atlas/core/network/api_endpoints.dart';
 import 'package:look_atlas/core/network/api_service.dart';
 import 'package:look_atlas/core/result/result.dart';
 import 'package:look_atlas/features/dashboard/data/data_sources/dashboard_remote_data_source.dart';
 import 'package:look_atlas/features/dashboard/domain/entities/dashboard_data.dart';
+import 'package:look_atlas/features/dashboard/domain/entities/dashboard_overview.dart';
 import 'package:mocktail/mocktail.dart';
 
 class _MockApiService extends Mock implements ApiService {}
@@ -15,6 +17,34 @@ void main() {
   setUp(() {
     api = _MockApiService();
     dataSource = DashboardRemoteDataSourceImpl(api: api);
+  });
+
+  test('get_overview_uses_native_endpoint_and_cancellable_transport', () async {
+    late CancelToken token;
+    when(
+      () => api.get<DashboardOverview>(
+        ApiEndpoints.dashboardOverview,
+        decoder: any(named: 'decoder'),
+        cancelToken: any(named: 'cancelToken'),
+      ),
+    ).thenAnswer((invocation) async {
+      token = invocation.namedArguments[#cancelToken]! as CancelToken;
+      final decoder =
+          invocation.namedArguments[#decoder]!
+              as DashboardOverview Function(dynamic);
+      return Result.ok(
+        decoder(<String, dynamic>{
+          'credits': <String, dynamic>{'remaining': 240},
+          'activity': <String, dynamic>{},
+        }),
+      );
+    });
+    final pending = dataSource.getOverview();
+    dataSource.cancelOverviewRequest();
+    final overview = (await pending).valueOrNull!;
+    expect(ApiEndpoints.dashboardOverview, '/dashboard/overview');
+    expect(overview.credits.credits, 240);
+    expect(token.isCancelled, isTrue);
   });
 
   test('get_stats_decodes_dashboard_totals', () async {

@@ -13,6 +13,10 @@ class ShootViewModel {
     this.productSku,
     this.progress = 1,
     this.supportTicketId,
+    this.modelName,
+    this.directorName,
+    this.reviewedAt,
+    this.galleryAssets = const [],
   });
 
   factory ShootViewModel.fromJob(ShootJob job) => ShootViewModel(
@@ -28,6 +32,16 @@ class ShootViewModel {
     productSku: job.productSku,
     progress: job.progress,
     supportTicketId: job.supportTicketId,
+    modelName: job.modelName,
+    directorName: job.directorName ?? job.preset,
+    reviewedAt: job.reviewedAt,
+    galleryAssets: [
+      for (final image
+          in job.shots.isEmpty
+              ? job.images
+              : [for (final shot in job.shots) ...shot.images])
+        if (image.url.isNotEmpty) image.url,
+    ],
   );
 
   final String id;
@@ -40,4 +54,16 @@ class ShootViewModel {
   final String? productSku;
   final double progress;
   final String? supportTicketId;
+  final String? modelName;
+  final String? directorName;
+  final DateTime? reviewedAt;
+  final List<String> galleryAssets;
+
+  bool get isActive => status == 'processing';
+
+  bool get isReady => status == 'completed' && reviewedAt == null;
+
+  bool get needsAttention => const {'failed', 'cancelled'}.contains(status);
+
+  bool get isArchived => reviewedAt != null || needsAttention;
 }

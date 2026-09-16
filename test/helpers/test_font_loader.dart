@@ -7,6 +7,10 @@ Future<void> loadTestFonts() async {
     ..addFont(rootBundle.load('assets/fonts/Satoshi-Bold.ttf'))
     ..addFont(rootBundle.load('assets/fonts/Satoshi-Black.ttf'));
   await fontLoader.load();
+  final serifLoader = FontLoader('InstrumentSerif')
+    ..addFont(rootBundle.load('assets/fonts/InstrumentSerif-Regular.ttf'))
+    ..addFont(rootBundle.load('assets/fonts/InstrumentSerif-Italic.ttf'));
+  await serifLoader.load();
   final iconLoader = FontLoader('MaterialIcons')
     ..addFont(rootBundle.load('fonts/MaterialIcons-Regular.otf'));
   await iconLoader.load();

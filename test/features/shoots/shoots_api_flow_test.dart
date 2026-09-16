@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
+import 'package:look_atlas/core/providers/core_providers.dart';
 import 'package:look_atlas/core/result/result.dart';
 import 'package:look_atlas/core/router/app_routes.dart';
 import 'package:look_atlas/core/theme/app_theme.dart';
@@ -17,6 +18,7 @@ import 'package:look_atlas/shared/widgets/app_image.dart';
 import 'package:look_atlas/shared/widgets/app_outlined_button.dart';
 import 'package:look_atlas/shared/widgets/app_text_field.dart';
 import 'package:look_atlas/shared/widgets/primary_button.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../helpers/fake_repositories.dart';
 import '../../helpers/fake_shoots_repository.dart';
@@ -28,6 +30,8 @@ void main() {
     FakeShootsRepository repository, {
     Size physicalSize = const Size(390, 844),
   }) async {
+    SharedPreferences.setMockInitialValues({});
+    final preferences = await SharedPreferences.getInstance();
     tester.view
       ..physicalSize = physicalSize
       ..devicePixelRatio = 1;
@@ -36,6 +40,7 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
+          sharedPreferencesProvider.overrideWithValue(preferences),
           authRepositoryProvider.overrideWithValue(
             FakeAuthRepository(
               user: const AppUser(id: 'user-1', email: 'creator@example.com'),
@@ -79,6 +84,8 @@ void main() {
     WidgetTester tester,
     FakeShootsRepository repository,
   ) async {
+    SharedPreferences.setMockInitialValues({});
+    final preferences = await SharedPreferences.getInstance();
     tester.view
       ..physicalSize = const Size(390, 844)
       ..devicePixelRatio = 1;
@@ -93,7 +100,9 @@ void main() {
         ),
         GoRoute(
           path: AppRoutes.createShoot,
-          builder: (_, _) => const CreateShootScreen(),
+          builder: (_, state) => CreateShootScreen(
+            draftId: state.uri.queryParameters['draftId'],
+          ),
         ),
         GoRoute(
           path: AppRoutes.shootDetailPath,
@@ -107,6 +116,7 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
+          sharedPreferencesProvider.overrideWithValue(preferences),
           authRepositoryProvider.overrideWithValue(
             FakeAuthRepository(
               user: const AppUser(id: 'user-1', email: 'creator@example.com'),
@@ -125,7 +135,7 @@ void main() {
     return router;
   }
 
-  testWidgets('shoots_list_polls_every_five_seconds_when_job_is_active', (
+  testWidgets('shoots_list_polls_every_eight_seconds_when_job_is_active', (
     tester,
   ) async {
     final repository = FakeShootsRepository();
@@ -136,7 +146,7 @@ void main() {
     );
     final initialCalls = repository.getJobsCalls;
 
-    await tester.pump(const Duration(seconds: 5));
+    await tester.pump(const Duration(seconds: 8));
     await tester.pump();
 
     expect(repository.getJobsCalls, initialCalls + 1);

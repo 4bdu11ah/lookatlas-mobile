@@ -400,7 +400,7 @@ void main() {
     expect(find.byType(Drawer), findsNothing);
   });
 
-  testWidgets('overview_mobileDrawer_matchesSixPrototypeDestinations', (
+  testWidgets('overview_mobileDrawer_keepsExistingFeatureNavigation', (
     tester,
   ) async {
     tester.view.devicePixelRatio = 1;
@@ -413,14 +413,17 @@ void main() {
       tester
           .getSize(find.byKey(const ValueKey('dashboard-drawer-surface')))
           .width,
-      320,
+      330,
     );
     for (final name in [
       'Shoots',
       'Products',
       'House Models',
       'Brand Studio',
-      'Learning Center',
+      'Workshop',
+      'Lookbooks',
+      'Create Content',
+      'Calendar',
     ]) {
       expect(find.text(name), findsOneWidget);
     }

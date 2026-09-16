@@ -376,7 +376,8 @@ class ShootSelection {
 
   ShootCatalogItem get product => products.first;
   ShootCatalogItem get model => models.first;
-  String get modelSource => model.source ?? 'user';
+  ShootCatalogItem? get modelOrNull => models.firstOrNull;
+  String? get modelSource => modelOrNull?.source;
 }
 
 class CustomShootShotRequest {

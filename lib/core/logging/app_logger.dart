@@ -27,11 +27,21 @@ abstract final class AppLogger {
   }
 
   static void _write(String level, Object? message) {
-    formatLogLines(level, message).forEach(debugPrint);
+    formatLogLines(
+      level,
+      message,
+      useColor: _supportsAnsiColors,
+      framed: _supportsAnsiColors,
+    ).forEach(debugPrint);
   }
 
   @visibleForTesting
-  static List<String> formatLogLines(String level, Object? message) {
+  static List<String> formatLogLines(
+    String level,
+    Object? message, {
+    bool useColor = true,
+    bool framed = true,
+  }) {
     final color = switch (level) {
       'DEBUG' => '\x1B[36m',
       'INFO' => '\x1B[32m',
@@ -39,11 +49,18 @@ abstract final class AppLogger {
       'ERROR' => '\x1B[31m',
       _ => '',
     };
-    return [
-      for (final line in frameMessage('[$level] $message'))
-        '$color$line$_resetColor',
-    ];
+    final formattedMessage = '[$level] $message';
+    final lines = framed
+        ? frameMessage(formattedMessage)
+        : chunkMessage(formattedMessage);
+    if (!useColor || color.isEmpty) return lines;
+    return [for (final line in lines) '$color$line$_resetColor'];
   }
+
+  static bool get _supportsAnsiColors =>
+      !kIsWeb &&
+      defaultTargetPlatform != TargetPlatform.iOS &&
+      defaultTargetPlatform != TargetPlatform.android;
 
   @visibleForTesting
   static List<String> frameMessage(String message, {DateTime? timestamp}) {

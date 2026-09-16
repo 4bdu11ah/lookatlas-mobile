@@ -12,13 +12,13 @@ import 'package:look_atlas/core/router/app_routes.dart';
 import 'package:look_atlas/core/theme/app_colors.dart';
 import 'package:look_atlas/core/theme/app_typography.dart';
 import 'package:look_atlas/features/auth/di/auth_providers.dart';
+import 'package:look_atlas/features/auth/presentation/controllers/auth_controller.dart';
 import 'package:look_atlas/features/calendar/di/calendar_providers.dart';
 import 'package:look_atlas/features/dashboard/di/dashboard_providers.dart';
 import 'package:look_atlas/features/dashboard/presentation/controllers/dashboard_overview_controller.dart';
 import 'package:look_atlas/features/dashboard/presentation/controllers/dashboard_shell_controller.dart';
 import 'package:look_atlas/features/dashboard/presentation/models/dashboard_page.dart';
 import 'package:look_atlas/features/dashboard/presentation/screens/dashboard_overview_screen.dart';
-import 'package:look_atlas/features/dashboard/presentation/widgets/overview_navigation_drawer.dart';
 import 'package:look_atlas/features/dashboard/presentation/widgets/overview_shell_header.dart';
 import 'package:look_atlas/features/dashboard/presentation/widgets/overview_style.dart';
 import 'package:look_atlas/features/studio_school/di/studio_school_providers.dart';
@@ -344,8 +344,8 @@ void _navigateDashboard(
 }
 
 Future<void> _logOut(BuildContext context, WidgetRef ref) async {
-  final result = await ref.read(authRepositoryProvider).signOut();
-  if (result.isErr && context.mounted) {
+  final succeeded = await ref.read(authControllerProvider.notifier).signOut();
+  if (!succeeded && context.mounted) {
     AppSnackBar.showError(context, 'Could not log out. Please try again.');
   }
 }

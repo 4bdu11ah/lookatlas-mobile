@@ -3,10 +3,25 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:look_atlas/core/error/failure.dart';
 import 'package:look_atlas/core/logging/app_logger.dart';
+import 'package:look_atlas/core/providers/core_providers.dart';
 import 'package:look_atlas/core/result/result.dart';
+import 'package:look_atlas/features/assistant/presentation/controllers/assistant_controller.dart';
 import 'package:look_atlas/features/auth/di/auth_providers.dart';
 import 'package:look_atlas/features/auth/domain/entities/app_user.dart';
 import 'package:look_atlas/features/auth/domain/entities/register_attribution.dart';
+import 'package:look_atlas/features/billing/presentation/controllers/billing_checkout_controller.dart';
+import 'package:look_atlas/features/billing/presentation/controllers/onetime_verification_controller.dart';
+import 'package:look_atlas/features/dashboard/presentation/controllers/dashboard_overview_controller.dart';
+import 'package:look_atlas/features/dashboard/presentation/controllers/dashboard_shell_controller.dart';
+import 'package:look_atlas/features/house_model/presentation/controllers/house_model_controller.dart';
+import 'package:look_atlas/features/onboarding/presentation/controllers/generation_controller.dart';
+import 'package:look_atlas/features/onboarding/presentation/controllers/onboarding_submission_controller.dart';
+import 'package:look_atlas/features/onboarding/presentation/controllers/swipe_controller.dart';
+import 'package:look_atlas/features/onboarding/presentation/controllers/wizard_controller.dart';
+import 'package:look_atlas/features/products/presentation/controllers/products_controller.dart';
+import 'package:look_atlas/features/shoots/presentation/controllers/create_shoot_controller.dart';
+import 'package:look_atlas/features/shoots/presentation/controllers/shoot_draft_controller.dart';
+import 'package:look_atlas/features/shoots/presentation/controllers/shoots_controller.dart';
 import 'package:look_atlas/features/subscription/di/subscription_providers.dart';
 import 'package:look_atlas/services/crash/crash_reporter.dart';
 import 'package:look_atlas/services/service_providers.dart';
@@ -91,10 +106,32 @@ class AuthController extends Notifier<AsyncValue<void>> {
   /// Ends the session. Returns whether it succeeded; runs through the same
   /// loading/error state as the other actions so the UI can show progress
   /// and surface failures.
-  Future<bool> signOut() => _run(
-    () => ref.read(signOutUseCaseProvider)(),
-    onOk: (_) => _clearIdentity(),
-  );
+  Future<bool> signOut() async {
+    final keepAlive = ref.keepAlive();
+    final accountId = ref.read(authRepositoryProvider).currentUser?.id;
+    try {
+      state = const AsyncLoading();
+      late final Result<void> result;
+      try {
+        result = await ref.read(signOutUseCaseProvider)();
+      } on Object catch (error, stackTrace) {
+        state = AsyncError(error, stackTrace);
+        return false;
+      }
+      if (result case Err(:final failure)) {
+        state = AsyncError(failure, StackTrace.current);
+        return false;
+      }
+
+      await _clearAccountLocalData(accountId);
+      await _clearIdentity();
+      _invalidateAccountState();
+      state = const AsyncData(null);
+      return true;
+    } finally {
+      keepAlive.close();
+    }
+  }
 
   /// Runs [action] under a shared loading/error lifecycle: `AsyncLoading`
   /// while in flight, then `AsyncData(null)` or `AsyncError` with the typed
@@ -138,6 +175,7 @@ class AuthController extends Notifier<AsyncValue<void>> {
   /// RevenueCat. Fire-and-forget: a failing side effect (e.g. RevenueCat
   /// offline) must never fail the auth flow itself.
   void _syncIdentity(AppUser user) {
+    _invalidateAccountState();
     final analytics = ref.read(analyticsServiceProvider);
     final subscriptions = ref.read(subscriptionRepositoryProvider);
     _fireAndForget(
@@ -153,12 +191,45 @@ class AuthController extends Notifier<AsyncValue<void>> {
   }
 
   /// Detaches the signed-out identity everywhere [_syncIdentity] attached it.
-  void _clearIdentity() {
+  Future<void> _clearIdentity() async {
     final analytics = ref.read(analyticsServiceProvider);
     final subscriptions = ref.read(subscriptionRepositoryProvider);
-    _fireAndForget(analytics.reset);
-    _fireAndForget(() => CrashReporter.setUser(null));
-    _fireAndForget(subscriptions.logOut);
+    await Future.wait([
+      _runSideEffect(analytics.reset),
+      _runSideEffect(() => CrashReporter.setUser(null)),
+      _runSideEffect(subscriptions.logOut),
+    ]);
+  }
+
+  Future<void> _clearAccountLocalData(String? accountId) async {
+    final preferences = ref.read(sharedPreferencesProvider);
+    final keys = preferences
+        .getKeys()
+        .where((key) {
+          if (key == 'subscription_last_status') return true;
+          if (accountId == null || accountId.isEmpty) return false;
+          return key.endsWith(':$accountId') || key.contains(':$accountId:');
+        })
+        .toList(growable: false);
+    await Future.wait([for (final key in keys) preferences.remove(key)]);
+  }
+
+  void _invalidateAccountState() {
+    ref
+      ..invalidate(assistantControllerProvider)
+      ..invalidate(billingCheckoutControllerProvider)
+      ..invalidate(onetimeVerificationControllerProvider)
+      ..invalidate(dashboardOverviewControllerProvider)
+      ..invalidate(dashboardShellControllerProvider)
+      ..invalidate(houseModelControllerProvider)
+      ..invalidate(generationControllerProvider)
+      ..invalidate(onboardingSubmissionControllerProvider)
+      ..invalidate(swipeControllerProvider)
+      ..invalidate(wizardControllerProvider)
+      ..invalidate(productsControllerProvider)
+      ..invalidate(createShootControllerProvider)
+      ..invalidate(shootDraftProvider)
+      ..invalidate(shootsControllerProvider);
   }
 
   void _fireAndForget(Future<void> Function() action) {
@@ -167,6 +238,14 @@ class AuthController extends Notifier<AsyncValue<void>> {
         unawaited(CrashReporter.recordError(error, stack));
       }),
     );
+  }
+
+  Future<void> _runSideEffect(Future<void> Function() action) async {
+    try {
+      await action();
+    } on Object catch (error, stack) {
+      await CrashReporter.recordError(error, stack);
+    }
   }
 
   String _safeDiagnostic(Object error) {

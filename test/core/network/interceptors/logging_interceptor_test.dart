@@ -1,6 +1,17 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:look_atlas/core/network/interceptors/logging_interceptor.dart';
+
+class _ConsumedErrorHandler extends ErrorInterceptorHandler {
+  Future<void> consume() async {
+    try {
+      await future;
+    } on Object {
+      // Error interceptors intentionally forward the original Dio exception.
+    }
+  }
+}
 
 void main() {
   final interceptor = LoggingInterceptor();
@@ -131,5 +142,39 @@ void main() {
     expect(log, contains('refreshToken: ***'));
     expect(log, isNot(contains('access-secret')));
     expect(log, isNot(contains('refresh-secret')));
+  });
+
+  test('cancelledRequest_onIos_logsPlainDebugMessage', () async {
+    final output = <String>[];
+    final previousDebugPrint = debugPrint;
+    debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
+    debugPrint = (message, {wrapWidth}) {
+      if (message != null) output.add(message);
+    };
+    addTearDown(() {
+      debugPrint = previousDebugPrint;
+      debugDefaultTargetPlatformOverride = null;
+    });
+
+    final handler = _ConsumedErrorHandler();
+    final consumeError = handler.consume();
+    interceptor.onError(
+      DioException(
+        requestOptions: RequestOptions(
+          path: 'https://api.example.com/runway/attention',
+          method: 'GET',
+        ),
+        type: DioExceptionType.cancel,
+        message: 'The request was manually cancelled by the user.',
+      ),
+      handler,
+    );
+    await consumeError;
+
+    expect(output.join('\n'), contains('[DEBUG] ↪ CANCELLED GET'));
+    expect(output.join('\n'), isNot(contains('[WARNING]')));
+    expect(output.join('\n'), isNot(contains('START')));
+    expect(output.join('\n'), isNot(contains('END')));
+    expect(output.join('\n'), isNot(contains('\x1B')));
   });
 }

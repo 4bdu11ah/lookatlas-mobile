@@ -22,6 +22,11 @@ class OverviewActivity extends ConsumerWidget {
     );
     final activity = data?.activity;
     final error = data?.panelStatus.activityError ?? false;
+    final isEmpty =
+        !error &&
+        activity != null &&
+        activity.ready.isEmpty &&
+        activity.active.isEmpty;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -31,81 +36,83 @@ class OverviewActivity extends ConsumerWidget {
           title: 'What’s happening now.',
         ),
         const SizedBox(height: 14),
-        DecoratedBox(
-          decoration: BoxDecoration(
-            border: Border.all(color: OverviewStyle.line),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 18,
-                  vertical: 16,
-                ),
-                decoration: const BoxDecoration(
-                  border: Border(bottom: BorderSide(color: OverviewStyle.line)),
-                ),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const OverviewLabel('Needs attention'),
-                          const SizedBox(height: 4),
-                          Text(
-                            error || activity == null
-                                ? '—'
-                                : activity.attentionLabel,
-                            style: OverviewStyle.serif(32, height: 1),
-                          ),
-                        ],
+        if (isEmpty)
+          Align(
+            alignment: Alignment.centerLeft,
+            child: OverviewLink(
+              'Start a shoot',
+              onTap: () => context.push(AppRoutes.createShoot),
+            ),
+          )
+        else
+          DecoratedBox(
+            decoration: BoxDecoration(
+              border: Border.all(color: OverviewStyle.line),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 18,
+                    vertical: 16,
+                  ),
+                  decoration: const BoxDecoration(
+                    border: Border(
+                      bottom: BorderSide(color: OverviewStyle.line),
+                    ),
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const OverviewLabel('Needs attention'),
+                            const SizedBox(height: 4),
+                            Text(
+                              error || activity == null
+                                  ? '—'
+                                  : activity.attentionLabel,
+                              style: OverviewStyle.serif(32, height: 1),
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
-                    OverviewLink(
-                      'View all',
-                      onTap: () => context.push(AppRoutes.dashboardShoots),
-                    ),
-                  ],
+                      OverviewLink(
+                        'View all',
+                        onTap: () => context.push(AppRoutes.dashboardShoots),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-              if (error)
-                OverviewPanelState(
-                  title: 'Shoot activity is temporarily unavailable.',
-                  body: 'Your shoots are still running. Reload this panel to check their latest state.',
-                  error: true,
-                  action: OverviewLink(
-                    'Try again',
-                    onTap: () => ref
-                        .read(dashboardOverviewControllerProvider.notifier)
-                        .refresh(),
-                  ),
-                )
-              else if (activity == null)
-                const Padding(
-                  padding: EdgeInsets.all(24),
-                  child: Center(child: BarSpinner()),
-                )
-              else if (activity.ready.isEmpty && activity.active.isEmpty)
-                OverviewPanelState(
-                  title: 'No shoots need your attention.',
-                  body: 'Your studio is clear for a new production.',
-                  action: OverviewLink(
-                    'Start a shoot',
-                    onTap: () => context.push(AppRoutes.createShoot),
-                  ),
-                )
-              else ...[
-                for (final job in activity.ready)
-                  _ActivityRow(job: job, ready: true),
-                for (final job in activity.active)
-                  _ActivityRow(job: job, ready: false),
+                if (error)
+                  OverviewPanelState(
+                    title: 'Shoot activity is temporarily unavailable.',
+                    body: 'Your shoots are still running. Reload this panel to check their latest state.',
+                    error: true,
+                    action: OverviewLink(
+                      'Try again',
+                      onTap: () => ref
+                          .read(dashboardOverviewControllerProvider.notifier)
+                          .refresh(),
+                    ),
+                  )
+                else if (activity == null)
+                  const Padding(
+                    padding: EdgeInsets.all(24),
+                    child: Center(child: BarSpinner()),
+                  )
+                else ...[
+                  for (final job in activity.ready)
+                    _ActivityRow(job: job, ready: true),
+                  for (final job in activity.active)
+                    _ActivityRow(job: job, ready: false),
+                ],
               ],
-            ],
+            ),
           ),
-        ),
       ],
     );
   }

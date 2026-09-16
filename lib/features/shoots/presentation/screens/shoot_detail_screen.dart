@@ -149,10 +149,17 @@ class _ShootDetailContent extends ConsumerWidget {
         ],
         AppPageHeader(
           title: shoot.name,
-          body: 'Generated images for ${job.modelName ?? 'your model'}',
+          body: 'Review every delivered look and choose your final images.',
           small: true,
         ),
         const SizedBox(height: 8),
+        _ShootMetadataStrip(job: job),
+        const SizedBox(height: 10),
+        _ReviewDensityPicker(
+          selected: state.density,
+          onSelected: controller.setDensity,
+        ),
+        const SizedBox(height: 10),
         Row(
           children: [
             AppStatusBadge(shoot.status),
@@ -217,6 +224,7 @@ class _ShootDetailContent extends ConsumerWidget {
         const SizedBox(height: 10),
         _GeneratedImages(
           isProcessing: isProcessing,
+          density: state.density,
           shots: _displayShots(job),
           onApprove: (image) => _handleAction(
             context,

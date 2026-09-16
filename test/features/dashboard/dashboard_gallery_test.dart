@@ -108,6 +108,7 @@ void main() {
   DashboardOverviewState ready({
     DashboardActivationStage stage = DashboardActivationStage.active,
     DashboardPanelStatus panels = const DashboardPanelStatus(),
+    DashboardActivity? activity,
     bool stale = false,
   }) => DashboardOverviewState(
     isLoading: false,
@@ -122,34 +123,53 @@ void main() {
         items: [_model],
       ),
       panelStatus: panels,
-      activity: const DashboardActivity(
-        activeCount: 1,
-        readyCount: 1,
-        ready: [
-          DashboardRecentJob(
-            id: 'ready',
-            name: 'Ready campaign',
-            status: 'completed',
-            renders: 12,
-            productThumbnail: '',
-            modelThumbnail: '',
+      activity:
+          activity ??
+          const DashboardActivity(
+            activeCount: 1,
+            readyCount: 1,
+            ready: [
+              DashboardRecentJob(
+                id: 'ready',
+                name: 'Ready campaign',
+                status: 'completed',
+                renders: 12,
+                productThumbnail: '',
+                modelThumbnail: '',
+              ),
+            ],
+            active: [
+              DashboardRecentJob(
+                id: 'live',
+                name: 'Live campaign',
+                status: 'processing',
+                renders: 0,
+                productThumbnail: '',
+                modelThumbnail: '',
+                progress: 65,
+                currentStep: 'Step 2/4',
+              ),
+            ],
           ),
-        ],
-        active: [
-          DashboardRecentJob(
-            id: 'live',
-            name: 'Live campaign',
-            status: 'processing',
-            renders: 0,
-            productThumbnail: '',
-            modelThumbnail: '',
-            progress: 65,
-            currentStep: 'Step 2/4',
-          ),
-        ],
-      ),
     ),
   );
+  testWidgets('overview_emptyActivity_showsOnlyStartShootAction', (
+    tester,
+  ) async {
+    await pump(
+      tester,
+      ready(activity: const DashboardActivity()),
+    );
+
+    expect(find.text('Start a shoot'), findsOneWidget);
+    expect(find.text('Needs attention'), findsNothing);
+    expect(find.text('View all'), findsNothing);
+    expect(find.text('No shoots need your attention.'), findsNothing);
+    expect(
+      find.text('Your studio is clear for a new production.'),
+      findsNothing,
+    );
+  });
   for (final stage in DashboardActivationStage.values) {
     testWidgets('overview_${stage.name}_primaryActionUsesCorrectDestination', (
       tester,

@@ -57,6 +57,7 @@ class ShootsController extends Notifier<ShootsScreenState> {
   Timer? _searchTimer;
   bool _requestInFlight = false;
   bool _disposed = false;
+  bool _isVisible = true;
 
   ShootsRepository get _repository => ref.read(shootsRepositoryProvider);
 
@@ -98,9 +99,9 @@ class ShootsController extends Notifier<ShootsScreenState> {
       return;
     }
     final page = result.valueOrNull!;
-    final completedJobIds = {
+    final activeJobIds = {
       for (final shoot in state.shoots)
-        if (shoot.status == 'processing') shoot.id,
+        if (shoot.isActive) shoot.id,
     };
     final shoots = [
       for (final job in page.jobs) ShootViewModel.fromJob(job),
@@ -114,7 +115,7 @@ class ShootsController extends Notifier<ShootsScreenState> {
       clearFailure: true,
     );
     for (final job in page.jobs) {
-      if (completedJobIds.contains(job.id) && job.isCompleted) {
+      if (activeJobIds.contains(job.id) && job.isCompleted) {
         unawaited(
           ref
               .read(localNotificationServiceProvider)
@@ -138,7 +139,11 @@ class ShootsController extends Notifier<ShootsScreenState> {
 
   void setStatus(String status) {
     state = state.copyWith(status: status, page: 1);
-    unawaited(load());
+  }
+
+  void setVisible({required bool isVisible}) {
+    _isVisible = isVisible;
+    _schedulePolling(state.shoots.any((shoot) => shoot.isActive));
   }
 
   void setPage(int page) {
@@ -149,9 +154,9 @@ class ShootsController extends Notifier<ShootsScreenState> {
 
   void _schedulePolling(bool hasActiveJob) {
     _pollTimer?.cancel();
-    if (!hasActiveJob) return;
+    if (!hasActiveJob || !_isVisible) return;
     _pollTimer = Timer.periodic(
-      const Duration(seconds: 5),
+      const Duration(seconds: 8),
       (_) => unawaited(load(silent: true)),
     );
   }

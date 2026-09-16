@@ -13,12 +13,14 @@ import 'package:look_atlas/core/theme/app_typography.dart';
 import 'package:look_atlas/features/auth/di/auth_providers.dart';
 import 'package:look_atlas/features/shoots/domain/entities/shoot_create.dart';
 import 'package:look_atlas/features/shoots/presentation/controllers/create_shoot_controller.dart';
+import 'package:look_atlas/features/shoots/presentation/controllers/shoot_draft_controller.dart';
 import 'package:look_atlas/features/shoots/presentation/controllers/shoots_controller.dart';
 import 'package:look_atlas/features/shoots/presentation/dialogs/shoot_modal.dart';
 import 'package:look_atlas/features/shoots/presentation/models/create_step.dart';
 import 'package:look_atlas/features/shoots/presentation/models/shoot_modal_kind.dart';
 import 'package:look_atlas/shared/widgets/app_asset_image.dart';
 import 'package:look_atlas/shared/widgets/app_card.dart';
+import 'package:look_atlas/shared/widgets/app_dialog.dart';
 import 'package:look_atlas/shared/widgets/app_feedback.dart';
 import 'package:look_atlas/shared/widgets/app_media_widgets.dart';
 import 'package:look_atlas/shared/widgets/app_outlined_button.dart';
@@ -43,7 +45,9 @@ typedef _CreateStep = CreateStep;
 typedef _ShootModalKind = ShootModalKind;
 
 class CreateShootScreen extends ConsumerStatefulWidget {
-  const CreateShootScreen({super.key});
+  const CreateShootScreen({super.key, this.draftId});
+
+  final String? draftId;
 
   @override
   ConsumerState<CreateShootScreen> createState() => _CreateShootScreenState();
@@ -53,6 +57,18 @@ class _CreateShootScreenState extends ConsumerState<CreateShootScreen> {
   final ScrollController _scrollController = ScrollController();
 
   @override
+  void initState() {
+    super.initState();
+    unawaited(
+      Future<void>.microtask(
+        () => ref
+            .read(shootDraftProvider.notifier)
+            .initializeEditor(widget.draftId),
+      ),
+    );
+  }
+
+  @override
   void dispose() {
     _scrollController.dispose();
     super.dispose();
@@ -60,30 +76,54 @@ class _CreateShootScreenState extends ConsumerState<CreateShootScreen> {
 
   @override
   Widget build(BuildContext context) {
+    ref.listen<Failure?>(
+      shootDraftProvider.select((state) => state.failure),
+      (previous, next) {
+        if (next != null && next != previous) {
+          AppSnackBar.showError(
+            context,
+            'Draft saved on this device, but cloud sync failed.',
+          );
+        }
+      },
+    );
+    ref.listen<CreateShootState>(createShootControllerProvider, (_, next) {
+      ref.read(shootDraftProvider.notifier).scheduleSave(next);
+    });
     ref.listen(
       createShootControllerProvider.select((state) => state.step),
       _scrollToTop,
     );
-    return Scaffold(
-      backgroundColor: AppColors.neutral50,
-      appBar: CustomAppBar(
-        title: 'Create Shoot',
-        showBackButton: true,
-        onBack: () => _closeCreateShoot(context, ref),
-      ),
-      body: SafeArea(
-        bottom: false,
-        child: ResponsiveContent(
-          child: Align(
-            key: const ValueKey('create-shoot-top-alignment'),
-            alignment: Alignment.topCenter,
-            child: SingleChildScrollView(
-              controller: _scrollController,
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 30),
-              child: _CreatePage(
-                onComplete: (jobId) => context.go(AppRoutes.shootDetail(jobId)),
-                onOpenModal: (kind) => openShootModal(context, ref, kind),
-                onToast: (text) => AppSnackBar.show(context, text),
+    final hasChanges = ref.watch(
+      createShootControllerProvider.select((state) => state.hasChanges),
+    );
+    return PopScope(
+      canPop: !hasChanges,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) unawaited(_closeCreateShoot(context, ref));
+      },
+      child: Scaffold(
+        backgroundColor: AppColors.neutral50,
+        appBar: CustomAppBar(
+          title: 'Create Shoot',
+          showBackButton: true,
+          onBack: () => unawaited(_closeCreateShoot(context, ref)),
+        ),
+        body: SafeArea(
+          bottom: false,
+          child: ResponsiveContent(
+            child: Align(
+              key: const ValueKey('create-shoot-top-alignment'),
+              alignment: Alignment.topCenter,
+              child: SingleChildScrollView(
+                controller: _scrollController,
+                padding: const EdgeInsets.fromLTRB(20, 16, 20, 30),
+                child: _CreatePage(
+                  onComplete: (jobId) =>
+                      context.go(AppRoutes.shootDetail(jobId)),
+                  onOpenModal: (kind) => openShootModal(context, ref, kind),
+                  onToast: (text) => AppSnackBar.show(context, text),
+                ),
               ),
             ),
           ),
@@ -102,11 +142,58 @@ class _CreateShootScreenState extends ConsumerState<CreateShootScreen> {
   }
 }
 
-void _closeCreateShoot(BuildContext context, WidgetRef ref) {
-  if (context.canPop()) {
-    context.pop();
-    return;
+Future<void> _closeCreateShoot(BuildContext context, WidgetRef ref) async {
+  if (ref.read(createShootControllerProvider).hasChanges) {
+    final discard = await showAppDialog<bool>(
+      context: context,
+      title: 'Leave Shoot Room?',
+      subtitle: 'Your setup is not finished.',
+      barrierDismissible: false,
+      builder: (_) => const Text(
+        'Keep this draft and resume it anytime, or discard your current selections.',
+        style: TextStyle(fontSize: 13, height: 1.5),
+      ),
+      footer: Builder(
+        builder: (dialogContext) => Row(
+          children: [
+            Expanded(
+              child: AppOutlinedButton(
+                label: 'Discard & Exit',
+                onPressed: () => Navigator.pop(dialogContext, true),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: PrimaryButton(
+                label: 'Keep Draft & Exit',
+                foregroundColor: AppColors.white,
+                onPressed: () => Navigator.pop(dialogContext, false),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (discard == null || !context.mounted) return;
+    if (discard) {
+      final deleted = await ref
+          .read(shootDraftProvider.notifier)
+          .discardActive();
+      if (!deleted) {
+        if (context.mounted) {
+          AppSnackBar.showError(context, 'Could not delete this draft.');
+        }
+        return;
+      }
+    } else {
+      await ref
+          .read(shootDraftProvider.notifier)
+          .flush(
+            ref.read(createShootControllerProvider),
+          );
+    }
   }
+  if (!context.mounted) return;
   context.go(AppRoutes.dashboardShoots);
 }
 
@@ -151,13 +238,6 @@ class _CreatePage extends ConsumerWidget {
     }
     final steps = state.steps;
     final index = steps.indexOf(state.step);
-    final canContinue = switch (state.step) {
-      _CreateStep.product => state.selectedProducts.isNotEmpty,
-      _CreateStep.model => state.selectedModels.isNotEmpty,
-      _CreateStep.director => state.canContinueFromDirector,
-      _CreateStep.planning => state.chosenShots.isNotEmpty,
-      _ => true,
-    };
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -169,6 +249,10 @@ class _CreatePage extends ConsumerWidget {
         const SizedBox(height: 10),
         _Stepper(step: state.step, steps: steps),
         const SizedBox(height: 10),
+        if (state.showValidation && state.validationErrors.isNotEmpty) ...[
+          _ValidationSummary(errors: state.validationErrors),
+          const SizedBox(height: 10),
+        ],
         Container(
           padding: const EdgeInsets.all(15),
           decoration: BoxDecoration(
@@ -194,7 +278,7 @@ class _CreatePage extends ConsumerWidget {
                 onPressed: state.isPlanning
                     ? null
                     : index == 0
-                    ? () => _closeCreateShoot(context, ref)
+                    ? () => unawaited(_closeCreateShoot(context, ref))
                     : () => controller.setStep(steps[index - 1]),
               ),
             ),
@@ -244,9 +328,7 @@ class _CreatePage extends ConsumerWidget {
                               }
                             }
                           : null
-                    : canContinue
-                    ? () => controller.setStep(steps[index + 1])
-                    : null,
+                    : () => controller.continueTo(steps[index + 1]),
               ),
             ),
           ],
@@ -269,6 +351,7 @@ Future<void> _submitDemoShoot(
     (jobId) {
       onToast('Demo shoots created. Generation started.');
       unawaited(ref.read(shootsControllerProvider.notifier).load());
+      unawaited(ref.read(shootDraftProvider.notifier).completeActive());
       controller.reset();
       onComplete(jobId);
     },
@@ -300,6 +383,7 @@ Future<void> _submitCreateShoot(
     (jobId) {
       onToast('Shoot created. Generation started.');
       unawaited(ref.read(shootsControllerProvider.notifier).load());
+      unawaited(ref.read(shootDraftProvider.notifier).completeActive());
       controller.reset();
       onComplete(jobId);
     },
@@ -380,9 +464,12 @@ class _CreateStepBody extends StatelessWidget {
         useLibraryModels: state.useLibraryModels,
         selectedKeys: state.selectedModelKeys.toSet(),
         selectedModels: state.selectedModels,
+        productOnly: state.productOnly,
         onSelect: controller.toggleModel,
         onRemove: controller.removeModel,
         onClear: controller.clearModels,
+        onProductOnlyChanged: (value) =>
+            controller.setProductOnly(productOnly: value),
         onSourceChanged: (useLibrary) =>
             controller.setModelSource(useLibraryModels: useLibrary),
         onAdd: () => onOpenModal(_ShootModalKind.model),

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
+import 'package:look_atlas/core/providers/core_providers.dart';
 import 'package:look_atlas/core/result/result.dart';
 import 'package:look_atlas/core/router/app_routes.dart';
 import 'package:look_atlas/core/theme/app_colors.dart';
@@ -12,6 +13,8 @@ import 'package:look_atlas/features/auth/di/auth_providers.dart';
 import 'package:look_atlas/features/auth/domain/entities/app_user.dart';
 import 'package:look_atlas/features/shoots/di/shoots_providers.dart';
 import 'package:look_atlas/features/shoots/domain/entities/shoot_create.dart';
+import 'package:look_atlas/features/shoots/domain/entities/shoot_draft.dart';
+import 'package:look_atlas/features/shoots/domain/entities/shoot_job.dart';
 import 'package:look_atlas/features/shoots/presentation/shoots_feature.dart';
 import 'package:look_atlas/features/subscription/di/subscription_access_providers.dart';
 import 'package:look_atlas/shared/widgets/app_dialog.dart';
@@ -21,6 +24,7 @@ import 'package:look_atlas/shared/widgets/bar_spinner.dart';
 import 'package:look_atlas/shared/widgets/custom_app_bar.dart';
 import 'package:look_atlas/shared/widgets/primary_button.dart';
 import 'package:look_atlas/shared/widgets/shimmer_box.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../helpers/fake_repositories.dart';
 import '../../helpers/fake_shoots_repository.dart';
@@ -38,6 +42,8 @@ void main() {
     String role = 'user',
     FakeShootsRepository? shootsRepository,
   }) async {
+    SharedPreferences.setMockInitialValues({});
+    final preferences = await SharedPreferences.getInstance();
     tester.view
       ..physicalSize = const Size(390, 844)
       ..devicePixelRatio = 1;
@@ -46,6 +52,7 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
+          sharedPreferencesProvider.overrideWithValue(preferences),
           authRepositoryProvider.overrideWithValue(
             FakeAuthRepository(
               user: AppUser(
@@ -92,6 +99,8 @@ void main() {
     String role = 'user',
     FakeShootsRepository? shootsRepository,
   }) async {
+    SharedPreferences.setMockInitialValues({});
+    final preferences = await SharedPreferences.getInstance();
     tester.view
       ..physicalSize = const Size(390, 844)
       ..devicePixelRatio = 1;
@@ -116,7 +125,9 @@ void main() {
         ),
         GoRoute(
           path: AppRoutes.createShoot,
-          builder: (_, _) => const CreateShootScreen(),
+          builder: (_, state) => CreateShootScreen(
+            draftId: state.uri.queryParameters['draftId'],
+          ),
         ),
       ],
     );
@@ -124,6 +135,7 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
+          sharedPreferencesProvider.overrideWithValue(preferences),
           authRepositoryProvider.overrideWithValue(
             FakeAuthRepository(
               user: AppUser(
@@ -155,7 +167,7 @@ void main() {
       isPremium: false,
     );
 
-    expect(find.text('Tan Leather Bag'), findsOneWidget);
+    expect(find.text('Tan Leather Bag'), findsWidgets);
     expect(find.text('Gold Evening Heels'), findsNWidgets(2));
 
     await tester.tap(find.byKey(const ValueKey('new-shoot-button')));
@@ -164,6 +176,31 @@ void main() {
     expect(find.text('Spin up another shoot.'), findsOneWidget);
     expect(find.text('200 photos every month'), findsOneWidget);
     expect(find.text('See Pro'), findsOneWidget);
+  });
+
+  testWidgets('shoots_loading_matches_editorial_overview_structure', (
+    tester,
+  ) async {
+    final repository = _DelayedJobsRepository();
+    await pumpScreen(
+      tester,
+      const ShootsScreen(),
+      shootsRepository: repository,
+    );
+
+    expect(
+      find.byKey(const ValueKey('shoots-overview-shimmer')),
+      findsOneWidget,
+    );
+    expect(find.byType(ShimmerBox).evaluate().length, greaterThan(20));
+    expect(find.byType(ContentShimmer), findsNothing);
+
+    repository.complete();
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const ValueKey('shoots-overview-shimmer')),
+      findsNothing,
+    );
   });
 
   testWidgets('shoot_dialogs_use_default_app_dialog_style', (tester) async {
@@ -232,6 +269,109 @@ void main() {
     expect(find.byKey(const ValueKey('new-shoot-button')), findsOneWidget);
   });
 
+  testWidgets('create_shoot_exit_guard_keeps_draft_selection', (tester) async {
+    await pumpShootRouter(tester);
+
+    await tester.tap(find.byKey(const ValueKey('new-shoot-button')));
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(const ValueKey('selection-Tan Leather Bag')),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.descendant(
+        of: find.byType(CustomAppBar),
+        matching: find.byIcon(Icons.arrow_back),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Leave Shoot Room?'), findsOneWidget);
+    await tester.tap(find.text('Keep Draft & Exit'));
+    await tester.pumpAndSettle();
+    expect(find.byType(ShootsScreen), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('resume-shoot-draft-draft-1')),
+      findsOneWidget,
+    );
+
+    await tester.tap(
+      find.byKey(const ValueKey('resume-shoot-draft-draft-1')),
+    );
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const ValueKey('create-product-selection-panel')),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('create_shoot_autosaves_locally_then_to_api_after_800ms', (
+    tester,
+  ) async {
+    final repository = FakeShootsRepository();
+    await pumpScreen(
+      tester,
+      const CreateShootScreen(),
+      shootsRepository: repository,
+    );
+
+    await tester.tap(
+      find.byKey(const ValueKey('selection-Tan Leather Bag')),
+    );
+    await tester.pump();
+    final preferences = await SharedPreferences.getInstance();
+
+    expect(
+      preferences.getString('lookatlas:create-shoot:mirror:user-1'),
+      isNotNull,
+    );
+    expect(repository.saveShootDraftCalls, 0);
+
+    await tester.pump(const Duration(milliseconds: 799));
+    expect(repository.saveShootDraftCalls, 0);
+
+    await tester.pump(const Duration(milliseconds: 1));
+    await tester.pump();
+    expect(repository.saveShootDraftCalls, 1);
+  });
+
+  testWidgets('shoots_lists_and_deletes_server_drafts', (tester) async {
+    final repository = FakeShootsRepository();
+    repository.drafts.addAll([
+      ShootDraftSummary(
+        id: 'draft-a',
+        title: 'Autumn Tailored Blazer',
+        currentStep: 'director',
+        updatedAt: DateTime.utc(2026, 9, 16),
+      ),
+      ShootDraftSummary(
+        id: 'draft-b',
+        title: 'Studio Handbag',
+        currentStep: 'planning',
+        updatedAt: DateTime.utc(2026, 9, 15),
+      ),
+    ]);
+    await pumpScreen(
+      tester,
+      const ShootsScreen(),
+      shootsRepository: repository,
+    );
+
+    expect(find.text('Autumn Tailored Blazer'), findsOneWidget);
+    expect(find.text('Studio Handbag'), findsOneWidget);
+
+    await tester.tap(
+      find.byKey(const ValueKey('delete-shoot-draft-draft-a')),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Delete draft'));
+    await tester.pumpAndSettle();
+
+    expect(repository.deleteShootDraftCalls, 1);
+    expect(find.text('Autumn Tailored Blazer'), findsNothing);
+    expect(find.text('Studio Handbag'), findsOneWidget);
+  });
+
   testWidgets('create_shoot_content_stays_aligned_to_top', (tester) async {
     await pumpScreen(tester, const CreateShootScreen());
 
@@ -255,7 +395,18 @@ void main() {
       find.byKey(const ValueKey('create-product-selection-panel')),
       findsNothing,
     );
-    expect(nextButton().onPressed, isNull);
+    expect(nextButton().onPressed, isNotNull);
+    await tester.ensureVisible(find.text('Next'));
+    await tester.tap(find.text('Next'));
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const ValueKey('create-shoot-validation-summary')),
+      findsOneWidget,
+    );
+    expect(
+      find.text('• Choose at least one product before continuing.'),
+      findsOneWidget,
+    );
 
     await tester.tap(
       find.byKey(const ValueKey('selection-Tan Leather Bag')),
@@ -270,7 +421,7 @@ void main() {
       find.byKey(const ValueKey('create-model-selection-panel')),
       findsNothing,
     );
-    expect(nextButton().onPressed, isNull);
+    expect(nextButton().onPressed, isNotNull);
 
     await tester.tap(find.byKey(const ValueKey('selection-Mila')));
     await tester.pumpAndSettle();
@@ -285,11 +436,37 @@ void main() {
       findsNothing,
     );
     expect(find.text('Brief Alex Chen (optional)'), findsNothing);
-    expect(nextButton().onPressed, isNull);
+    expect(nextButton().onPressed, isNotNull);
 
     await tester.tap(find.byKey(const ValueKey('selection-Alex Chen')));
     await tester.pumpAndSettle();
     expect(nextButton().onPressed, isNotNull);
+  });
+
+  testWidgets('create_shoot_product_only_skips_model_selection', (
+    tester,
+  ) async {
+    await pumpScreen(tester, const CreateShootScreen());
+
+    await tester.tap(
+      find.byKey(const ValueKey('selection-Tan Leather Bag')),
+    );
+    await tester.ensureVisible(find.text('Next'));
+    await tester.tap(find.text('Next'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Product Only'));
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const ValueKey('product-only-cast-notice')),
+      findsOneWidget,
+    );
+    expect(find.byKey(const ValueKey('create-model-search')), findsNothing);
+
+    await tester.ensureVisible(find.text('Next'));
+    await tester.tap(find.text('Next'));
+    await tester.pumpAndSettle();
+    expect(find.text('Choose Your Creative Director'), findsOneWidget);
   });
 
   testWidgets('create_shoot_third_step_scrolls_to_top', (tester) async {
@@ -393,16 +570,15 @@ void main() {
     expect(repository.loadCreateDirectorSetupCalls, 1);
   });
 
-  testWidgets('shoots_search_and_status_filter_update_visible_cards', (
+  testWidgets('shoots_search_and_archive_filter_update_visible_cards', (
     tester,
   ) async {
     await pumpScreen(tester, const ShootsScreen());
 
     expect(find.byType(AppTextField), findsOneWidget);
-    expect(
-      find.byKey(const ValueKey('open-shoot-filter-sheet')),
-      findsOneWidget,
-    );
+    expect(find.text('READY FOR YOU'), findsOneWidget);
+    expect(find.text('ON THE STUDIO FLOOR'), findsOneWidget);
+    expect(find.text('YOUR ARCHIVE'), findsOneWidget);
 
     await tester.enterText(
       find.byKey(const ValueKey('shoot-search-field')),
@@ -410,7 +586,7 @@ void main() {
     );
     await tester.pump(const Duration(milliseconds: 350));
 
-    expect(find.text('Tan Leather Bag'), findsOneWidget);
+    expect(find.text('Tan Leather Bag'), findsWidgets);
     expect(find.text('Gold Evening Heels'), findsNothing);
 
     await tester.enterText(
@@ -418,17 +594,17 @@ void main() {
       '',
     );
     await tester.pump(const Duration(milliseconds: 350));
-    await tester.tap(
-      find.byKey(const ValueKey('open-shoot-filter-sheet')),
+    await tester.ensureVisible(
+      find.byKey(const ValueKey('shoot-filter-attention')),
     );
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Processing').last);
-    await tester.pump();
-    await tester.tap(find.text('Show shoots'));
+    await tester.tap(find.byKey(const ValueKey('shoot-filter-attention')));
     await tester.pumpAndSettle();
 
-    expect(find.text('Tan Leather Bag'), findsNothing);
-    expect(find.text('Gold Evening Heels'), findsOneWidget);
+    expect(find.text('Tan Leather Bag'), findsWidgets);
+    expect(
+      find.byKey(const ValueKey('archive-shoot-job-heels-failed')),
+      findsOneWidget,
+    );
   });
 
   testWidgets('create_shoot_wizard_opens_nested_creation_dialogs', (
@@ -526,7 +702,7 @@ void main() {
     expect(stepDecoration(2).color, AppColors.black);
     expect(find.byKey(const ValueKey('create-model-search')), findsOneWidget);
     expect(find.byType(AppTextField), findsOneWidget);
-    await tester.tap(find.text('Add'));
+    await tester.tap(find.text('Add Model'));
     await tester.pumpAndSettle();
     expect(find.text('Add New Model'), findsOneWidget);
   });
@@ -1094,14 +1270,35 @@ void main() {
     expect(repository.lastVideoRequest?.videoTier, 'standard');
   });
 
+  testWidgets('shoot_detail_density_switches_with_riverpod_state', (
+    tester,
+  ) async {
+    await pumpScreen(
+      tester,
+      const ShootDetailScreen(jobId: 'job-bag'),
+    );
+
+    final gridTab = find.byKey(const ValueKey('shoot-density-grid'));
+    await tester.ensureVisible(gridTab);
+    await tester.tap(gridTab);
+    await tester.pumpAndSettle();
+
+    final inkWell = tester.widget<InkWell>(gridTab);
+    final container = inkWell.child! as Container;
+    final decoration = container.decoration! as BoxDecoration;
+    expect(decoration.color, AppColors.black);
+  });
+
   testWidgets('processing_and_failed_shoot_cards_open_matching_details', (
     tester,
   ) async {
     final router = await pumpShootRouter(tester);
 
-    final details = find.text('View Details');
-    await tester.ensureVisible(details.at(1));
-    await tester.tap(details.at(1));
+    final processing = find.byKey(
+      const ValueKey('active-shoot-job-heels-processing'),
+    );
+    await tester.ensureVisible(processing);
+    await tester.tap(processing);
     await tester.pumpAndSettle();
 
     expect(find.byType(ShootDetailScreen), findsOneWidget);
@@ -1123,9 +1320,11 @@ void main() {
       router.routerDelegate.currentConfiguration.uri.path,
       AppRoutes.dashboardShoots,
     );
-    final refreshedDetails = find.text('View Details');
-    await tester.ensureVisible(refreshedDetails.at(2));
-    await tester.tap(refreshedDetails.at(2));
+    final failed = find.byKey(
+      const ValueKey('archive-shoot-job-heels-failed'),
+    );
+    await tester.ensureVisible(failed);
+    await tester.tap(failed);
     await tester.pumpAndSettle();
 
     expect(find.text('Failed'), findsOneWidget);
@@ -1144,6 +1343,20 @@ class _DelayedCreateCatalogRepository extends FakeShootsRepository {
   void completeCatalog() => _productsCompleter.complete(
     super.loadCreateProducts(),
   );
+}
+
+class _DelayedJobsRepository extends FakeShootsRepository {
+  final _jobsCompleter = Completer<Result<ShootPage>>();
+
+  @override
+  Future<Result<ShootPage>> getJobs({
+    String status = '',
+    int page = 1,
+    int limit = 20,
+    String search = '',
+  }) => _jobsCompleter.future;
+
+  void complete() => _jobsCompleter.complete(super.getJobs());
 }
 
 class _DelayedPlanShotsRepository extends FakeShootsRepository {

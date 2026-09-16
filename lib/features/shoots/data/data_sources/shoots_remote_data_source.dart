@@ -6,8 +6,10 @@ import 'package:look_atlas/core/network/api_endpoints.dart';
 import 'package:look_atlas/core/network/api_service.dart';
 import 'package:look_atlas/core/network/dio_client.dart';
 import 'package:look_atlas/core/result/result.dart';
+import 'package:look_atlas/features/shoots/data/models/shoot_draft_codec.dart';
 import 'package:look_atlas/features/shoots/data/models/shoots_api_codec.dart';
 import 'package:look_atlas/features/shoots/domain/entities/shoot_create.dart';
+import 'package:look_atlas/features/shoots/domain/entities/shoot_draft.dart';
 import 'package:look_atlas/features/shoots/domain/entities/shoot_job.dart';
 
 abstract interface class ShootsRemoteDataSource {
@@ -18,6 +20,13 @@ abstract interface class ShootsRemoteDataSource {
     required String search,
   });
   Future<Result<ShootJob>> getJob(String jobId);
+  Future<Result<List<ShootDraftSummary>>> getShootDrafts();
+  Future<Result<ShootDraft>> getShootDraft(String draftId);
+  Future<Result<ShootDraft>> saveShootDraft(
+    ShootDraftSnapshot snapshot, {
+    String? draftId,
+  });
+  Future<Result<void>> deleteShootDraft(String draftId);
   Future<Result<ShootProgressStatus>> getJobStatus(String jobId);
   Future<Result<void>> rerunJob(String jobId);
   Future<Result<void>> cancelJob(String jobId);
@@ -123,6 +132,48 @@ class ShootsRemoteDataSourceImpl implements ShootsRemoteDataSource {
   Future<Result<ShootJob>> getJob(String jobId) => _api.get<ShootJob>(
     ApiEndpoints.job(jobId),
     decoder: ShootsApiCodec.decodeJobResponse,
+  );
+
+  @override
+  Future<Result<List<ShootDraftSummary>>> getShootDrafts() =>
+      _api.get<List<ShootDraftSummary>>(
+        ApiEndpoints.shootDrafts,
+        decoder: ShootDraftCodec.decodeList,
+      );
+
+  @override
+  Future<Result<ShootDraft>> getShootDraft(String draftId) =>
+      _api.get<ShootDraft>(
+        ApiEndpoints.shootDraft(draftId),
+        decoder: ShootDraftCodec.decodeDraft,
+      );
+
+  @override
+  Future<Result<ShootDraft>> saveShootDraft(
+    ShootDraftSnapshot snapshot, {
+    String? draftId,
+  }) {
+    final path = draftId == null
+        ? ApiEndpoints.shootDrafts
+        : ApiEndpoints.shootDraft(draftId);
+    final payload = ShootDraftCodec.savePayload(snapshot);
+    return draftId == null
+        ? _api.post<ShootDraft>(
+            path,
+            data: payload,
+            decoder: ShootDraftCodec.decodeDraft,
+          )
+        : _api.put<ShootDraft>(
+            path,
+            data: payload,
+            decoder: ShootDraftCodec.decodeDraft,
+          );
+  }
+
+  @override
+  Future<Result<void>> deleteShootDraft(String draftId) => _api.delete<void>(
+    ApiEndpoints.shootDraft(draftId),
+    decoder: (_) {},
   );
 
   @override

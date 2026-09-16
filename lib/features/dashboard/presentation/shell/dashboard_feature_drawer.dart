@@ -116,16 +116,6 @@ class _DashboardDrawer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (selected == DashboardPage.dashboard &&
-        MediaQuery.sizeOf(context).width < 1024) {
-      return OverviewNavigationDrawer(
-        focusScopeNode: focusScopeNode,
-        closeFocusNode: closeFocusNode,
-        onClose: onClose,
-        onNavigate: onNavigate,
-      );
-    }
-
     return Drawer(
       width: double.infinity,
       shape: const RoundedRectangleBorder(),

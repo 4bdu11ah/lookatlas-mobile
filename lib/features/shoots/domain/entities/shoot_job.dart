@@ -15,6 +15,9 @@ class ShootJob {
     this.modelName,
     this.preset,
     this.aspectRatio,
+    this.imageSize,
+    this.directorName,
+    this.reviewedAt,
     this.images = const [],
     this.shots = const [],
     this.hasActiveMediaWork = false,
@@ -35,6 +38,9 @@ class ShootJob {
   final String? modelName;
   final String? preset;
   final String? aspectRatio;
+  final String? imageSize;
+  final String? directorName;
+  final DateTime? reviewedAt;
   final List<ShootImage> images;
   final List<ShootShot> shots;
   final bool hasActiveMediaWork;
@@ -72,6 +78,9 @@ class ShootJob {
       modelName: modelName,
       preset: preset,
       aspectRatio: aspectRatio,
+      imageSize: imageSize,
+      directorName: directorName,
+      reviewedAt: reviewedAt,
       images: images ?? this.images,
       shots: shots ?? this.shots,
       hasActiveMediaWork: hasActiveMediaWork,

@@ -2,6 +2,7 @@ import 'dart:typed_data';
 
 import 'package:look_atlas/core/result/result.dart';
 import 'package:look_atlas/features/shoots/domain/entities/shoot_create.dart';
+import 'package:look_atlas/features/shoots/domain/entities/shoot_draft.dart';
 import 'package:look_atlas/features/shoots/domain/entities/shoot_job.dart';
 
 abstract interface class ShootsRepository {
@@ -13,6 +14,17 @@ abstract interface class ShootsRepository {
   });
 
   Future<Result<ShootJob>> getJob(String jobId);
+
+  Future<Result<List<ShootDraftSummary>>> getShootDrafts();
+
+  Future<Result<ShootDraft>> getShootDraft(String draftId);
+
+  Future<Result<ShootDraft>> saveShootDraft(
+    ShootDraftSnapshot snapshot, {
+    String? draftId,
+  });
+
+  Future<Result<void>> deleteShootDraft(String draftId);
 
   Future<Result<ShootProgressStatus>> getJobStatus(String jobId);
 

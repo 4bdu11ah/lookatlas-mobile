@@ -78,6 +78,7 @@ abstract final class ApiEndpoints {
   static const String planShots = '/jobs/v2/plan-shots';
   static const String customShot = '/jobs/v2/custom-shot';
   static const String createShoot = '/jobs/v2/create';
+  static const String shootDrafts = '/shoots/drafts';
   static const String looks = '/looks';
   static const String lookFilters = '/looks/filters';
   static const String userPresets = '/user-presets';
@@ -88,6 +89,9 @@ abstract final class ApiEndpoints {
   static const String workshopGenerate = '/workshop/generate';
 
   static String product(String productId) => '/products/$productId';
+
+  static String shootDraft(String draftId) =>
+      '$shootDrafts/${Uri.encodeComponent(draftId)}';
 
   static String productPhotoAngles(String productId) =>
       '/products/$productId/photo-angles';

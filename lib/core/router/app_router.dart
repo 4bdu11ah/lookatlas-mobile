@@ -228,7 +228,9 @@ final routerProvider = Provider<GoRouter>((ref) {
         name: 'create_shoot',
         pageBuilder: (_, state) => buildAppTransitionPage(
           state: state,
-          child: const CreateShootScreen(),
+          child: CreateShootScreen(
+            draftId: state.uri.queryParameters['draftId'],
+          ),
         ),
       ),
       GoRoute(

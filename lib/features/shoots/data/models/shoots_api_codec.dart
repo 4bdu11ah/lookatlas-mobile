@@ -78,6 +78,15 @@ abstract final class ShootsApiCodec {
             settings['aspectRatio'] ??
             settings['aspect_ratio'],
       ),
+      imageSize: _nullableString(
+        json['imageSize'] ?? settings['imageSize'] ?? settings['image_size'],
+      ),
+      directorName: _nullableString(
+        json['directorName'] ??
+            _map(json['director'])['name'] ??
+            settings['directorName'],
+      ),
+      reviewedAt: _date(json['reviewedAt'] ?? json['reviewed_at']),
       images: flatImages,
       shots: shots,
       hasActiveMediaWork: _hasActiveMediaWork(json, flatImages, shots),
@@ -384,8 +393,8 @@ abstract final class ShootsApiCodec {
 
   static Map<String, dynamic> _selectionPayload(ShootSelection selection) => {
     'productId': selection.product.id,
-    'modelId': selection.model.id,
-    'modelSource': selection.modelSource,
+    'modelId': ?selection.modelOrNull?.id,
+    'modelSource': ?selection.modelSource,
     'models': [
       for (final (index, model) in selection.models.indexed)
         {

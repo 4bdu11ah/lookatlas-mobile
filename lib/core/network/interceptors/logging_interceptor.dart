@@ -72,6 +72,13 @@ class LoggingInterceptor extends Interceptor {
     // release builds — it may carry identifiers or tokens.
     final uri = err.requestOptions.uri;
     final target = kReleaseMode ? uri.path : '$uri';
+    if (err.type == DioExceptionType.cancel) {
+      AppLogger.debug(
+        '↪ CANCELLED ${err.requestOptions.method.toUpperCase()} $target',
+      );
+      handler.next(err);
+      return;
+    }
     final message = StringBuffer(
       '✕ ${err.response?.statusCode ?? ''} $target\n${err.message}',
     );

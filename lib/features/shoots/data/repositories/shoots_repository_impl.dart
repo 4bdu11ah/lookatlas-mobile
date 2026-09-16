@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:look_atlas/core/result/result.dart';
 import 'package:look_atlas/features/shoots/data/data_sources/shoots_remote_data_source.dart';
 import 'package:look_atlas/features/shoots/domain/entities/shoot_create.dart';
+import 'package:look_atlas/features/shoots/domain/entities/shoot_draft.dart';
 import 'package:look_atlas/features/shoots/domain/entities/shoot_job.dart';
 import 'package:look_atlas/features/shoots/domain/repositories/shoots_repository.dart';
 
@@ -119,6 +120,24 @@ class ShootsRepositoryImpl implements ShootsRepository {
 
   @override
   Future<Result<ShootJob>> getJob(String jobId) => _remote.getJob(jobId);
+
+  @override
+  Future<Result<List<ShootDraftSummary>>> getShootDrafts() =>
+      _remote.getShootDrafts();
+
+  @override
+  Future<Result<ShootDraft>> getShootDraft(String draftId) =>
+      _remote.getShootDraft(draftId);
+
+  @override
+  Future<Result<ShootDraft>> saveShootDraft(
+    ShootDraftSnapshot snapshot, {
+    String? draftId,
+  }) => _remote.saveShootDraft(snapshot, draftId: draftId);
+
+  @override
+  Future<Result<void>> deleteShootDraft(String draftId) =>
+      _remote.deleteShootDraft(draftId);
 
   @override
   Future<Result<ShootProgressStatus>> getJobStatus(String jobId) =>

@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:look_atlas/core/error/failure.dart';
+import 'package:look_atlas/core/providers/core_providers.dart';
 import 'package:look_atlas/core/result/result.dart';
 import 'package:look_atlas/core/router/app_routes.dart';
 import 'package:look_atlas/features/shoots/di/shoots_providers.dart';
@@ -11,6 +12,8 @@ import 'package:look_atlas/features/shoots/domain/entities/shoot_job.dart';
 import 'package:look_atlas/features/shoots/domain/repositories/shoots_repository.dart';
 import 'package:look_atlas/features/shoots/presentation/services/shoot_export_service.dart';
 import 'package:look_atlas/services/service_providers.dart';
+
+enum ShootReviewDensity { editorial, dense, grid }
 
 class ShootDetailState {
   const ShootDetailState({
@@ -24,6 +27,7 @@ class ShootDetailState {
     this.progressStatus,
     this.versions = const [],
     this.videoRequest = const ShootVideoRequest(),
+    this.density = ShootReviewDensity.dense,
   });
 
   final String jobId;
@@ -36,6 +40,7 @@ class ShootDetailState {
   final ShootProgressStatus? progressStatus;
   final List<ShootImageVersion> versions;
   final ShootVideoRequest videoRequest;
+  final ShootReviewDensity density;
 
   List<ShootImage> get images {
     final value = job;
@@ -58,6 +63,7 @@ class ShootDetailState {
     List<ShootImageVersion>? versions,
     ShootVideoRequest? videoRequest,
     bool clearFailure = false,
+    ShootReviewDensity? density,
   }) => ShootDetailState(
     jobId: jobId ?? this.jobId,
     job: job ?? this.job,
@@ -69,6 +75,7 @@ class ShootDetailState {
     progressStatus: progressStatus ?? this.progressStatus,
     versions: versions ?? this.versions,
     videoRequest: videoRequest ?? this.videoRequest,
+    density: density ?? this.density,
   );
 }
 
@@ -78,6 +85,7 @@ class ShootDetailController extends Notifier<ShootDetailState> {
   Timer? _editTimer;
   bool _requestInFlight = false;
   bool _disposed = false;
+  bool _loadedDensity = false;
   int _editPollCount = 0;
 
   ShootsRepository get _repository => ref.read(shootsRepositoryProvider);
@@ -92,6 +100,7 @@ class ShootDetailController extends Notifier<ShootDetailState> {
   }
 
   Future<void> load(String jobId, {bool silent = false}) async {
+    _restoreDensity();
     if (_requestInFlight) return;
     _requestInFlight = true;
     if (!silent) {
@@ -175,6 +184,35 @@ class ShootDetailController extends Notifier<ShootDetailState> {
       selectedImage: image,
       selectedShotIndex: shotIndex,
     );
+  }
+
+  void setDensity(ShootReviewDensity density) {
+    state = state.copyWith(density: density);
+    try {
+      unawaited(
+        ref
+            .read(sharedPreferencesProvider)
+            .setString('lookatlas_review_density', density.name),
+      );
+    } on Object {
+      // Tests and embedders may intentionally omit persistent preferences.
+    }
+  }
+
+  void _restoreDensity() {
+    if (_loadedDensity) return;
+    _loadedDensity = true;
+    try {
+      final saved = ref
+          .read(sharedPreferencesProvider)
+          .getString('lookatlas_review_density');
+      final density = ShootReviewDensity.values
+          .where((value) => value.name == saved)
+          .firstOrNull;
+      if (density != null) state = state.copyWith(density: density);
+    } on Object {
+      // In-memory Riverpod state remains the fallback.
+    }
   }
 
   Future<Failure?> loadVersions(ShootImage image) async {

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:look_atlas/core/providers/core_providers.dart';
 import 'package:look_atlas/core/theme/app_theme.dart';
 import 'package:look_atlas/features/auth/di/auth_providers.dart';
 import 'package:look_atlas/features/auth/domain/entities/app_user.dart';
@@ -8,6 +9,7 @@ import 'package:look_atlas/features/shoots/di/shoots_providers.dart';
 import 'package:look_atlas/features/shoots/domain/entities/shoot_create.dart';
 import 'package:look_atlas/features/shoots/presentation/shoots_feature.dart';
 import 'package:look_atlas/features/subscription/di/subscription_access_providers.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../helpers/fake_repositories.dart';
 import '../../helpers/fake_shoots_repository.dart';
@@ -16,6 +18,8 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   Future<void> pumpModelStep(WidgetTester tester) async {
+    SharedPreferences.setMockInitialValues({});
+    final preferences = await SharedPreferences.getInstance();
     tester.view
       ..physicalSize = const Size(390, 844)
       ..devicePixelRatio = 1;
@@ -25,6 +29,7 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
+          sharedPreferencesProvider.overrideWithValue(preferences),
           authRepositoryProvider.overrideWithValue(
             FakeAuthRepository(
               user: const AppUser(id: 'user-1', email: 'creator@example.com'),

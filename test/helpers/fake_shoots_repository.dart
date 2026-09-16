@@ -2,6 +2,7 @@ import 'dart:typed_data';
 
 import 'package:look_atlas/core/result/result.dart';
 import 'package:look_atlas/features/shoots/domain/entities/shoot_create.dart';
+import 'package:look_atlas/features/shoots/domain/entities/shoot_draft.dart';
 import 'package:look_atlas/features/shoots/domain/entities/shoot_job.dart';
 import 'package:look_atlas/features/shoots/domain/repositories/shoots_repository.dart';
 
@@ -61,6 +62,10 @@ class FakeShootsRepository implements ShootsRepository {
   int loadCreateDirectorSetupCalls = 0;
   int planShotsCalls = 0;
   int createShootCalls = 0;
+  int getShootDraftsCalls = 0;
+  int getShootDraftCalls = 0;
+  int saveShootDraftCalls = 0;
+  int deleteShootDraftCalls = 0;
   final List<ShootSelection> plannedSelections = [];
   final List<CreateShootRequest> createRequests = [];
   String lastStatus = '';
@@ -74,6 +79,8 @@ class FakeShootsRepository implements ShootsRepository {
   String? lastReportComment;
   int? lastVariationShotIndex;
   ShootVideoRequest? lastVideoRequest;
+  final List<ShootDraftSummary> drafts = [];
+  final Map<String, ShootDraftSnapshot> draftSnapshots = {};
 
   @override
   Future<Result<ShootPage>> getJobs({
@@ -108,6 +115,57 @@ class FakeShootsRepository implements ShootsRepository {
     lastJobId = jobId;
     if (onGetJob case final callback?) return callback(jobId);
     return Result.ok(jobs.firstWhere((job) => job.id == jobId));
+  }
+
+  @override
+  Future<Result<List<ShootDraftSummary>>> getShootDrafts() async {
+    getShootDraftsCalls++;
+    return Result.ok([...drafts]);
+  }
+
+  @override
+  Future<Result<ShootDraft>> getShootDraft(String draftId) async {
+    getShootDraftCalls++;
+    final summary = drafts.firstWhere((draft) => draft.id == draftId);
+    return Result.ok(
+      ShootDraft(
+        summary: summary,
+        snapshot: draftSnapshots[draftId] ?? const ShootDraftSnapshot(),
+      ),
+    );
+  }
+
+  @override
+  Future<Result<ShootDraft>> saveShootDraft(
+    ShootDraftSnapshot snapshot, {
+    String? draftId,
+  }) async {
+    saveShootDraftCalls++;
+    final id = draftId ?? 'draft-$saveShootDraftCalls';
+    final productId = snapshot.selectedProductIds.firstOrNull;
+    final product = _createCatalog.products
+        .where((item) => item.id == productId)
+        .firstOrNull;
+    final summary = ShootDraftSummary(
+      id: id,
+      title: product?.name ?? 'Untitled shoot',
+      currentStep: snapshot.currentStep,
+      thumbnailUrl: product?.imageUrl ?? '',
+      updatedAt: DateTime.now().toUtc(),
+    );
+    drafts
+      ..removeWhere((draft) => draft.id == id)
+      ..insert(0, summary);
+    draftSnapshots[id] = snapshot;
+    return Result.ok(ShootDraft(summary: summary, snapshot: snapshot));
+  }
+
+  @override
+  Future<Result<void>> deleteShootDraft(String draftId) async {
+    deleteShootDraftCalls++;
+    drafts.removeWhere((draft) => draft.id == draftId);
+    draftSnapshots.remove(draftId);
+    return const Result.ok(null);
   }
 
   @override

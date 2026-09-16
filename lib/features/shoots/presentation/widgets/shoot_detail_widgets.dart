@@ -1,5 +1,105 @@
 part of '../screens/shoot_detail_screen.dart';
 
+class _ShootMetadataStrip extends StatelessWidget {
+  const _ShootMetadataStrip({required this.job});
+
+  final ShootJob job;
+
+  @override
+  Widget build(BuildContext context) => Wrap(
+    spacing: 6,
+    runSpacing: 6,
+    children: [
+      _MetadataPill(
+        icon: Icons.inventory_2_outlined,
+        label: job.productSku == null ? 'Product' : 'SKU ${job.productSku}',
+      ),
+      _MetadataPill(
+        icon: Icons.person_outline,
+        label: job.modelName ?? 'Product only',
+      ),
+      _MetadataPill(
+        icon: Icons.camera_alt_outlined,
+        label: job.directorName ?? job.preset ?? 'AI directed',
+      ),
+      _MetadataPill(
+        icon: Icons.high_quality_outlined,
+        label: job.imageSize ?? '2K',
+      ),
+    ],
+  );
+}
+
+class _MetadataPill extends StatelessWidget {
+  const _MetadataPill({required this.icon, required this.label});
+
+  final IconData icon;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 7),
+    decoration: BoxDecoration(
+      color: AppColors.white,
+      border: Border.all(color: AppColors.neutral200),
+    ),
+    child: Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: 14, color: AppColors.neutral500),
+        const SizedBox(width: 5),
+        Text(
+          label,
+          style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700),
+        ),
+      ],
+    ),
+  );
+}
+
+class _ReviewDensityPicker extends StatelessWidget {
+  const _ReviewDensityPicker({
+    required this.selected,
+    required this.onSelected,
+  });
+
+  final ShootReviewDensity selected;
+  final ValueChanged<ShootReviewDensity> onSelected;
+
+  @override
+  Widget build(BuildContext context) => Row(
+    children: [
+      for (final value in ShootReviewDensity.values)
+        Expanded(
+          child: InkWell(
+            key: ValueKey('shoot-density-${value.name}'),
+            onTap: () => onSelected(value),
+            child: Container(
+              height: 38,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: value == selected ? AppColors.black : AppColors.white,
+                border: Border.all(color: AppColors.neutral200),
+              ),
+              child: Text(
+                switch (value) {
+                  ShootReviewDensity.editorial => 'Editorial',
+                  ShootReviewDensity.dense => 'Dense',
+                  ShootReviewDensity.grid => 'Grid',
+                },
+                style: TextStyle(
+                  color: value == selected ? AppColors.white : AppColors.black,
+                  fontSize: 10,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+          ),
+        ),
+    ],
+  );
+}
+
 class _ShootProgress extends StatelessWidget {
   const _ShootProgress({
     required this.progress,
@@ -250,6 +350,7 @@ class _VideoCard extends StatelessWidget {
 class _GeneratedImages extends StatelessWidget {
   const _GeneratedImages({
     required this.isProcessing,
+    required this.density,
     required this.shots,
     required this.onApprove,
     required this.onPreview,
@@ -261,6 +362,7 @@ class _GeneratedImages extends StatelessWidget {
   });
 
   final bool isProcessing;
+  final ShootReviewDensity density;
   final List<ShootShot> shots;
   final ValueChanged<ShootImage> onApprove;
   final ValueChanged<ShootImage> onPreview;
@@ -314,6 +416,7 @@ class _GeneratedImages extends StatelessWidget {
                 return _ShotGroup(
                   number: shot.index + 1,
                   title: shot.title,
+                  density: density,
                   images: shot.images,
                   onApprove: onApprove,
                   onPreview: onPreview,
@@ -335,6 +438,7 @@ class _ShotGroup extends StatelessWidget {
   const _ShotGroup({
     required this.number,
     required this.title,
+    required this.density,
     required this.images,
     required this.onApprove,
     required this.onPreview,
@@ -347,6 +451,7 @@ class _ShotGroup extends StatelessWidget {
 
   final int number;
   final String title;
+  final ShootReviewDensity density;
   final List<ShootImage> images;
   final ValueChanged<ShootImage> onApprove;
   final ValueChanged<ShootImage> onPreview;
@@ -430,11 +535,15 @@ class _ShotGroup extends StatelessWidget {
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
             itemCount: images.length,
-            gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-              maxCrossAxisExtent: 205,
+            gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
+              maxCrossAxisExtent: switch (density) {
+                ShootReviewDensity.editorial => 500,
+                ShootReviewDensity.dense => 205,
+                ShootReviewDensity.grid => 125,
+              },
               crossAxisSpacing: 9,
               mainAxisSpacing: 9,
-              childAspectRatio: 0.75,
+              childAspectRatio: density == ShootReviewDensity.grid ? .68 : .75,
             ),
             itemBuilder: (context, index) {
               final image = images[index];
@@ -442,6 +551,7 @@ class _ShotGroup extends StatelessWidget {
                 asset: image.url,
                 label: 'V${image.variationIndex + 1}',
                 approved: image.approved,
+                compact: density == ShootReviewDensity.grid,
                 onApprove: () => onApprove(image),
                 onPreview: () => onPreview(image),
                 onEdit: () => onEdit(image),
@@ -462,6 +572,7 @@ class _ResultTile extends StatelessWidget {
     required this.asset,
     required this.label,
     required this.approved,
+    required this.compact,
     required this.onApprove,
     required this.onPreview,
     required this.onEdit,
@@ -473,6 +584,7 @@ class _ResultTile extends StatelessWidget {
   final String asset;
   final String label;
   final bool approved;
+  final bool compact;
   final VoidCallback onApprove;
   final VoidCallback onPreview;
   final VoidCallback onEdit;
@@ -525,14 +637,22 @@ class _ResultTile extends StatelessWidget {
                   ),
                 ),
                 const Spacer(),
-                AppSmallOverlayButton(icon: Icons.auto_fix_high, onTap: onEdit),
-                const SizedBox(width: 5),
-                AppSmallOverlayButton(icon: Icons.history, onTap: onVersions),
-                const SizedBox(width: 5),
-                AppSmallOverlayButton(
-                  icon: Icons.flag_outlined,
-                  onTap: onReport,
-                ),
+                if (!compact) ...[
+                  AppSmallOverlayButton(
+                    icon: Icons.auto_fix_high,
+                    onTap: onEdit,
+                  ),
+                  const SizedBox(width: 5),
+                  AppSmallOverlayButton(
+                    icon: Icons.history,
+                    onTap: onVersions,
+                  ),
+                  const SizedBox(width: 5),
+                  AppSmallOverlayButton(
+                    icon: Icons.flag_outlined,
+                    onTap: onReport,
+                  ),
+                ],
               ],
             ),
           ),

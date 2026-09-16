@@ -47,6 +47,9 @@ abstract final class AppRoutes {
     return fromDashboard ? '$path?from=dashboard' : path;
   }
 
+  static String createShootDraft(String draftId) =>
+      '$createShoot?draftId=${Uri.encodeQueryComponent(draftId)}';
+
   static String productSize(String productId, {String? stage}) {
     final path = '/products/${Uri.encodeComponent(productId)}/size';
     return stage == null ? path : '$path/${Uri.encodeComponent(stage)}';

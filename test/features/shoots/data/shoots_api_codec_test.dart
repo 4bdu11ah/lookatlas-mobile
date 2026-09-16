@@ -3,6 +3,25 @@ import 'package:look_atlas/features/shoots/data/models/shoots_api_codec.dart';
 import 'package:look_atlas/features/shoots/domain/entities/shoot_create.dart';
 
 void main() {
+  test('create_payload_product_only_omits_model_fields', () {
+    final payload = ShootsApiCodec.createPayload(
+      const CreateShootRequest(
+        selection: ShootSelection(
+          products: [
+            ShootCatalogItem(id: 'product-1', name: 'Bag', imageUrl: ''),
+          ],
+          models: [],
+          settings: ShootSettings(),
+        ),
+        shots: [PlannedShootShot(title: 'Packshot', description: 'Front')],
+      ),
+    );
+
+    expect(payload, isNot(contains('modelId')));
+    expect(payload, isNot(contains('modelSource')));
+    expect(payload['models'], isEmpty);
+  });
+
   test('custom_shot_payload_omits_empty_optional_fields', () {
     final payload = ShootsApiCodec.customShotPayload(
       const CustomShootShotRequest(

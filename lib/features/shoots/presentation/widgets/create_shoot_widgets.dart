@@ -109,6 +109,41 @@ class _CreateShootHeader extends StatelessWidget {
   }
 }
 
+class _ValidationSummary extends StatelessWidget {
+  const _ValidationSummary({required this.errors});
+
+  final List<String> errors;
+
+  @override
+  Widget build(BuildContext context) => Semantics(
+    liveRegion: true,
+    child: Container(
+      key: const ValueKey('create-shoot-validation-summary'),
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppColors.dangerLight,
+        border: Border.all(color: AppColors.dangerBorder),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Fix the following before continuing:',
+            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
+          ),
+          const SizedBox(height: 6),
+          for (final error in errors)
+            Padding(
+              padding: const EdgeInsets.only(top: 2),
+              child: Text('• $error', style: const TextStyle(fontSize: 11)),
+            ),
+        ],
+      ),
+    ),
+  );
+}
+
 class _CreateSectionHeader extends StatelessWidget {
   const _CreateSectionHeader({
     required this.title,
@@ -470,9 +505,11 @@ class _ModelStep extends ConsumerStatefulWidget {
     required this.useLibraryModels,
     required this.selectedKeys,
     required this.selectedModels,
+    required this.productOnly,
     required this.onSelect,
     required this.onRemove,
     required this.onClear,
+    required this.onProductOnlyChanged,
     required this.onSourceChanged,
     required this.onAdd,
   });
@@ -484,9 +521,11 @@ class _ModelStep extends ConsumerStatefulWidget {
   final bool useLibraryModels;
   final Set<String> selectedKeys;
   final List<ShootCatalogItem> selectedModels;
+  final bool productOnly;
   final ValueChanged<int> onSelect;
   final ValueChanged<String> onRemove;
   final VoidCallback onClear;
+  final ValueChanged<bool> onProductOnlyChanged;
   final ValueChanged<bool> onSourceChanged;
   final VoidCallback onAdd;
 
@@ -535,68 +574,97 @@ class _ModelStepState extends ConsumerState<_ModelStep> {
       children: [
         _CreateSectionHeader(
           title: 'Select Model',
-          subtitle: 'Choose a model to wear your product',
+          subtitle: 'Cast the face of this story, or choose product-only.',
           onAdd: widget.onAdd,
           addLabel: 'Add Model',
         ),
         _SegmentedChoices(
-          choices: [
-            'My Models · ${widget.userModelCount}',
-            'LookAtlas · ${widget.libraryModelCount}',
-          ],
-          selected: widget.useLibraryModels ? 1 : 0,
-          onSelect: (index) {
-            ref.read(_createModelPageProvider.notifier)._set(value: 0);
-            widget.onSourceChanged(index == 1);
-          },
+          choices: const ['With Models', 'Product Only'],
+          selected: widget.productOnly ? 1 : 0,
+          onSelect: (index) => widget.onProductOnlyChanged(index == 1),
         ),
-        if (widget.selectedModels.isNotEmpty)
-          _SelectedRoster(
-            count: selectionSummary,
-            items: widget.selectedModels,
-            onClear: widget.onClear,
-            onRemove: widget.onRemove,
-          ),
-        if (widget.isLoading)
-          const Center(child: CircularProgressIndicator())
-        else ...[
-          AppTextField(
-            fieldKey: const ValueKey('create-model-search'),
-            hintText: 'Search models by name...',
-            textInputAction: TextInputAction.search,
-            leading: const Icon(Icons.search, size: 20),
-            onChanged: (value) {
-              ref.read(_createModelQueryProvider.notifier)._set(value: value);
-              ref.read(_createModelPageProvider.notifier)._set(value: 0);
-            },
-          ),
-          _SelectionGrid(
-            items: visibleModels,
-            selectedIndices: selectedIndices,
-            disabledIndices: widget.selectedKeys.length < 3
-                ? const {}
-                : widget.models.indexed
-                      .where((item) => !selectedIndices.contains(item.$1))
-                      .map((item) => item.$1)
-                      .toSet(),
-            selectedLabels: {
-              for (final (index, model) in widget.models.indexed)
-                if (selectedPositions[shootModelKey(model)]
-                    case final position?)
-                  index: position == 0 ? 'Primary' : 'Secondary $position',
-            },
-            selectedLabelOnLeft: true,
-            onSelect: widget.onSelect,
-          ),
-          if (pageCount > 1)
-            _ProductPagination(
-              pageIndex: pageIndex,
-              pageCount: pageCount,
-              keyPrefix: 'model',
-              onPageChanged: (value) => ref
-                  .read(_createModelPageProvider.notifier)
-                  ._set(value: value),
+        if (widget.productOnly)
+          Container(
+            key: const ValueKey('product-only-cast-notice'),
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: AppColors.neutral100,
+              border: Border.all(color: AppColors.neutral200),
             ),
+            child: const Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(Icons.inventory_2_outlined, size: 18),
+                SizedBox(width: 9),
+                Expanded(
+                  child: Text(
+                    'Product-only mode active: Garments will be photographed as ghost mannequin, flat-lay, or tabletop packshots without human talent.',
+                    style: TextStyle(fontSize: 11, height: 1.45),
+                  ),
+                ),
+              ],
+            ),
+          )
+        else ...[
+          _SegmentedChoices(
+            choices: [
+              'My Models · ${widget.userModelCount}',
+              'LookAtlas · ${widget.libraryModelCount}',
+            ],
+            selected: widget.useLibraryModels ? 1 : 0,
+            onSelect: (index) {
+              ref.read(_createModelPageProvider.notifier)._set(value: 0);
+              widget.onSourceChanged(index == 1);
+            },
+          ),
+          if (widget.selectedModels.isNotEmpty)
+            _SelectedRoster(
+              count: selectionSummary,
+              items: widget.selectedModels,
+              onClear: widget.onClear,
+              onRemove: widget.onRemove,
+            ),
+          if (widget.isLoading)
+            const Center(child: CircularProgressIndicator())
+          else ...[
+            AppTextField(
+              fieldKey: const ValueKey('create-model-search'),
+              hintText: 'Search models by name...',
+              textInputAction: TextInputAction.search,
+              leading: const Icon(Icons.search, size: 20),
+              onChanged: (value) {
+                ref.read(_createModelQueryProvider.notifier)._set(value: value);
+                ref.read(_createModelPageProvider.notifier)._set(value: 0);
+              },
+            ),
+            _SelectionGrid(
+              items: visibleModels,
+              selectedIndices: selectedIndices,
+              disabledIndices: widget.selectedKeys.length < 3
+                  ? const {}
+                  : widget.models.indexed
+                        .where((item) => !selectedIndices.contains(item.$1))
+                        .map((item) => item.$1)
+                        .toSet(),
+              selectedLabels: {
+                for (final (index, model) in widget.models.indexed)
+                  if (selectedPositions[shootModelKey(model)]
+                      case final position?)
+                    index: position == 0 ? 'Primary' : 'Secondary $position',
+              },
+              selectedLabelOnLeft: true,
+              onSelect: widget.onSelect,
+            ),
+            if (pageCount > 1)
+              _ProductPagination(
+                pageIndex: pageIndex,
+                pageCount: pageCount,
+                keyPrefix: 'model',
+                onPageChanged: (value) => ref
+                    .read(_createModelPageProvider.notifier)
+                    ._set(value: value),
+              ),
+          ],
         ],
       ],
     );

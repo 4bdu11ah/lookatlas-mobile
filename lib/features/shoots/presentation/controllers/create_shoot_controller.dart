@@ -8,6 +8,7 @@ import 'package:look_atlas/core/error/failure.dart';
 import 'package:look_atlas/core/result/result.dart';
 import 'package:look_atlas/features/shoots/di/shoots_providers.dart';
 import 'package:look_atlas/features/shoots/domain/entities/shoot_create.dart';
+import 'package:look_atlas/features/shoots/domain/entities/shoot_draft.dart';
 import 'package:look_atlas/features/shoots/domain/repositories/shoots_repository.dart';
 import 'package:look_atlas/features/shoots/domain/use_cases/create_demo_shoots_use_case.dart';
 import 'package:look_atlas/features/shoots/presentation/models/create_step.dart';
@@ -21,6 +22,7 @@ class CreateShootState {
     this.productMode = ProductMode.pairing,
     this.selectedProductIds = const [],
     this.selectedModelKeys = const [],
+    this.productOnly = false,
     this.selectedDirector = -1,
     this.previewDirector = 0,
     this.demoMode = false,
@@ -37,6 +39,7 @@ class CreateShootState {
     this.isPlanning = false,
     this.isSubmitting = false,
     this.failure,
+    this.showValidation = false,
   });
 
   final CreateStep step;
@@ -44,6 +47,7 @@ class CreateShootState {
   final ProductMode productMode;
   final List<String> selectedProductIds;
   final List<String> selectedModelKeys;
+  final bool productOnly;
   final int selectedDirector;
   final int previewDirector;
   final bool demoMode;
@@ -60,6 +64,7 @@ class CreateShootState {
   final bool isPlanning;
   final bool isSubmitting;
   final Failure? failure;
+  final bool showValidation;
 
   List<ShootCatalogItem> get products => catalog?.products ?? const [];
 
@@ -89,7 +94,7 @@ class CreateShootState {
 
   ShootSelection? get selection {
     if (selectedProducts.isEmpty ||
-        selectedModels.isEmpty ||
+        (!productOnly && selectedModels.isEmpty) ||
         selectedDirector < 0 ||
         selectedDirector >= directors.length) {
       return null;
@@ -150,6 +155,58 @@ class CreateShootState {
       (settings.lane == ShootLane.relax ||
           requiredCredits <= (catalog?.availableCredits ?? 0));
 
+  bool get hasChanges =>
+      selectedProductIds.isNotEmpty ||
+      selectedModelKeys.isNotEmpty ||
+      productOnly ||
+      selectedDirector >= 0 ||
+      plannedShots.isNotEmpty;
+
+  ShootDraftSnapshot toDraftSnapshot() => ShootDraftSnapshot(
+    currentStep: step.name,
+    productMode: productMode.name,
+    selectedProductIds: selectedProductIds,
+    selectedModelIds: selectedModelKeys,
+    productOnly: productOnly,
+    directorId: selectedDirector >= 0 && selectedDirector < directors.length
+        ? directors[selectedDirector].id
+        : null,
+    demoMode: demoMode,
+    demoDirectors: [
+      for (final config in demoDirectors)
+        {
+          'directorId': config.directorId,
+          'numberOfShots': config.numberOfShots,
+          'variations': config.variations,
+        },
+    ],
+    useLibraryModels: useLibraryModels,
+    settings: _settingsToJson(settings),
+    plannedShots: [for (final shot in plannedShots) shot.toJson()],
+    selectedShots: selectedShots.toList()..sort(),
+  );
+
+  List<String> get validationErrors => switch (step) {
+    CreateStep.product when selectedProducts.isEmpty => const [
+      'Choose at least one product before continuing.',
+    ],
+    CreateStep.model when !productOnly && selectedModels.isEmpty => const [
+      'Choose at least one model, or switch this to a product-only shoot.',
+    ],
+    CreateStep.director when !canContinueFromDirector => [
+      if (settings.useCase.isEmpty)
+        'Choose what this shoot will be used for (Destination/Use case).',
+      if (demoMode)
+        'Select at least one director for the demo.'
+      else
+        'Choose a creative director.',
+    ],
+    CreateStep.planning when chosenShots.isEmpty => const [
+      'Select at least one shot from the contact sheet.',
+    ],
+    _ => const [],
+  };
+
   List<CreateStep> get steps => demoMode
       ? const [
           CreateStep.product,
@@ -165,6 +222,7 @@ class CreateShootState {
     ProductMode? productMode,
     List<String>? selectedProductIds,
     List<String>? selectedModelKeys,
+    bool? productOnly,
     int? selectedDirector,
     int? previewDirector,
     bool? demoMode,
@@ -182,12 +240,14 @@ class CreateShootState {
     bool? isSubmitting,
     Failure? failure,
     bool clearFailure = false,
+    bool? showValidation,
   }) => CreateShootState(
     step: step ?? this.step,
     catalog: catalog ?? this.catalog,
     productMode: productMode ?? this.productMode,
     selectedProductIds: selectedProductIds ?? this.selectedProductIds,
     selectedModelKeys: selectedModelKeys ?? this.selectedModelKeys,
+    productOnly: productOnly ?? this.productOnly,
     selectedDirector: selectedDirector ?? this.selectedDirector,
     previewDirector: previewDirector ?? this.previewDirector,
     demoMode: demoMode ?? this.demoMode,
@@ -206,6 +266,7 @@ class CreateShootState {
     isPlanning: isPlanning ?? this.isPlanning,
     isSubmitting: isSubmitting ?? this.isSubmitting,
     failure: clearFailure ? null : failure ?? this.failure,
+    showValidation: showValidation ?? this.showValidation,
   );
 }
 
@@ -236,6 +297,92 @@ class CreateShootController extends Notifier<CreateShootState>
       await _loadModels(preferredModelName: preferredModelName, force: true);
     }
   }
+
+  Future<void> restoreDraft(ShootDraftSnapshot snapshot) async {
+    final draftStep = _draftStep(snapshot.currentStep);
+    await _loadDraftDependencies(snapshot, draftStep);
+    if (_disposed) return;
+    state = _restoredDraftState(snapshot, draftStep);
+  }
+
+  Future<void> _loadDraftDependencies(
+    ShootDraftSnapshot snapshot,
+    CreateStep draftStep,
+  ) async {
+    if (state.catalog == null) await _loadProducts();
+    if (snapshot.selectedModelIds.isNotEmpty ||
+        draftStep != CreateStep.product) {
+      await _loadModels(force: true);
+    }
+    final needsDirector =
+        snapshot.directorId != null ||
+        snapshot.demoDirectors.isNotEmpty ||
+        const {
+          CreateStep.director,
+          CreateStep.planning,
+          CreateStep.confirm,
+        }.contains(draftStep);
+    if (needsDirector) await _loadDirectorSetup();
+  }
+
+  CreateShootState _restoredDraftState(
+    ShootDraftSnapshot snapshot,
+    CreateStep draftStep,
+  ) {
+    final directorIndex = _catalog.looks.indexWhere(
+      (director) => director.id == snapshot.directorId,
+    );
+    return CreateShootState(
+      step: draftStep,
+      catalog: _catalog,
+      productMode: _draftProductMode(snapshot.productMode),
+      selectedProductIds: snapshot.selectedProductIds,
+      selectedModelKeys: _restoredModelKeys(snapshot),
+      productOnly: snapshot.productOnly,
+      selectedDirector: directorIndex,
+      previewDirector: directorIndex < 0 ? 0 : directorIndex,
+      demoMode: snapshot.demoMode,
+      demoDirectors: _restoredDemoDirectors(snapshot),
+      useLibraryModels: snapshot.useLibraryModels,
+      settings: _settingsFromJson(snapshot.settings),
+      plannedShots: _restoredShots(snapshot),
+      selectedShots: snapshot.selectedShots.toSet(),
+      isLoading: false,
+      hasLoadedModels: draftStep != CreateStep.product,
+      hasLoadedDirectorSetup:
+          snapshot.directorId != null || snapshot.demoDirectors.isNotEmpty,
+    );
+  }
+
+  List<String> _restoredModelKeys(ShootDraftSnapshot snapshot) {
+    final models = [..._catalog.userModels, ..._catalog.libraryModels];
+    return [
+      for (final saved in snapshot.selectedModelIds)
+        _restoreModelKey(saved, models),
+    ];
+  }
+
+  List<DemoDirectorConfig> _restoredDemoDirectors(
+    ShootDraftSnapshot snapshot,
+  ) => [
+    for (final item in snapshot.demoDirectors)
+      DemoDirectorConfig(
+        directorId: _jsonString(item['directorId']),
+        numberOfShots: _jsonInt(item['numberOfShots'], fallback: 5),
+        variations: _jsonInt(item['variations'], fallback: 2),
+      ),
+  ];
+
+  List<PlannedShootShot> _restoredShots(ShootDraftSnapshot snapshot) => [
+    for (final item in snapshot.plannedShots)
+      PlannedShootShot(
+        title: _jsonString(item['title'], fallback: 'Untitled shot'),
+        description: _jsonString(
+          item['shortDescription'] ?? item['description'],
+        ),
+        payload: item,
+      ),
+  ];
 
   Future<void> retry() => switch (state.step) {
     CreateStep.product => _loadProducts(),
@@ -370,7 +517,7 @@ class CreateShootController extends Notifier<CreateShootState>
   }
 
   void setStep(CreateStep step) {
-    state = state.copyWith(step: step);
+    state = state.copyWith(step: step, showValidation: false);
     switch (step) {
       case CreateStep.model:
         unawaited(_loadModels());
@@ -435,6 +582,7 @@ class CreateShootController extends Notifier<CreateShootState>
     }
     state = state.copyWith(
       selectedModelKeys: selected,
+      productOnly: false,
       plannedShots: const [],
       selectedShots: const {},
     );
@@ -454,6 +602,24 @@ class CreateShootController extends Notifier<CreateShootState>
       plannedShots: const [],
       selectedShots: const {},
     );
+  }
+
+  void setProductOnly({required bool productOnly}) {
+    state = state.copyWith(
+      productOnly: productOnly,
+      selectedModelKeys: productOnly ? const [] : state.selectedModelKeys,
+      plannedShots: const [],
+      selectedShots: const {},
+      showValidation: false,
+    );
+  }
+
+  void continueTo(CreateStep nextStep) {
+    if (state.validationErrors.isNotEmpty) {
+      state = state.copyWith(showValidation: true);
+      return;
+    }
+    setStep(nextStep);
   }
 
   void setModelSource({required bool useLibraryModels}) {
@@ -683,6 +849,60 @@ ShootCatalogItem? _findModel(
   }
   return null;
 }
+
+Map<String, dynamic> _settingsToJson(ShootSettings settings) => {
+  'useCase': settings.useCase,
+  'directorId': settings.directorId,
+  'directorFeedback': settings.directorFeedback,
+  'background': settings.background,
+  'backgroundNotes': settings.backgroundNotes,
+  'aspectRatio': settings.aspectRatio,
+  'imageSize': settings.imageSize,
+  'numberOfShots': settings.numberOfShots,
+  'variations': settings.variations,
+  'lane': settings.lane.name,
+  'stylingNotes': settings.stylingNotes,
+};
+
+ShootSettings _settingsFromJson(Map<String, dynamic> json) => ShootSettings(
+  useCase: _jsonString(json['useCase'], fallback: 'pdp'),
+  directorId: _jsonString(json['directorId'], fallback: 'clean-pro'),
+  directorFeedback: _jsonString(json['directorFeedback']),
+  background: _jsonString(json['background'], fallback: 'ai_decide'),
+  backgroundNotes: _jsonString(json['backgroundNotes']),
+  aspectRatio: _jsonString(json['aspectRatio'], fallback: '4:5'),
+  imageSize: _jsonString(json['imageSize'], fallback: '2K'),
+  numberOfShots: _jsonInt(json['numberOfShots'], fallback: 5),
+  variations: _jsonInt(json['variations'], fallback: 3),
+  lane: _jsonString(json['lane']) == 'relax' ? ShootLane.relax : ShootLane.fast,
+  stylingNotes: json['stylingNotes'] is Map
+      ? {
+          for (final entry in (json['stylingNotes'] as Map).entries)
+            entry.key.toString(): entry.value.toString(),
+        }
+      : const {},
+);
+
+CreateStep _draftStep(String value) => CreateStep.values.firstWhere(
+  (step) => step.name == value,
+  orElse: () => CreateStep.product,
+);
+
+ProductMode _draftProductMode(String value) => value == ProductMode.variant.name
+    ? ProductMode.variant
+    : ProductMode.pairing;
+
+String _restoreModelKey(String saved, List<ShootCatalogItem> models) {
+  if (saved.contains(':')) return saved;
+  final model = models.where((item) => item.id == saved).firstOrNull;
+  return model == null ? saved : shootModelKey(model);
+}
+
+String _jsonString(Object? value, {String fallback = ''}) =>
+    value is String ? value : fallback;
+
+int _jsonInt(Object? value, {required int fallback}) =>
+    value is num ? value.toInt() : fallback;
 
 final NotifierProvider<CreateShootController, CreateShootState>
 createShootControllerProvider =

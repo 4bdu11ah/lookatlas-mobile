@@ -65,4 +65,16 @@ void main() {
       expect(output[1], contains('[${entry.key}] message'));
     }
   });
+
+  test('formatLogLines_plainConsole_omitsAnsiEscapeCodes', () {
+    final output = AppLogger.formatLogLines(
+      'WARNING',
+      'Request cancelled',
+      useColor: false,
+      framed: false,
+    );
+
+    expect(output.every((line) => !line.contains('\x1B')), isTrue);
+    expect(output.single, '[WARNING] Request cancelled');
+  });
 }

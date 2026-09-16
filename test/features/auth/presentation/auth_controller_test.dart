@@ -1,16 +1,19 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:look_atlas/core/error/failure.dart';
+import 'package:look_atlas/core/providers/core_providers.dart';
 import 'package:look_atlas/core/result/result.dart';
 import 'package:look_atlas/features/auth/di/auth_providers.dart';
 import 'package:look_atlas/features/auth/domain/entities/app_user.dart';
 import 'package:look_atlas/features/auth/domain/repositories/auth_repository.dart';
 import 'package:look_atlas/features/auth/presentation/controllers/auth_controller.dart';
+import 'package:look_atlas/features/dashboard/presentation/controllers/dashboard_shell_controller.dart';
 import 'package:look_atlas/features/subscription/di/subscription_providers.dart';
 import 'package:look_atlas/features/subscription/domain/repositories/subscription_repository.dart';
 import 'package:look_atlas/services/analytics/analytics_service.dart';
 import 'package:look_atlas/services/service_providers.dart';
 import 'package:mocktail/mocktail.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class _MockAuthRepository extends Mock implements AuthRepository {}
 
@@ -27,13 +30,17 @@ void main() {
   late _MockSubscriptionRepository subscriptions;
   late _MockAnalyticsService analytics;
   late ProviderContainer container;
+  late SharedPreferences preferences;
   late List<AsyncValue<void>> states;
 
-  setUp(() {
+  setUp(() async {
     authRepository = _MockAuthRepository();
     subscriptions = _MockSubscriptionRepository();
     analytics = _MockAnalyticsService();
+    SharedPreferences.setMockInitialValues({});
+    preferences = await SharedPreferences.getInstance();
 
+    when(() => authRepository.currentUser).thenReturn(user);
     when(() => subscriptions.logIn(any())).thenAnswer((_) async {});
     when(subscriptions.logOut).thenAnswer((_) async {});
     when(
@@ -43,6 +50,7 @@ void main() {
 
     container = ProviderContainer(
       overrides: [
+        sharedPreferencesProvider.overrideWithValue(preferences),
         authRepositoryProvider.overrideWithValue(authRepository),
         subscriptionRepositoryProvider.overrideWithValue(subscriptions),
         analyticsServiceProvider.overrideWithValue(analytics),
@@ -175,6 +183,36 @@ void main() {
         ),
       );
     });
+
+    test(
+      'clears stale account state before the signed-in user loads',
+      () async {
+        container
+            .read(dashboardShellControllerProvider.notifier)
+            .toggleUserMenu();
+        when(
+          () => authRepository.signInWithEmail(
+            email: any(named: 'email'),
+            password: any(named: 'password'),
+            captchaToken: any(named: 'captchaToken'),
+          ),
+        ).thenAnswer((_) async => const Result.ok(user));
+
+        final succeeded = await container
+            .read(authControllerProvider.notifier)
+            .signIn(
+              'jane@example.com',
+              'secret123',
+              captchaToken: 'turnstile-token',
+            );
+
+        expect(succeeded, isTrue);
+        expect(
+          container.read(dashboardShellControllerProvider).userMenuOpen,
+          isFalse,
+        );
+      },
+    );
   });
 
   group('signUp', () {
@@ -346,6 +384,36 @@ void main() {
       ]);
       verify(subscriptions.logOut).called(1);
       verify(analytics.reset).called(1);
+    });
+
+    test('clears the signed-out account data and in-memory draft', () async {
+      await preferences.setString('content-recovery-v1:user-1:single', 'draft');
+      await preferences.setBool('la_welcome_intro_done:user-1', true);
+      await preferences.setBool('la_welcome_intro_done:user-2', true);
+      await preferences.setString('theme_mode', 'dark');
+      container
+          .read(dashboardShellControllerProvider.notifier)
+          .toggleUserMenu();
+      when(
+        authRepository.signOut,
+      ).thenAnswer((_) async => const Result.ok(null));
+
+      final succeeded = await container
+          .read(authControllerProvider.notifier)
+          .signOut();
+
+      expect(succeeded, isTrue);
+      expect(
+        preferences.getString('content-recovery-v1:user-1:single'),
+        isNull,
+      );
+      expect(preferences.getBool('la_welcome_intro_done:user-1'), isNull);
+      expect(preferences.getBool('la_welcome_intro_done:user-2'), isTrue);
+      expect(preferences.getString('theme_mode'), 'dark');
+      expect(
+        container.read(dashboardShellControllerProvider).userMenuOpen,
+        isFalse,
+      );
     });
 
     test('surfaces a sign-out failure and keeps the identity', () async {

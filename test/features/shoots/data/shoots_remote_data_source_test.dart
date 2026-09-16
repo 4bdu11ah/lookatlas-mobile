@@ -8,6 +8,7 @@ import 'package:look_atlas/core/result/result.dart';
 import 'package:look_atlas/features/shoots/data/data_sources/shoots_remote_data_source.dart';
 import 'package:look_atlas/features/shoots/data/repositories/shoots_repository_impl.dart';
 import 'package:look_atlas/features/shoots/domain/entities/shoot_create.dart';
+import 'package:look_atlas/features/shoots/domain/entities/shoot_draft.dart';
 import 'package:look_atlas/features/shoots/domain/entities/shoot_job.dart';
 import 'package:mocktail/mocktail.dart';
 
@@ -126,6 +127,121 @@ void main() {
     expect(job.shots.single.index, 3);
     expect(job.shots.single.images.single.id, 'image-1');
     expect(job.shots.single.images.single.approved, isTrue);
+  });
+
+  test('shoot_drafts_use_documented_list_resume_and_delete_routes', () async {
+    when(
+      () => api.get<List<ShootDraftSummary>>(
+        ApiEndpoints.shootDrafts,
+        decoder: any(named: 'decoder'),
+      ),
+    ).thenAnswer((invocation) async {
+      final decoder =
+          invocation.namedArguments[#decoder]
+              as JsonDecoder<List<ShootDraftSummary>>;
+      return Result.ok(
+        decoder({
+          'drafts': [
+            {
+              'id': 'draft-1',
+              'title': 'Blazer',
+              'currentStep': 'model',
+              'updatedAt': '2026-09-16T10:00:00Z',
+            },
+          ],
+        }),
+      );
+    });
+    when(
+      () => api.get<ShootDraft>(
+        ApiEndpoints.shootDraft('draft-1'),
+        decoder: any(named: 'decoder'),
+      ),
+    ).thenAnswer((invocation) async {
+      final decoder =
+          invocation.namedArguments[#decoder] as JsonDecoder<ShootDraft>;
+      return Result.ok(
+        decoder({
+          'id': 'draft-1',
+          'title': 'Blazer',
+          'currentStep': 'model',
+          'updatedAt': '2026-09-16T10:00:00Z',
+          'state': {
+            'currentStep': 'model',
+            'selectedProductIds': ['product-1'],
+          },
+        }),
+      );
+    });
+    when(
+      () => api.delete<void>(
+        ApiEndpoints.shootDraft('draft-1'),
+        decoder: any(named: 'decoder'),
+      ),
+    ).thenAnswer((_) async => const Result.ok(null));
+
+    final list = await dataSource.getShootDrafts();
+    final draft = await dataSource.getShootDraft('draft-1');
+    await dataSource.deleteShootDraft('draft-1');
+
+    expect(list.valueOrNull!.single.id, 'draft-1');
+    expect(draft.valueOrNull!.snapshot.selectedProductIds, ['product-1']);
+    verify(
+      () => api.delete<void>(
+        ApiEndpoints.shootDraft('draft-1'),
+        decoder: any(named: 'decoder'),
+      ),
+    ).called(1);
+  });
+
+  test('shoot_draft_save_posts_then_puts_the_full_state_snapshot', () async {
+    const snapshot = ShootDraftSnapshot(
+      currentStep: 'director',
+      selectedProductIds: ['product-1'],
+      selectedModelIds: ['user:model-1'],
+      directorId: 'clean-pro',
+    );
+    final response = ShootDraft(
+      summary: ShootDraftSummary(
+        id: 'draft-1',
+        title: 'Blazer',
+        currentStep: 'director',
+        updatedAt: DateTime.utc(2026, 9, 16),
+      ),
+      snapshot: snapshot,
+    );
+    when(
+      () => api.post<ShootDraft>(
+        ApiEndpoints.shootDrafts,
+        data: any(named: 'data'),
+        decoder: any(named: 'decoder'),
+      ),
+    ).thenAnswer((_) async => Result.ok(response));
+    when(
+      () => api.put<ShootDraft>(
+        ApiEndpoints.shootDraft('draft-1'),
+        data: any(named: 'data'),
+        decoder: any(named: 'decoder'),
+      ),
+    ).thenAnswer((_) async => Result.ok(response));
+
+    await dataSource.saveShootDraft(snapshot);
+    await dataSource.saveShootDraft(snapshot, draftId: 'draft-1');
+
+    verify(
+      () => api.post<ShootDraft>(
+        ApiEndpoints.shootDrafts,
+        data: {'state': snapshot.toJson()},
+        decoder: any(named: 'decoder'),
+      ),
+    ).called(1);
+    verify(
+      () => api.put<ShootDraft>(
+        ApiEndpoints.shootDraft('draft-1'),
+        data: {'state': snapshot.toJson()},
+        decoder: any(named: 'decoder'),
+      ),
+    ).called(1);
   });
 
   test('set_image_approval_patches_documented_endpoint_and_body', () async {

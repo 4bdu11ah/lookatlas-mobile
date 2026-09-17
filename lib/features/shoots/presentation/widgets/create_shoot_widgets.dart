@@ -333,13 +333,10 @@ class _ProductSelectionPanel extends StatelessWidget {
     final modeSummary = productMode == ProductMode.pairing
         ? 'worn together in every shot'
         : 'split across shots as variants';
-    return Container(
+    return AppCard(
       key: const ValueKey('create-product-selection-panel'),
       padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(
-        color: AppColors.neutral50,
-        border: Border.all(color: AppColors.neutral200),
-      ),
+      backgroundColor: AppColors.neutral50,
       child: AppSpacedColumn(
         gap: 10,
         children: [
@@ -462,40 +459,42 @@ Widget _selectedProductRow({
   required String role,
   required VoidCallback onRemove,
   EdgeInsetsGeometry? margin,
-}) => Container(
-  padding: const EdgeInsets.fromLTRB(6, 4, 0, 4),
-  margin: margin,
-  decoration: BoxDecoration(
-    color: AppColors.white,
-    border: Border.all(color: AppColors.neutral200),
-  ),
-  child: Row(
-    children: [
-      AppImage(
-        product.imageUrl,
-        width: 40,
-        height: 40,
-        fit: BoxFit.cover,
-      ),
-      const SizedBox(width: 9),
-      Expanded(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            AppCardTitle(product.name, fontSize: 13),
-            const SizedBox(height: 2),
-            AppCaption(role, fontSize: 12),
-          ],
+}) {
+  final content = AppCard(
+    padding: const EdgeInsets.fromLTRB(6, 4, 0, 4),
+    child: Row(
+      children: [
+        AppImage(
+          product.imageUrl,
+          width: 40,
+          height: 40,
+          fit: BoxFit.cover,
         ),
-      ),
-      IconButton(
-        tooltip: 'Remove ${product.name}',
-        onPressed: onRemove,
-        icon: const Icon(Icons.close, size: 20),
-      ),
-    ],
-  ),
-);
+        const SizedBox(width: 9),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              AppCardTitle(product.name, fontSize: 13),
+              const SizedBox(height: 2),
+              AppCaption(role, fontSize: 12),
+            ],
+          ),
+        ),
+        AppTapIconButton(
+          icon: Icons.close,
+          label: 'Remove ${product.name}',
+          tooltip: 'Remove ${product.name}',
+          onTap: onRemove,
+        ),
+      ],
+    ),
+  );
+  if (margin != null) {
+    return Padding(padding: margin, child: content);
+  }
+  return content;
+}
 
 class _ModelStep extends ConsumerStatefulWidget {
   const _ModelStep({
@@ -585,14 +584,11 @@ class _ModelStepState extends ConsumerState<_ModelStep> {
           onSelect: (index) => widget.onProductOnlyChanged(index == 1),
         ),
         if (widget.productOnly)
-          Container(
-            key: const ValueKey('product-only-cast-notice'),
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: AppColors.neutral100,
-              border: Border.all(color: AppColors.neutral200),
-            ),
-            child: const Row(
+          const AppCard(
+            key: ValueKey('product-only-cast-notice'),
+            padding: EdgeInsets.all(12),
+            backgroundColor: AppColors.neutral100,
+            child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Icon(Icons.inventory_2_outlined, size: 18),

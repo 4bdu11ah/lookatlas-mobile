@@ -57,3 +57,70 @@ class ContentCanvasControls extends StatelessWidget {
     );
   }
 }
+
+class ContentCanvasBar extends StatelessWidget {
+  const ContentCanvasBar({
+    required this.statusLabel,
+    required this.zoom,
+    required this.onZoomOut,
+    required this.onFit,
+    required this.onZoomIn,
+    this.statusBackgroundColor = AppColors.soft,
+    super.key,
+  });
+
+  final String statusLabel;
+  final Color statusBackgroundColor;
+  final double zoom;
+  final VoidCallback onZoomOut;
+  final VoidCallback onFit;
+  final VoidCallback onZoomIn;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+    return Container(
+      height: 50,
+      padding: const EdgeInsets.symmetric(horizontal: 10),
+      decoration: const BoxDecoration(
+        color: AppColors.paper,
+        border: Border(bottom: BorderSide(color: AppColors.line)),
+      ),
+      child: Row(
+        children: [
+          Flexible(
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 9,
+                  vertical: 6,
+                ),
+                decoration: BoxDecoration(
+                  color: statusBackgroundColor,
+                  border: Border.all(color: AppColors.line),
+                ),
+                child: Text(
+                  statusLabel,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: textTheme.labelSmall?.copyWith(
+                    fontWeight: AppTypography.bold,
+                    color: AppColors.muted,
+                  ),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          ContentCanvasControls(
+            zoom: zoom,
+            onZoomOut: onZoomOut,
+            onFit: onFit,
+            onZoomIn: onZoomIn,
+          ),
+        ],
+      ),
+    );
+  }
+}

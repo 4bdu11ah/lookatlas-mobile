@@ -26,6 +26,7 @@ import 'package:look_atlas/shared/widgets/app_dropdown.dart';
 import 'package:look_atlas/shared/widgets/app_image.dart';
 import 'package:look_atlas/shared/widgets/app_outlined_button.dart';
 import 'package:look_atlas/shared/widgets/app_snack_bar.dart';
+import 'package:look_atlas/shared/widgets/app_tap_icon_button.dart';
 import 'package:look_atlas/shared/widgets/app_text_field.dart';
 import 'package:look_atlas/shared/widgets/bar_spinner.dart';
 import 'package:look_atlas/shared/widgets/primary_button.dart';
@@ -174,15 +175,13 @@ class _ProductDetailSheetState extends ConsumerState<_ProductDetailSheet> {
                 Positioned(
                   top: 14,
                   right: 14,
-                  child: Container(
-                    width: 44,
-                    height: 44,
-                    color: AppColors.black,
-                    child: IconButton(
-                      tooltip: 'Close product details',
-                      icon: const Icon(Icons.close, color: AppColors.white),
-                      onPressed: () => Navigator.pop(context),
-                    ),
+                  child: AppTapIconButton(
+                    icon: Icons.close,
+                    label: 'Close product details',
+                    tooltip: 'Close product details',
+                    color: AppColors.white,
+                    backgroundColor: AppColors.black,
+                    onTap: () => Navigator.pop(context),
                   ),
                 ),
               ],
@@ -484,29 +483,13 @@ class _ProductFormSheetHeader extends StatelessWidget {
             ],
           ),
         ),
-        Tooltip(
-          message: 'Close',
-          child: Semantics(
-            button: true,
-            label: 'Close',
-            child: Container(
-              width: 44,
-              height: 44,
-              decoration: BoxDecoration(
-                color: const Color(0xFFFFFFFD),
-                border: Border.all(color: const Color(0xFFDEDED8)),
-              ),
-              child: IconButton(
-                padding: EdgeInsets.zero,
-                constraints: const BoxConstraints.tightFor(
-                  width: 44,
-                  height: 44,
-                ),
-                icon: const Icon(Icons.close, size: 20),
-                onPressed: () => Navigator.pop(context),
-              ),
-            ),
-          ),
+        AppTapIconButton(
+          icon: Icons.close,
+          label: 'Close',
+          tooltip: 'Close',
+          backgroundColor: const Color(0xFFFFFFFD),
+          border: Border.all(color: const Color(0xFFDEDED8)),
+          onTap: () => Navigator.pop(context),
         ),
       ],
     ),

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:look_atlas/core/theme/app_colors.dart';
 import 'package:look_atlas/features/account_deletion/presentation/controllers/account_deletion_controller.dart';
 import 'package:look_atlas/features/auth/di/auth_providers.dart';
+import 'package:look_atlas/shared/widgets/app_dialog.dart';
 import 'package:look_atlas/shared/widgets/app_snack_bar.dart';
 import 'package:look_atlas/shared/widgets/app_text_field.dart';
 import 'package:look_atlas/shared/widgets/custom_app_bar.dart';
@@ -94,24 +95,27 @@ class _AccountDeletionPageState extends ConsumerState<AccountDeletionPage> {
     required String email,
     required AccountDeletionController controller,
   }) async {
-    final confirmed = await showDialog<bool>(
+    final confirmed = await showAppDialog<bool>(
       context: context,
       barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        title: const Text('Delete account permanently?'),
-        content: const Text('This cannot be undone.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
-          ),
-          FilledButton.icon(
-            style: FilledButton.styleFrom(backgroundColor: AppColors.danger),
-            onPressed: () => Navigator.pop(context, true),
-            icon: const Icon(Icons.delete_outline),
-            label: const Text('Delete account'),
-          ),
-        ],
+      title: 'Delete account permanently?',
+      subtitle: 'This cannot be undone.',
+      icon: Icons.delete_outline,
+      iconBackgroundColor: AppColors.danger,
+      builder: (context) => const Padding(
+        padding: EdgeInsets.fromLTRB(24, 16, 24, 20),
+        child: Text(
+          'This will permanently delete your account and all associated data.',
+          style: TextStyle(fontSize: 15),
+          textAlign: TextAlign.center,
+        ),
+      ),
+      footer: AppDialogActionFooter(
+        primaryLabel: 'Delete account',
+        primaryIcon: Icons.delete_outline,
+        danger: true,
+        onCancel: () => Navigator.pop(context, false),
+        onPrimary: () => Navigator.pop(context, true),
       ),
     );
     if (confirmed != true || !mounted) return;

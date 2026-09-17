@@ -18,6 +18,7 @@ import 'package:look_atlas/features/shoots/presentation/controllers/shoots_contr
 import 'package:look_atlas/features/shoots/presentation/dialogs/shoot_modal.dart';
 import 'package:look_atlas/features/shoots/presentation/models/create_step.dart';
 import 'package:look_atlas/features/shoots/presentation/models/shoot_modal_kind.dart';
+import 'package:look_atlas/shared/widgets/app_bottom_sheet.dart';
 import 'package:look_atlas/shared/widgets/app_card.dart';
 import 'package:look_atlas/shared/widgets/app_dialog.dart';
 import 'package:look_atlas/shared/widgets/app_feedback.dart';
@@ -25,6 +26,7 @@ import 'package:look_atlas/shared/widgets/app_image.dart';
 import 'package:look_atlas/shared/widgets/app_outlined_button.dart';
 import 'package:look_atlas/shared/widgets/app_snack_bar.dart';
 import 'package:look_atlas/shared/widgets/app_spaced_column.dart';
+import 'package:look_atlas/shared/widgets/app_tap_icon_button.dart';
 import 'package:look_atlas/shared/widgets/app_text.dart';
 import 'package:look_atlas/shared/widgets/app_text_field.dart';
 import 'package:look_atlas/shared/widgets/bar_spinner.dart';
@@ -252,12 +254,8 @@ class _CreatePage extends ConsumerWidget {
           _ValidationSummary(errors: state.validationErrors),
           const SizedBox(height: 10),
         ],
-        Container(
+        AppCard(
           padding: const EdgeInsets.all(15),
-          decoration: BoxDecoration(
-            color: AppColors.white,
-            border: Border.all(color: AppColors.neutral200),
-          ),
           child: _CreateStepBody(
             state: state,
             controller: controller,
@@ -296,11 +294,7 @@ class _CreatePage extends ConsumerWidget {
                 iconAlignment: state.step == _CreateStep.confirm
                     ? IconAlignment.start
                     : IconAlignment.end,
-                foregroundColor:
-                    // state.step == _CreateStep.confirm
-                    // ?
-                    AppColors.white,
-                // : AppColors.black,
+                foregroundColor: AppColors.white,
                 isLoading: state.isSubmitting,
                 onPressed: state.isPlanning
                     ? null
@@ -398,8 +392,8 @@ Future<void> _submitCreateShoot(
 }
 
 Future<String?> _selectBagSubCategory(BuildContext context) =>
-    showModalBottomSheet<String>(
-      context: context,
+    showAppBottomSheet<String>(
+      context,
       showDragHandle: true,
       builder: (context) => SafeArea(
         child: Padding(

@@ -8,6 +8,7 @@ Future<T?> showAppBottomSheet<T>(
   bool useSafeArea = true,
   Color backgroundColor = AppColors.white,
   Color? barrierColor,
+  bool showDragHandle = false,
 }) {
   return showModalBottomSheet<T>(
     context: context,
@@ -15,6 +16,7 @@ Future<T?> showAppBottomSheet<T>(
     useSafeArea: useSafeArea,
     backgroundColor: backgroundColor,
     barrierColor: barrierColor,
+    showDragHandle: showDragHandle,
     shape: const RoundedRectangleBorder(),
     builder: builder,
   );

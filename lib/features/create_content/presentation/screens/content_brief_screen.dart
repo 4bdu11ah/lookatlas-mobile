@@ -18,11 +18,9 @@ import 'package:look_atlas/features/create_content/presentation/widgets/content_
 import 'package:look_atlas/features/create_content/presentation/widgets/content_generation_loading_overlay.dart';
 import 'package:look_atlas/features/create_content/presentation/widgets/content_widgets.dart';
 import 'package:look_atlas/shared/image_picker/image_picker_providers.dart';
-import 'package:look_atlas/shared/widgets/app_icon_button.dart';
 import 'package:look_atlas/shared/widgets/app_snack_bar.dart';
 import 'package:look_atlas/shared/widgets/app_text_field.dart';
 import 'package:look_atlas/shared/widgets/bar_spinner.dart';
-import 'package:look_atlas/shared/widgets/primary_button.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 class ContentBriefScreen extends ConsumerStatefulWidget {
@@ -137,158 +135,19 @@ class _ContentBriefScreenState extends ConsumerState<ContentBriefScreen>
 
   Future<void> _showPaywall(int status) async {
     if (!mounted) return;
-    await showDialog<void>(
+    await showContentPaywallDialog(
       context: context,
-      barrierColor: const Color(0xbf000000),
-      builder: (dialogContext) {
-        final textTheme = Theme.of(dialogContext).textTheme;
-        return Dialog(
-          alignment: Alignment.bottomCenter,
-          insetPadding: const EdgeInsets.all(16),
-          backgroundColor: const Color(0xff0a0a0a),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-            side: const BorderSide(color: Color(0x1affffff)),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(28, 24, 28, 28),
-            child: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(color: Colors.white24),
-                        ),
-                        child: Text(
-                          'UPGRADE',
-                          style: textTheme.labelSmall?.copyWith(
-                            color: Colors.white70,
-                            fontSize: 10,
-                            letterSpacing: 1.8,
-                            fontWeight: AppTypography.bold,
-                          ),
-                        ),
-                      ),
-                      const Spacer(),
-                      AppIconButton(
-                        icon: LucideIcons.x,
-                        tooltip: 'Close paywall',
-                        color: AppColors.ink,
-                        size: 16,
-                        onPressed: () => Navigator.of(dialogContext).pop(),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 20),
-                  Text(
-                    status == 403
-                        ? 'Unlock video posts'
-                        : 'Keep creating content',
-                    style: textTheme.headlineSmall?.copyWith(
-                      fontFamily: AppTypography.displayFontFamily,
-                      fontSize: 24,
-                      height: 1.15,
-                      letterSpacing: -.5,
-                      fontWeight: AppTypography.bold,
-                      color: Colors.white,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    status == 403
-                        ? 'Video posts are part of the Pro and Business plans. Upgrade to turn your products into short vertical films.'
-                        : 'You are out of credits for this run. Upgrade or top up to generate this content package.',
-                    style: textTheme.bodyMedium?.copyWith(
-                      fontSize: 15,
-                      height: 1.625,
-                      color: Colors.white70,
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-                  for (final item in [
-                    'Unlimited photos on Business',
-                    'Human touch-ups by real retouchers',
-                    'Manage cancellation anytime in Billing',
-                  ])
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 10),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Icon(
-                            LucideIcons.check,
-                            size: 16,
-                            color: Colors.white,
-                          ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: Text(
-                              item,
-                              style: textTheme.bodyMedium?.copyWith(
-                                fontSize: 15,
-                                color: const Color(0xd9ffffff),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  const SizedBox(height: 22),
-                  PrimaryButton(
-                    label: 'See plans',
-                    icon: LucideIcons.arrowRight,
-                    iconAlignment: IconAlignment.end,
-                    backgroundColor: Colors.white,
-                    foregroundColor: Colors.black,
-                    textStyle: textTheme.titleSmall?.copyWith(
-                      fontSize: 15,
-                      fontWeight: AppTypography.bold,
-                      color: Colors.black,
-                    ),
-                    onPressed: () async {
-                      Navigator.of(dialogContext).pop();
-                      final session = ref.read(contentSessionProvider(_args));
-                      if (!await session.flush()) return;
-                      if (mounted) {
-                        await context.push<void>(AppRoutes.dashboardBilling);
-                      }
-                      if (mounted) {
-                        session.refreshCredits();
-                        unawaited(session.requote());
-                      }
-                    },
-                  ),
-                  const SizedBox(height: 12),
-                  Center(
-                    child: contentSmallTextButton(
-                      'Not now',
-                      () => Navigator.of(dialogContext).pop(),
-                      color: Colors.white54,
-                    ),
-                  ),
-                  Center(
-                    child: Text(
-                      'Fair usage terms apply to all plans.',
-                      style: textTheme.labelSmall?.copyWith(
-                        fontSize: 10,
-                        color: Colors.white38,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        );
+      status: status,
+      onSeePlans: () async {
+        final session = ref.read(contentSessionProvider(_args));
+        if (!await session.flush()) return;
+        if (mounted) {
+          await context.push<void>(AppRoutes.dashboardBilling);
+        }
+        if (mounted) {
+          session.refreshCredits();
+          unawaited(session.requote());
+        }
       },
     );
     _paywallVisible = false;
@@ -428,18 +287,7 @@ class _ContentBriefScreenState extends ConsumerState<ContentBriefScreen>
                                     ),
                                   ),
                                 ),
-                              if (_leaving)
-                                const Positioned.fill(
-                                  child: ColoredBox(
-                                    color: Color(0x99fbfaf7),
-                                    child: Center(
-                                      child: BarSpinner(
-                                        color: AppColors.ink,
-                                        size: 28,
-                                      ),
-                                    ),
-                                  ),
-                                ),
+                               if (_leaving) contentLeavingOverlay(),
                             ],
                           ),
                   ),
@@ -453,41 +301,29 @@ class _ContentBriefScreenState extends ConsumerState<ContentBriefScreen>
   }
 
   Widget _buildHeader(ContentSession session) {
-    return Container(
-      height: 56,
-      color: AppColors.ink,
-      padding: const EdgeInsets.symmetric(horizontal: 4),
-      child: Row(
-        children: [
-          AppIconButton(
-            icon: LucideIcons.arrowLeft,
-            tooltip: 'Back to Create Content',
-            color: Colors.white70,
-            size: 16,
-            onPressed: _leave,
+    return ContentHeaderBar(
+      onBack: _leave,
+      backIconSize: 16,
+      actions: [
+        contentSmallTextButton(
+          'Brief',
+          _openPanel,
+          color: Colors.white70,
+          label: 'Open creative brief',
+        ),
+        if (session.step == 3 && !session.loading)
+          contentHeaderAction(
+            _generateLabel(session),
+            LucideIcons.arrowRight,
+            session.submitting || session.generation?.active == true
+                ? null
+                : _generate,
           ),
-          const Spacer(),
-          contentSmallTextButton(
-            'Brief',
-            _openPanel,
-            color: Colors.white70,
-            label: 'Open creative brief',
-          ),
-          if (session.step == 3 && !session.loading)
-            contentHeaderAction(
-              _generateLabel(session),
-              LucideIcons.arrowRight,
-              session.submitting || session.generation?.active == true
-                  ? null
-                  : _generate,
-            ),
-        ],
-      ),
+      ],
     );
   }
 
   Widget _buildCanvas(ContentSession session) {
-    final textTheme = Theme.of(context).textTheme;
     final generation = session.generation;
     final preparing = session.submitting && generation == null;
     final generating = generation?.active == true;
@@ -499,52 +335,16 @@ class _ContentBriefScreenState extends ConsumerState<ContentBriefScreen>
 
     return Column(
       children: [
-        Container(
-          height: 50,
-          padding: const EdgeInsets.symmetric(horizontal: 10),
-          decoration: const BoxDecoration(
-            color: AppColors.paper,
-            border: Border(bottom: BorderSide(color: AppColors.line)),
-          ),
-          child: Row(
-            children: [
-              Flexible(
-                child: Align(
-                  alignment: Alignment.centerLeft,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 9,
-                      vertical: 6,
-                    ),
-                    decoration: BoxDecoration(
-                      color: AppColors.soft,
-                      border: Border.all(color: AppColors.line),
-                    ),
-                    child: Text(
-                      showGenerationLoading
-                          ? contentGenerationPhaseLabel(
-                              generation?.data['phase'] as String?,
-                            )
-                          : 'LIVE PREVIEW',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: textTheme.labelSmall?.copyWith(
-                        fontWeight: AppTypography.bold,
-                        color: AppColors.muted,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 8),
-              ContentCanvasControls(
-                zoom: _canvasZoom,
-                onZoomOut: _controller.zoomCanvasOut,
-                onFit: _controller.fitCanvas,
-                onZoomIn: _controller.zoomCanvasIn,
-              ),
-            ],
-          ),
+        ContentCanvasBar(
+          statusLabel: showGenerationLoading
+              ? contentGenerationPhaseLabel(
+                  generation?.data['phase'] as String?,
+                )
+              : 'LIVE PREVIEW',
+          zoom: _canvasZoom,
+          onZoomOut: _controller.zoomCanvasOut,
+          onFit: _controller.fitCanvas,
+          onZoomIn: _controller.zoomCanvasIn,
         ),
         Expanded(
           child: ColoredBox(

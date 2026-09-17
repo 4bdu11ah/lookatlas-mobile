@@ -423,15 +423,13 @@ class _EditableProductGallery extends StatelessWidget {
               Positioned(
                 top: 14,
                 right: 14,
-                child: Container(
-                  width: 44,
-                  height: 44,
-                  color: AppColors.black,
-                  child: IconButton(
-                    tooltip: 'Close product editor',
-                    icon: const Icon(Icons.close, color: AppColors.white),
-                    onPressed: onClose,
-                  ),
+                child: AppTapIconButton(
+                  icon: Icons.close,
+                  label: 'Close product editor',
+                  tooltip: 'Close product editor',
+                  color: AppColors.white,
+                  backgroundColor: AppColors.black,
+                  onTap: onClose,
                 ),
               ),
             ],

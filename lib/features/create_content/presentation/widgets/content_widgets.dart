@@ -2,8 +2,10 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:look_atlas/core/theme/app_colors.dart';
 import 'package:look_atlas/core/theme/app_typography.dart';
+import 'package:look_atlas/shared/widgets/app_icon_button.dart';
 import 'package:look_atlas/shared/widgets/app_outlined_button.dart';
 import 'package:look_atlas/shared/widgets/app_text_button.dart';
+import 'package:look_atlas/shared/widgets/bar_spinner.dart';
 import 'package:look_atlas/shared/widgets/primary_button.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
@@ -173,6 +175,55 @@ Widget contentHeaderAction(
       fontFamily: 'Satoshi',
       fontSize: 12,
       fontWeight: FontWeight.w700,
+    ),
+  ),
+);
+
+class ContentHeaderBar extends StatelessWidget {
+  const ContentHeaderBar({
+    required this.onBack,
+    required this.actions,
+    this.backTooltip = 'Back to Create Content',
+    this.backIconSize = 20,
+    super.key,
+  });
+
+  final VoidCallback onBack;
+  final String backTooltip;
+  final double backIconSize;
+  final List<Widget> actions;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 56,
+      color: AppColors.ink,
+      padding: const EdgeInsets.symmetric(horizontal: 4),
+      child: Row(
+        children: [
+          AppIconButton(
+            icon: LucideIcons.arrowLeft,
+            tooltip: backTooltip,
+            color: Colors.white70,
+            size: backIconSize,
+            onPressed: onBack,
+          ),
+          const Spacer(),
+          ...actions,
+        ],
+      ),
+    );
+  }
+}
+
+Widget contentLeavingOverlay() => const Positioned.fill(
+  child: ColoredBox(
+    color: Color(0x99fbfaf7),
+    child: Center(
+      child: BarSpinner(
+        color: AppColors.ink,
+        size: 28,
+      ),
     ),
   ),
 );
@@ -436,4 +487,157 @@ class StudioDots extends CustomPainter {
 
   @override
   bool shouldRepaint(StudioDots oldDelegate) => false;
+}
+
+Future<void> showContentPaywallDialog({
+  required BuildContext context,
+  required int status,
+  required Future<void> Function() onSeePlans,
+}) async {
+  await showDialog<void>(
+    context: context,
+    barrierColor: const Color(0xbf000000),
+    builder: (dialogContext) {
+      final textTheme = Theme.of(dialogContext).textTheme;
+      return Dialog(
+        alignment: Alignment.bottomCenter,
+        insetPadding: const EdgeInsets.all(16),
+        backgroundColor: const Color(0xff0a0a0a),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: const BorderSide(color: Color(0x1affffff)),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(28, 24, 28, 28),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: Colors.white24),
+                      ),
+                      child: Text(
+                        'UPGRADE',
+                        style: textTheme.labelSmall?.copyWith(
+                          color: Colors.white70,
+                          fontSize: 10,
+                          letterSpacing: 1.8,
+                          fontWeight: AppTypography.bold,
+                        ),
+                      ),
+                    ),
+                    const Spacer(),
+                    AppIconButton(
+                      icon: LucideIcons.x,
+                      tooltip: 'Close paywall',
+                      onPressed: () => Navigator.of(dialogContext).pop(),
+                      color: Colors.white60,
+                      size: 16,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 20),
+                Text(
+                  status == 403
+                      ? 'Unlock video posts'
+                      : 'Keep creating content',
+                  style: textTheme.headlineSmall?.copyWith(
+                    fontFamily: AppTypography.displayFontFamily,
+                    fontSize: 24,
+                    height: 1.15,
+                    letterSpacing: -.5,
+                    fontWeight: AppTypography.bold,
+                    color: Colors.white,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  status == 403
+                      ? 'Video posts are part of the Pro and Business plans. Upgrade to turn your products into short vertical films.'
+                      : 'You are out of credits for this run. Upgrade or top up to generate this content package.',
+                  style: textTheme.bodyMedium?.copyWith(
+                    fontSize: 15,
+                    height: 1.625,
+                    color: Colors.white70,
+                  ),
+                ),
+                const SizedBox(height: 24),
+                for (final item in const [
+                  'Unlimited photos on Business',
+                  'Human touch-ups by real retouchers',
+                  'Manage cancellation anytime in Billing',
+                ])
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 10),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Icon(
+                          LucideIcons.check,
+                          size: 16,
+                          color: Colors.white,
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            item,
+                            style: textTheme.bodyMedium?.copyWith(
+                              fontSize: 15,
+                              color: const Color(0xd9ffffff),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                const SizedBox(height: 22),
+                PrimaryButton(
+                  label: 'See plans',
+                  icon: LucideIcons.arrowRight,
+                  iconAlignment: IconAlignment.end,
+                  backgroundColor: Colors.white,
+                  foregroundColor: Colors.black,
+                  textStyle: textTheme.titleSmall?.copyWith(
+                    fontSize: 15,
+                    fontWeight: AppTypography.bold,
+                    color: Colors.black,
+                  ),
+                  onPressed: () async {
+                    Navigator.of(dialogContext).pop();
+                    await onSeePlans();
+                  },
+                ),
+                const SizedBox(height: 12),
+                Center(
+                  child: contentSmallTextButton(
+                    'Not now',
+                    () => Navigator.of(dialogContext).pop(),
+                    color: Colors.white54,
+                  ),
+                ),
+                Center(
+                  child: Text(
+                    'Fair usage terms apply to all plans.',
+                    style: textTheme.labelSmall?.copyWith(
+                      fontSize: 10,
+                      color: Colors.white38,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    },
+  );
 }

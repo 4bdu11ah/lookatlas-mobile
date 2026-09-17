@@ -149,6 +149,7 @@ class _ReadyShootCard extends StatelessWidget {
             child: SizedBox(
               height: 200,
               child: Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: List.generate(
                   3,
                   (index) => Expanded(
@@ -156,7 +157,13 @@ class _ReadyShootCard extends StatelessWidget {
                     child: Container(
                       margin: EdgeInsets.only(left: index == 0 ? 0 : 2),
                       color: _shootWash,
-                      child: AppAssetImage(images[index]),
+                      height: 200,
+                      child: AppImage(
+                        images[index],
+                        width: double.infinity,
+                        height: 200,
+                        fit: BoxFit.cover,
+                      ),
                     ),
                   ),
                 ),
@@ -308,7 +315,7 @@ class _ActiveShootRow extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          AppAssetBox(shoot.productAsset, width: 60, height: 76),
+          AppImage(shoot.productAsset, width: 60, height: 76, fit: BoxFit.cover),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
@@ -442,7 +449,10 @@ class _ArchiveShootCard extends StatelessWidget {
                 decoration: BoxDecoration(
                   border: Border.all(color: _shootLine),
                 ),
-                child: AppAssetImage(_primaryAsset(shoot)),
+                child: AppImage(
+                  _primaryAsset(shoot),
+                  fit: BoxFit.cover,
+                ),
               ),
               Positioned(
                 top: 6,

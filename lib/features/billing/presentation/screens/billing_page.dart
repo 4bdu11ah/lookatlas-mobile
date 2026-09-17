@@ -18,9 +18,13 @@ import 'package:look_atlas/features/subscription/presentation/controllers/subscr
 import 'package:look_atlas/shared/widgets/app_card.dart';
 import 'package:look_atlas/shared/widgets/app_dialog.dart';
 import 'package:look_atlas/shared/widgets/app_feature_scaffold.dart';
+import 'package:look_atlas/shared/widgets/app_feedback.dart';
 import 'package:look_atlas/shared/widgets/app_hairline.dart';
+import 'package:look_atlas/shared/widgets/app_outlined_button.dart';
 import 'package:look_atlas/shared/widgets/app_snack_bar.dart';
+import 'package:look_atlas/shared/widgets/app_square_icon.dart';
 import 'package:look_atlas/shared/widgets/bar_spinner.dart';
+import 'package:look_atlas/shared/widgets/primary_button.dart';
 
 part '../dialogs/billing_purchase_dialog.dart';
 part '../dialogs/billing_subscription_dialog.dart';
@@ -313,9 +317,9 @@ class _BillingCurrentPlanHeader extends StatelessWidget {
           ),
         ),
         const SizedBox(width: 8),
-        _BillingStatusBadge(
-          label: isPremium ? 'Active' : 'Inactive',
-          warning: !isPremium,
+        AppBadge(
+          isPremium ? 'Active' : 'Inactive',
+          kind: isPremium ? AppBadgeKind.dark : AppBadgeKind.neutral,
         ),
       ],
     );
@@ -369,29 +373,3 @@ String _billingPeriod(SubscriptionProduct product) =>
       'P1W' => 'week',
       _ => 'billing period',
     };
-
-class _BillingStatusBadge extends StatelessWidget {
-  const _BillingStatusBadge({required this.label, required this.warning});
-
-  final String label;
-  final bool warning;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-      decoration: BoxDecoration(
-        color: warning ? AppColors.blackAlpha10 : AppColors.black,
-        border: warning ? Border.all(color: AppColors.blackAlpha20) : null,
-      ),
-      child: Text(
-        label,
-        style: TextStyle(
-          color: warning ? AppColors.black : AppColors.white,
-          fontSize: 12,
-          fontWeight: AppTypography.bold,
-        ),
-      ),
-    );
-  }
-}

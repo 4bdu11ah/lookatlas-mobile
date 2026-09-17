@@ -15,9 +15,11 @@ import 'package:look_atlas/features/products/presentation/models/product_view_mo
 import 'package:look_atlas/features/products/presentation/product_access.dart';
 import 'package:look_atlas/features/products/presentation/screens/product_calibration_screens.dart';
 import 'package:look_atlas/features/products/presentation/widgets/product_shared_widgets.dart';
-import 'package:look_atlas/shared/widgets/app_asset_image.dart';
+import 'package:look_atlas/shared/widgets/app_card.dart';
 import 'package:look_atlas/shared/widgets/app_dropdown.dart';
 import 'package:look_atlas/shared/widgets/app_feature_scaffold.dart';
+import 'package:look_atlas/shared/widgets/app_hairline.dart';
+import 'package:look_atlas/shared/widgets/app_image.dart';
 import 'package:look_atlas/shared/widgets/app_outlined_button.dart';
 import 'package:look_atlas/shared/widgets/app_snack_bar.dart';
 import 'package:look_atlas/shared/widgets/app_text_field.dart';
@@ -414,13 +416,10 @@ class _ProductAddCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) => InkWell(
     onTap: onTap,
-    child: Container(
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: AppColors.neutral100Alpha68,
-        border: Border.all(color: AppColors.neutral200),
-      ),
-      child: const Column(
+    child: const AppCard(
+      backgroundColor: AppColors.neutral100Alpha68,
+      padding: EdgeInsets.all(18),
+      child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(Icons.add, size: 25),
@@ -665,12 +664,9 @@ class _ProductLoadingShimmerCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        border: Border.all(color: AppColors.neutral200),
-      ),
-      child: const Column(
+    return const AppCard(
+      padding: EdgeInsets.zero,
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           AspectRatio(
@@ -721,14 +717,12 @@ class _ProductCategoryBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 14),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: AppColors.neutral100Alpha68,
-        border: Border.all(color: AppColors.neutral200),
-      ),
-      child: Column(
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 14),
+      child: AppCard(
+        backgroundColor: AppColors.neutral100Alpha68,
+        padding: const EdgeInsets.all(12),
+        child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Text.rich(
@@ -785,6 +779,7 @@ class _ProductCategoryBanner extends StatelessWidget {
           ),
         ],
       ),
-    );
+    ),
+  );
   }
 }

@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:look_atlas/core/theme/app_colors.dart';
 import 'package:look_atlas/core/theme/app_typography.dart';
+import 'package:look_atlas/shared/widgets/app_hairline.dart';
+import 'package:look_atlas/shared/widgets/app_icon_button.dart';
 
 class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
   const CustomAppBar({
@@ -37,10 +39,12 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
       automaticallyImplyLeading: false,
       // leadingWidth: showBackButton ? 60 : 20,
       leading: showBackButton
-          ? _CustomAppBarIconButton(
+          ? AppIconButton(
               icon: Icons.arrow_back,
-              label: 'Back',
-              onTap: onBack ?? () => context.pop(),
+              tooltip: 'Back',
+              onPressed: onBack ?? () => context.pop(),
+              size: 17,
+              color: AppColors.black,
             )
           : const SizedBox.shrink(),
       title: FittedBox(
@@ -69,38 +73,9 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
       bottom: showBottomLine
           ? const PreferredSize(
               preferredSize: Size.fromHeight(1),
-              child: Divider(height: 1, color: AppColors.neutral200),
+              child: AppHairline(),
             )
           : null,
-    );
-  }
-}
-
-class _CustomAppBarIconButton extends StatelessWidget {
-  const _CustomAppBarIconButton({
-    required this.icon,
-    required this.label,
-    required this.onTap,
-  });
-
-  final IconData icon;
-  final String label;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Semantics(
-      button: true,
-      label: label,
-      child: IconButton(
-        tooltip: label,
-        onPressed: onTap,
-        icon: Icon(
-          icon,
-          size: 17,
-          color: AppColors.black,
-        ),
-      ),
     );
   }
 }

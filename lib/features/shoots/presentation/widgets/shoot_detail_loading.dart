@@ -79,36 +79,34 @@ class _ShootDetailLoadingStat extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return SizedBox(
       height: 82,
-      padding: const EdgeInsets.all(13),
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        border: Border.all(color: AppColors.neutral200),
-      ),
-      child: Row(
-        children: [
-          if (hasImage) ...[
-            const SizedBox(width: 45, height: 45, child: ShimmerBox()),
-            const SizedBox(width: 12),
-          ],
-          const Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                FractionallySizedBox(
-                  widthFactor: 0.24,
-                  child: SizedBox(height: 11, child: ShimmerBox()),
-                ),
-                SizedBox(height: 8),
-                FractionallySizedBox(
-                  widthFactor: 0.58,
-                  child: SizedBox(height: 15, child: ShimmerBox()),
-                ),
-              ],
+      child: AppCard(
+        padding: const EdgeInsets.all(13),
+        child: Row(
+          children: [
+            if (hasImage) ...[
+              const SizedBox(width: 45, height: 45, child: ShimmerBox()),
+              const SizedBox(width: 12),
+            ],
+            const Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  FractionallySizedBox(
+                    widthFactor: 0.24,
+                    child: SizedBox(height: 11, child: ShimmerBox()),
+                  ),
+                  SizedBox(height: 8),
+                  FractionallySizedBox(
+                    widthFactor: 0.58,
+                    child: SizedBox(height: 15, child: ShimmerBox()),
+                  ),
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -119,30 +117,28 @@ class _ShootDetailLoadingVideo extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return const SizedBox(
       height: 184,
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        border: Border.all(color: AppColors.neutral200),
-      ),
-      child: const Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          FractionallySizedBox(
-            widthFactor: 0.42,
-            child: SizedBox(height: 16, child: ShimmerBox()),
-          ),
-          Spacer(),
-          Center(child: SizedBox(width: 44, height: 44, child: ShimmerBox())),
-          SizedBox(height: 12),
-          FractionallySizedBox(
-            widthFactor: 0.72,
-            child: SizedBox(height: 12, child: ShimmerBox()),
-          ),
-          SizedBox(height: 12),
-          Center(child: SizedBox(width: 138, height: 36, child: ShimmerBox())),
-        ],
+      child: AppCard(
+        padding: EdgeInsets.all(14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            FractionallySizedBox(
+              widthFactor: 0.42,
+              child: SizedBox(height: 16, child: ShimmerBox()),
+            ),
+            Spacer(),
+            Center(child: SizedBox(width: 44, height: 44, child: ShimmerBox())),
+            SizedBox(height: 12),
+            FractionallySizedBox(
+              widthFactor: 0.72,
+              child: SizedBox(height: 12, child: ShimmerBox()),
+            ),
+            SizedBox(height: 12),
+            Center(child: SizedBox(width: 138, height: 36, child: ShimmerBox())),
+          ],
+        ),
       ),
     );
   }
@@ -153,13 +149,9 @@ class _ShootDetailLoadingImages extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        border: Border.all(color: AppColors.neutral200),
-      ),
-      child: const Column(
+    return const AppCard(
+      padding: EdgeInsets.all(14),
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           FractionallySizedBox(

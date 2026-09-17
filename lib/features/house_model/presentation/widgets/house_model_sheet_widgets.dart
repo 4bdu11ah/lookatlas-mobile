@@ -141,59 +141,59 @@ class _TipCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(top: 16),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: AppColors.inkAlpha04,
-        border: Border.all(color: AppColors.inkAlpha18),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 22,
-            height: 22,
-            alignment: Alignment.center,
-            decoration: const BoxDecoration(
-              color: AppColors.inkAlpha08,
-              shape: BoxShape.circle,
-            ),
-            child: Text(
-              icon == Icons.info_outline ? 'i' : '',
-              style: const TextStyle(
-                fontSize: 13,
-                fontWeight: AppTypography.bold,
-                color: AppColors.black,
+    return Padding(
+      padding: const EdgeInsets.only(top: 16),
+      child: AppCard(
+        padding: const EdgeInsets.all(12),
+        backgroundColor: AppColors.inkAlpha04,
+        borderColor: AppColors.inkAlpha18,
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              width: 22,
+              height: 22,
+              alignment: Alignment.center,
+              decoration: const BoxDecoration(
+                color: AppColors.inkAlpha08,
+                shape: BoxShape.circle,
+              ),
+              child: Text(
+                icon == Icons.info_outline ? 'i' : '',
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: AppTypography.bold,
+                  color: AppColors.black,
+                ),
               ),
             ),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    fontWeight: AppTypography.bold,
-                    color: AppColors.black,
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: AppTypography.bold,
+                      color: AppColors.black,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  body,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    height: 1.35,
-                    color: AppColors.neutral800,
+                  const SizedBox(height: 2),
+                  Text(
+                    body,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      height: 1.35,
+                      color: AppColors.neutral800,
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

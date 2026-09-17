@@ -468,7 +468,11 @@ class _MethodCard extends StatelessWidget {
                             fontWeight: AppTypography.bold,
                           ),
                         ),
-                        if (recommended) const _CalibrationRecommendedBadge(),
+                        if (recommended)
+                          const AppBadge(
+                            'RECOMMENDED',
+                            kind: AppBadgeKind.dark,
+                          ),
                       ],
                     ),
                     const SizedBox(height: 4),
@@ -499,28 +503,6 @@ class _MethodCard extends StatelessWidget {
   }
 }
 
-class _CalibrationRecommendedBadge extends StatelessWidget {
-  const _CalibrationRecommendedBadge({this.label = 'Recommended'});
-
-  final String label;
-
-  @override
-  Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
-    color: AppColors.black,
-    alignment: Alignment.center,
-    child: Text(
-      label.toUpperCase(),
-      style: const TextStyle(
-        color: AppColors.white,
-        fontSize: 10,
-        height: 1.1,
-        fontWeight: AppTypography.bold,
-        letterSpacing: .8,
-      ),
-    ),
-  );
-}
 
 class _CalibrationBodyStep extends StatelessWidget {
   const _CalibrationBodyStep({
@@ -650,7 +632,10 @@ class _BodyTile extends StatelessWidget {
             if (recommended)
               const Align(
                 alignment: Alignment.centerLeft,
-                child: _CalibrationRecommendedBadge(),
+                child: AppBadge(
+                  'RECOMMENDED',
+                  kind: AppBadgeKind.dark,
+                ),
               ),
             Expanded(
               child: imageUrl == null

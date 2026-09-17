@@ -302,13 +302,9 @@ class _ReviewSelectionSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
+    return AppCard(
+      backgroundColor: AppColors.neutral100,
       padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        border: Border.all(color: AppColors.neutral200),
-        color: AppColors.neutral100,
-      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -323,7 +319,12 @@ class _ReviewSelectionSection extends StatelessWidget {
               final item = items[index];
               return Row(
                 children: [
-                  AppAssetBox(item.imageUrl, width: 48, height: 48),
+                  AppImage(
+                    item.imageUrl,
+                    width: 48,
+                    height: 48,
+                    fit: BoxFit.cover,
+                  ),
                   const SizedBox(width: 10),
                   Expanded(
                     child: Column(
@@ -365,14 +366,12 @@ class _ReviewMetricCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return ConstrainedBox(
       constraints: const BoxConstraints(minHeight: 120),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        border: Border.all(color: AppColors.neutral200),
-        color: AppColors.neutral100,
-      ),
-      child: Column(
+      child: AppCard(
+        backgroundColor: AppColors.neutral100,
+        padding: const EdgeInsets.all(12),
+        child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           AppCaption(title),
@@ -384,7 +383,8 @@ class _ReviewMetricCard extends StatelessWidget {
           ],
         ],
       ),
-    );
+    ),
+  );
   }
 }
 

@@ -265,7 +265,7 @@ class _UserModelCardState extends ConsumerState<_UserModelCard> {
     if (photos.length == 1) {
       return ColoredBox(
         color: const Color(0xFFEEEAE2),
-        child: AppAssetImage(photos.single),
+        child: AppImage(photos.single, fit: BoxFit.cover),
       );
     }
     return Stack(
@@ -277,7 +277,7 @@ class _UserModelCardState extends ConsumerState<_UserModelCard> {
           itemBuilder: (context, index) => ColoredBox(
             key: ValueKey('user-model-${model.id}-photo-$index'),
             color: const Color(0xFFEEEAE2),
-            child: AppAssetImage(photos[index]),
+            child: AppImage(photos[index], fit: BoxFit.cover),
           ),
         ),
         Positioned(
@@ -365,7 +365,7 @@ class _ModelPhoto extends StatelessWidget {
         children: [
           ColoredBox(
             color: const Color(0xFFEEEAE2),
-            child: AppAssetImage(asset),
+            child: AppImage(asset, fit: BoxFit.cover),
           ),
           Positioned(
             top: 8,
@@ -435,36 +435,34 @@ class _ModelEmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(top: 16),
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 34),
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        border: Border.all(color: AppColors.neutral200),
-      ),
-      child: const Column(
-        children: [
-          Icon(
-            Icons.groups_outlined,
-            size: 28,
-            color: AppColors.neutral500,
-          ),
-          SizedBox(height: 12),
-          Text(
-            'No models found',
-            style: TextStyle(
-              fontSize: 15,
-              fontWeight: AppTypography.bold,
-              color: AppColors.black,
+    return const Padding(
+      padding: EdgeInsets.only(top: 16),
+      child: AppCard(
+        padding: EdgeInsets.symmetric(horizontal: 20, vertical: 34),
+        child: Column(
+          children: [
+            Icon(
+              Icons.groups_outlined,
+              size: 28,
+              color: AppColors.neutral500,
             ),
-          ),
-          SizedBox(height: 4),
-          Text(
-            'Try clearing a filter to see more models.',
-            textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 11, color: AppColors.neutral500),
-          ),
-        ],
+            SizedBox(height: 12),
+            Text(
+              'No models found',
+              style: TextStyle(
+                fontSize: 15,
+                fontWeight: AppTypography.bold,
+                color: AppColors.black,
+              ),
+            ),
+            SizedBox(height: 4),
+            Text(
+              'Try clearing a filter to see more models.',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 11, color: AppColors.neutral500),
+            ),
+          ],
+        ),
       ),
     );
   }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:look_atlas/core/theme/app_colors.dart';
 import 'package:look_atlas/core/theme/app_typography.dart';
+import 'package:look_atlas/shared/widgets/app_card.dart';
 
 class SchoolNotice extends StatelessWidget {
   const SchoolNotice({
@@ -16,12 +17,8 @@ class SchoolNotice extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return AppCard(
       padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        border: Border.all(color: AppColors.neutral200),
-      ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

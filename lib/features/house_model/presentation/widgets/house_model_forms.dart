@@ -384,16 +384,12 @@ class _ModelDialogHeader extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 12),
-          Semantics(
+          AppTapIconButton(
+            icon: Icons.close,
             label: 'Close',
-            button: true,
-            child: InkWell(
-              onTap: onClose,
-              child: const SizedBox.square(
-                dimension: 40,
-                child: Icon(Icons.close, size: 20, color: AppColors.neutral500),
-              ),
-            ),
+            dimension: 40,
+            color: AppColors.neutral500,
+            onTap: onClose,
           ),
         ],
       ),
@@ -409,27 +405,13 @@ class _ModelDialogFooter extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final children = [
-      for (var i = 0; i < actions.length; i++) ...[
-        if (stacked) actions[i] else actions[i],
-        if (i != actions.length - 1)
-          const SizedBox(
-            height: 12,
-          ),
-      ],
-    ];
-
     return Container(
       padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
       decoration: const BoxDecoration(
         color: AppColors.neutral100,
         border: Border(top: BorderSide(color: AppColors.neutral100)),
       ),
-      child:
-          // stacked
-          //     ?
-          Column(mainAxisSize: MainAxisSize.min, children: children),
-      // : Row(children: children),
+      child: AppSpacedColumn(gap: 12, children: actions),
     );
   }
 }

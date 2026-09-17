@@ -471,10 +471,11 @@ Widget _selectedProductRow({
   ),
   child: Row(
     children: [
-      AppAssetBox(
+      AppImage(
         product.imageUrl,
         width: 40,
         height: 40,
+        fit: BoxFit.cover,
       ),
       const SizedBox(width: 9),
       Expanded(

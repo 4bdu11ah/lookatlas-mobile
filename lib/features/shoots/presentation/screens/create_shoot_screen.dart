@@ -18,11 +18,10 @@ import 'package:look_atlas/features/shoots/presentation/controllers/shoots_contr
 import 'package:look_atlas/features/shoots/presentation/dialogs/shoot_modal.dart';
 import 'package:look_atlas/features/shoots/presentation/models/create_step.dart';
 import 'package:look_atlas/features/shoots/presentation/models/shoot_modal_kind.dart';
-import 'package:look_atlas/shared/widgets/app_asset_image.dart';
 import 'package:look_atlas/shared/widgets/app_card.dart';
 import 'package:look_atlas/shared/widgets/app_dialog.dart';
 import 'package:look_atlas/shared/widgets/app_feedback.dart';
-import 'package:look_atlas/shared/widgets/app_media_widgets.dart';
+import 'package:look_atlas/shared/widgets/app_image.dart';
 import 'package:look_atlas/shared/widgets/app_outlined_button.dart';
 import 'package:look_atlas/shared/widgets/app_snack_bar.dart';
 import 'package:look_atlas/shared/widgets/app_spaced_column.dart';

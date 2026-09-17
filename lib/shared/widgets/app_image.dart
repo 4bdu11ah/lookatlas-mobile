@@ -124,6 +124,7 @@ class AppImage extends StatelessWidget {
 
   Widget _buildImage(BuildContext context) {
     if (bytes != null) return _memory(context);
+    if (source == null || source!.isEmpty) return errorWidget ?? _defaultError;
     if (_isSvg) return _svg();
     if (_isNetwork) return _networkRaster(context);
     if (_isAsset) return _assetRaster(context);
@@ -133,7 +134,7 @@ class AppImage extends StatelessWidget {
   /// Physical-pixel decode target for a logical [dimension], so large sources
   /// are rasterized at the displayed size instead of full resolution.
   int? _cacheDimension(BuildContext context, double? dimension) =>
-      dimension == null
+      dimension == null || !dimension.isFinite
       ? null
       : (dimension * MediaQuery.devicePixelRatioOf(context)).round();
 
@@ -186,8 +187,12 @@ class AppImage extends StatelessWidget {
       fit: fit,
       color: color,
       colorBlendMode: color == null ? null : BlendMode.srcIn,
-      memCacheWidth: width == null ? null : (width! * dpr).round(),
-      memCacheHeight: height == null ? null : (height! * dpr).round(),
+      memCacheWidth: width == null || !width!.isFinite
+          ? null
+          : (width! * dpr).round(),
+      memCacheHeight: height == null || !height!.isFinite
+          ? null
+          : (height! * dpr).round(),
       fadeInDuration: const Duration(milliseconds: 250),
       imageBuilder: onImageLoaded == null
           ? null

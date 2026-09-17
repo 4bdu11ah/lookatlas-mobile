@@ -113,12 +113,8 @@ class _ShootProgress extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return AppCard(
       padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        border: Border.all(color: AppColors.neutral200),
-      ),
       child: Column(
         children: [
           Row(
@@ -208,12 +204,8 @@ class _ShootStat extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return AppCard(
       padding: const EdgeInsets.all(13),
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        border: Border.all(color: AppColors.neutral200),
-      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -222,7 +214,7 @@ class _ShootStat extends StatelessWidget {
           Row(
             children: [
               if (asset != null) ...[
-                AppAssetBox(asset!, width: 45, height: 45),
+                AppImage(asset!, width: 45, height: 45, fit: BoxFit.cover),
                 const SizedBox(width: 12),
               ],
               Expanded(
@@ -296,11 +288,8 @@ class _VideoCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        border: Border.all(color: AppColors.neutral200),
-      ),
+    return AppCard(
+      padding: EdgeInsets.zero,
       child: Column(
         children: [
           const Padding(
@@ -374,11 +363,8 @@ class _GeneratedImages extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        border: Border.all(color: AppColors.neutral200),
-      ),
+    return AppCard(
+      padding: EdgeInsets.zero,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -470,11 +456,9 @@ class _ShotGroup extends StatelessWidget {
         children: [
           Row(
             children: [
-              Container(
-                width: 28,
-                height: 28,
-                color: AppColors.black,
-                alignment: Alignment.center,
+              AppSquareIcon(
+                null,
+                size: 28,
                 child: Text(
                   '$number',
                   style: const TextStyle(
@@ -604,7 +588,10 @@ class _ResultTile extends StatelessWidget {
       child: Stack(
         fit: StackFit.expand,
         children: [
-          InkWell(onTap: onPreview, child: AppAssetImage(asset)),
+          InkWell(
+            onTap: onPreview,
+            child: AppImage(asset, fit: BoxFit.cover),
+          ),
           Positioned(
             left: 7,
             top: 7,

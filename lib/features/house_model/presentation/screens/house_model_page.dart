@@ -11,8 +11,8 @@ import 'package:look_atlas/features/house_model/presentation/controllers/house_m
 import 'package:look_atlas/features/house_model/presentation/models/house_model_view_model.dart';
 import 'package:look_atlas/shared/image_picker/image_picker_providers.dart';
 import 'package:look_atlas/shared/image_picker/image_source_sheet.dart';
-import 'package:look_atlas/shared/widgets/app_asset_image.dart';
 import 'package:look_atlas/shared/widgets/app_bottom_sheet.dart';
+import 'package:look_atlas/shared/widgets/app_card.dart';
 import 'package:look_atlas/shared/widgets/app_dialog.dart';
 import 'package:look_atlas/shared/widgets/app_dotted_border.dart';
 import 'package:look_atlas/shared/widgets/app_dropdown.dart';
@@ -24,9 +24,11 @@ import 'package:look_atlas/shared/widgets/app_outlined_button.dart';
 import 'package:look_atlas/shared/widgets/app_sheet_frame.dart';
 import 'package:look_atlas/shared/widgets/app_snack_bar.dart';
 import 'package:look_atlas/shared/widgets/app_spaced_column.dart';
+import 'package:look_atlas/shared/widgets/app_square_icon.dart';
 import 'package:look_atlas/shared/widgets/app_tap_icon_button.dart';
 import 'package:look_atlas/shared/widgets/app_text_field.dart';
 import 'package:look_atlas/shared/widgets/primary_button.dart';
+import 'package:look_atlas/shared/widgets/shimmer_box.dart';
 
 part '../widgets/house_model_ai_form.dart';
 part '../widgets/house_model_angle_controls.dart';

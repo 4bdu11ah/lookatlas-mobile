@@ -287,7 +287,7 @@ class _AiEditDialog extends ConsumerWidget {
               color: AppColors.neutralLight,
               child: Padding(
                 padding: const EdgeInsets.all(12),
-                child: AppAssetImage(imageUrl),
+                child: AppImage(imageUrl, fit: BoxFit.cover),
               ),
             ),
           ),

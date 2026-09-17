@@ -52,7 +52,7 @@ class _DirectorPortfolioDialog extends ConsumerWidget {
           itemBuilder: (context, index) => InkWell(
             key: ValueKey('portfolio-image-$index'),
             onTap: onPreview,
-            child: AppAssetImage(assets[index]),
+            child: AppImage(assets[index], fit: BoxFit.cover),
           ),
         ),
         const AppCard(
@@ -205,7 +205,7 @@ class _FullPreview extends StatelessWidget {
                             width: 2,
                           ),
                         ),
-                        child: AppAssetImage(asset),
+                        child: AppImage(asset, fit: BoxFit.cover),
                       ),
                     ),
                     if (caption != null) ...[
@@ -405,7 +405,7 @@ class _VersionCard extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          AppAssetBox(asset, width: 68, height: 68),
+          AppImage(asset, width: 68, height: 68, fit: BoxFit.cover),
           const SizedBox(width: 10),
           Expanded(
             child: Column(

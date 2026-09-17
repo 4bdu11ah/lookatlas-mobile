@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:look_atlas/core/theme/app_colors.dart';
 import 'package:look_atlas/core/theme/app_typography.dart';
 import 'package:look_atlas/shared/widgets/app_outlined_button.dart';
+import 'package:look_atlas/shared/widgets/app_square_icon.dart';
 import 'package:look_atlas/shared/widgets/primary_button.dart';
 
 class AppDialogConfig {
@@ -267,16 +268,12 @@ class _AppDialogHeader extends StatelessWidget {
       child: Row(
         children: [
           if (config.icon != null) ...[
-            Container(
-              width: config.iconBoxSize,
-              height: config.iconBoxSize,
-              alignment: Alignment.center,
-              color: config.iconBackgroundColor,
-              child: Icon(
-                config.icon,
-                size: config.iconSize,
-                color: config.iconColor,
-              ),
+            AppSquareIcon(
+              config.icon,
+              size: config.iconBoxSize,
+              iconSize: config.iconSize,
+              backgroundColor: config.iconBackgroundColor,
+              iconColor: config.iconColor,
             ),
             const SizedBox(width: 12),
           ],

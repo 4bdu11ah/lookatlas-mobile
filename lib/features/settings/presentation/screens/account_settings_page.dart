@@ -6,6 +6,9 @@ import 'package:look_atlas/features/account_deletion/presentation/screens/accoun
 import 'package:look_atlas/features/settings/presentation/controllers/account_settings_controller.dart';
 import 'package:look_atlas/features/settings/presentation/models/account_settings_state.dart';
 import 'package:look_atlas/shared/widgets/app_feature_scaffold.dart';
+import 'package:look_atlas/shared/widgets/app_hairline.dart';
+import 'package:look_atlas/shared/widgets/app_square_icon.dart';
+import 'package:look_atlas/shared/widgets/shimmer_box.dart';
 
 part '../widgets/account_settings_content.dart';
 
@@ -96,7 +99,7 @@ class _SettingsAccountCard extends StatelessWidget {
             padding: EdgeInsets.all(padding),
             child: Row(
               children: [
-                const _SettingsTitleIcon(),
+                const AppSquareIcon(Icons.person_outline),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
@@ -109,12 +112,12 @@ class _SettingsAccountCard extends StatelessWidget {
               ],
             ),
           ),
-          const Divider(height: 1, color: AppColors.neutral200),
+          const AppHairline(),
           Padding(
             padding: EdgeInsets.all(padding),
             child: _SettingsAccountBody(compact: compact),
           ),
-          const Divider(height: 1, color: AppColors.neutral200),
+          const AppHairline(),
           const _SecurityAndDataCard(),
         ],
       ),
@@ -137,48 +140,39 @@ class _SecurityAndDataCard extends StatelessWidget {
             style: Theme.of(context).textTheme.titleMedium,
           ),
           const SizedBox(height: 12),
-          ListTile(
-            contentPadding: EdgeInsets.zero,
-            leading: const Icon(Icons.file_download_outlined),
-            title: const Text('Export your data'),
-            subtitle: const Text('Request a copy of your account information.'),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () {},
+          Material(
+            color: Colors.transparent,
+            child: ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: const Icon(Icons.file_download_outlined),
+              title: const Text('Export your data'),
+              subtitle: const Text('Request a copy of your account information.'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () {},
+            ),
           ),
-          const Divider(color: AppColors.neutral200),
-          ListTile(
-            contentPadding: EdgeInsets.zero,
-            leading: const Icon(Icons.delete_outline, color: AppColors.danger),
-            title: const Text(
-              'Delete account',
-              style: TextStyle(color: AppColors.danger),
-            ),
-            subtitle: const Text(
-              'Permanently remove your account and its data.',
-            ),
-            trailing: const Icon(Icons.chevron_right, color: AppColors.danger),
-            onTap: () => Navigator.of(context).push(
-              MaterialPageRoute<void>(
-                builder: (_) => const AccountDeletionPage(),
+          const AppHairline(),
+          Material(
+            color: Colors.transparent,
+            child: ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: const Icon(Icons.delete_outline, color: AppColors.danger),
+              title: const Text(
+                'Delete account',
+                style: TextStyle(color: AppColors.danger),
+              ),
+              subtitle: const Text(
+                'Permanently remove your account and its data.',
+              ),
+              trailing: const Icon(Icons.chevron_right, color: AppColors.danger),
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) => const AccountDeletionPage(),
+                ),
               ),
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _SettingsTitleIcon extends StatelessWidget {
-  const _SettingsTitleIcon();
-
-  @override
-  Widget build(BuildContext context) {
-    return const ColoredBox(
-      color: AppColors.black,
-      child: SizedBox.square(
-        dimension: 40,
-        child: Icon(Icons.person_outline, size: 20, color: AppColors.white),
       ),
     );
   }

@@ -73,13 +73,9 @@ class _BillingPurchaseBody extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Container(
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            color: AppColors.neutral100,
-            border: Border.all(color: AppColors.neutral200),
-          ),
-          child: const Column(
+        const AppCard(
+          backgroundColor: AppColors.neutral100,
+          child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
@@ -140,11 +136,7 @@ class _BillingPurchaseBody extends ConsumerWidget {
           ),
         ),
         const SizedBox(height: 24),
-        Container(
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            border: Border.all(color: AppColors.neutral200),
-          ),
+        AppCard(
           child: Column(
             children: [
               const Align(
@@ -200,11 +192,7 @@ class _BillingPurchaseBody extends ConsumerWidget {
           ),
         ),
         const SizedBox(height: 24),
-        Container(
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            border: Border.all(color: AppColors.neutral200),
-          ),
+        AppCard(
           child: Column(
             children: [
               _BillingTotalRow(
@@ -316,12 +304,10 @@ class _BillingPurchaseSuccess extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Container(
-            width: 48,
-            height: 48,
-            color: AppColors.black,
-            alignment: Alignment.center,
-            child: const Icon(Icons.check, color: AppColors.white, size: 24),
+          const AppSquareIcon(
+            Icons.check,
+            size: 48,
+            iconSize: 24,
           ),
           const SizedBox(height: 20),
           const Text(

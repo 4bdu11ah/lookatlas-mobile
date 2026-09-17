@@ -24,11 +24,10 @@ import 'package:look_atlas/features/shoots/presentation/models/shoot_modal_kind.
 import 'package:look_atlas/features/shoots/presentation/widgets/shoot_option_wrap.dart';
 import 'package:look_atlas/shared/image_picker/image_picker_providers.dart';
 import 'package:look_atlas/shared/image_picker/image_source_sheet.dart';
-import 'package:look_atlas/shared/widgets/app_asset_image.dart';
 import 'package:look_atlas/shared/widgets/app_card.dart';
 import 'package:look_atlas/shared/widgets/app_dialog.dart';
 import 'package:look_atlas/shared/widgets/app_feedback.dart';
-import 'package:look_atlas/shared/widgets/app_media_widgets.dart';
+import 'package:look_atlas/shared/widgets/app_image.dart';
 import 'package:look_atlas/shared/widgets/app_modal_frame.dart';
 import 'package:look_atlas/shared/widgets/app_outlined_button.dart';
 import 'package:look_atlas/shared/widgets/app_snack_bar.dart';

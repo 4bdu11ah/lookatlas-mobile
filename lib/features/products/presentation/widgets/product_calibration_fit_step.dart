@@ -297,7 +297,7 @@ class _CalibrationFitStepState extends State<_CalibrationFitStep> {
                                           style: const TextStyle(fontSize: 10),
                                         ),
                                       )
-                                    : AppAssetImage(item.imageUrl!),
+                                     : AppImage(item.imageUrl!, fit: BoxFit.cover),
                               ),
                               const SizedBox(height: 6),
                               Text(

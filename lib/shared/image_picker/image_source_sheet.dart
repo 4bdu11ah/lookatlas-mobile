@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:look_atlas/core/theme/app_typography.dart';
 import 'package:look_atlas/shared/widgets/app_bottom_sheet.dart';
+import 'package:look_atlas/shared/widgets/app_square_icon.dart';
 
 export 'package:image_picker/image_picker.dart' show ImageSource;
 
@@ -113,11 +114,10 @@ class _SourceTile extends StatelessWidget {
         child: Row(
           spacing: 14,
           children: [
-            Container(
-              width: 40,
-              height: 40,
-              color: scheme.onSurface,
-              child: Icon(icon, size: 20, color: scheme.surface),
+            AppSquareIcon(
+              icon,
+              backgroundColor: scheme.onSurface,
+              iconColor: scheme.surface,
             ),
             Expanded(
               child: Column(

@@ -271,7 +271,7 @@ class _ProductCard extends StatelessWidget {
               child: Stack(
                 fit: StackFit.expand,
                 children: [
-                  AppAssetImage(product.asset),
+                  AppImage(product.asset, fit: BoxFit.cover),
                   Positioned(
                     top: 8,
                     left: 8,
@@ -336,7 +336,7 @@ class _ProductCard extends StatelessWidget {
                     ],
                   ),
                   const SizedBox(height: 10),
-                  const Divider(height: 1, color: AppColors.neutral200),
+                  const AppHairline(),
                   const SizedBox(height: 8),
                   const Align(
                     alignment: Alignment.centerRight,

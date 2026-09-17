@@ -6,23 +6,34 @@ class AppTapIconButton extends StatelessWidget {
     required this.icon,
     required this.label,
     required this.onTap,
+    this.color,
+    this.size = 20,
+    this.dimension = 44,
+    this.backgroundColor = Colors.transparent,
     super.key,
   });
 
   final IconData icon;
   final String label;
   final VoidCallback onTap;
+  final Color? color;
+  final double size;
+  final double dimension;
+  final Color backgroundColor;
 
   @override
   Widget build(BuildContext context) {
     return Semantics(
       label: label,
       button: true,
-      child: InkWell(
-        onTap: onTap,
-        child: SizedBox.square(
-          dimension: 44,
-          child: Icon(icon, size: 20, color: AppColors.inkAlpha68),
+      child: Material(
+        color: backgroundColor,
+        child: InkWell(
+          onTap: onTap,
+          child: SizedBox.square(
+            dimension: dimension,
+            child: Icon(icon, size: size, color: color ?? AppColors.inkAlpha68),
+          ),
         ),
       ),
     );

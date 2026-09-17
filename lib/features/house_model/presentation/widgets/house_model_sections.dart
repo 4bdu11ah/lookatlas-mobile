@@ -168,19 +168,15 @@ class _YourModelsEmptyState extends StatelessWidget {
       ),
       child: Column(
         children: [
-          Container(
-            width: 64,
-            height: 64,
-            margin: const EdgeInsets.only(bottom: 18),
-            decoration: BoxDecoration(
-              color: AppColors.neutral100,
-              border: Border.all(color: AppColors.neutral200),
-            ),
-            alignment: Alignment.center,
-            child: const Icon(
+          const Padding(
+            padding: EdgeInsets.only(bottom: 18),
+            child: AppSquareIcon(
               Icons.groups_outlined,
-              size: 29,
-              color: AppColors.neutral500,
+              size: 64,
+              iconSize: 29,
+              iconColor: AppColors.neutral500,
+              backgroundColor: AppColors.neutral100,
+              borderColor: AppColors.neutral200,
             ),
           ),
           const Text(
@@ -207,94 +203,23 @@ class _YourModelsEmptyState extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 23),
-          _EmptyStateButton(
+          PrimaryButton(
             label: 'Add your first model',
             icon: Icons.people_alt_outlined,
-            onTap: onAdd,
+            height: 50,
+            onPressed: onAdd,
           ),
           const SizedBox(height: 9),
-          _EmptyStateButton.secondary(
+          AppOutlinedButton(
             label: 'Create with AI (20 credits)',
             icon: Icons.auto_awesome,
-            onTap: onAi,
+            height: 50,
+            borderColor: AppColors.black,
+            foregroundColor: AppColors.black,
+            onPressed: onAi,
           ),
           const SizedBox(height: 15),
-          // const Row(
-          //   mainAxisAlignment: MainAxisAlignment.center,
-          //   children: [
-          //     Icon(
-          //       Icons.photo_camera_outlined,
-          //       size: 13,
-          //       color: AppColors.neutral500,
-          //     ),
-          //     SizedBox(width: 6),
-          //     Text(
-          //       '3-5 clear photos work best',
-          //       style: TextStyle(fontSize: 10, color: AppColors.neutral500),
-          //     ),
-          //   ],
-          // ),
         ],
-      ),
-    );
-  }
-}
-
-class _EmptyStateButton extends StatelessWidget {
-  const _EmptyStateButton({
-    required this.label,
-    required this.icon,
-    required this.onTap,
-  }) : secondary = false;
-
-  const _EmptyStateButton.secondary({
-    required this.label,
-    required this.icon,
-    required this.onTap,
-  }) : secondary = true;
-
-  final String label;
-  final IconData icon;
-  final VoidCallback onTap;
-  final bool secondary;
-
-  @override
-  Widget build(BuildContext context) {
-    final bg = secondary ? AppColors.white : AppColors.black;
-    final fg = secondary ? AppColors.black : AppColors.white;
-    return SizedBox(
-      width: double.infinity,
-      height: 50,
-      child: Material(
-        color: bg,
-        shape: const Border.fromBorderSide(
-          BorderSide(color: AppColors.black, width: 2),
-        ),
-        child: InkWell(
-          onTap: onTap,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(icon, size: 20, color: fg),
-                const SizedBox(width: 9),
-                Flexible(
-                  child: Text(
-                    label,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: AppTypography.bold,
-                      color: fg,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
       ),
     );
   }
@@ -320,16 +245,12 @@ class _SectionHeading extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Container(
-          width: 36,
-          height: 36,
-          color: soft ? AppColors.neutral100 : AppColors.black,
-          alignment: Alignment.center,
-          child: Icon(
-            icon,
-            size: 18,
-            color: soft ? AppColors.neutral500 : AppColors.white,
-          ),
+        AppSquareIcon(
+          icon,
+          size: 36,
+          iconSize: 18,
+          backgroundColor: soft ? AppColors.neutral100 : AppColors.black,
+          iconColor: soft ? AppColors.neutral500 : AppColors.white,
         ),
         const SizedBox(width: 11),
         Expanded(

@@ -393,7 +393,7 @@ class _CurrentPhotoPreview extends StatelessWidget {
         children: [
           ColoredBox(
             color: AppColors.neutral100,
-            child: AppAssetImage(source),
+            child: AppImage(source, fit: BoxFit.cover),
           ),
           Positioned(
             top: 6,
@@ -467,7 +467,7 @@ class _PhotoPreview extends StatelessWidget {
           ColoredBox(
             color: AppColors.neutral100,
             child: bytes == null
-                ? AppAssetImage(source ?? '')
+                ? AppImage(source ?? '', fit: BoxFit.cover)
                 : AppImage.memory(bytes!, fit: BoxFit.cover),
           ),
           Positioned(
@@ -573,40 +573,40 @@ class _BenefitCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(top: 16),
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: AppColors.inkAlpha04,
-        border: Border.all(color: AppColors.inkAlpha20),
-      ),
-      child: const Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(Icons.auto_awesome, size: 17, color: AppColors.black),
-              SizedBox(width: 8),
-              Text(
-                "What you'll get",
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: AppTypography.bold,
-                  color: AppColors.black,
+    return const Padding(
+      padding: EdgeInsets.only(top: 16),
+      child: AppCard(
+        padding: EdgeInsets.all(14),
+        backgroundColor: AppColors.inkAlpha04,
+        borderColor: AppColors.inkAlpha20,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.auto_awesome, size: 17, color: AppColors.black),
+                SizedBox(width: 8),
+                Text(
+                  "What you'll get",
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: AppTypography.bold,
+                    color: AppColors.black,
+                  ),
                 ),
-              ),
-            ],
-          ),
-          SizedBox(height: 10),
-          Text(
-            '- 4 studio-ready angles: front, left, right, back\n- Consistent face, hair, skin tone, and body\n- Flat 20 credit charge for the full set',
-            style: TextStyle(
-              fontSize: 13,
-              height: 1.55,
-              color: AppColors.neutral800,
+              ],
             ),
-          ),
-        ],
+            SizedBox(height: 10),
+            Text(
+              '- 4 studio-ready angles: front, left, right, back\n- Consistent face, hair, skin tone, and body\n- Flat 20 credit charge for the full set',
+              style: TextStyle(
+                fontSize: 13,
+                height: 1.55,
+                color: AppColors.neutral800,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

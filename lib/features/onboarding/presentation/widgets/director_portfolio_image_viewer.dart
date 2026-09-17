@@ -106,11 +106,14 @@ class _PortfolioImageViewerState extends State<_PortfolioImageViewer> {
             Positioned(
               top: 18,
               right: 16,
-              child: _IconSquareButton(
+              child: AppTapIconButton(
                 icon: Icons.close,
-                semanticLabel: 'Close image preview',
+                label: 'Close image preview',
                 onTap: () => Navigator.of(context).pop(),
-                background: AppColors.white.withValues(alpha: 0.12),
+                color: AppColors.white,
+                backgroundColor: AppColors.white.withValues(alpha: 0.12),
+                size: 18,
+                dimension: 38,
               ),
             ),
             Positioned(

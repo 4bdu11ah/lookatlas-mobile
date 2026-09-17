@@ -550,7 +550,7 @@ class _CalibrationReviewStep extends StatelessWidget {
                 SizedBox(
                   height: 300,
                   child: fitImageUrl != null
-                      ? AppAssetImage(fitImageUrl!)
+                      ? AppImage(fitImageUrl!, fit: BoxFit.cover)
                       : wornPhotoUrl == null
                       ? _PlacementCanvas(
                           product: product,
@@ -561,7 +561,7 @@ class _CalibrationReviewStep extends StatelessWidget {
                           placementScale: placementScale,
                           placementRotation: placementRotation,
                         )
-                      : AppAssetImage(wornPhotoUrl!),
+                      : AppImage(wornPhotoUrl!, fit: BoxFit.cover),
                 ),
                 if (!isLegacy) ...[
                   const SizedBox(height: 14),

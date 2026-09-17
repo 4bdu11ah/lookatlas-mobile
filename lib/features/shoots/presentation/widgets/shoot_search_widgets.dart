@@ -75,7 +75,12 @@ class _ShootDraftRow extends StatelessWidget {
               padding: const EdgeInsets.all(10),
               child: Row(
                 children: [
-                  AppAssetBox(draft.thumbnailUrl, width: 44, height: 44),
+                  AppImage(
+                    draft.thumbnailUrl,
+                    width: 44,
+                    height: 44,
+                    fit: BoxFit.cover,
+                  ),
                   const SizedBox(width: 10),
                   Expanded(
                     child: Column(
@@ -182,29 +187,21 @@ class _ShootSearchFieldState extends State<_ShootSearchField> {
   }
 
   @override
-  Widget build(BuildContext context) => Container(
-    decoration: const BoxDecoration(
-      border: Border(
-        top: BorderSide(color: _shootLine),
-        bottom: BorderSide(color: _shootLine),
-      ),
-    ),
-    child: AppTextField(
-      fieldKey: const ValueKey('shoot-search-field'),
-      controller: _controller,
-      height: 44,
-      hintText: 'Search generated shoots, products, or models',
-      textInputAction: TextInputAction.search,
-      onChanged: widget.onChanged,
-      leading: const Icon(Icons.search, size: 17, color: _shootMuted),
-      trailing: widget.query.isEmpty
-          ? const SizedBox(width: 8)
-          : IconButton(
-              key: const ValueKey('clear-shoot-search'),
-              onPressed: () => widget.onChanged(''),
-              icon: const Icon(Icons.close, size: 16),
-            ),
-    ),
+  Widget build(BuildContext context) => AppTextField(
+    fieldKey: const ValueKey('shoot-search-field'),
+    controller: _controller,
+    height: 44,
+    hintText: 'Search generated shoots, products, or models',
+    textInputAction: TextInputAction.search,
+    onChanged: widget.onChanged,
+    leading: const Icon(Icons.search, size: 17, color: _shootMuted),
+    trailing: widget.query.isEmpty
+        ? const SizedBox(width: 8)
+        : IconButton(
+            key: const ValueKey('clear-shoot-search'),
+            onPressed: () => widget.onChanged(''),
+            icon: const Icon(Icons.close, size: 16),
+          ),
   );
 }
 
@@ -228,7 +225,12 @@ class ShootRow extends StatelessWidget {
       color: striped ? _shootWash : _shootPaper,
       child: Row(
         children: [
-          AppAssetBox(_primaryAsset(shoot), width: 56, height: 64),
+          AppImage(
+            _primaryAsset(shoot),
+            width: 56,
+            height: 64,
+            fit: BoxFit.cover,
+          ),
           const SizedBox(width: 12),
           Expanded(
             child: Column(

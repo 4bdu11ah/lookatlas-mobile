@@ -109,9 +109,9 @@ class _WorkshopPaywallDialog extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 20),
-          _WorkshopPrimaryButton(
+          PrimaryButton(
             label: 'View plans',
-            onTap: () => Navigator.pop(context, true),
+            onPressed: () => Navigator.pop(context, true),
           ),
         ],
       ),

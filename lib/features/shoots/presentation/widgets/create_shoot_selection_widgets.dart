@@ -152,7 +152,7 @@ class _DirectorCard extends StatelessWidget {
           child: Stack(
             fit: StackFit.expand,
             children: [
-              AppAssetImage(director.imageUrl),
+              AppImage(director.imageUrl, fit: BoxFit.cover),
               const DecoratedBox(
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
@@ -441,7 +441,7 @@ class _SelectionCard extends StatelessWidget {
         child: Stack(
           fit: StackFit.expand,
           children: [
-            AppAssetImage(asset),
+            AppImage(asset, fit: BoxFit.cover),
             const DecoratedBox(
               decoration: BoxDecoration(
                 gradient: LinearGradient(

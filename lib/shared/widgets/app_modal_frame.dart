@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:look_atlas/core/theme/app_colors.dart';
 import 'package:look_atlas/core/theme/app_typography.dart';
 import 'package:look_atlas/shared/widgets/app_hairline.dart';
-import 'package:look_atlas/shared/widgets/app_media_widgets.dart';
 import 'package:look_atlas/shared/widgets/app_spaced_column.dart';
+import 'package:look_atlas/shared/widgets/app_square_icon.dart';
 import 'package:look_atlas/shared/widgets/app_tap_icon_button.dart';
 import 'package:look_atlas/shared/widgets/app_text.dart';
 
@@ -39,7 +39,7 @@ class AppModalFrame extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               if (leading != null) ...[
-                AppSquareIcon(leading!),
+                AppSquareIcon(leading),
                 const SizedBox(width: 12),
               ],
               Expanded(

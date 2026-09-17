@@ -8,6 +8,7 @@ import 'package:look_atlas/features/onboarding/domain/entities/onboarding_models
 import 'package:look_atlas/features/onboarding/presentation/controllers/wizard_controller.dart';
 import 'package:look_atlas/features/onboarding/presentation/widgets/onboarding_widgets.dart';
 import 'package:look_atlas/shared/widgets/app_dialog.dart';
+import 'package:look_atlas/shared/widgets/app_tap_icon_button.dart';
 
 part 'director_portfolio_content.dart';
 part 'director_portfolio_image_viewer.dart';
@@ -192,11 +193,13 @@ class _PortfolioHeader extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 12),
-              _IconSquareButton(
+              AppTapIconButton(
                 icon: Icons.close,
-                semanticLabel: 'Close portfolio',
+                label: 'Close portfolio',
                 onTap: onClose,
-                foreground: AppColors.neutral500,
+                color: AppColors.neutral500,
+                size: 18,
+                dimension: 38,
               ),
             ],
           ),
@@ -417,40 +420,6 @@ class _SelectedPill extends StatelessWidget {
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _IconSquareButton extends StatelessWidget {
-  const _IconSquareButton({
-    required this.icon,
-    required this.semanticLabel,
-    required this.onTap,
-    this.foreground = AppColors.white,
-    this.background = AppColors.transparent,
-  });
-
-  final IconData icon;
-  final String semanticLabel;
-  final VoidCallback onTap;
-  final Color foreground;
-  final Color background;
-
-  @override
-  Widget build(BuildContext context) {
-    return Semantics(
-      button: true,
-      label: semanticLabel,
-      child: Material(
-        color: background,
-        child: InkWell(
-          onTap: onTap,
-          child: SizedBox.square(
-            dimension: 38,
-            child: Icon(icon, size: 18, color: foreground),
-          ),
-        ),
       ),
     );
   }

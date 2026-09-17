@@ -714,7 +714,7 @@ class _ProductThumb extends StatelessWidget {
                 fit: StackFit.expand,
                 children: [
                   if (upload == null)
-                    AppAssetImage(url ?? '', fit: BoxFit.contain)
+                    AppImage(url ?? '')
                   else
                     AppImage.memory(upload!.bytes),
                   if (isLoading)

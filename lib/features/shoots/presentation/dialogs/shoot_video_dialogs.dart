@@ -342,7 +342,7 @@ class _VideoImageChoice extends StatelessWidget {
         child: Stack(
           fit: StackFit.expand,
           children: [
-            AppAssetImage(asset),
+            AppImage(asset, fit: BoxFit.cover),
             Positioned(
               left: 8,
               right: 8,

@@ -166,7 +166,7 @@ class _PhotoTile extends StatelessWidget {
                 children: [
                   Padding(
                     padding: const EdgeInsets.all(7),
-                    child: AppAssetImage(asset, fit: BoxFit.contain),
+                    child: AppImage(asset),
                   ),
                   Positioned(
                     left: 5,
@@ -281,7 +281,7 @@ class _CheckerBox extends StatelessWidget {
             width: 176,
             height: 210,
             child: upload == null
-                ? AppAssetImage(asset)
+                ? AppImage(asset, fit: BoxFit.cover)
                 : AppImage.memory(upload!.bytes),
           ),
         ),
@@ -465,10 +465,7 @@ class _PlacementCanvasState extends State<_PlacementCanvas> {
                               ),
                             ),
                             child: widget.cutout == null
-                                ? AppAssetImage(
-                                    widget.product.asset,
-                                    fit: BoxFit.contain,
-                                  )
+                                ? AppImage(widget.product.asset)
                                 : AppImage.memory(
                                     widget.cutout!.bytes,
                                   ),
@@ -544,7 +541,7 @@ class _CopyCard extends StatelessWidget {
             SizedBox(
               width: 36,
               height: 36,
-              child: AppAssetImage(product.imageUrl),
+              child: AppImage(product.imageUrl, fit: BoxFit.cover),
             ),
             const SizedBox(width: 11),
             Expanded(
@@ -573,7 +570,7 @@ class _CopyCard extends StatelessWidget {
                 ],
               ),
             ),
-            const _CalibrationRecommendedBadge(label: 'Calibrated'),
+            const AppBadge('CALIBRATED', kind: AppBadgeKind.dark),
           ],
         ),
       ),

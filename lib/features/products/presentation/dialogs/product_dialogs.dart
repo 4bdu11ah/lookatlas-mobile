@@ -19,7 +19,6 @@ import 'package:look_atlas/features/products/presentation/screens/product_calibr
 import 'package:look_atlas/features/products/presentation/screens/product_reference_crop_screen.dart';
 import 'package:look_atlas/features/products/presentation/widgets/product_photo_picker.dart';
 import 'package:look_atlas/features/products/presentation/widgets/product_shared_widgets.dart';
-import 'package:look_atlas/shared/widgets/app_asset_image.dart';
 import 'package:look_atlas/shared/widgets/app_bottom_sheet.dart';
 import 'package:look_atlas/shared/widgets/app_dialog.dart';
 import 'package:look_atlas/shared/widgets/app_dotted_border.dart';
@@ -167,10 +166,9 @@ class _ProductDetailSheetState extends ConsumerState<_ProductDetailSheet> {
                   width: double.infinity,
                   padding: const EdgeInsets.all(24),
                   color: AppColors.neutral100,
-                  child: AppAssetImage(
-                    photos[_photoIndex],
+                  child: KeyedSubtree(
                     key: const ValueKey('product-detail-main-image'),
-                    fit: BoxFit.contain,
+                    child: AppImage(photos[_photoIndex]),
                   ),
                 ),
                 Positioned(
@@ -224,7 +222,7 @@ class _ProductDetailSheetState extends ConsumerState<_ProductDetailSheet> {
                                     width: index == _photoIndex ? 2 : 1,
                                   ),
                                 ),
-                                child: AppAssetImage(photos[index]),
+                                child: AppImage(photos[index], fit: BoxFit.cover),
                               ),
                             ),
                             const SizedBox(height: 4),

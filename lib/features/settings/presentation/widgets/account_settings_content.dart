@@ -88,7 +88,12 @@ class _SettingsInfoRow extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _SettingsRowIcon(icon: icon),
+          AppSquareIcon(
+            icon,
+            backgroundColor: AppColors.white,
+            iconColor: AppColors.black,
+            borderColor: AppColors.neutral200,
+          ),
           SizedBox(width: gap),
           Expanded(
             child: _SettingsInfoCopy(label: label, value: value),
@@ -115,9 +120,11 @@ class _SettingsPlanRow extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const _SettingsRowIcon(
-            icon: Icons.verified_outlined,
-            inverted: true,
+          const AppSquareIcon(
+            Icons.verified_outlined,
+            backgroundColor: AppColors.white,
+            iconColor: AppColors.black,
+            borderColor: AppColors.white,
           ),
           SizedBox(width: gap),
           Expanded(
@@ -197,27 +204,6 @@ class _SettingsPlanPrice extends StatelessWidget {
   }
 }
 
-class _SettingsRowIcon extends StatelessWidget {
-  const _SettingsRowIcon({required this.icon, this.inverted = false});
-
-  final IconData icon;
-  final bool inverted;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 40,
-      height: 40,
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        border: Border.all(
-          color: inverted ? AppColors.white : AppColors.neutral200,
-        ),
-      ),
-      child: Icon(icon, size: 20, color: AppColors.black),
-    );
-  }
-}
 
 class _SettingsInfoCopy extends StatelessWidget {
   const _SettingsInfoCopy({required this.label, required this.value});
@@ -318,9 +304,10 @@ class _SettingsSkeleton extends StatelessWidget {
   Widget build(BuildContext context) {
     return ConstrainedBox(
       constraints: BoxConstraints(maxWidth: width),
-      child: ColoredBox(
-        color: AppColors.neutral250,
-        child: SizedBox(width: double.infinity, height: height),
+      child: SizedBox(
+        width: double.infinity,
+        height: height,
+        child: const ShimmerBox(),
       ),
     );
   }

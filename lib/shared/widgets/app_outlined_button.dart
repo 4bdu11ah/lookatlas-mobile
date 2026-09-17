@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:look_atlas/shared/widgets/bar_spinner.dart';
 
 class AppOutlinedButton extends StatelessWidget {
   const AppOutlinedButton({
@@ -14,6 +15,8 @@ class AppOutlinedButton extends StatelessWidget {
     this.iconSize = 20,
     this.iconAngle = 0,
     this.textStyle,
+    this.isLoading = false,
+    this.loadingChild,
     super.key,
   });
 
@@ -31,6 +34,8 @@ class AppOutlinedButton extends StatelessWidget {
   /// Icon rotation in radians, matching [Transform.rotate].
   final double iconAngle;
   final TextStyle? textStyle;
+  final bool isLoading;
+  final Widget? loadingChild;
 
   Widget _buildIcon(Color color) {
     final iconWidget = Icon(icon, size: iconSize, color: color);
@@ -60,29 +65,32 @@ class AppOutlinedButton extends StatelessWidget {
           backgroundColor: backgroundColor,
           textStyle: labelStyle,
         ),
-        onPressed: onPressed,
-        child: Row(
-          mainAxisSize: fitToContent ? MainAxisSize.min : MainAxisSize.max,
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            if (icon != null && iconAlignment == IconAlignment.start) ...[
-              _buildIcon(effectiveForeground),
-              const SizedBox(width: 8),
-            ],
-            Flexible(
-              child: Text(
-                label,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: labelStyle,
+        onPressed: isLoading ? null : onPressed,
+        child: isLoading
+            ? loadingChild ?? ButtonLoader(color: effectiveForeground)
+            : Row(
+                mainAxisSize:
+                    fitToContent ? MainAxisSize.min : MainAxisSize.max,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  if (icon != null && iconAlignment == IconAlignment.start) ...[
+                    _buildIcon(effectiveForeground),
+                    const SizedBox(width: 8),
+                  ],
+                  Flexible(
+                    child: Text(
+                      label,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: labelStyle,
+                    ),
+                  ),
+                  if (icon != null && iconAlignment == IconAlignment.end) ...[
+                    const SizedBox(width: 8),
+                    _buildIcon(effectiveForeground),
+                  ],
+                ],
               ),
-            ),
-            if (icon != null && iconAlignment == IconAlignment.end) ...[
-              const SizedBox(width: 8),
-              _buildIcon(effectiveForeground),
-            ],
-          ],
-        ),
       ),
     );
   }

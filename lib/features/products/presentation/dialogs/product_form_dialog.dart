@@ -395,7 +395,7 @@ class _EditableProductGallery extends StatelessWidget {
     );
     final replacement = form.replacementPhotos[photo.id];
     return replacement == null
-        ? AppAssetImage(photo.url, fit: fit)
+        ? AppImage(photo.url, fit: fit)
         : AppImage.memory(replacement.bytes, fit: fit);
   }
 

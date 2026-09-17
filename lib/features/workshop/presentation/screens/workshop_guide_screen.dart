@@ -4,6 +4,7 @@ import 'package:look_atlas/core/constants/app_assets.dart';
 import 'package:look_atlas/core/router/app_routes.dart';
 import 'package:look_atlas/core/theme/app_colors.dart';
 import 'package:look_atlas/core/theme/app_typography.dart';
+import 'package:look_atlas/shared/widgets/app_card.dart';
 import 'package:look_atlas/shared/widgets/app_image.dart';
 import 'package:look_atlas/shared/widgets/custom_app_bar.dart';
 import 'package:look_atlas/shared/widgets/primary_button.dart';
@@ -213,7 +214,7 @@ class _GuideModeCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return _GuidePanel(
+    return AppCard(
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -289,7 +290,7 @@ class _GuideExample extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return _GuidePanel(
+    return AppCard(
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -426,12 +427,9 @@ class _GuidePromptBlock extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return AppCard(
+      backgroundColor: AppColors.neutral100Alpha30,
       padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: AppColors.neutral100Alpha30,
-        border: Border.all(color: AppColors.neutral200),
-      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -531,25 +529,6 @@ class _GuideTips extends StatelessWidget {
   }
 }
 
-class _GuidePanel extends StatelessWidget {
-  const _GuidePanel({required this.child, this.padding = EdgeInsets.zero});
-
-  final Widget child;
-  final EdgeInsetsGeometry padding;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: padding,
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        border: Border.all(color: AppColors.neutral200),
-      ),
-      child: child,
-    );
-  }
-}
 
 class _GuideFitText extends StatelessWidget {
   const _GuideFitText(this.text, {required this.style});

@@ -29,54 +29,26 @@ class _BillingActionButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final foreground = outline ? AppColors.black : AppColors.white;
-    final background = outline ? AppColors.white : AppColors.black;
-
-    return SizedBox(
-      width: double.infinity,
+    if (outline) {
+      return AppOutlinedButton(
+        label: label,
+        icon: icon,
+        isLoading: isLoading,
+        onPressed: onPressed,
+        height: 40,
+        borderColor: AppColors.black,
+        foregroundColor: AppColors.black,
+        backgroundColor: AppColors.white,
+      );
+    }
+    return PrimaryButton(
+      label: label,
+      icon: icon,
+      isLoading: isLoading,
+      onPressed: onPressed,
       height: 40,
-      child: Material(
-        color: background,
-        child: InkWell(
-          onTap: isLoading ? null : onPressed,
-          child: Opacity(
-            opacity: onPressed == null ? 0.5 : 1,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              decoration: BoxDecoration(
-                border: Border.all(
-                  color: AppColors.black,
-                  width: outline ? 2 : 1,
-                ),
-              ),
-              alignment: Alignment.center,
-              child: isLoading
-                  ? ButtonLoader(color: foreground)
-                  : Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        if (icon != null) ...[
-                          Icon(icon, size: 16, color: foreground),
-                          const SizedBox(width: 8),
-                        ],
-                        Flexible(
-                          child: Text(
-                            label,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              color: foreground,
-                              fontSize: 14,
-                              fontWeight: AppTypography.medium,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-            ),
-          ),
-        ),
-      ),
+      backgroundColor: AppColors.black,
+      foregroundColor: AppColors.white,
     );
   }
 }
@@ -93,15 +65,11 @@ class _BillingCardHeader extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
       child: Row(
         children: [
-          Container(
-            width: 40,
-            height: 40,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              color: AppColors.neutral100,
-              border: Border.all(color: AppColors.neutral200),
-            ),
-            child: Icon(icon, size: 20, color: AppColors.black),
+          AppSquareIcon(
+            icon,
+            backgroundColor: AppColors.neutral100,
+            iconColor: AppColors.black,
+            borderColor: AppColors.neutral200,
           ),
           const SizedBox(width: 12),
           Expanded(

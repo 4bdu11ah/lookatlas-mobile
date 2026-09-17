@@ -78,13 +78,9 @@ class _WorkshopShell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
+    return AppCard(
+      backgroundColor: AppColors.neutral100Alpha30,
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.neutral100Alpha30,
-        border: Border.all(color: AppColors.neutral200),
-      ),
       child: child,
     );
   }
@@ -139,25 +135,15 @@ class _WorkshopIconButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Semantics(
-      button: true,
+    return AppTapIconButton(
+      icon: icon,
       label: label,
-      child: Material(
-        color:
-            backgroundColor ??
-            (dark ? AppColors.blackAlpha90 : AppColors.white),
-        child: InkWell(
-          onTap: onTap,
-          child: SizedBox.square(
-            dimension: dimension,
-            child: Icon(
-              icon,
-              size: iconSize,
-              color: dark ? AppColors.white : AppColors.black,
-            ),
-          ),
-        ),
-      ),
+      onTap: onTap,
+      dimension: dimension,
+      size: iconSize,
+      color: dark ? AppColors.white : AppColors.black,
+      backgroundColor: backgroundColor ??
+          (dark ? AppColors.blackAlpha90 : AppColors.white),
     );
   }
 }
@@ -179,72 +165,26 @@ class _WorkshopOutlineButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const foreground = AppColors.black;
-    return Material(
-      color: AppColors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        child: Container(
-          height: height,
-          padding: EdgeInsets.symmetric(horizontal: compact ? 12 : 20),
-          decoration: BoxDecoration(
-            border: Border.all(color: foreground, width: compact ? 1 : 2),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(icon, size: compact ? 16 : 18, color: foreground),
-              const SizedBox(width: 8),
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: compact ? 12 : 14,
-                  height: compact ? 16 / 12 : 20 / 14,
-                  fontWeight: AppTypography.semiBold,
-                  letterSpacing: compact ? 0.6 : 0,
-                  color: foreground,
-                ),
-              ),
-            ],
-          ),
-        ),
+    return AppOutlinedButton(
+      icon: icon,
+      label: label,
+      onPressed: onTap,
+      height: height,
+      fitToContent: true,
+      borderColor: AppColors.black,
+      foregroundColor: AppColors.black,
+      iconSize: compact ? 16 : 18,
+      textStyle: TextStyle(
+        fontSize: compact ? 12 : 14,
+        height: compact ? 16 / 12 : 20 / 14,
+        fontWeight: AppTypography.semiBold,
+        letterSpacing: compact ? 0.6 : 0,
+        color: AppColors.black,
       ),
     );
   }
 }
 
-class _WorkshopPrimaryButton extends StatelessWidget {
-  const _WorkshopPrimaryButton({required this.label, required this.onTap});
-
-  final String label;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: AppColors.black,
-      child: InkWell(
-        onTap: onTap,
-        child: SizedBox(
-          height: 48,
-          width: double.infinity,
-          child: Center(
-            child: Text(
-              label,
-              style: const TextStyle(
-                fontSize: 14,
-                height: 20 / 14,
-                fontWeight: AppTypography.semiBold,
-                color: AppColors.white,
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
 
 class _PreviewActionButton extends StatelessWidget {
   const _PreviewActionButton({

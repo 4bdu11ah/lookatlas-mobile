@@ -9,7 +9,9 @@ import 'package:look_atlas/core/theme/app_typography.dart';
 import 'package:look_atlas/features/billing/domain/entities/billing_checkout.dart';
 import 'package:look_atlas/features/billing/presentation/controllers/onetime_verification_controller.dart';
 import 'package:look_atlas/shared/widgets/app_bottom_sheet.dart';
+import 'package:look_atlas/shared/widgets/app_tap_icon_button.dart';
 import 'package:look_atlas/shared/widgets/bar_spinner.dart';
+import 'package:look_atlas/shared/widgets/primary_button.dart';
 
 /// Where the one-time purchase flow can land (mockup 12, states A–E).
 enum _SuccessPhase { confirming, paid, pending, failed }
@@ -184,10 +186,12 @@ class _Paid extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 40),
-            _WhiteButton(
+            PrimaryButton(
               label: 'Open my shoot',
               icon: Icons.download,
-              onTap: onOpenShoot,
+              backgroundColor: AppColors.white,
+              foregroundColor: AppColors.black,
+              onPressed: onOpenShoot,
             ),
             const SizedBox(height: 20),
             // Pro upsell banner with the offer countdown.
@@ -287,11 +291,14 @@ class _Pending extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 40),
-            _WhiteButton(
+            PrimaryButton(
               label: 'Go to dashboard',
               icon: Icons.arrow_forward,
-              iconTrailing: true,
-              onTap: onDashboard,
+              iconAlignment: IconAlignment.end,
+              iconSize: 16,
+              backgroundColor: AppColors.white,
+              foregroundColor: AppColors.black,
+              onPressed: onDashboard,
             ),
           ],
         ),
@@ -387,53 +394,7 @@ class _Medallion extends StatelessWidget {
   }
 }
 
-class _WhiteButton extends StatelessWidget {
-  const _WhiteButton({
-    required this.label,
-    required this.icon,
-    required this.onTap,
-    this.iconTrailing = false,
-  });
 
-  final String label;
-  final IconData icon;
-  final VoidCallback onTap;
-  final bool iconTrailing;
-
-  @override
-  Widget build(BuildContext context) {
-    final text = Text(
-      label,
-      style: const TextStyle(
-        fontSize: 16,
-        height: 1.2,
-        fontWeight: AppTypography.semiBold,
-        color: AppColors.black,
-      ),
-    );
-    final iconWidget = Icon(
-      icon,
-      size: iconTrailing ? 16 : 20,
-      color: AppColors.black,
-    );
-    return Material(
-      color: AppColors.white,
-      borderRadius: BorderRadius.circular(8),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(8),
-        onTap: onTap,
-        child: SizedBox(
-          height: 48,
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            spacing: 8,
-            children: iconTrailing ? [text, iconWidget] : [iconWidget, text],
-          ),
-        ),
-      ),
-    );
-  }
-}
 
 /// The 20%-off Pro upsell bottom sheet (state C).
 class _ProUpsellSheet extends StatelessWidget {
@@ -472,15 +433,13 @@ class _ProUpsellSheet extends StatelessWidget {
                       ),
                     ),
                   ),
-                  IconButton(
-                    onPressed: () => Navigator.of(context).pop(),
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(),
-                    icon: const Icon(
-                      Icons.close,
-                      size: 16,
-                      color: AppColors.whiteAlpha60,
-                    ),
+                  AppTapIconButton(
+                    icon: Icons.close,
+                    label: 'Close offer',
+                    color: AppColors.whiteAlpha60,
+                    size: 16,
+                    dimension: 24,
+                    onTap: () => Navigator.of(context).pop(),
                   ),
                 ],
               ),
@@ -517,11 +476,14 @@ class _ProUpsellSheet extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 20),
-              _WhiteButton(
+              PrimaryButton(
                 label: 'Continue with Pro at 20% off',
                 icon: Icons.arrow_forward,
-                iconTrailing: true,
-                onTap: onContinue,
+                iconAlignment: IconAlignment.end,
+                iconSize: 16,
+                backgroundColor: AppColors.white,
+                foregroundColor: AppColors.black,
+                onPressed: onContinue,
               ),
               const SizedBox(height: 12),
               Center(

@@ -11,6 +11,7 @@ abstract final class AppAssets {
   static const String googleLogo = '$_images/google_logo.svg';
 
   // --- Onboarding: step illustrations --------------------------------------
+  static const String categoryHero = '$_onboarding/category_hero.png';
   static const String stepUpload = '$_onboarding/step-upload.jpg';
   static const String stepModel = '$_onboarding/step-model.jpg';
   static const String stepGenerate = '$_onboarding/step-generate.jpg';

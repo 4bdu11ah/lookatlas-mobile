@@ -4,6 +4,23 @@ import 'package:flutter/material.dart';
 /// scaling every pixel with the device width.
 abstract final class AppResponsive {
   static const double compactBreakpoint = 600;
+  static const double wideBreakpoint = 800;
+  static const double desktopBreakpoint = 1024;
+
+  static const double formMaxWidth = 480;
+  static const double tabletLayoutMaxWidth = 1140;
+
+  static bool isCompact(BuildContext context) =>
+      MediaQuery.sizeOf(context).width < compactBreakpoint;
+
+  static bool isWide(BuildContext context) =>
+      MediaQuery.sizeOf(context).width >= wideBreakpoint;
+
+  static bool isTablet(BuildContext context) {
+    final width = MediaQuery.sizeOf(context).width;
+    return width >= compactBreakpoint && width < desktopBreakpoint;
+  }
+
   static double contentMaxWidthFor(double width) {
     if (width < compactBreakpoint) return 430;
     return 720;

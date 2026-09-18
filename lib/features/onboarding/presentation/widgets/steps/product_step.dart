@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:look_atlas/core/constants/app_assets.dart';
 import 'package:look_atlas/core/theme/app_colors.dart';
 import 'package:look_atlas/core/theme/app_typography.dart';
 import 'package:look_atlas/features/onboarding/domain/entities/onboarding_models.dart';
@@ -18,12 +19,19 @@ part '../product_step_photo_widgets.dart';
 /// angle tagging (mockup 02, states A–C). Stateless: every bit of state,
 /// including the pick-in-flight flag, lives in [wizardControllerProvider].
 class ProductStep extends ConsumerWidget {
-  const ProductStep({required this.phase, super.key});
+  const ProductStep({
+    required this.phase,
+    this.onContinueCategory,
+    this.onBackCategory,
+    super.key,
+  });
 
   /// Which sub-state to render. Passed in (rather than watched) so the
   /// outgoing copy of this widget keeps showing its own phase while the
   /// wizard's AnimatedSwitcher fades between the two.
   final ProductPhase phase;
+  final VoidCallback? onContinueCategory;
+  final VoidCallback? onBackCategory;
 
   /// Camera-or-gallery chooser, then the pick itself via the controller.
   Future<void> _addPhotos(BuildContext context, WidgetRef ref) async {
@@ -79,11 +87,8 @@ class ProductStep extends ConsumerWidget {
     );
     return phase == ProductPhase.category
         ? _CategoryPicker(
-            selected: state.category,
-            // Selecting only highlights the tile and enables Continue —
-            // moving on is an explicit Continue tap.
-            onSelect: (c) =>
-                ref.read(wizardControllerProvider.notifier).selectCategory(c),
+            onContinue: onContinueCategory,
+            onBack: onBackCategory,
           )
         : _PhotoUpload(
             state: state,

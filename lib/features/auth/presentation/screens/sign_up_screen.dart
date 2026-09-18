@@ -1,19 +1,30 @@
-import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
-import 'package:look_atlas/core/error/failure.dart';
-import 'package:look_atlas/core/router/app_routes.dart';
-import 'package:look_atlas/features/auth/domain/validators/auth_validators.dart';
-import 'package:look_atlas/features/auth/presentation/controllers/auth_controller.dart';
-import 'package:look_atlas/features/auth/presentation/controllers/password_visibility_controller.dart';
-import 'package:look_atlas/features/auth/presentation/widgets/auth_layout.dart';
-import 'package:look_atlas/features/auth/presentation/widgets/auth_turnstile.dart';
-import 'package:look_atlas/features/auth/presentation/widgets/social_sign_in_buttons.dart';
-import 'package:look_atlas/shared/widgets/app_snack_bar.dart';
-import 'package:look_atlas/shared/widgets/app_text_field.dart';
+import 'dart:ui';
 
-/// Create-account screen — mirrors `signup.html` (email, password with helper,
-/// create CTA, terms line, sign-in footer).
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:look_atlas/core/error/failure.dart';
+import 'package:look_atlas/core/layout/app_responsive.dart';
+import 'package:look_atlas/core/theme/app_colors.dart';
+import 'package:look_atlas/features/auth/presentation/controllers/auth_controller.dart';
+import 'package:look_atlas/features/auth/presentation/controllers/sign_up_ui_controller.dart';
+import 'package:look_atlas/features/auth/presentation/widgets/sign_up_before_after_header.dart';
+import 'package:look_atlas/features/auth/presentation/widgets/sign_up_form_card.dart';
+import 'package:look_atlas/features/auth/presentation/widgets/sign_up_testimonials.dart';
+import 'package:look_atlas/shared/widgets/app_snack_bar.dart';
+
+/// Sign Up Screen - Variant 8.
+///
+/// Features an interactive before/after split slider hero, thumbnail switcher,
+/// pixel-perfect signup form card with Google & Apple authentication, and
+/// horizontal customer testimonials.
+///
+/// Top status bar behavior:
+/// - Initially at top: image starts below safe area top, with solid dark status bar.
+/// - When scrolled: content scrolls under status bar with frosted glass blur,
+///   transitioning smoothly to dark icons when the white card reaches top.
+///
+/// State management strictly powered by Riverpod without setState.
 class SignUpScreen extends ConsumerStatefulWidget {
   const SignUpScreen({super.key});
 
@@ -23,23 +34,22 @@ class SignUpScreen extends ConsumerStatefulWidget {
 
 class _SignUpScreenState extends ConsumerState<SignUpScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _companyNameController = TextEditingController();
+  final _nameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
-  String? _captchaToken;
-  int _captchaGeneration = 0;
 
   @override
   void dispose() {
-    _companyNameController.dispose();
+    _nameController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
   }
 
   Future<void> _submit() async {
-    if (!_formKey.currentState!.validate()) return;
-    final captchaToken = _captchaToken;
+    if (!(_formKey.currentState?.validate() ?? false)) return;
+
+    final captchaToken = ref.read(signUpTurnstileTokenProvider);
     if (captchaToken == null || captchaToken.isEmpty) {
       AppSnackBar.showError(
         context,
@@ -47,33 +57,25 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
       );
       return;
     }
+
     try {
       await ref
           .read(authControllerProvider.notifier)
           .signUp(
             email: _emailController.text.trim(),
             password: _passwordController.text,
-            companyName: _companyNameController.text.trim(),
+            companyName: _nameController.text.trim(),
             captchaToken: captchaToken,
           );
     } finally {
-      _resetCaptcha();
+      ref.read(signUpTurnstileTokenProvider.notifier).clear();
+      ref.read(signUpCaptchaGenerationProvider.notifier).increment();
     }
-  }
-
-  void _resetCaptcha() {
-    if (!mounted) return;
-    setState(() {
-      _captchaToken = null;
-      _captchaGeneration++;
-    });
   }
 
   @override
   Widget build(BuildContext context) {
     ref.listen(authControllerProvider, (_, next) {
-      // This screen is pushed over SignIn and both share the controller;
-      // only the visible screen shows the error snackbar.
       if (!(ModalRoute.of(context)?.isCurrent ?? true)) return;
       if (next case AsyncError(:final error)) {
         final message = error is Failure
@@ -83,127 +85,179 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
       }
     });
 
-    final isLoading = ref.watch(
-      authControllerProvider.select((s) => s.isLoading),
-    );
-    final scheme = Theme.of(context).colorScheme;
-    final isPasswordVisible = ref.watch(signUpPasswordVisibilityProvider);
+    final isScrolled = ref.watch(signUpIsScrolledProvider);
+    final isScrolledUnder = ref.watch(signUpScrolledUnderProvider);
+    final topPadding = MediaQuery.paddingOf(context).top;
+    final isWide = AppResponsive.isWide(context);
 
-    return AuthScaffold(
-      title: 'Create your account',
-      subtitle: 'Start creating stunning product photos with AI',
-      child: Form(
-        key: _formKey,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            AppTextField(
-              labelText: 'Company name',
-              controller: _companyNameController,
-              hintText: 'Your company',
-              autofillHints: const [AutofillHints.organizationName],
-              textInputAction: TextInputAction.next,
-              validator: AuthValidators.validateCompanyName,
-            ),
-            const SizedBox(height: 20),
-            AppTextField(
-              labelText: 'Email address',
-              controller: _emailController,
-              hintText: 'you@company.com',
-              keyboardType: TextInputType.emailAddress,
-              autofillHints: const [AutofillHints.email],
-              textInputAction: TextInputAction.next,
-              validator: AuthValidators.validateEmail,
-            ),
-            const SizedBox(height: 20),
-            AppTextField(
-              labelText: 'Password',
-              controller: _passwordController,
-              hintText: 'Create a strong password',
-              helperText:
-                  'Must be at least '
-                  '${AuthValidators.minPasswordLength} characters long',
-              autofillHints: const [AutofillHints.newPassword],
-              obscureText: !isPasswordVisible,
-              trailing: IconButton(
-                tooltip: isPasswordVisible ? 'Hide password' : 'Show password',
-                onPressed: ref
-                    .read(signUpPasswordVisibilityProvider.notifier)
-                    .toggle,
-                icon: Icon(
-                  isPasswordVisible
-                      ? Icons.visibility_off_outlined
-                      : Icons.visibility_outlined,
-                ),
+    final overlayStyle = isScrolledUnder
+        ? SystemUiOverlayStyle.dark.copyWith(
+            statusBarColor: AppColors.transparent,
+          )
+        : SystemUiOverlayStyle.light.copyWith(
+            statusBarColor: AppColors.transparent,
+          );
+
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: overlayStyle,
+      child: Scaffold(
+        backgroundColor: AppColors.darkSurface,
+        body: isWide
+            ? _buildWideLayout(context, topPadding)
+            : _buildCompactLayout(
+                context,
+                topPadding,
+                isScrolled,
+                isScrolledUnder,
               ),
-              textInputAction: TextInputAction.done,
-              onFieldSubmitted: (_) => _submit(),
-              validator: AuthValidators.validatePassword,
+      ),
+    );
+  }
+
+  Widget _buildWideLayout(BuildContext context, double topPadding) {
+    return Center(
+      child: SingleChildScrollView(
+        padding: EdgeInsets.symmetric(
+          horizontal: 24,
+          vertical: topPadding > 0 ? topPadding + 16 : 32,
+        ),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(
+            maxWidth: AppResponsive.tabletLayoutMaxWidth,
+          ),
+          child: IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // Left Column: Before/After hero & Testimonials (Variant 5)
+                const Expanded(
+                  flex: 6,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Expanded(
+                        child: SignUpBeforeAfterHeader(
+                          height: null,
+                          margin: EdgeInsets.zero,
+                        ),
+                      ),
+                      SizedBox(height: 10),
+                      SignUpTestimonials(
+                        padding: EdgeInsets.zero,
+                        isColumn: true,
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 10),
+                // Right Column: Form Card (Variant 5)
+                Expanded(
+                  flex: 5,
+                  child: SignUpFormCard(
+                    formKey: _formKey,
+                    nameController: _nameController,
+                    emailController: _emailController,
+                    passwordController: _passwordController,
+                    onSubmit: _submit,
+                    margin: EdgeInsets.zero,
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(height: 20),
-            AuthTurnstile(
-              key: ValueKey(_captchaGeneration),
-              action: AuthTurnstileAction.signup,
-              onTokenChanged: (token) => _captchaToken = token,
-            ),
-            const SizedBox(height: 20),
-            AuthSubmitButton(
-              label: 'Create account',
-              isLoading: isLoading,
-              onPressed: _submit,
-            ),
-            const SizedBox(height: 20),
-            const SocialSignInButtons(),
-            const SizedBox(height: 20),
-            _TermsLine(scheme: scheme),
-            AuthFooterLink(
-              prompt: 'Already have an account?',
-              action: 'Sign in',
-              onTap: () => context.canPop()
-                  ? context.pop()
-                  : context.go(AppRoutes.signIn),
-            ),
-          ],
+          ),
         ),
       ),
     );
   }
-}
 
-/// The centered "By signing up, you agree to our Terms / Privacy" line.
-///
-/// The policy links are disabled [TextButton]s (null `onPressed`) until real
-/// document URLs exist — a dead `onTap: () {}` would ship a tappable element
-/// that does nothing.
-class _TermsLine extends StatelessWidget {
-  const _TermsLine({required this.scheme});
+  Widget _buildCompactLayout(
+    BuildContext context,
+    double topPadding,
+    bool isScrolled,
+    bool isScrolledUnder,
+  ) {
+    return NotificationListener<ScrollNotification>(
+      onNotification: (notification) {
+        // Only react to vertical scrolling of the main compact scroll view
+        if (notification.metrics.axis != Axis.vertical ||
+            notification.depth != 0) {
+          return false;
+        }
 
-  final ColorScheme scheme;
+        final pixels = notification.metrics.pixels;
+        final hasScrolled = pixels > 2.0;
 
-  @override
-  Widget build(BuildContext context) {
-    final base = TextStyle(
-      color: scheme.onSurfaceVariant,
-      fontSize: 12,
-      height: 1.5,
-    );
-    return Wrap(
-      alignment: WrapAlignment.center,
-      crossAxisAlignment: WrapCrossAlignment.center,
-      children: [
-        Text('By signing up, you agree to our ', style: base),
-        AuthTextLink(
-          label: 'Terms of Service',
-          fontSize: 12,
-          onPressed: () {},
-        ),
-        Text(' and ', style: base),
-        AuthTextLink(
-          label: 'Privacy Policy',
-          fontSize: 12,
-          onPressed: () {},
-        ),
-      ],
+        // Determine if the white form card is currently passing under the status bar
+        var isUnder = false;
+        final formBox =
+            _formKey.currentContext?.findRenderObject() as RenderBox?;
+        if (formBox != null && formBox.hasSize) {
+          final formTop = formBox.localToGlobal(Offset.zero).dy;
+          final formBottom = formTop + formBox.size.height;
+          isUnder = formTop <= topPadding && formBottom > 0;
+        } else {
+          isUnder = pixels >= 330.0 && pixels < 1600.0;
+        }
+
+        ref
+            .read(signUpIsScrolledProvider.notifier)
+            .setScrolled(isScrolled: hasScrolled);
+        ref
+            .read(signUpScrolledUnderProvider.notifier)
+            .setScrolled(isScrolled: isUnder);
+        return false;
+      },
+      child: Stack(
+        children: [
+          // Scrollable content starting at topPadding
+          SingleChildScrollView(
+            padding: EdgeInsets.only(top: topPadding),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const SignUpBeforeAfterHeader(),
+                const SizedBox(height: 10),
+                SignUpFormCard(
+                  formKey: _formKey,
+                  nameController: _nameController,
+                  emailController: _emailController,
+                  passwordController: _passwordController,
+                  onSubmit: _submit,
+                ),
+                const SizedBox(height: 10),
+                const SignUpTestimonials(),
+                const SizedBox(height: 24),
+              ],
+            ),
+          ),
+          // Status bar overlay: solid black at top, frosted blur on scroll
+          if (topPadding > 0)
+            Positioned(
+              top: 0,
+              left: 0,
+              right: 0,
+              height: topPadding,
+              child: isScrolled
+                  ? ClipRect(
+                      child: BackdropFilter(
+                        filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+                        child: ColoredBox(
+                          color: isScrolledUnder
+                              ? AppColors.surfaceOffWhite.withValues(
+                                  alpha: 0.85,
+                                )
+                              : AppColors.darkSurface.withValues(
+                                  alpha: 0.8,
+                                ),
+                        ),
+                      ),
+                    )
+                  : const ColoredBox(
+                      color: AppColors.darkSurface,
+                    ),
+            ),
+        ],
+      ),
     );
   }
 }

@@ -14,18 +14,48 @@ const int freeShootShotCount = 5;
 const int freeShootVariationsPerShot = 3;
 const int freeShootImageCount = freeShootShotCount * freeShootVariationsPerShot;
 
-/// The six wizard steps, in flow order. [WizardStep.calibrate] only appears
+/// The five wizard steps, in flow order. [WizardStep.calibrate] only appears
 /// for calibratable categories and is currently feature-flagged off.
-enum WizardStep { intro, product, calibrate, model, director, review }
+enum WizardStep { product, calibrate, model, director, review }
 
 /// Sub-state of the product step: pick a category first, then upload photos.
 enum ProductPhase { category, upload }
 
-/// Product categories offered on step 2 (11 total, "Other" spans two columns).
+/// Category filter chips displayed on the category selection screen.
+enum CategoryFilter {
+  all('All'),
+  apparel('Apparel'),
+  accessories('Accessories'),
+  footwear('Footwear'),
+  other('Other');
+
+  const CategoryFilter(this.label);
+
+  final String label;
+
+  bool matches(ProductCategory category) => switch (this) {
+    CategoryFilter.all => true,
+    CategoryFilter.apparel =>
+      category == ProductCategory.tops ||
+          category == ProductCategory.dresses ||
+          category == ProductCategory.outerwear ||
+          category == ProductCategory.bottoms,
+    CategoryFilter.accessories =>
+      category == ProductCategory.bags ||
+          category == ProductCategory.jewelry ||
+          category == ProductCategory.eyewear ||
+          category == ProductCategory.watches ||
+          category == ProductCategory.accessories,
+    CategoryFilter.footwear => category == ProductCategory.shoes,
+    CategoryFilter.other => category == ProductCategory.other,
+  };
+}
+
+/// Product categories offered on step 1 (11 total).
 enum ProductCategory {
   tops('Tops'),
   dresses('Dresses'),
-  outerwear('Outerwear'),
+  outerwear('Outwear'),
   bottoms('Bottoms'),
   bags('Bags'),
   shoes('Shoes'),

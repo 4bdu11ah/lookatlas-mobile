@@ -23,13 +23,14 @@ enum PhotoPickResult {
   failed,
 }
 
-/// Everything the six-step wizard has collected so far.
+/// Everything the onboarding wizard has collected so far.
 @immutable
 class WizardState {
   const WizardState({
-    this.step = WizardStep.intro,
+    this.step = WizardStep.product,
     this.productPhase = ProductPhase.category,
     this.category,
+    this.categoryFilter = CategoryFilter.all,
     this.photos = const [],
     this.addingPhotos = false,
     this.calibrationSubtype,
@@ -47,6 +48,7 @@ class WizardState {
   final WizardStep step;
   final ProductPhase productPhase;
   final ProductCategory? category;
+  final CategoryFilter categoryFilter;
   final List<WizardPhoto> photos;
   final bool addingPhotos;
   final String? calibrationSubtype;
@@ -67,7 +69,6 @@ class WizardState {
   /// Steps in flow order for the current selections. Calibration only joins
   /// the flow for calibratable categories when the trial flag is on.
   List<WizardStep> get flow => [
-    WizardStep.intro,
     WizardStep.product,
     if (calibrationEnabledInTrial && (category?.isCalibratable ?? false))
       WizardStep.calibrate,
@@ -76,10 +77,17 @@ class WizardState {
     WizardStep.review,
   ];
 
-  /// 1-based position of the current step, driving the top progress bar.
-  /// Progress is always rendered out of 6 (matching the mockups) even when
-  /// the calibrate step is skipped.
-  double get progress => (step.index + 1) / WizardStep.values.length;
+  /// 1-based position of the current step in the 7-step onboarding process.
+  int get currentStepNumber => switch (step) {
+    WizardStep.product => productPhase == ProductPhase.category ? 1 : 2,
+    WizardStep.calibrate => 2,
+    WizardStep.model => 3,
+    WizardStep.director => 4,
+    WizardStep.review => 5,
+  };
+
+  /// Progress fraction out of 7 steps.
+  double get progress => currentStepNumber / 7.0;
 
   /// Display name for the product shown on the review card.
   String get productName => category?.label ?? 'Your product';
@@ -88,7 +96,6 @@ class WizardState {
 
   /// Whether Continue should be enabled for the current step.
   bool get canContinue => switch (step) {
-    WizardStep.intro => true,
     WizardStep.product =>
       productPhase == ProductPhase.category
           ? category != null
@@ -111,6 +118,7 @@ class WizardState {
     WizardStep? step,
     ProductPhase? productPhase,
     ProductCategory? category,
+    CategoryFilter? categoryFilter,
     List<WizardPhoto>? photos,
     bool? addingPhotos,
     String? calibrationSubtype,
@@ -130,6 +138,7 @@ class WizardState {
       step: step ?? this.step,
       productPhase: productPhase ?? this.productPhase,
       category: category ?? this.category,
+      categoryFilter: categoryFilter ?? this.categoryFilter,
       photos: photos ?? this.photos,
       addingPhotos: addingPhotos ?? this.addingPhotos,
       calibrationSubtype: calibrationSubtype ?? this.calibrationSubtype,
@@ -214,6 +223,11 @@ class WizardController extends Notifier<WizardState> {
   }
 
   // --- Step 2: product -----------------------------------------------------
+  // --- Step 1: category ---------------------------------------------------
+
+  void setCategoryFilter(CategoryFilter filter) {
+    state = state.copyWith(categoryFilter: filter);
+  }
 
   void selectCategory(ProductCategory category) {
     state = state.copyWith(category: category);

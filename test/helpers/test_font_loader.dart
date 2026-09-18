@@ -14,4 +14,15 @@ Future<void> loadTestFonts() async {
   final iconLoader = FontLoader('MaterialIcons')
     ..addFont(rootBundle.load('fonts/MaterialIcons-Regular.otf'));
   await iconLoader.load();
+
+  final brandFonts = [
+    ('Sekuya', 'assets/fonts/Sekuya-Regular.ttf'),
+    ('RethinkSans', 'assets/fonts/RethinkSans-Regular.ttf'),
+    ('Qahiri', 'assets/fonts/Qahiri-Regular.ttf'),
+    ('RedRose', 'assets/fonts/RedRose-Regular.ttf'),
+  ];
+  for (final (name, assetPath) in brandFonts) {
+    final loader = FontLoader(name)..addFont(rootBundle.load(assetPath));
+    await loader.load();
+  }
 }

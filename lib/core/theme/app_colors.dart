@@ -36,6 +36,18 @@ abstract final class AppColors {
   static const Color muted = Color(0xFF696963);
   static const Color soft = Color(0xFFF0F0EC);
 
+  // --- Variant 8 & Auth design tokens -------------------------------------
+  static const Color darkSurface = Color(0xFF0F0F0F);
+  static const Color surfaceOffWhite = Color(0xFFFCFCFC);
+  static const Color darkBadge = Color(0xFF181818);
+  static const Color darkCard = Color(0xFF171817);
+  static const Color textSecondary = Color(0xFF525252);
+  static const Color textMuted = Color(0xFF6B6B6B);
+  static const Color textPlaceholder = Color(0xFFB0B0B0);
+  static const Color textTertiary = Color(0xFF999999);
+  static const Color borderLight = Color(0xFFE3E3E3);
+  static const Color starGold = Color(0xFFD4A017);
+
   // --- Alpha tokens -------------------------------------------------------
   static const Color blackAlpha07 = Color(0x11000000);
   static const Color blackAlpha10 = Color(0x1A000000);

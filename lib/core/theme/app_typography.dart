@@ -47,6 +47,50 @@ abstract final class AppTypography {
   /// Optional monospace family for code, numbers or tabular data.
   static const String? monospaceFontFamily = null;
 
+  /// Apple SF Pro font family.
+  static const String sfProFontFamily = 'SF Pro Display';
+
+  /// Fallbacks for SF Pro across platforms.
+  static const List<String> sfProFallbacks = [
+    '.SF Pro Text',
+    '.SF Pro Display',
+    'SF Pro Text',
+    'SF Pro',
+    '-apple-system',
+    'BlinkMacSystemFont',
+    'system-ui',
+    'sans-serif',
+  ];
+
+  /// Brand logo fonts.
+  static const String sekuyaFontFamily = 'Sekuya';
+  static const String rethinkSansFontFamily = 'RethinkSans';
+  static const String qahiriFontFamily = 'Qahiri';
+  static const String redRoseFontFamily = 'RedRose';
+
+  /// Creates a [TextStyle] using SF Pro typography.
+  static TextStyle sfPro({
+    double? fontSize,
+    FontWeight? fontWeight,
+    Color? color,
+    double? height,
+    double? letterSpacing,
+    TextDecoration? decoration,
+    FontStyle? fontStyle,
+  }) {
+    return TextStyle(
+      fontFamily: sfProFontFamily,
+      fontFamilyFallback: sfProFallbacks,
+      fontSize: fontSize,
+      fontWeight: fontWeight,
+      color: color,
+      height: height,
+      letterSpacing: letterSpacing,
+      decoration: decoration,
+      fontStyle: fontStyle,
+    );
+  }
+
   // --- Weights -------------------------------------------------------------
   static const FontWeight regular = FontWeight.w400;
   static const FontWeight medium = FontWeight.w500;

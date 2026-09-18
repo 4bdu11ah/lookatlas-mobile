@@ -22,10 +22,22 @@ class App extends ConsumerWidget {
       theme: AppTheme.light(),
       darkTheme: AppTheme.dark(),
       themeMode: themeMode,
-      builder: (context, child) => GestureDetector(
-        onTap: () => FocusScope.of(context).unfocus(),
-        child: ConnectivityBanner(child: child ?? const SizedBox.shrink()),
-      ),
+      builder: (context, child) {
+        final mediaQuery = MediaQuery.of(context);
+        final clampedData = mediaQuery.copyWith(
+          textScaler: mediaQuery.textScaler.clamp(
+            minScaleFactor: 0.9,
+            maxScaleFactor: 1.15,
+          ),
+        );
+        return MediaQuery(
+          data: clampedData,
+          child: GestureDetector(
+            onTap: () => FocusScope.of(context).unfocus(),
+            child: ConnectivityBanner(child: child ?? const SizedBox.shrink()),
+          ),
+        );
+      },
     );
   }
 }

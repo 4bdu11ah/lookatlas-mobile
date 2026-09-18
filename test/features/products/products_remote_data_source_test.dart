@@ -319,7 +319,7 @@ void main() {
     );
     final photoKeys = (Map<String, String>.fromEntries(
       formData.fields,
-    )['photo_keys']!).replaceAll(RegExp('[\\[\\]"]'), '').split(',');
+    )['photo_keys']!).replaceAll(RegExp(r'[\[\]"]'), '').split(',');
     expect(photoKeys, everyElement(matches(RegExp(r'^[A-Za-z0-9]{1,32}$'))));
   });
 
@@ -337,7 +337,6 @@ void main() {
       const draft = CatalogProductDraft(
         name: 'Unchanged name',
         sku: 'NEW-SKU',
-        description: '',
         category: 'Bags',
         subCategory: 'Other Bag',
         changedFields: {'sku', 'description', 'sub_category'},

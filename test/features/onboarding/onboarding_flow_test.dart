@@ -281,7 +281,7 @@ void main() {
       router.go(AppRoutes.onboarding);
       await tester.pump();
 
-      expect(find.text('Get My Free Photos'), findsNothing);
+      expect(find.text('What are you shooting?'), findsNothing);
 
       status.complete(
         const OnboardingStatus(
@@ -293,11 +293,11 @@ void main() {
       await tester.pump();
       await tester.pump();
 
-      expect(find.text('Get My Free Photos'), findsOneWidget);
+      expect(find.text('What are you shooting?'), findsOneWidget);
     },
   );
 
-  testWidgets('wizard walks intro → product → model → director → review', (
+  testWidgets('wizard walks category → upload → model → director → review', (
     tester,
   ) async {
     final onboardingRepository = _MockOnboardingRepository();
@@ -348,22 +348,15 @@ void main() {
     await tester.pump(const Duration(milliseconds: 400));
     await tester.pump(const Duration(milliseconds: 400));
 
-    // Step 1 — intro.
-    expect(find.byType(OnboardingWizardScreen), findsOneWidget);
-    expect(find.text('Get My Free Photos'), findsOneWidget);
-    await tester.ensureVisible(find.text('Get My Free Photos'));
-    await tester.tap(find.text('Get My Free Photos'));
-    await tester.pump(const Duration(milliseconds: 400));
-    await tester.pump(const Duration(milliseconds: 400));
-
-    // Step 2A — category picker; picking a category only enables Continue,
+    // Step 1 — category picker; picking a category only enables Continue,
     // it does not advance by itself.
+    expect(find.byType(OnboardingWizardScreen), findsOneWidget);
     expect(find.text('What are you shooting?'), findsOneWidget);
     await tester.ensureVisible(find.text('Tops'));
     await tester.tap(find.text('Tops'));
     await tester.pump(const Duration(milliseconds: 400));
     expect(find.text('What are you shooting?'), findsOneWidget);
-    await tester.tap(find.text('Continue'));
+    await tester.tap(find.text('CONTINUE'));
     await tester.pump(const Duration(milliseconds: 400));
     await tester.pump(const Duration(milliseconds: 400));
 
@@ -468,14 +461,11 @@ void main() {
     router.go(AppRoutes.onboarding);
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 400));
-
-    await tester.ensureVisible(find.text('Get My Free Photos'));
-    await tester.tap(find.text('Get My Free Photos'));
-    await tester.pump(const Duration(milliseconds: 800));
+    await tester.pump(const Duration(milliseconds: 400));
     await tester.ensureVisible(find.text('Tops'));
     await tester.tap(find.text('Tops'));
     await tester.pump(const Duration(milliseconds: 400));
-    await tester.tap(find.text('Continue'));
+    await tester.tap(find.text('CONTINUE'));
     await tester.pump(const Duration(milliseconds: 800));
     await tester.ensureVisible(find.text('Tap to add photos'));
     await tester.tap(find.text('Tap to add photos'));

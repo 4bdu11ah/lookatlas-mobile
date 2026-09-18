@@ -12,7 +12,6 @@ import 'package:look_atlas/features/onboarding/presentation/controllers/wizard_c
 import 'package:look_atlas/features/onboarding/presentation/widgets/onboarding_widgets.dart';
 import 'package:look_atlas/features/onboarding/presentation/widgets/steps/calibrate_step.dart';
 import 'package:look_atlas/features/onboarding/presentation/widgets/steps/director_step.dart';
-import 'package:look_atlas/features/onboarding/presentation/widgets/steps/intro_step.dart';
 import 'package:look_atlas/features/onboarding/presentation/widgets/steps/model_step.dart';
 import 'package:look_atlas/features/onboarding/presentation/widgets/steps/product_step.dart';
 import 'package:look_atlas/features/onboarding/presentation/widgets/steps/review_step.dart';
@@ -21,6 +20,7 @@ import 'package:look_atlas/shared/widgets/look_atlas_loader.dart';
 
 /// The authenticated free-shoot wizard (screens 01–06 of the mockups).
 /// One route hosts all six steps; [wizardControllerProvider] owns which step
+/// One route hosts all steps; [wizardControllerProvider] owns which step
 /// is visible and every selection, so state survives hot reloads and
 /// navigation away and back.
 class OnboardingWizardScreen extends ConsumerStatefulWidget {
@@ -100,6 +100,12 @@ class _OnboardingWizardScreenState
 
   Future<void> _continue(BuildContext context, WidgetRef ref) async {
     final state = ref.read(wizardControllerProvider);
+    if (state.step == WizardStep.product &&
+        state.productPhase == ProductPhase.category &&
+        state.category == null) {
+      AppSnackBar.show(context, 'Pick a category to continue.');
+      return;
+    }
     if (state.step == WizardStep.product &&
         state.productPhase == ProductPhase.upload &&
         state.photos.isNotEmpty &&
@@ -181,6 +187,10 @@ class _OnboardingWizardScreenState
         state.selectedUserModel != null ||
         uploadedModelId != null;
 
+    final isCategoryPhase =
+        state.step == WizardStep.product &&
+        state.productPhase == ProductPhase.category;
+
     final continueLabel =
         state.step == WizardStep.product &&
             state.productPhase == ProductPhase.upload &&
@@ -195,6 +205,9 @@ class _OnboardingWizardScreenState
         child: Column(
           children: [
             WizardProgressBar(fraction: state.progress),
+            // Category Selection screen renders its own pixel-perfect progress
+            // indicator on mobile and sidebar on tablet/desktop.
+            if (!isCategoryPhase) WizardProgressBar(fraction: state.progress),
             Expanded(
               child: AnimatedSwitcher(
                 duration: const Duration(milliseconds: 260),
@@ -220,9 +233,10 @@ class _OnboardingWizardScreenState
                     ),
                   ),
                   child: switch (state.step) {
-                    WizardStep.intro => const IntroStep(),
                     WizardStep.product => ProductStep(
                       phase: state.productPhase,
+                      onContinueCategory: () => _continue(context, ref),
+                      onBackCategory: () => _back(context, ref),
                     ),
                     WizardStep.calibrate => const CalibrateStep(),
                     WizardStep.model => const ModelStep(),
@@ -232,9 +246,9 @@ class _OnboardingWizardScreenState
                 ),
               ),
             ),
-            // The intro step sells with its own full-width CTA instead of the
-            // Back/Continue bar; the review step keeps only Back.
-            if (state.step != WizardStep.intro)
+            // Category Selection screen has its own pixel-perfect action bar;
+            // review step keeps only Back.
+            if (!isCategoryPhase)
               WizardNavBar(
                 onBack: () => _back(context, ref),
                 showContinue: state.step != WizardStep.review,

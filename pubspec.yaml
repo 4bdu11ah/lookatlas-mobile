@@ -92,3 +92,16 @@ flutter:
         - asset: assets/fonts/InstrumentSerif-Italic.ttf
           weight: 400
           style: italic
+    - family: Sekuya
+      fonts:
+        - asset: assets/fonts/Sekuya-Regular.ttf
+    - family: RethinkSans
+      fonts:
+        - asset: assets/fonts/RethinkSans-Regular.ttf
+    - family: Qahiri
+      fonts:
+        - asset: assets/fonts/Qahiri-Regular.ttf
+    - family: RedRose
+      fonts:
+        - asset: assets/fonts/RedRose-Regular.ttf
+

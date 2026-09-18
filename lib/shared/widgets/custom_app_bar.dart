@@ -7,8 +7,8 @@ import 'package:look_atlas/shared/widgets/app_icon_button.dart';
 
 class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
   const CustomAppBar({
-    required this.title,
     super.key,
+    this.title,
     this.showBackButton = false,
     this.onBack,
     this.actions = const [],
@@ -16,7 +16,7 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
     this.height = 44,
   });
 
-  final String title;
+  final String? title;
   final bool showBackButton;
   final VoidCallback? onBack;
   final List<Widget> actions;
@@ -47,21 +47,23 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
               color: AppColors.black,
             )
           : const SizedBox.shrink(),
-      title: FittedBox(
-        fit: BoxFit.scaleDown,
-        child: Text(
-          title,
-          textAlign: TextAlign.center,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: const TextStyle(
-            fontSize: 16,
-            height: 1.2,
-            fontWeight: AppTypography.bold,
-            color: AppColors.black,
-          ),
-        ),
-      ),
+      title: (title != null && title!.isNotEmpty)
+          ? FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                title!,
+                textAlign: TextAlign.center,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontSize: 16,
+                  height: 1.2,
+                  fontWeight: AppTypography.bold,
+                  color: AppColors.black,
+                ),
+              ),
+            )
+          : null,
       actions: actions.isEmpty
           ? const [SizedBox(width: 20)]
           : [
